@@ -19,17 +19,32 @@
             margin: 0;
             overflow: hidden; /* Prevent body scroll */
         }
-        .game-container {
-            width: 90%; /* Responsive width */
-            max-width: 800px; /* Max width for larger screens */
+        .main-layout-container { /* New container for HUD + Game */
+            display: flex;
+            width: 95%; /* Slightly wider to accommodate HUD */
+            max-width: 1200px; /* Max width for larger screens */
             height: 90vh; /* Responsive height */
             background-color: #2d3748; /* Slightly lighter dark background for container */
             border: 2px solid #48bb78; /* Green border */
             border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 0 20px rgba(72, 187, 120, 0.5); /* Green glow effect */
+            overflow: hidden; /* Ensure content within stays */
+        }
+        .player-hud { /* New HUD sidebar */
+            width: 250px; /* Fixed width for HUD */
+            background-color: #1a202c; /* Darker background for HUD */
+            border-right: 1px solid #48bb78; /* Separator border */
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Scroll for HUD content if it gets long */
+            flex-shrink: 0; /* Prevent HUD from shrinking */
+        }
+        .game-container { /* Main game output area */
+            flex-grow: 1; /* Takes remaining space */
             display: flex;
             flex-direction: column;
             padding: 1.5rem;
-            box-shadow: 0 0 20px rgba(72, 187, 120, 0.5); /* Green glow effect */
             overflow: hidden; /* Ensure content within stays */
         }
         .game-output {
@@ -78,16 +93,87 @@
         .game-output strong {
             color: #f6ad55; /* Orange for emphasis */
         }
+
+        /* HUD specific styles */
+        .hud-section {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed #48bb7850; /* Light dashed separator */
+        }
+        .hud-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .hud-hp-bar-container {
+            width: 100%;
+            background-color: #4a5568; /* Darker grey for empty bar */
+            border-radius: 0.25rem;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+        .hud-hp-bar {
+            height: 100%;
+            background-color: #48bb78; /* Green HP */
+            width: 100%; /* Will be set by JS */
+            border-radius: 0.25rem;
+            transition: width 0.3s ease-in-out;
+        }
+        .hud-hp-bar.low { background-color: #f6ad55; } /* Yellow for low HP */
+        .hud-hp-bar.critical { background-color: #fc8181; } /* Red for critical HP */
+
+        .hud-resource-bar-container {
+            width: 100%;
+            background-color: #4a5568;
+            border-radius: 0.25rem;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+        .hud-resource-bar {
+            height: 100%;
+            background-color: #63b3ed; /* Blue for resource */
+            width: 100%; /* Will be set by JS */
+            border-radius: 0.25rem;
+            transition: width 0.3s ease-in-out;
+        }
+        .hud-minion-list {
+            font-size: 0.875rem; /* Smaller text for minions */
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .main-layout-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 95vh;
+            }
+            .player-hud {
+                width: 100%;
+                height: auto; /* Allow HUD to take necessary height */
+                border-right: none;
+                border-bottom: 1px solid #48bb78;
+                padding-bottom: 1rem; /* Add padding at bottom for mobile */
+            }
+            .game-container {
+                padding-top: 1rem; /* Adjust padding for mobile */
+            }
+        }
     </style>
 </head>
 <body class="antialiased">
-    <div class="game-container">
-        <div id="game-output" class="game-output">
-            <!-- Game messages will appear here -->
+    <div class="main-layout-container">
+        <div id="player-hud" class="player-hud">
+            <!-- Player HUD content will be dynamically inserted here -->
         </div>
-        <div class="game-input-area">
-            <input type="text" id="game-input" class="game-input" placeholder="Type your command...">
-            <button id="submit-command" class="game-submit-btn">Go</button>
+        <div class="game-container">
+            <div id="game-output" class="game-output">
+                <!-- Game messages will appear here -->
+            </div>
+            <div class="game-input-area">
+                <input type="text" id="game-input" class="game-input" placeholder="Type your command...">
+                <button id="submit-command" class="game-submit-btn">Go</button>
+            </div>
         </div>
     </div>
 
@@ -96,6 +182,7 @@
         const gameOutput = document.getElementById('game-output');
         const gameInput = document.getElementById('game-input');
         const submitButton = document.getElementById('submit-command');
+        const playerHudElement = document.getElementById('player-hud'); // New HUD element reference
 
         // --- Game World Data ---
         const rooms = {
@@ -226,7 +313,7 @@
             'Fortress': { description: 'Create a zone lasting 3 turns, allies take -20% dmg inside.', cost: 2, resource: 'Marks', effects: [{ type: 'create_zone', zone: 'Fortress', duration: 3, effect: { type: 'damage_reduction', value: 0.2 } }], target: 'self', damage_type: 'utility' },
 
             // Necromancer Base Skills
-            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
+            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
             'Raise Skeleton': { description: 'Summon skeleton (5–7 dmg/turn).', cost: 2, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'skeleton', damage: [5, 7], duration: 'permanent' }], target: 'self' },
             'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
             'Channel the Grave': { description: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 1 turn)', cost: 0, resource: 'Soul Energy', effects: [{ type: 'gain_resource', resource: 'Soul Energy', value: 1 }, { type: 'take_true_damage', value: 2 }, { type: 'apply_status', status: 'Channel Cooldown', duration: 1 }], target: 'self' }, // Safety valve
@@ -310,6 +397,7 @@
             'Arcane Hollow': { description: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', cost: 'all', resource: 'Deception Tokens', oncePerFight: true, effects: [{ type: 'remove_enemy_skill_on_hit_permanent' }], target: 'self' }, // Illusionist Ascended
             'Eternal Architect': { description: 'Rearrange entire turn order for 3 turns.', cost: 'all', resource: 'Time Charges', oncePerFight: true, effects: [{ type: 'rearrange_turn_order', duration: 3 }], target: 'all_combatants' } // Chronomancer Ascended
         };
+
 
         // --- Skill Aliases (New) ---
         const skillAliases = {
@@ -420,7 +508,7 @@
                             { level: 5, name: 'Ravager', trait: 'Cleave Expert', traitEffect: 'Hitting 2+ enemies refunds 1 Fury.', skill: 'Whirlwind', lore: "Entire warbands fall to your relentless charge. Walls mean nothing — you are the storm that breaks them.", loreEffect: "Specializes in carving through multiple foes. Brutal, efficient, merciless." },
                             { level: 8, name: 'Bloodrunner', trait: 'Kill Rush', traitEffect: 'Killing an enemy grants +2 Fury & an extra turn (once/turn).', skill: 'Lunge', lore: "You are a predator in the chaos of war, darting from kill to kill with uncanny speed.", loreEffect: "Thrives on momentum and relentless pursuit. A killing blow only fuels the next." },
                             { level: 11, name: 'Dragon Slayer', trait: 'Scale Breaker', traitEffect: '+50% crit dmg vs Large enemies; immune to fear.', skill: 'Sever Spine', unlockTrigger: 'slaying a named dragon boss', lore: "The world whispers your name with awe and fear — you have slain what should not be slain.", loreEffect: "Dragons are your prey now. Scales, fire, and legends fall before you." },
-                            { level: 14, name: 'Wyrm’s End', trait: 'Boss kills grant permanent +1% all stats.', traitEffect: 'Boss kills grant permanent +1% all stats.', skill: 'Dragon’s Dominion', ascended: true, lore: "No beast can stand before you. Every victory adds to your legend — and to your strength.", loreEffect: "Every boss slain empowers you permanently. Hunters become myths; myths become eternal." }
+                            { level: 14, name: 'Wyrm’s End', trait: 'Boss kills grant permanent +1% all stats.', traitEffect: 'Boss kills grant permanent +1% all stats.', skill: 'Dragon’s Dominion', ascended: true, lore: "No beast can stand before you. Every victory adds to your legend — and to your strength.", loreEffect: "Every boss slain empowers you permanently. Hunters become myths; myths becomes eternal." }
                         ]
                     },
                     'warden': {
@@ -923,6 +1011,8 @@
                 playerProgression.currentBranch = null;
                 playerProgression.currentEvolutionName = baseClassInfo.name || className.charAt(0).toUpperCase() + className.slice(1);
                 playerProgression.currentEvolutionStageIndex = 0;
+
+                updatePlayerHud(); // Initial HUD update
             } else {
                 console.error("Attempted to initialize with an invalid class:", className);
             }
@@ -1077,31 +1167,34 @@
             for (const combatant of turnOrder) {
                 await displayMessage(`${combatant.name} (SPD: ${combatant.spd})`);
             }
+            updatePlayerHud(); // Update HUD after combat starts
 
             // Start the first turn
             await resolveTurn();
         }
 
         /**
-         * Displays the current state of combat (player and enemy HP).
-         * Includes resource tips for Necromancer.
+         * Displays the current state of combat (player and enemy HP) and the numbered action menu.
          */
         async function displayCombatState() { // Made async
-            await displayMessage("\n--- Battle Status ---", true);
-            await displayMessage(`You (${playerStats.currentHP}/${playerStats.maxHP} HP) | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
+            // Removed redundant HP/resource display from main log, as it's in HUD
+            // await displayMessage("\n--- Battle Status ---", true);
+            // await displayMessage(`You (${playerStats.currentHP}/${playerStats.maxHP} HP) | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
 
-            // Resource tips for Necromancer
-            if (playerProgression.baseClass === 'necromancer') {
-                let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
-                if (!playerStats.activeSkills.includes('Channel the Grave')) { // Check if Channel the Grave is available
-                     // If it's a base skill, it's always available. This check assumes it's an evolved skill for now.
-                     // A better check would be if the player has the skill in their activeSkills array.
-                     // For now, let's assume it's always available for Necromancer.
-                } else {
-                    tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
-                }
-                await displayMessage(tip);
-            }
+            // Resource tips based on class - now integrated into the HUD update logic
+            // if (playerProgression.baseClass === 'necromancer') {
+            //     let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
+            //     if (playerStats.activeSkills.includes('Channel the Grave')) {
+            //         tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
+            //     }
+            //     await displayMessage(tip);
+            // } else if (playerProgression.baseClass === 'warrior') {
+            //     await displayMessage("Tip: Momentum is gained +1 per hit, lost if you skip a turn.");
+            // } else if (playerProgression.baseClass === 'rogue') {
+            //     await displayMessage(`Tip: Energy regenerates +${playerStats.resource.regen} per turn.`);
+            // } else if (playerProgression.baseClass === 'mage') {
+            //     await displayMessage(`Tip: Mana regenerates +${playerStats.resource.regen} per turn.`);
+            // }
 
 
             for (const [index, enemy] of currentEnemies.entries()) {
@@ -1109,16 +1202,46 @@
                     await displayMessage(`${index + 1}. ${enemy.name} (${enemy.hp}/${enemy.maxHp} HP)`);
                 }
             }
-            if (playerMinions.length > 0) {
-                await displayMessage("-- Your Minions --", true);
-                playerMinions.forEach((minion, index) => {
-                    if (minion.hp > 0) {
-                        displayMessage(`Minion ${index + 1}: ${minion.name} (${minion.hp}/${minion.maxHp} HP)`);
-                    }
-                });
-            }
+            // Minion display also moved to HUD
+            // if (playerMinions.length > 0) {
+            //     await displayMessage("-- Your Minions --", true);
+            //     playerMinions.forEach((minion, index) => {
+            //         if (minion.hp > 0) {
+            //             displayMessage(`Minion ${index + 1}: ${minion.name} (${minion.hp}/${minion.maxHp} HP)`);
+            //         }
+            //     });
+            // }
             await displayMessage("---------------------");
-            await displayMessage("Available combat commands: attack [enemy_number], use [skill_name], flee.");
+            await displayMessage("What will you do?");
+
+            const combatActions = [];
+            combatActions.push({ type: 'attack', name: 'Attack', skillName: 'Slash' }); // Basic Attack
+
+            // Add active skills
+            playerStats.activeSkills.forEach(skillName => {
+                // Exclude 'Slash' if it's already the basic attack for the player's class
+                const baseClassStartingSkills = basePlayerClasses[playerProgression.baseClass]?.startingSkills || [];
+                if (!baseClassStartingSkills.includes(skillName) || skillName !== 'Slash') { // Only add if not a basic attack already handled by 'Attack'
+                    combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
+                }
+            });
+
+            combatActions.push({ type: 'flee', name: 'Flee' });
+            combatActions.push({ type: 'stats', name: 'Stats' });
+            combatActions.push({ type: 'class_lore', name: 'Class Lore' });
+
+            for (let i = 0; i < combatActions.length; i++) {
+                const action = combatActions[i];
+                let displayLine = `${i + 1}. ${action.name}`;
+                if (action.type === 'skill' && skillDefinitions[action.skillName]) {
+                    const skillInfo = skillDefinitions[action.skillName];
+                    if (skillInfo.cost > 0 || skillInfo.cost === 'all') {
+                        displayLine += ` [Cost: ${skillInfo.cost} ${playerStats.resource.type}]`;
+                    }
+                }
+                await displayMessage(displayLine);
+            }
+            await displayMessage("Or type a command directly (e.g., 'attack 1', 'use grave bolt 1').");
         }
 
         /**
@@ -1147,6 +1270,7 @@
             if (currentCombatant.isPlayer) {
                 await displayMessage(`\n--- Your Turn! ---`, true);
                 await displayCombatState();
+                updatePlayerHud(); // Update HUD at start of player's turn
                 gameInput.focus();
                 // We return here and wait for processCombatCommand to call resolveTurn again
                 return;
@@ -1168,6 +1292,7 @@
             if (currentTurnIndex === 0) {
                 await endOfRoundEffects(); // Await endOfRoundEffects
             }
+            updatePlayerHud(); // Update HUD after each combatant's turn
             await resolveTurn(); // Recursively call for next turn (enemy or player)
         }
 
@@ -1255,6 +1380,7 @@
          * @param {object} caster - The combatant using the skill.
          * @param {object | Array<object>} targets - The target(s) of the skill.
          * @param {object} skillInfo - The skill definition.
+         * @returns {Promise<boolean>} True if the skill effect was successfully applied, false otherwise.
          */
         async function applySkillEffect(caster, targets, skillInfo) {
             // Ensure targets is an array for consistent processing
@@ -1383,6 +1509,7 @@
                 await displayMessage("You defeated all enemies!");
                 await addExperience(50); // Example XP reward
                 await displayRoomDescription();
+                updatePlayerHud(); // Update HUD after combat ends
                 return true;
             }
 
@@ -1391,6 +1518,7 @@
                 inCombat = false;
                 gameActive = false; // Game over
                 await displayMessage("You have been defeated! Game Over.");
+                updatePlayerHud(); // Update HUD after combat ends
                 return true;
             }
             return false;
@@ -1426,7 +1554,7 @@
                     return effect.duration === 'permanent' || effect.duration > 0;
                 });
             }
-
+            updatePlayerHud(); // Update HUD after end of round effects
             // Minion actions (already handled in resolveTurn for now, but could be moved here for clarity)
         }
 
@@ -1462,6 +1590,7 @@
                 playerStats.critChance = Math.min(0.5, playerStats.critChance + 0.01); // Cap crit chance
 
                 await handleEvolution();
+                updatePlayerHud(); // Update HUD after level up/evolution
             }
         }
 
@@ -1557,6 +1686,7 @@
                             await displayMessage("You feel an unholy transformation... the world shifts around you. The whispers grow louder...", true);
                             await displayMessage(legendaryAndSecretClasses.the_hollow_king.uponUnlock, true);
                         }
+                        updatePlayerHud(); // Update HUD after evolution
                     }
                 }
             }
@@ -1792,6 +1922,78 @@
             await displayMessage(evolutionViews.lore, true); // Display lore view
         }
 
+        /**
+         * Updates the Player HUD with current player stats, resources, and combat info.
+         */
+        function updatePlayerHud() {
+            if (!playerHudElement) return; // Exit if HUD element not found
+
+            let hudContent = '';
+
+            // Identity
+            hudContent += `<div class="hud-section">`;
+            hudContent += `<strong>${playerStats.name || 'Player'}</strong><br>`;
+            hudContent += `${playerProgression.currentEvolutionName} / Lv${playerStats.level}`;
+            if (playerProgression.currentBranch) {
+                hudContent += `<br>(${playerProgression.currentBranch.charAt(0).toUpperCase() + playerProgression.currentBranch.slice(1).replace(/_/g, ' ')})`;
+            }
+            hudContent += `</div>`;
+
+            // Vitals (HP)
+            const hpPercent = (playerStats.currentHP / playerStats.maxHP) * 100;
+            let hpBarColorClass = 'low';
+            if (hpPercent > 60) hpBarColorClass = 'green';
+            if (hpPercent < 30) hpBarColorClass = 'critical';
+
+            hudContent += `<div class="hud-section">`;
+            hudContent += `HP: ${playerStats.currentHP}/${playerStats.maxHP}`;
+            hudContent += `<div class="hud-hp-bar-container"><div class="hud-hp-bar ${hpBarColorClass}" style="width: ${hpPercent}%;"></div></div>`;
+            hudContent += `DEF: ${playerStats.def}`;
+            // Add resistances later
+            hudContent += `</div>`;
+
+            // Primary Resource
+            const resourcePercent = (playerStats.resource.current / playerStats.resource.max) * 100;
+            hudContent += `<div class="hud-section">`;
+            hudContent += `${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`;
+            hudContent += `<div class="hud-resource-bar-container"><div class="hud-resource-bar" style="width: ${resourcePercent}%;"></div></div>`;
+            // Add resource hint
+            if (playerProgression.baseClass === 'necromancer') {
+                hudContent += `<span class="text-xs text-gray-400">Gain: kills (+1, +2 last-hit), +1 on turns you deal damage</span>`;
+            } else if (playerProgression.baseClass === 'warrior') {
+                hudContent += `<span class="text-xs text-gray-400">Gain: +1 per hit, lose all if skip turn</span>`;
+            } else if (playerProgression.baseClass === 'rogue') {
+                hudContent += `<span class="text-xs text-gray-400">Regen: +${playerStats.resource.regen}/turn</span>`;
+            } else if (playerProgression.baseClass === 'mage') {
+                hudContent += `<span class="text-xs text-gray-400">Regen: +${playerStats.resource.regen}/turn</span>`;
+            }
+            hudContent += `</div>`;
+
+            // Minions
+            if (playerMinions.length > 0) {
+                hudContent += `<div class="hud-section">`;
+                hudContent += `<strong>Minions (${playerMinions.filter(m => m.hp > 0).length})</strong><br>`;
+                playerMinions.forEach(minion => {
+                    if (minion.hp > 0) {
+                        hudContent += `<span class="hud-minion-list">• ${minion.name} ${minion.hp}/${minion.maxHp} HP</span><br>`;
+                    }
+                });
+                hudContent += `</div>`;
+            }
+
+            // Buffs & Debuffs (Placeholder)
+            if (playerStats.statusEffects.length > 0) {
+                hudContent += `<div class="hud-section">`;
+                hudContent += `<strong>Effects</strong><br>`;
+                playerStats.statusEffects.forEach(effect => {
+                    hudContent += `<span class="text-xs text-blue-300">${effect.name} (${effect.duration}t)</span><br>`;
+                });
+                hudContent += `</div>`;
+            }
+
+            playerHudElement.innerHTML = hudContent;
+        }
+
 
         /**
          * Processes the player's command.
@@ -1850,9 +2052,8 @@
             // --- Normal Game Command Processing (Exploration Mode) ---
             await displayMessage(`> ${commandText}`, true); // Echo the command
 
-            const commandParts = cleanedCommand.split(' ');
-            const mainCommand = commandParts[0];
-            const argument = commandParts.slice(1).join(' ');
+            const { command: mainCommand, targetNum: targetNum } = normalizeCommandInput(cleanedCommand);
+            const argument = cleanedCommand.split(' ').slice(1).join(' '); // Keep original argument for some cases if needed
 
             switch (mainCommand) {
                 case 'go':
@@ -1899,11 +2100,9 @@
                     }
                     break;
                 case 'use':
-                    if (argument) {
-                        await useSkill(argument);
-                    } else {
-                        await displayMessage("Use what skill? Type 'use [skill name]'.");
-                    }
+                    // Use handlePlayerSkillAction for skills in exploration mode too
+                    const skillName = argument.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    await handlePlayerSkillAction(skillName, targetNum); // Pass targetNum from parsed argument
                     break;
                 case 'engage': // New command to start combat
                     const roomEnemies = rooms[currentRoom]?.enemies;
@@ -1933,7 +2132,7 @@
                     }
                     break;
                 default:
-                    await displayMessage("I don't understand that command. Type 'help' for assistance.");
+                    await displayErrorMessage("I don't understand that command.", mainCommand); // Pass mainCommand for suggestions
             }
         }
 
@@ -1960,75 +2159,120 @@
 
             let actionTaken = false; // Flag to indicate if a valid action was taken
 
-            // Handle aliases for skills
-            if (skillAliases[mainCommand]) {
-                mainCommand = 'use';
-                // If an alias was used, the actual skill name is the alias's value
-                // The targetNum is already extracted by normalizeCommandInput
-                // We need to pass the full skill name to applySkillEffect
-                const skillNameFromAlias = skillAliases[mainCommandRaw];
-                // Reconstruct argument for 'use' command logic
-                // This is a bit clunky, but handles the alias case
-                // The applySkillEffect will get the correct skillInfo from skillDefinitions
-                // based on the normalized name.
-                // For now, let's just use skillNameFromAlias as the skill name for 'use'
-                await handlePlayerSkillAction(skillNameFromAlias, targetNum); // Call the new helper
-                actionTaken = true;
-                return; // Exit here, handled by helper
-            }
+            // Define the combat menu actions dynamically
+            const combatActions = [];
+            combatActions.push({ type: 'attack', name: 'Attack', skillName: 'Slash' }); // Basic Attack (using Slash as the default name)
 
-            // Handle bare skill names (e.g., "grave bolt" instead of "use grave bolt")
-            const skillNameFromBareCommand = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            if (skillDefinitions[skillNameFromBareCommand] && mainCommand !== 'attack' && mainCommand !== 'use' && mainCommand !== 'flee' && mainCommand !== 'stats' && mainCommand !== 'class_lore' && mainCommand !== 'cl') {
-                mainCommand = 'use';
-                await handlePlayerSkillAction(skillNameFromBareCommand, targetNum); // Call the new helper
-                actionTaken = true;
-                return; // Exit here, handled by helper
-            }
+            // Add active skills
+            playerStats.activeSkills.forEach(skillName => {
+                // Exclude 'Slash' if it's already the basic attack for the player's class
+                const baseClassStartingSkills = basePlayerClasses[playerProgression.baseClass]?.startingSkills || [];
+                if (!baseClassStartingSkills.includes(skillName) || skillName !== 'Slash') { // Only add if not a basic attack already handled by 'Attack'
+                    combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
+                }
+            });
 
+            combatActions.push({ type: 'flee', name: 'Flee' });
+            combatActions.push({ type: 'stats', name: 'Stats' });
+            combatActions.push({ type: 'class_lore', name: 'Class Lore' });
 
-            switch (mainCommand) {
-                case 'attack':
+            // --- Handle Numeric Input (Menu Selection) ---
+            const numericInput = parseInt(mainCommandRaw);
+            if (!isNaN(numericInput) && numericInput >= 1 && numericInput <= combatActions.length) {
+                const chosenAction = combatActions[numericInput - 1];
+                
+                if (chosenAction.type === 'skill') {
+                    actionTaken = await handlePlayerSkillAction(chosenAction.skillName, targetNum);
+                } else if (chosenAction.type === 'attack') {
+                    // For numeric 'attack' command, use player's actual basic attack skill name
+                    const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
+                    const playerAttackSkillInfo = skillDefinitions[playerBasicAttackSkillName];
+
                     const targetEnemy = getTargetEnemy(targetNum);
                     if (!targetEnemy) {
-                        await displayMessage(getInvalidTargetMessage(targetNum));
-                        return;
+                        await displayErrorMessage(getInvalidTargetMessage(targetNum), playerBasicAttackSkillName, currentEnemies.filter(e => e.hp > 0));
+                        return; // Invalid target for basic attack
                     }
-                    const playerAttackSkill = skillDefinitions['Slash']; // Default to Slash for basic attack
-                    if (playerAttackSkill) {
+                    if (playerAttackSkillInfo) {
                         // Warrior specific: Momentum gain on hit
                         if (playerProgression.baseClass === 'warrior') {
                             playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
                             await displayMessage(`You gained 1 Momentum! Current: ${playerStats.resource.current}/${playerStats.resource.max}`);
                         }
-                        await applySkillEffect(playerStats, targetEnemy, playerAttackSkill);
-                        actionTaken = true;
+                        actionTaken = await applySkillEffect(playerStats, targetEnemy, playerAttackSkillInfo);
                     } else {
-                        await displayMessage("You don't have a basic attack skill (Slash) defined!");
+                        await displayErrorMessage("You don't have a basic attack skill defined!", playerBasicAttackSkillName);
                     }
-                    break;
-                case 'use':
-                    const skillName = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '); // Re-normalize for skill name
-                    await handlePlayerSkillAction(skillName, targetNum);
-                    actionTaken = true; // handlePlayerSkillAction will set actionTaken if successful
-                    return; // Exit here, handled by helper
-                case 'flee':
+                } else if (chosenAction.type === 'flee') {
                     await displayMessage("You attempt to flee from combat...");
-                    // TODO: Implement flee chance
                     inCombat = false;
                     await displayMessage("You successfully fled from combat!");
                     await displayRoomDescription();
                     return; // End combat command processing immediately
-                case 'class_lore':
-                case 'cl':
-                    await displayClassLore();
-                    return; // Don't advance turn for info command
-                case 'stats':
+                } else if (chosenAction.type === 'stats') {
                     await displayPlayerStats();
                     return; // Don't advance turn for info command
-                default:
-                    await displayErrorMessage("I don't understand that command.", mainCommandRaw);
-                    return; // Don't advance turn on invalid command
+                } else if (chosenAction.type === 'class_lore') {
+                    await displayClassLore();
+                    return; // Don't advance turn for info command
+                }
+            } else {
+                // --- Handle Text Input (Direct Commands) ---
+                // Check if it's an alias first
+                let resolvedCommand = skillAliases[mainCommandRaw];
+                if (resolvedCommand) {
+                    actionTaken = await handlePlayerSkillAction(resolvedCommand, targetNum);
+                }
+                // Check if it's a bare skill name (e.g., "grave bolt" instead of "use grave bolt")
+                else {
+                    const skillNameFromBareCommand = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    if (skillDefinitions[skillNameFromBareCommand] && playerStats.activeSkills.includes(skillNameFromBareCommand) && mainCommand !== 'attack' && mainCommand !== 'use' && mainCommand !== 'flee' && mainCommand !== 'stats' && mainCommand !== 'class_lore' && mainCommand !== 'cl') {
+                        actionTaken = await handlePlayerSkillAction(skillNameFromBareCommand, targetNum);
+                    } else {
+                        // Finally, handle explicit 'attack' or 'use' commands, or unknown commands
+                        switch (mainCommand) {
+                            case 'attack':
+                                const targetEnemy = getTargetEnemy(targetNum);
+                                if (!targetEnemy) {
+                                    await displayErrorMessage(getInvalidTargetMessage(targetNum), 'attack', currentEnemies.filter(e => e.hp > 0));
+                                    return;
+                                }
+                                const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
+                                const playerAttackSkillInfo = skillDefinitions[playerBasicAttackSkillName];
+                                if (playerAttackSkillInfo) {
+                                    // Warrior specific: Momentum gain on hit
+                                    if (playerProgression.baseClass === 'warrior') {
+                                        playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
+                                        await displayMessage(`You gained 1 Momentum! Current: ${playerStats.resource.current}/${playerStats.resource.max}`);
+                                    }
+                                    actionTaken = await applySkillEffect(playerStats, targetEnemy, playerAttackSkillInfo);
+                                } else {
+                                    await displayErrorMessage("You don't have a basic attack skill defined!", playerBasicAttackSkillName);
+                                }
+                                break;
+                            case 'use':
+                                const skillName = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '); // Re-normalize for skill name
+                                actionTaken = await handlePlayerSkillAction(skillName, targetNum);
+                                break;
+                            case 'flee':
+                                await displayMessage("You attempt to flee from combat...");
+                                inCombat = false;
+                                await displayMessage("You successfully fled from combat!");
+                                await displayRoomDescription();
+                                return; // End combat command processing immediately
+                            case 'class_lore':
+                            case 'cl':
+                                await displayClassLore();
+                                return; // Don't advance turn for info command
+                            case 'stats':
+                                await displayPlayerStats();
+                                return; // Don't advance turn for info command
+                            default:
+                                await displayErrorMessage("I don't understand that command.", mainCommandRaw);
+                                return; // Don't advance turn on invalid command
+                        }
+                    }
+                }
             }
 
             // Only advance turn if a valid action was taken
@@ -2043,6 +2287,7 @@
                 await resolveTurn();
             }
         }
+
 
         /**
          * Helper to handle player's skill actions, including target resolution and resource checks.
@@ -2071,7 +2316,7 @@
                         targets.push(livingEnemies[0]); // Auto-target if only one enemy
                         await displayMessage(`Auto-targeting ${livingEnemies[0].name}.`);
                     } else {
-                        await displayErrorMessage(`Choose a target for ${skillName}: use ${skillName} [1-${livingEnemies.length}].`, skillName, livingEnemies);
+                        await displayErrorMessage(`Choose a target for ${skillName}: use ${skillName} [1-${livingEnemies.length}]. Enemies: ${livingEnemies.map((e, i) => `(${i + 1}) ${e.name} ${e.hp}/${e.maxHp} HP`).join(', ')}.`, skillName, livingEnemies);
                         return false;
                     }
                 } else {
@@ -2090,7 +2335,7 @@
                     await displayErrorMessage(`There are no living enemies to target with ${skillName}.`, skillName);
                     return false;
                 }
-            } else if (skillInfo.target === 'minions') {
+            } else if (skillInfo.target === 'minions') { // For minion-specific skills
                 targets = playerMinions.filter(m => m.hp > 0);
                 if (targets.length === 0) {
                     await displayErrorMessage(`You have no active minions to target with ${skillName}.`, skillName);
@@ -2105,7 +2350,7 @@
                 targets.push({}); // Placeholder for ground target
             }
             else {
-                await displayErrorMessage(`Target type '${skillInfo.target}' for ${skillName} not yet fully implemented.`, skillName);
+                await displayErrorMessage(`Target type '${skillInfo.target}' for ${skillInfo.target} not yet fully implemented.`, skillName); // Fixed error message
                 return false;
             }
 
@@ -2166,7 +2411,7 @@
 
             // Suggest similar skills if the error was about an unknown skill
             const suggestions = findSimilarSkills(originalCommandPart);
-            if (suggestions.length > 0 && errorMessage.includes("don't have the skill")) {
+            if (suggestions.length > 0 && errorMessage.includes("don't understand that command") || errorMessage.includes("don't have the skill")) {
                 await displayMessage(`Did you mean: ${suggestions.join(', ')}?`);
             }
 
@@ -2179,7 +2424,14 @@
                     tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
                 }
                 await displayMessage(tip);
+            } else if (playerProgression.baseClass === 'warrior') {
+                await displayMessage("Tip: Momentum is gained +1 per hit, lost if you skip a turn.");
+            } else if (playerProgression.baseClass === 'rogue') {
+                await displayMessage(`Tip: Energy regenerates +${playerStats.resource.regen} per turn.`);
+            } else if (playerProgression.baseClass === 'mage') {
+                await displayMessage(`Tip: Mana regenerates +${playerStats.resource.regen} per turn.`);
             }
+
             if (inCombat) {
                 const currentLivingEnemies = currentEnemies.filter(e => e.hp > 0);
                 if (currentLivingEnemies.length > 0) {
