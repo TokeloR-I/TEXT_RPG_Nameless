@@ -164,14 +164,47 @@
             // Add more enemies here
         };
 
+        // --- Minion Definitions (New) ---
+        const minionDefinitions = {
+            'skeleton': {
+                name: 'Skeleton',
+                hp: 15,
+                maxHp: 15,
+                atk: 5,
+                def: 1,
+                spd: 7,
+                critChance: 0.05,
+                critMultiplier: 1.5,
+                resistances: [],
+                specialFlags: ['undead'],
+                skills: [{ name: 'Bone Club', description: 'Deals 5-7 damage.', base_damage: [5, 7], target: 'enemy_single', damage_type: 'physical' }]
+            },
+            'ghoul': {
+                name: 'Ghoul',
+                hp: 25,
+                maxHp: 25,
+                atk: 9,
+                def: 2,
+                spd: 10,
+                critChance: 0.1,
+                critMultiplier: 1.7,
+                resistances: [],
+                specialFlags: ['undead'],
+                skills: [{ name: 'Claw Attack', description: 'Deals 9-12 damage.', base_damage: [9, 12], target: 'enemy_single', damage_type: 'physical' }]
+            }
+        };
+
 
         // --- Skill Definitions ---
         // Centralized definitions for all skills, including descriptions, costs, etc.
         const skillDefinitions = {
+            // Universal Basic Attack fallback
+            'Basic Attack': { description: 'A standard attack.', cost: 0, resource: 'N/A', base_damage: [5, 8], target: 'enemy_single', damage_type: 'physical' },
             // Base Warrior Skills
             'Slash': { description: 'Deal 8–12 damage to a single enemy.', cost: 0, resource: 'Momentum', base_damage: [8, 12], target: 'enemy_single', damage_type: 'physical' },
             'Guard': { description: 'Reduce incoming damage by 25% next turn.', cost: 0, resource: 'Momentum', effects: [{ type: 'damage_reduction', value: 0.25, duration: 1 }], target: 'self' },
             'Power Strike': { description: 'Spend 2 Momentum to deal 14–20 damage.', cost: 2, resource: 'Momentum', base_damage: [14, 20], target: 'enemy_single', damage_type: 'physical' },
+            'War Cry': { description: 'Gain +1 Momentum, enemy gets +accuracy next attack.', cost: 0, resource: 'Momentum', effects: [{ type: 'gain_resource', resource: 'Momentum', value: 1 }, { type: 'apply_status', status: 'accuracy_buff_enemy', value: 0.1, duration: 1 }], target: 'self' }, // Safety valve
 
             // Vanguard Branch Skills
             'Shield Bash': { description: 'Deal 10–14 damage, stun 1 turn if Momentum ≥ 3.', cost: 0, resource: 'Momentum', base_damage: [10, 14], effects: [{ type: 'stun', duration: 1, condition: { stat: 'Momentum', operator: '>=', value: 3 } }], target: 'enemy_single', damage_type: 'physical', combatFlavor: "Your shield rings out like a drum, shaking the foe’s footing." },
@@ -196,6 +229,7 @@
             'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
             'Raise Skeleton': { description: 'Summon skeleton (5–7 dmg/turn).', cost: 2, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'skeleton', damage: [5, 7], duration: 'permanent' }], target: 'self' },
             'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
+            'Channel the Grave': { description: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 1 turn)', cost: 0, resource: 'Soul Energy', effects: [{ type: 'gain_resource', resource: 'Soul Energy', value: 1 }, { type: 'take_true_damage', value: 2 }, { type: 'apply_status', status: 'Channel Cooldown', duration: 1 }], target: 'self' }, // Safety valve
 
             // Bone Warden Branch Skills
             'Bone Wall': { description: 'Absorbs the next hit entirely.', cost: 1, resource: 'Soul Energy', effects: [{ type: 'absorb_hit', duration: 1 }], target: 'self' },
@@ -218,6 +252,7 @@
             'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_if_flanked', value: 5 }], target: 'enemy_single', damage_type: 'physical' },
             'Evasion': { description: '50% chance to dodge next attack.', cost: 0, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
             'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', cost: 1, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
+            'Second Wind': { description: 'Gain +2 Energy, -25% evasion this turn.', cost: 0, resource: 'Energy', effects: [{ type: 'gain_resource', resource: 'Energy', value: 2 }, { type: 'apply_status', status: 'Evasion Debuff', value: -0.25, duration: 1 }], target: 'self' }, // Safety valve
 
             // Assassin Branch Skills
             'Shadowstep': { description: 'Teleport to enemy, next hit crits.', cost: 1, resource: 'Stealth Tokens', effects: [{ type: 'teleport_to_enemy' }, { type: 'guaranteed_crit_next_hit' }], target: 'enemy_single' },
@@ -240,6 +275,7 @@
             'Arcane Bolt': { description: '10–14 dmg.', cost: 1, resource: 'Mana', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
             'Focus': { description: 'Gain +2 Mana.', cost: 0, resource: 'Mana', effects: [{ type: 'gain_resource', resource: 'Mana', value: 2 }], target: 'self' },
             'Mana Burst': { description: '15–20 dmg, ignores 25% armor.', cost: 2, resource: 'Mana', base_damage: [15, 20], effects: [{ type: 'ignore_armor_percent', value: 0.25 }], target: 'enemy_single', damage_type: 'magic' },
+            'Overchannel': { description: 'Spend HP to cast beyond Mana this turn; leaves a "Burnout" debuff next turn.', cost: 0, resource: 'Mana', effects: [{ type: 'overchannel' }], target: 'self' }, // Safety valve
 
             // Elementalist Branch Skills
             'Fireball': { description: 'Deal fire damage.', cost: 1, resource: 'Mana', base_damage: [10, 15], target: 'enemy_single', damage_type: 'fire' },
@@ -275,6 +311,27 @@
             'Eternal Architect': { description: 'Rearrange entire turn order for 3 turns.', cost: 'all', resource: 'Time Charges', oncePerFight: true, effects: [{ type: 'rearrange_turn_order', duration: 3 }], target: 'all_combatants' } // Chronomancer Ascended
         };
 
+        // --- Skill Aliases (New) ---
+        const skillAliases = {
+            'gb': 'Grave Bolt',
+            'rs': 'Raise Skeleton',
+            'sl': 'Soul Leech',
+            'ct': 'Channel the Grave',
+            'ss': 'Slash',
+            'g': 'Guard',
+            'ps': 'Power Strike',
+            'wc': 'War Cry',
+            'bs': 'Backstab',
+            'e': 'Evasion',
+            'qs': 'Quick Slash',
+            'sw': 'Second Wind',
+            'ab': 'Arcane Bolt',
+            'f': 'Focus',
+            'mb': 'Mana Burst',
+            'oc': 'Overchannel',
+            // Add more aliases as needed
+        };
+
 
         // --- Player Base Classes Definition ---
         const basePlayerClasses = {
@@ -287,7 +344,7 @@
                 },
                 startingItems: ['rusty sword', 'wooden shield', 'old key'],
                 startingResource: { type: 'Momentum', initial: 1, max: 10 }, // Starts with 1 Momentum due to Battle-Ready
-                baseStats: { hp: 120, strength: 10, intelligence: 5, agility: 7, baseDamageMin: 8, baseDamageMax: 12, def: 5, critChance: 0.05, critMultiplier: 1.5 },
+                baseStats: { hp: 120, strength: 10, intelligence: 5, agility: 7, def: 5, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 8, baseDamageMax: 12 },
                 startingSkills: ['Slash', 'Guard', 'Power Strike'],
                 startingTraits: [{ name: 'Battle-Ready', effect: 'Start each fight with 1 Momentum.' }]
             },
@@ -300,7 +357,7 @@
                 },
                 startingItems: ['wooden staff', 'spellbook', 'old key'],
                 startingResource: { type: 'Mana', initial: 6, max: 20, regen: 2 },
-                baseStats: { hp: 70, strength: 6, intelligence: 10, agility: 7, baseDamageMin: 6, baseDamageMax: 10, def: 2, critChance: 0.1, critMultiplier: 1.75 },
+                baseStats: { hp: 70, strength: 6, intelligence: 10, agility: 7, def: 2, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
                 startingSkills: ['Arcane Bolt', 'Focus', 'Mana Burst'],
                 startingTraits: []
             },
@@ -313,7 +370,7 @@
                 },
                 startingItems: ['short sword', 'lockpicks', 'old key'],
                 startingResource: { type: 'Energy', initial: 6, max: 15, regen: 3 },
-                baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, baseDamageMin: 5, baseDamageMax: 9, def: 3, critChance: 0.2, critMultiplier: 2.0 },
+                baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, def: 3, critChance: 0.2, critMultiplier: 2.0, baseDamageMin: 5, baseDamageMax: 9 },
                 startingSkills: ['Backstab', 'Evasion', 'Quick Slash'],
                 startingTraits: []
             },
@@ -325,8 +382,8 @@
                     identity: "You walk between realms, plucking secrets from cold lips. The living fear you; the dead obey."
                 },
                 startingItems: ['cracked bone staff', 'small black journal'], // Whispering skull implied narrative item
-                startingResource: { type: 'Soul Energy', initial: 0, max: 10 },
-                baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, baseDamageMin: 6, baseDamageMax: 10, def: 4, critChance: 0.05, critMultiplier: 1.5 },
+                startingResource: { type: 'Soul Energy', initial: 1, max: 10 }, // Seeded with 1 Soul Energy
+                baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, def: 4, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
                 startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech'],
                 startingTraits: []
             }
@@ -567,7 +624,9 @@
                         name: 'Elementalist',
                         theme: 'Fire, ice, lightning — raw power.',
                         mechanic: 'Elemental Resonance — casting same element twice in a row gives +50% dmg.',
-                        resourceEvolution: [], // Mana does not evolve in type for this branch
+                        resourceEvolution: [
+                            { level: 3, stage: 'Elementalist', type: 'Mana' } // Mana is base resource, but listed for clarity of evolution
+                        ],
                         stages: [
                             { level: 3, name: 'Elementalist', trait: 'Elemental Affinity', traitEffect: 'Casting same element twice in a row gives +50% dmg.', skill: 'Fireball', lore: "You command the primal forces of nature, weaving fire, ice, and lightning into devastating spells.", loreStance: "Master of elements.", loreEffect: "You gain access to fundamental elemental spells." },
                             { level: 5, name: 'Pyromancer', trait: 'Fireball leaves Burn', traitEffect: 'Your Fireball spell now inflicts a damage-over-time effect.', skill: 'Fireball', upgrade: 'Fireball leaves Burn (3 dmg/turn).', lore: "The flames within you burn brighter, transforming you into a conduit of pure destructive fire. Your enemies will be incinerated.", loreStance: "Conduit of fire.", loreEffect: "Your fire spells become more potent, leaving lingering burns." },
@@ -676,9 +735,12 @@
         let awaitingBranchSelection = false;
         let inCombat = false; // New: Flag to indicate if currently in combat
         let currentEnemies = []; // New: Array to hold current enemies in combat
+        let playerMinions = []; // New: Array to hold player's summoned minions
         let turnOrder = []; // New: Array to hold the turn order of combatants
         let currentTurnIndex = 0; // New: Index of the current combatant in turnOrder
         let isTyping = false; // New: Flag to indicate if text is currently being typed
+        let corpsesOnBattlefield = 0; // New: Counter for Necromancer Grave Bolt synergy
+        let playerDealtDamageThisTurn = false; // New: Flag for Necromancer Soul Energy regen
 
         // Typing speed control (milliseconds per character)
         const TYPING_SPEED = 20; // Adjust for faster/slower typing
@@ -735,6 +797,60 @@
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
+
+        /**
+         * Normalizes a command input string for parsing.
+         * Handles: lowercase, trim, collapse multiple spaces, extracts target number.
+         * @param {string} input - The raw command string.
+         * @returns {object} An object with `command` (main part) and `targetNum` (integer or null).
+         */
+        function normalizeCommandInput(input) {
+            let cleaned = input.toLowerCase().trim();
+            cleaned = cleaned.replace(/\s+/g, ' '); // Replace multiple spaces with a single space
+
+            let targetNum = null;
+            let command = cleaned;
+
+            // Check for target number at the end (e.g., "skill 1", "skill@1", "skill#1")
+            const targetMatch = cleaned.match(/(.+?)\s*[#@]?(\d+)$/);
+            if (targetMatch) {
+                command = targetMatch[1].trim();
+                targetNum = parseInt(targetMatch[2]);
+            }
+            return { command, targetNum };
+        }
+
+        /**
+         * Finds similar skill names based on a given input.
+         * @param {string} inputSkillName - The skill name to match.
+         * @returns {Array<string>} Up to 3 suggestions.
+         */
+        function findSimilarSkills(inputSkillName) {
+            const allSkills = Object.keys(skillDefinitions);
+            const suggestions = [];
+
+            // Prioritize exact matches (case-insensitive) or startsWith
+            for (const skill of allSkills) {
+                if (skill.toLowerCase() === inputSkillName.toLowerCase()) {
+                    return [skill]; // Exact match, return immediately
+                }
+                if (skill.toLowerCase().startsWith(inputSkillName.toLowerCase())) {
+                    suggestions.push(skill);
+                }
+            }
+
+            // Fallback to fuzzy matching (simple includes for now)
+            if (suggestions.length < 3) {
+                for (const skill of allSkills) {
+                    if (skill.toLowerCase().includes(inputSkillName.toLowerCase()) && !suggestions.includes(skill)) {
+                        suggestions.push(skill);
+                    }
+                }
+            }
+
+            return suggestions.slice(0, 3); // Return up to 3 suggestions
+        }
+
 
         // --- Game Functions ---
 
@@ -911,6 +1027,9 @@
         async function startCombat(enemyKeys) { // Made async
             inCombat = true;
             currentEnemies = [];
+            playerMinions = []; // Reset minions at start of combat
+            corpsesOnBattlefield = 0; // Reset corpses
+            playerDealtDamageThisTurn = false; // Reset damage flag for new combat
             turnOrder = [];
             currentTurnIndex = 0;
 
@@ -924,6 +1043,7 @@
                     const newEnemy = JSON.parse(JSON.stringify(enemyTemplate));
                     newEnemy.id = `enemy_${index}`; // Unique ID for targeting
                     newEnemy.isPlayer = false;
+                    newEnemy.isMinion = false;
                     newEnemy.statusEffects = []; // Initialize status effects for enemy
                     currentEnemies.push(newEnemy);
                     await displayMessage(`A ${newEnemy.name} appears! (HP: ${newEnemy.hp})`);
@@ -944,6 +1064,7 @@
                 critChance: playerStats.critChance,
                 critMultiplier: playerStats.critMultiplier,
                 isPlayer: true,
+                isMinion: false,
                 statusEffects: playerStats.statusEffects // Player's status effects
             };
 
@@ -957,21 +1078,44 @@
                 await displayMessage(`${combatant.name} (SPD: ${combatant.spd})`);
             }
 
-            await displayMessage("\n--- Your Turn! ---", true);
-            await displayCombatState();
-            gameInput.focus();
+            // Start the first turn
+            await resolveTurn();
         }
 
         /**
          * Displays the current state of combat (player and enemy HP).
+         * Includes resource tips for Necromancer.
          */
         async function displayCombatState() { // Made async
             await displayMessage("\n--- Battle Status ---", true);
             await displayMessage(`You (${playerStats.currentHP}/${playerStats.maxHP} HP) | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
+
+            // Resource tips for Necromancer
+            if (playerProgression.baseClass === 'necromancer') {
+                let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
+                if (!playerStats.activeSkills.includes('Channel the Grave')) { // Check if Channel the Grave is available
+                     // If it's a base skill, it's always available. This check assumes it's an evolved skill for now.
+                     // A better check would be if the player has the skill in their activeSkills array.
+                     // For now, let's assume it's always available for Necromancer.
+                } else {
+                    tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
+                }
+                await displayMessage(tip);
+            }
+
+
             for (const [index, enemy] of currentEnemies.entries()) {
                 if (enemy.hp > 0) {
                     await displayMessage(`${index + 1}. ${enemy.name} (${enemy.hp}/${enemy.maxHp} HP)`);
                 }
+            }
+            if (playerMinions.length > 0) {
+                await displayMessage("-- Your Minions --", true);
+                playerMinions.forEach((minion, index) => {
+                    if (minion.hp > 0) {
+                        displayMessage(`Minion ${index + 1}: ${minion.name} (${minion.hp}/${minion.maxHp} HP)`);
+                    }
+                });
             }
             await displayMessage("---------------------");
             await displayMessage("Available combat commands: attack [enemy_number], use [skill_name], flee.");
@@ -983,35 +1127,48 @@
         async function resolveTurn() { // Made async
             if (!inCombat) return;
 
-            const currentCombatant = turnOrder[currentTurnIndex];
+            // Clean up dead combatants from turn order
+            turnOrder = turnOrder.filter(c => c.hp > 0);
+            currentEnemies = currentEnemies.filter(e => e.hp > 0);
+            playerMinions = playerMinions.filter(m => m.hp > 0);
 
-            // Skip if dead
-            if (currentCombatant.hp <= 0) {
-                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                await resolveTurn(); // Move to next combatant
+            if (await checkBattleEnd()) { // Check if battle ended after cleanup
                 return;
             }
 
-            // If it's the player's turn, prompt for input
+            // Ensure currentTurnIndex is valid after filtering
+            if (currentTurnIndex >= turnOrder.length) {
+                currentTurnIndex = 0; // Reset to start of new round if index is out of bounds
+            }
+
+            const currentCombatant = turnOrder[currentTurnIndex];
+
+            // If it's the player's turn, display prompt and wait for input
             if (currentCombatant.isPlayer) {
                 await displayMessage(`\n--- Your Turn! ---`, true);
                 await displayCombatState();
                 gameInput.focus();
-            } else {
-                // Enemy's turn
+                // We return here and wait for processCombatCommand to call resolveTurn again
+                return;
+            } else if (currentCombatant.isMinion) {
                 await displayMessage(`\n--- ${currentCombatant.name}'s Turn! ---`, true);
-                await enemyTurn(currentCombatant); // Await enemy turn
-                if (await checkBattleEnd()) { // Await checkBattleEnd
-                    return;
-                }
-                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                // If it's now player's turn or end of round, display next turn message
-                if (turnOrder[currentTurnIndex].isPlayer || currentTurnIndex === 0) {
-                    // End of round effects (resource regen, DoTs)
-                    await endOfRoundEffects(); // Await endOfRoundEffects
-                }
-                await resolveTurn(); // Recursively call for next turn
+                await minionTurn(currentCombatant);
+            } else { // It's an enemy's turn
+                await displayMessage(`\n--- ${currentCombatant.name}'s Turn! ---`, true);
+                await enemyTurn(currentCombatant);
             }
+
+            if (await checkBattleEnd()) { // Await checkBattleEnd after action
+                return; // Battle ended, stop turn resolution
+            }
+
+            currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+
+            // If we've wrapped around to the start of the turn order, it's the end of the round
+            if (currentTurnIndex === 0) {
+                await endOfRoundEffects(); // Await endOfRoundEffects
+            }
+            await resolveTurn(); // Recursively call for next turn (enemy or player)
         }
 
         /**
@@ -1022,16 +1179,49 @@
             // Simple AI: always attack the player
             const player = turnOrder.find(c => c.isPlayer);
             if (player && player.hp > 0) {
-                const enemySkill = skillDefinitions[enemy.skills[0].name]; // Assume first skill is basic attack
-                if (enemySkill) {
-                    const damageDealt = calculateDamage(enemy, player, enemySkill);
-                    playerStats.currentHP -= damageDealt; // Player's HP is in playerStats
-                    await displayMessage(`${enemy.name} attacks you for ${damageDealt} damage! Your HP: ${playerStats.currentHP}/${playerStats.maxHP}`);
-                } else {
-                    await displayMessage(`${enemy.name} tries to attack, but has no valid skills!`);
+                let enemySkill = skillDefinitions[enemy.skills[0]?.name]; // Try to get enemy's first skill
+                if (!enemySkill) {
+                    enemySkill = skillDefinitions['Basic Attack']; // Fallback to Basic Attack
+                    await displayMessage(`${enemy.name} fumbles and resorts to a basic attack.`);
                 }
+
+                const damageDealt = calculateDamage(enemy, player, enemySkill);
+                playerStats.currentHP -= damageDealt; // Player's HP is in playerStats
+                await displayMessage(`${enemy.name} attacks you for ${damageDealt} damage! Your HP: ${playerStats.currentHP}/${playerStats.maxHP}`);
             } else {
                 await displayMessage(`${enemy.name} has no target to attack.`);
+            }
+        }
+
+        /**
+         * Handles a minion's turn (basic AI).
+         * @param {object} minion - The minion combatant taking the turn.
+         */
+        async function minionTurn(minion) {
+            // Simple AI: always attack the first living enemy
+            const targetEnemy = currentEnemies.find(e => e.hp > 0);
+            if (targetEnemy) {
+                const minionSkill = skillDefinitions[minion.skills[0].name]; // Assume first skill is basic attack
+                if (minionSkill) {
+                    const damageDealt = calculateDamage(minion, targetEnemy, minionSkill);
+                    targetEnemy.hp -= damageDealt;
+                    await displayMessage(`${minion.name} attacks ${targetEnemy.name} for ${damageDealt} damage! ${targetEnemy.name} HP: ${targetEnemy.hp}/${targetEnemy.maxHp}`);
+                    if (targetEnemy.hp <= 0) {
+                        await displayMessage(`${targetEnemy.name} has been defeated!`);
+                        // Necromancer Soul Energy gain on kill
+                        if (playerProgression.baseClass === 'necromancer') {
+                            // For simplicity, +1 SE on any kill by player or minion
+                            playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
+                            await displayMessage(`You gained 1 Soul Energy from ${targetEnemy.name}'s demise! Current SE: ${playerStats.resource.current}/${playerStats.resource.max}`);
+                        }
+                        corpsesOnBattlefield++; // Increment corpse counter
+                        await displayMessage(`A corpse is left on the battlefield. Total corpses: ${corpsesOnBattlefield}`);
+                    }
+                } else {
+                    await displayMessage(`${minion.name} tries to attack, but has no valid skills!`);
+                }
+            } else {
+                await displayMessage(`${minion.name} has no target to attack.`);
             }
         }
 
@@ -1061,11 +1251,132 @@
         }
 
         /**
+         * Applies the effects of a skill.
+         * @param {object} caster - The combatant using the skill.
+         * @param {object | Array<object>} targets - The target(s) of the skill.
+         * @param {object} skillInfo - The skill definition.
+         */
+        async function applySkillEffect(caster, targets, skillInfo) {
+            // Ensure targets is an array for consistent processing
+            const actualTargets = Array.isArray(targets) ? targets : [targets];
+
+            // Handle specific safety valve skills
+            if (skillInfo.name === 'Channel the Grave') {
+                if (caster.statusEffects.some(s => s.name === 'Channel Cooldown' && s.duration > 0)) {
+                    await displayMessage("Channel the Grave is on cooldown!", true);
+                    return false; // Skill failed due to cooldown
+                }
+                const effect = skillInfo.effects.find(e => e.type === 'take_true_damage');
+                if (effect) {
+                    caster.hp -= effect.value;
+                    await displayMessage(`${caster.name} channels the grave, taking ${effect.value} true damage! Current HP: ${caster.hp}/${caster.maxHp}`);
+                }
+                const gainEffect = skillInfo.effects.find(e => e.type === 'gain_resource');
+                if (gainEffect) {
+                    caster.resource.current = Math.min(caster.resource.max, caster.resource.current + gainEffect.value);
+                    await displayMessage(`${caster.name} gains ${gainEffect.value} ${caster.resource.type}! Current: ${caster.resource.current}/${caster.resource.max}`);
+                }
+                // Apply cooldown
+                const cooldownEffect = skillInfo.effects.find(e => e.type === 'apply_status' && e.status === 'Channel Cooldown');
+                if (cooldownEffect) {
+                    caster.statusEffects.push({ name: cooldownEffect.status, duration: cooldownEffect.duration });
+                }
+                playerDealtDamageThisTurn = true; // Channeling counts as dealing damage for Necro regen
+                return true; // Skill successfully used
+            }
+            // TODO: Implement other safety valve skills (Overchannel, Second Wind, War Cry)
+
+            // Handle damage
+            if (skillInfo.base_damage) {
+                for (const target of actualTargets) {
+                    if (target.hp <= 0) continue; // Skip dead targets
+                    let damageDealt = calculateDamage(caster, target, skillInfo);
+
+                    // Handle Grave Bolt bonus damage per corpse
+                    if (skillInfo.effects && skillInfo.effects.some(e => e.type === 'bonus_damage_per_corpse')) {
+                        const bonusEffect = skillInfo.effects.find(e => e.type === 'bonus_damage_per_corpse');
+                        const bonusDmg = corpsesOnBattlefield * bonusEffect.value;
+                        damageDealt += bonusDmg;
+                        await displayMessage(`(${skillInfo.name} gains ${bonusDmg} bonus damage from ${corpsesOnBattlefield} corpses!)`);
+                    }
+
+                    target.hp -= damageDealt;
+                    await displayMessage(`${caster.name} uses ${skillInfo.name} on ${target.name} for ${damageDealt} damage! ${target.name} HP: ${target.hp}/${target.maxHp}`);
+                    if (target.hp <= 0) {
+                        await displayMessage(`${target.name} has been defeated!`);
+                        if (!target.isPlayer && !target.isMinion) { // Only count enemy deaths as corpses
+                            corpsesOnBattlefield++;
+                            await displayMessage(`A corpse is left on the battlefield. Total corpses: ${corpsesOnBattlefield}`);
+                            // Necromancer Soul Energy gain on kill (if player is caster)
+                            if (caster.isPlayer && playerProgression.baseClass === 'necromancer') {
+                                playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 2); // +2 for killing blow
+                                await displayMessage(`You gained 2 Soul Energy from the killing blow! Current SE: ${playerStats.resource.current}/${playerStats.resource.max}`);
+                            }
+                        }
+                    }
+
+                    // Handle heal_from_damage (e.g., Soul Leech)
+                    if (skillInfo.effects && skillInfo.effects.some(e => e.type === 'heal_from_damage')) {
+                        const healEffect = skillInfo.effects.find(e => e.type === 'heal_from_damage');
+                        const healAmount = Math.floor(damageDealt * healEffect.ratio);
+                        caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+                        await displayMessage(`${caster.name} leeches ${healAmount} HP! Current HP: ${caster.hp}/${caster.maxHp}`);
+                    }
+                }
+            }
+
+            // Handle other effects
+            if (skillInfo.effects) {
+                for (const effect of skillInfo.effects) {
+                    switch (effect.type) {
+                        case 'summon':
+                            const minionTemplate = minionDefinitions[effect.summon_type];
+                            if (minionTemplate) {
+                                const newMinion = JSON.parse(JSON.stringify(minionTemplate));
+                                newMinion.id = `minion_${playerMinions.length}`;
+                                newMinion.isPlayer = false; // Minions are not the player
+                                newMinion.isMinion = true; // Flag as minion
+                                newMinion.statusEffects = [];
+                                playerMinions.push(newMinion);
+                                turnOrder.push(newMinion); // Add to turn order
+                                turnOrder.sort((a, b) => b.spd - a.spd); // Re-sort turn order
+                                await displayMessage(`${caster.name} summons a ${newMinion.name}!`);
+                            }
+                            break;
+                        case 'damage_reduction':
+                            caster.statusEffects.push({ name: 'Guard', type: 'damage_reduction', value: effect.value, duration: effect.duration });
+                            await displayMessage(`${caster.name} braces for impact, reducing incoming damage!`);
+                            break;
+                        case 'gain_resource':
+                            // Handled by safety valve skills, but could be general
+                            break;
+                        case 'take_true_damage':
+                            // Handled by safety valve skills
+                            break;
+                        case 'apply_status':
+                            // General status application (e.g., cooldowns, debuffs)
+                            // This is a placeholder; actual status effect management needs to be built.
+                            await displayMessage(`${caster.name} applies status: ${effect.status} (Duration: ${effect.duration})`);
+                            break;
+                        default:
+                            await displayMessage(`(Unhandled effect type: ${effect.type} for skill ${skillInfo.name})`);
+                            break;
+                    }
+                }
+            }
+            playerDealtDamageThisTurn = true; // Mark that player dealt damage this turn
+            return true; // Skill successfully used
+        }
+
+
+        /**
          * Checks if the battle has ended (all enemies defeated or player defeated).
          * @returns {Promise<boolean>} A promise that resolves to true if battle ended, false otherwise.
          */
         async function checkBattleEnd() { // Made async
             const livingEnemies = currentEnemies.filter(enemy => enemy.hp > 0);
+            const livingPlayer = turnOrder.find(c => c.isPlayer && c.hp > 0); // Check player specifically
+
             if (livingEnemies.length === 0) {
                 await displayMessage("\n--- VICTORY! ---", true);
                 inCombat = false;
@@ -1075,7 +1386,7 @@
                 return true;
             }
 
-            if (playerStats.currentHP <= 0) {
+            if (!livingPlayer) { // Player is defeated
                 await displayMessage("\n--- DEFEAT! ---", true);
                 inCombat = false;
                 gameActive = false; // Game over
@@ -1090,14 +1401,33 @@
          */
         async function endOfRoundEffects() { // Made async
             await displayMessage("\n--- End of Round Effects ---");
-            // Player resource regeneration
+            // Player resource regeneration (for classes with regen)
             if (playerStats.resource.regen > 0) {
                 playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + playerStats.resource.regen);
                 await displayMessage(`You regenerated ${playerStats.resource.regen} ${playerStats.resource.type}. Current: ${playerStats.resource.current}/${playerStats.resource.max}`);
             }
+            // Necromancer specific Soul Energy gain if dealt damage this turn
+            if (playerProgression.baseClass === 'necromancer' && playerDealtDamageThisTurn) {
+                playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
+                await displayMessage(`You gained 1 Soul Energy from dealing damage this turn! Current SE: ${playerStats.resource.current}/${playerStats.resource.max}`);
+            }
+            playerDealtDamageThisTurn = false; // Reset for next round
 
-            // TODO: Apply DoT damage to all combatants (player and enemies)
-            // TODO: Resolve summon actions (minions attacking)
+            // Process status effects for all combatants
+            for (const combatant of turnOrder) {
+                if (combatant.hp <= 0) continue; // Skip dead combatants
+
+                // Filter out expired effects and apply tick effects
+                combatant.statusEffects = combatant.statusEffects.filter(effect => {
+                    if (effect.duration !== 'permanent') {
+                        effect.duration--;
+                    }
+                    // TODO: Apply DoT damage here if effect.type is 'dot'
+                    return effect.duration === 'permanent' || effect.duration > 0;
+                });
+            }
+
+            // Minion actions (already handled in resolveTurn for now, but could be moved here for clarity)
         }
 
 
@@ -1161,7 +1491,7 @@
                 for (const branch of branches) {
                     await displayMessage(`- ${branch.charAt(0).toUpperCase() + branch.slice(1).replace(/_/g, ' ')}: ${currentBaseClass.branches[branch].theme}`);
                 }
-                await displayMessage("Type the name of the branch you wish to pursue (e.g., 'vanguard', 'berserker', 'warden' for Warrior; 'bone_warden', 'plaguecaller', 'soulbinder' for Necromancer; 'assassin', 'duelist', 'saboteur' for Rogue; 'elementalist', 'illusionist', 'chronomancer' for Mage).", true);
+                await displayMessage(`Type the name of the branch you wish to pursue (e.g., '${Object.keys(currentBaseClass.branches)[0].replace(/_/g, ' ')}').`, true); // Dynamic example
                 awaitingBranchSelection = true;
                 return;
             }
@@ -1612,214 +1942,254 @@
          * @param {string} commandText - The command entered by the player.
          */
         async function processCombatCommand(commandText) { // Made async
-            const commandParts = commandText.split(' ');
-            const mainCommand = commandParts[0];
-            const argument = commandParts.slice(1).join(' ');
+            const { command: mainCommandRaw, targetNum: rawTargetNum } = normalizeCommandInput(commandText);
+            let mainCommand = mainCommandRaw;
+            let targetNum = rawTargetNum;
 
             await displayMessage(`> ${commandText}`, true); // Echo the command
 
-            if (currentTurnIndex === -1 || !turnOrder[currentTurnIndex].isPlayer) {
+            // Ensure it's the player's turn to act
+            if (turnOrder[currentTurnIndex] && !turnOrder[currentTurnIndex].isPlayer) {
                 await displayMessage("It's not your turn yet!");
                 return;
             }
+            if (!turnOrder[currentTurnIndex]) {
+                await displayMessage("Error: No current combatant for player turn.");
+                return;
+            }
+
+            let actionTaken = false; // Flag to indicate if a valid action was taken
+
+            // Handle aliases for skills
+            if (skillAliases[mainCommand]) {
+                mainCommand = 'use';
+                // If an alias was used, the actual skill name is the alias's value
+                // The targetNum is already extracted by normalizeCommandInput
+                // We need to pass the full skill name to applySkillEffect
+                const skillNameFromAlias = skillAliases[mainCommandRaw];
+                // Reconstruct argument for 'use' command logic
+                // This is a bit clunky, but handles the alias case
+                // The applySkillEffect will get the correct skillInfo from skillDefinitions
+                // based on the normalized name.
+                // For now, let's just use skillNameFromAlias as the skill name for 'use'
+                await handlePlayerSkillAction(skillNameFromAlias, targetNum); // Call the new helper
+                actionTaken = true;
+                return; // Exit here, handled by helper
+            }
+
+            // Handle bare skill names (e.g., "grave bolt" instead of "use grave bolt")
+            const skillNameFromBareCommand = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            if (skillDefinitions[skillNameFromBareCommand] && mainCommand !== 'attack' && mainCommand !== 'use' && mainCommand !== 'flee' && mainCommand !== 'stats' && mainCommand !== 'class_lore' && mainCommand !== 'cl') {
+                mainCommand = 'use';
+                await handlePlayerSkillAction(skillNameFromBareCommand, targetNum); // Call the new helper
+                actionTaken = true;
+                return; // Exit here, handled by helper
+            }
+
 
             switch (mainCommand) {
                 case 'attack':
-                    const targetIndex = parseInt(argument) - 1; // Enemy numbers are 1-based
-                    if (isNaN(targetIndex) || targetIndex < 0 || targetIndex >= currentEnemies.length || currentEnemies[targetIndex].hp <= 0) {
-                        await displayMessage("Invalid target. Use 'attack [enemy_number]'.");
+                    const targetEnemy = getTargetEnemy(targetNum);
+                    if (!targetEnemy) {
+                        await displayMessage(getInvalidTargetMessage(targetNum));
                         return;
                     }
-                    const targetEnemy = currentEnemies[targetIndex];
                     const playerAttackSkill = skillDefinitions['Slash']; // Default to Slash for basic attack
                     if (playerAttackSkill) {
-                        const damageDealt = calculateDamage({ // Player as attacker
-                            atk: playerStats.strength,
-                            critChance: playerStats.critChance,
-                            critMultiplier: playerStats.critMultiplier,
-                            isPlayer: true // Indicate it's the player attacking
-                        }, targetEnemy, playerAttackSkill);
-
-                        targetEnemy.hp -= damageDealt;
-                        await displayMessage(`You attack ${targetEnemy.name} for ${damageDealt} damage! ${targetEnemy.name} HP: ${targetEnemy.hp}/${targetEnemy.maxHp}`);
-                        if (targetEnemy.hp <= 0) {
-                            await displayMessage(`${targetEnemy.name} has been defeated!`);
+                        // Warrior specific: Momentum gain on hit
+                        if (playerProgression.baseClass === 'warrior') {
+                            playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
+                            await displayMessage(`You gained 1 Momentum! Current: ${playerStats.resource.current}/${playerStats.resource.max}`);
                         }
+                        await applySkillEffect(playerStats, targetEnemy, playerAttackSkill);
+                        actionTaken = true;
                     } else {
                         await displayMessage("You don't have a basic attack skill (Slash) defined!");
                     }
                     break;
                 case 'use':
-                    const skillName = argument.split(' ')[0]; // Get just the skill name
-                    const skillInfo = skillDefinitions[skillName.charAt(0).toUpperCase() + skillName.slice(1)]; // Normalize name
-                    if (!skillInfo || !playerStats.activeSkills.includes(skillName.charAt(0).toUpperCase() + skillName.slice(1))) {
-                        await displayMessage(`You don't have the skill '${skillName}'.`);
-                        return;
-                    }
-                    // TODO: Implement resource cost check and actual skill effects
-                    await displayMessage(`You attempt to use ${skillName}. (Skill effects not fully implemented yet!)`);
-                    break;
+                    const skillName = mainCommandRaw.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '); // Re-normalize for skill name
+                    await handlePlayerSkillAction(skillName, targetNum);
+                    actionTaken = true; // handlePlayerSkillAction will set actionTaken if successful
+                    return; // Exit here, handled by helper
                 case 'flee':
                     await displayMessage("You attempt to flee from combat...");
                     // TODO: Implement flee chance
                     inCombat = false;
                     await displayMessage("You successfully fled from combat!");
                     await displayRoomDescription();
-                    return; // End combat command processing
-                case 'class_lore': // Allow class lore in combat
+                    return; // End combat command processing immediately
+                case 'class_lore':
                 case 'cl':
                     await displayClassLore();
                     return; // Don't advance turn for info command
-                case 'stats': // Allow stats in combat
+                case 'stats':
                     await displayPlayerStats();
                     return; // Don't advance turn for info command
                 default:
-                    await displayMessage("Invalid combat command. Try 'attack [enemy_number]', 'use [skill_name]', 'flee', 'stats', or 'class_lore'.");
+                    await displayErrorMessage("I don't understand that command.", mainCommandRaw);
                     return; // Don't advance turn on invalid command
             }
 
-            // After player action, advance turn
-            if (await checkBattleEnd()) { // Await checkBattleEnd
-                return; // Battle ended, don't advance turn
+            // Only advance turn if a valid action was taken
+            if (actionTaken) {
+                if (await checkBattleEnd()) {
+                    return;
+                }
+                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                if (currentTurnIndex === 0) {
+                    await endOfRoundEffects();
+                }
+                await resolveTurn();
             }
-            currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-            await endOfRoundEffects(); // Await endOfRoundEffects
-            await resolveTurn(); // Continue the turn loop
         }
 
-
         /**
-         * Attempts to move the player to a new room.
-         * @param {string} direction - The direction to move (e.g., 'north', 'east').
+         * Helper to handle player's skill actions, including target resolution and resource checks.
+         * @param {string} skillName - The normalized skill name.
+         * @param {number|null} targetNum - The target number from input, or null.
+         * @returns {Promise<boolean>} True if action was successfully taken, false otherwise.
          */
-        async function movePlayer(direction) { // Made async
-            if (inCombat) {
-                await displayMessage("You cannot move while in combat! Try 'flee' if you wish to escape.");
-                return;
-            }
-            const room = rooms[currentRoom];
-            if (room && room.exits[direction]) {
-                const newRoom = room.exits[direction];
+        async function handlePlayerSkillAction(skillName, targetNum) {
+            const skillInfo = skillDefinitions[skillName];
 
-                // Simple check for wooden door, requires 'old key'
-                if (newRoom === 'wooden_door_room' && direction === 'north' && currentRoom === 'starting_room') {
-                    if (!playerStats.inventory.includes('old key')) {
-                        await displayMessage("The heavy wooden door is locked. You need a key!");
-                        return;
+            if (!skillInfo || !playerStats.activeSkills.includes(skillName)) {
+                await displayErrorMessage(`You don't have the skill '${skillName}'.`, skillName);
+                return false;
+            }
+
+            // Determine target(s) based on skill target type
+            let targets = [];
+            if (skillInfo.target === 'enemy_single') {
+                const livingEnemies = currentEnemies.filter(e => e.hp > 0);
+                if (livingEnemies.length === 0) {
+                    await displayErrorMessage(`There are no living enemies to target with ${skillName}.`, skillName);
+                    return false;
+                }
+                if (targetNum === null) {
+                    if (livingEnemies.length === 1) {
+                        targets.push(livingEnemies[0]); // Auto-target if only one enemy
+                        await displayMessage(`Auto-targeting ${livingEnemies[0].name}.`);
                     } else {
-                        await displayMessage("You unlock the heavy wooden door with the old key and it creaks open.");
+                        await displayErrorMessage(`Choose a target for ${skillName}: use ${skillName} [1-${livingEnemies.length}].`, skillName, livingEnemies);
+                        return false;
                     }
-                }
-
-                currentRoom = newRoom;
-                await displayRoomDescription();
-            } else {
-                await displayMessage(`You can't go ${direction} from here.`);
-            }
-        }
-
-        /**
-         * Attempts to add an item from the room to the player's inventory.
-         * @param {string} item - The item to take.
-         */
-        async function takeItem(item) { // Made async
-            if (inCombat) {
-                await displayMessage("You're too busy fighting to pick up items!");
-                return;
-            }
-            const room = rooms[currentRoom];
-            if (room && room.items && room.items.includes(item)) {
-                playerStats.inventory.push(item);
-                room.items = room.items.filter(i => i !== item);
-                await displayMessage(`You picked up the ${item}.`);
-            } else {
-                await displayMessage(`There's no ${item} here.`);
-            }
-        }
-
-        /**
-         * Displays the player's current inventory.
-         */
-        async function showInventory() { // Made async
-            if (playerStats.inventory.length === 0) {
-                await displayMessage("Your inventory is empty.");
-            } else {
-                await displayMessage("Your inventory: " + playerStats.inventory.join(', ') + ".");
-            }
-        }
-
-        /**
-         * Attempts to use a specified skill.
-         * Currently, this only displays a message.
-         * @param {string} skillName - The name of the skill to use.
-         */
-        async function useSkill(skillName) { // Made async
-            const normalizedSkillName = skillName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-            if (playerStats.activeSkills.includes(normalizedSkillName)) {
-                await displayMessage(`You attempt to use ${normalizedSkillName}. (Effect not yet implemented!)`);
-                // TODO: Implement actual skill effects here, consuming resources, dealing damage, etc.
-            } else {
-                await displayMessage(`You don't have the skill '${normalizedSkillName}'.`);
-                await displayMessage("Type 'stats' to see your active skills.");
-            }
-        }
-
-        /**
-         * Displays detailed player statistics, current class, skills, and traits.
-         */
-        async function displayPlayerStats() { // Made async
-            await displayMessage("--- Your Character Stats ---", true);
-            await displayMessage(`Level: ${playerStats.level}`);
-            await displayMessage(`Experience: ${playerStats.experience}/${playerStats.expToNextLevel}`);
-            await displayMessage(`HP: ${playerStats.currentHP}/${playerStats.maxHP}`);
-            await displayMessage(`Strength: ${playerStats.strength}`);
-            await displayMessage(`Intelligence: ${playerStats.intelligence}`);
-            await displayMessage(`Agility: ${playerStats.agility}`);
-            await displayMessage(`Defense: ${playerStats.def}`); // Display Defense
-            await displayMessage(`Crit Chance: ${(playerStats.critChance * 100).toFixed(0)}%`); // Display Crit Chance
-            await displayMessage(`Crit Multiplier: x${playerStats.critMultiplier.toFixed(2)}`); // Display Crit Multiplier
-            await displayMessage(`Base Damage: ${playerStats.baseDamageMin}-${playerStats.baseDamageMax}`);
-            await displayMessage(`Resource: ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max} (Regen: ${playerStats.resource.regen || 0})`);
-
-            await displayMessage("--- Class Progression ---", true);
-            if (playerStats.isHollowKing) {
-                await displayMessage(`Current Form: ${playerProgression.currentEvolutionName} (The Hollow King)`);
-            } else {
-                await displayMessage(`Base Class: ${playerProgression.baseClass.charAt(0).toUpperCase() + playerProgression.baseClass.slice(1)}`);
-                await displayMessage(`Current Evolution: ${playerProgression.currentEvolutionName}`);
-                if (playerProgression.currentBranch) {
-                    await displayMessage(`Chosen Branch: ${playerProgression.currentBranch.charAt(0).toUpperCase() + playerProgression.currentBranch.slice(1).replace(/_/g, ' ')}`);
                 } else {
-                    await displayMessage(`Branch: Not yet specialized (choose at Level 3)`);
+                    const targetEnemy = getTargetEnemy(targetNum);
+                    if (!targetEnemy) {
+                        await displayErrorMessage(getInvalidTargetMessage(targetNum), skillName, livingEnemies);
+                        return false;
+                    }
+                    targets.push(targetEnemy);
                 }
+            } else if (skillInfo.target === 'self') {
+                targets.push(playerStats);
+            } else if (skillInfo.target === 'all_enemies') {
+                targets = currentEnemies.filter(e => e.hp > 0);
+                if (targets.length === 0) {
+                    await displayErrorMessage(`There are no living enemies to target with ${skillName}.`, skillName);
+                    return false;
+                }
+            } else if (skillInfo.target === 'minions') {
+                targets = playerMinions.filter(m => m.hp > 0);
+                if (targets.length === 0) {
+                    await displayErrorMessage(`You have no active minions to target with ${skillName}.`, skillName);
+                    return false;
+                }
+            } else if (skillInfo.target === 'linked_enemies') {
+                // TODO: Implement linked enemies logic
+                await displayErrorMessage(`Target type '${skillInfo.target}' for ${skillName} not yet fully implemented.`, skillName);
+                return false;
+            } else if (skillInfo.target === 'ground') {
+                // For traps, etc. No specific target combatant
+                targets.push({}); // Placeholder for ground target
+            }
+            else {
+                await displayErrorMessage(`Target type '${skillInfo.target}' for ${skillName} not yet fully implemented.`, skillName);
+                return false;
             }
 
-
-            await displayMessage("--- Skills ---", true);
-            if (playerStats.activeSkills.length > 0) {
-                for (const skill of playerStats.activeSkills) {
-                    const skillInfo = skillDefinitions[skill];
-                    let skillDisplay = `- ${skill}`;
-                    if (skillInfo?.description) {
-                        skillDisplay += `: ${skillInfo.description}`;
-                    }
-                    if (skillInfo?.cost > 0 || skillInfo?.cost === 'all') {
-                        skillDisplay += ` [Cost: ${skillInfo.cost} ${skillInfo.resource || 'resource'}]`;
-                    }
-                    await displayMessage(skillDisplay);
-                }
-            } else {
-                await displayMessage("No active skills.");
+            // Check resource cost
+            const cost = skillInfo.cost === 'all' ? playerStats.resource.current : skillInfo.cost;
+            if (playerStats.resource.current < cost) {
+                await displayErrorMessage(`Not enough ${playerStats.resource.type} to use ${skillName}! (Requires: ${skillInfo.cost})`, skillName);
+                return false;
             }
 
-            await displayMessage("--- Traits ---", true);
-            if (playerStats.activeTraits.length > 0) {
-                for (const trait of playerStats.activeTraits) {
-                    await displayMessage(`- ${trait.name}: ${trait.effect}`);
-                }
+            // Deduct resource
+            if (skillInfo.cost !== 0) {
+                playerStats.resource.current -= cost;
+                await displayMessage(`Used ${cost} ${playerStats.resource.type}. Remaining: ${playerStats.resource.current}/${playerStats.resource.max}`);
+            }
+
+            return await applySkillEffect(playerStats, targets, skillInfo);
+        }
+
+        /**
+         * Helper to get a target enemy by its 1-based index.
+         * @param {number} index - The 1-based index of the enemy.
+         * @returns {object | null} The enemy object or null if invalid.
+         */
+        function getTargetEnemy(index) {
+            const livingEnemies = currentEnemies.filter(e => e.hp > 0);
+            if (index > 0 && index <= livingEnemies.length) {
+                return livingEnemies[index - 1];
+            }
+            return null;
+        }
+
+        /**
+         * Helper to generate a standardized invalid target message.
+         * @param {number} targetNum - The invalid target number.
+         * @param {Array<object>} livingEnemies - List of currently living enemies.
+         * @returns {string} The formatted message.
+         */
+        function getInvalidTargetMessage(targetNum) {
+            const livingEnemies = currentEnemies.filter(e => e.hp > 0);
+            let msg = `Invalid target '${targetNum || 'none specified'}'.`;
+            if (livingEnemies.length === 0) {
+                msg += ` There are no living enemies.`;
             } else {
-                await displayMessage("No active traits.");
+                msg += ` Valid targets are: ${livingEnemies.map((e, i) => `(${i + 1}) ${e.name} ${e.hp}/${e.maxHp} HP`).join(', ')}.`;
+            }
+            return msg;
+        }
+
+        /**
+         * Displays a helpful error message with context.
+         * @param {string} errorMessage - The specific error.
+         * @param {string} originalCommandPart - The part of the command that caused the error (e.g., skill name).
+         * @param {Array<object>} [livingEnemies=[]] - Optional: list of living enemies for target context.
+         */
+        async function displayErrorMessage(errorMessage, originalCommandPart, livingEnemies = []) {
+            await displayMessage(`Error: ${errorMessage}`, true);
+
+            // Suggest similar skills if the error was about an unknown skill
+            const suggestions = findSimilarSkills(originalCommandPart);
+            if (suggestions.length > 0 && errorMessage.includes("don't have the skill")) {
+                await displayMessage(`Did you mean: ${suggestions.join(', ')}?`);
+            }
+
+            // Always show context after an error
+            await displayMessage("\n--- Current Status ---", true);
+            await displayMessage(`Your HP: ${playerStats.currentHP}/${playerStats.maxHP} | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
+            if (playerProgression.baseClass === 'necromancer') {
+                let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
+                if (playerStats.activeSkills.includes('Channel the Grave')) {
+                    tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
+                }
+                await displayMessage(tip);
+            }
+            if (inCombat) {
+                const currentLivingEnemies = currentEnemies.filter(e => e.hp > 0);
+                if (currentLivingEnemies.length > 0) {
+                    await displayMessage(`Enemies: ${currentLivingEnemies.map((e, i) => `(${i + 1}) ${e.name} ${e.hp}/${e.maxHp} HP`).join(', ')}`);
+                } else {
+                    await displayMessage("No enemies currently alive.");
+                }
+                await displayMessage("Valid combat commands: attack [enemy_number], use [skill_name] [target_number], flee, stats, class_lore.");
+            } else {
+                await displayMessage("Valid commands: go [direction], take [item], inventory (i), look, help, quit, stats, add_xp [amount], use [skill], class_lore (cl).");
             }
         }
 
