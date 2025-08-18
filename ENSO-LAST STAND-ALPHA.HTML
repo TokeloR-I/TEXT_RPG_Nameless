@@ -336,7 +336,7 @@
             'Soul Feast': { description: 'Drain 2 HP/turn from all linked enemies for 3 turns.', cost: 2, resource: 'Soul Energy', effects: [{ type: 'drain_hp_from_linked', value: 2, duration: 3 }], target: 'linked_enemies' },
 
             // Rogue Base Skills
-            'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_if_flanked', value: 5 }], target: 'enemy_single', damage_type: 'physical' },
+            'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'physical' },
             'Evasion': { description: '50% chance to dodge next attack.', cost: 0, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
             'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', cost: 1, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
             'Second Wind': { description: 'Gain +2 Energy, -25% evasion this turn.', cost: 0, resource: 'Energy', effects: [{ type: 'gain_resource', resource: 'Energy', value: 2 }, { type: 'apply_status', status: 'Evasion Debuff', value: -0.25, duration: 1 }], target: 'self' }, // Safety valve
@@ -718,7 +718,7 @@
                         stages: [
                             { level: 3, name: 'Elementalist', trait: 'Elemental Affinity', traitEffect: 'Casting same element twice in a row gives +50% dmg.', skill: 'Fireball', lore: "You command the primal forces of nature, weaving fire, ice, and lightning into devastating spells.", loreStance: "Master of elements.", loreEffect: "You gain access to fundamental elemental spells." },
                             { level: 5, name: 'Pyromancer', trait: 'Fireball leaves Burn', traitEffect: 'Your Fireball spell now inflicts a damage-over-time effect.', skill: 'Fireball', upgrade: 'Fireball leaves Burn (3 dmg/turn).', lore: "The flames within you burn brighter, transforming you into a conduit of pure destructive fire. Your enemies will be incinerated.", loreStance: "Conduit of fire.", loreEffect: "Your fire spells become more potent, leaving lingering burns." },
-                            { level: 8, name: 'Stormcaller', trait: 'Lightning Arc chains to 2 extra enemies', traitEffect: 'Your Lightning Arc spell now strikes multiple targets, arcing between foes.', skill: 'Lightning Arc', upgrade: 'Lightning Arc chains to 2 extra enemies.', lore: "The fury of the storm answers your call, unleashing torrents of lightning and wind upon your enemies. Chaos is your ally.", loreStance: "Fury of the storm.", loreEffect: "Your lightning spells gain the ability to strike multiple targets." },
+                            { level: 8, name: 'Stormcaller', trait: 'Lightning Arc chains to 2 extra enemies', traitEffect: 'Your Lightning Arc spell now strikes multiple targets, arcing between foes.', skill: 'Lightning Arc', upgrade: 'Lightning Arc chains to 2 extra enemies.', lore: "The fury of the storm answers your call, unleashing torrents of lightning and wind upon your enemies. Chaos is your ally.", loreStance: "Fury of the storm.", loreEffect: "You can gain the ability to strike multiple targets with lightning." },
                             { level: 11, name: 'Archmage', trait: 'Mix elements for hybrid effects', traitEffect: 'You can combine different elemental spells for unique and powerful hybrid effects.', skill: 'Fireball', upgrade: 'Mix elements for hybrid effects (fire+ice=steam slow, etc.).', lore: "You transcend the boundaries of individual elements, becoming a true master of arcane forces. All magic bends to your will.", loreStance: "Master of arcane.", loreEffect: "You can weave complex elemental combinations, creating new spell effects." },
                             { level: 14, name: 'Worldflame', trait: 'All elements gain +1 extra effect', traitEffect: 'Your elemental spells gain additional powerful effects, augmenting their destructive potential.', skill: 'Worldflame', ascended: true, lore: "You are the living embodiment of elemental fury, a cataclysm walking. Worlds burn and freeze at your command.", loreStance: "Cataclysm walking.", loreEffect: "Your elemental spells reach their peak, gaining enhanced secondary effects." }
                         ]
@@ -747,7 +747,7 @@
                         ],
                         stages: [
                             { level: 3, name: 'Chronomancer', trait: 'Haste grants ally extra turn', traitEffect: 'Your Haste spell grants an ally an immediate extra turn, accelerating their actions.', skill: 'Haste', lore: "You bend the fabric of time, accelerating allies and slowing foes. The battlefield moves to your rhythm.", loreStance: "Rhythm of time.", loreEffect: "You can manipulate the flow of time for allies." },
-                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'Your Slow spell can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'Slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed.", loreStance: "Knotting fate.", loreEffect: "You can bind enemies in temporal distortions, causing them to lose turns." },
+                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'You can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'Slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed.", loreStance: "Knotting fate.", loreEffect: "You can bind enemies in temporal distortions, causing them to lose turns." },
                             { level: 8, name: 'Riftseer', trait: 'Revert ally to HP they had 2 turns ago', traitEffect: 'You can rewind an ally’s health state, undoing recent damage or debuffs.', skill: 'Revert ally to HP', lore: "You gaze into the echoes of the past, pulling fragments of what was to mend what is. Time is a tool in your hands.", loreStance: "Echoes of the past.", loreEffect: "You can undo recent damage or debuffs to allies by rewinding their health." },
                             { level: 11, name: 'Epoch Guardian', trait: 'Freeze time for 1 turn (enemies can’t act)', traitEffect: 'You can momentarily halt the flow of time for your enemies, rendering them immobile.', skill: 'Freeze time', lore: "You stand as a bulwark against the ravages of time, able to halt its relentless march for your foes. The present is yours to command.", loreStance: "Command the present.", loreEffect: "You can freeze enemies in time, preventing them from acting." },
                             { level: 14, name: 'Eternal Architect', trait: 'Rearrange entire turn order for 3 turns.', traitEffect: 'You can completely reorder the combat sequence for a limited time, dictating who acts when.', skill: 'Rearrange turn order', ascended: true, lore: "You are the master of causality, the architect of destiny. Time is but clay in your hands, to be molded as you see fit.", loreStance: "Architect of destiny.", loreEffect: "You gain ultimate control over the flow of combat, dictating the turn order itself." }
@@ -827,11 +827,13 @@
         let turnOrder = []; // New: Array to hold the turn order of combatants
         let currentTurnIndex = 0; // New: Index of the current combatant in turnOrder
         let isTyping = false; // New: Flag to indicate if text is currently being typed
+        let skipTyping = false; // New: Flag to skip current typing animation
         let corpsesOnBattlefield = 0; // New: Counter for Necromancer Grave Bolt synergy
         let playerDealtDamageThisTurn = false; // New: Flag for Necromancer Soul Energy regen
 
         // Typing speed control (milliseconds per character)
-        const TYPING_SPEED = 20; // Adjust for faster/slower typing
+        const TYPING_SPEED = 20; // Original speed
+        const FAST_TYPING_SPEED = TYPING_SPEED * 0.8; // 20% faster
 
         let playerStats = {
             currentHP: 0,
@@ -939,6 +941,7 @@
             return suggestions.slice(0, 3); // Return up to 3 suggestions
         }
 
+        let currentTypingPromiseResolve = null; // New global variable to hold the resolve function
 
         // --- Game Functions ---
 
@@ -950,29 +953,54 @@
          */
         async function displayMessage(message, isImportant = false) {
             isTyping = true;
+            skipTyping = false; // Reset skip flag for new message
             gameInput.disabled = true; // Disable input while typing
             submitButton.disabled = true;
 
-            const lines = message.split('\n');
-            for (const line of lines) {
-                const p = document.createElement('p');
-                if (isImportant) {
-                    p.innerHTML = `<strong></strong>`; // Create strong tag inside p
-                }
-                gameOutput.appendChild(p);
+            return new Promise(async (resolve) => {
+                currentTypingPromiseResolve = resolve; // Store resolve function
 
-                const targetElement = isImportant ? p.querySelector('strong') : p;
+                const lines = message.split('\n');
+                for (const line of lines) {
+                    const p = document.createElement('p');
+                    if (isImportant) {
+                        p.innerHTML = `<strong></strong>`; // Create strong tag inside p
+                    }
+                    gameOutput.appendChild(p);
 
-                for (let i = 0; i < line.length; i++) {
-                    targetElement.textContent += line.charAt(i);
-                    gameOutput.scrollTop = gameOutput.scrollHeight; // Keep scrolling to bottom
-                    await sleep(TYPING_SPEED);
+                    const targetElement = isImportant ? p.querySelector('strong') : p;
+
+                    for (let i = 0; i < line.length; i++) {
+                        if (skipTyping) {
+                            targetElement.textContent = line; // Show full line instantly
+                            break; // Exit character loop
+                        }
+                        targetElement.textContent += line.charAt(i);
+                        gameOutput.scrollTop = gameOutput.scrollHeight; // Keep scrolling to bottom
+                        await sleep(FAST_TYPING_SPEED); // Use faster speed
+                    }
+                    if (skipTyping) {
+                        // If skipped, ensure all remaining lines are displayed instantly
+                        for (let j = lines.indexOf(line) + 1; j < lines.length; j++) {
+                            const nextP = document.createElement('p');
+                            if (isImportant) {
+                                nextP.innerHTML = `<strong>${lines[j]}</strong>`;
+                            } else {
+                                nextP.textContent = lines[j];
+                            }
+                            gameOutput.appendChild(nextP);
+                        }
+                        break; // Exit line loop
+                    }
                 }
-            }
-            isTyping = false;
-            gameInput.disabled = false; // Re-enable input
-            submitButton.disabled = false;
-            gameInput.focus(); // Re-focus input
+                isTyping = false;
+                skipTyping = false; // Reset skip flag
+                currentTypingPromiseResolve = null; // Clear resolve function
+                gameInput.disabled = false; // Re-enable input
+                submitButton.disabled = false;
+                gameInput.focus(); // Re-focus input
+                resolve(); // Resolve the promise
+            });
         }
 
         /**
@@ -1044,6 +1072,7 @@
          * Displays the description of the current room and available actions.
          */
         async function displayRoomDescription() { // Made async
+            gameOutput.innerHTML = ''; // Clear log for new action
             const room = rooms[currentRoom];
             if (room) {
                 await displayMessage("--- " + currentRoom.replace(/_/g, ' ').toUpperCase() + " ---", true);
@@ -1100,7 +1129,6 @@
                 await displayMessage("\n-- General Commands --", true);
                 await displayMessage("📜 Inventory (i)");
                 await displayMessage("👀 Look (re-examine room)");
-                await displayMessage("📊 Stats (view character sheet)");
                 await displayMessage("❓ Help (list all commands)");
                 await displayMessage("🚪 Quit (end game)");
 
@@ -1115,6 +1143,7 @@
          * @param {Array<string>} enemyKeys - An array of enemy keys (e.g., ['weak_goblin', 'hungry_wolf']).
          */
         async function startCombat(enemyKeys) { // Made async
+            gameOutput.innerHTML = ''; // Clear log for new action
             inCombat = true;
             currentEnemies = [];
             playerMinions = []; // Reset minions at start of combat
@@ -1177,58 +1206,31 @@
          * Displays the current state of combat (player and enemy HP) and the numbered action menu.
          */
         async function displayCombatState() { // Made async
-            // Removed redundant HP/resource display from main log, as it's in HUD
-            // await displayMessage("\n--- Battle Status ---", true);
-            // await displayMessage(`You (${playerStats.currentHP}/${playerStats.maxHP} HP) | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
-
-            // Resource tips based on class - now integrated into the HUD update logic
-            // if (playerProgression.baseClass === 'necromancer') {
-            //     let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
-            //     if (playerStats.activeSkills.includes('Channel the Grave')) {
-            //         tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
-            //     }
-            //     await displayMessage(tip);
-            // } else if (playerProgression.baseClass === 'warrior') {
-            //     await displayMessage("Tip: Momentum is gained +1 per hit, lost if you skip a turn.");
-            // } else if (playerProgression.baseClass === 'rogue') {
-            //     await displayMessage(`Tip: Energy regenerates +${playerStats.resource.regen} per turn.`);
-            // } else if (playerProgression.baseClass === 'mage') {
-            //     await displayMessage(`Tip: Mana regenerates +${playerStats.resource.regen} per turn.`);
-            // }
-
-
             for (const [index, enemy] of currentEnemies.entries()) {
                 if (enemy.hp > 0) {
                     await displayMessage(`${index + 1}. ${enemy.name} (${enemy.hp}/${enemy.maxHp} HP)`);
                 }
             }
-            // Minion display also moved to HUD
-            // if (playerMinions.length > 0) {
-            //     await displayMessage("-- Your Minions --", true);
-            //     playerMinions.forEach((minion, index) => {
-            //         if (minion.hp > 0) {
-            //             displayMessage(`Minion ${index + 1}: ${minion.name} (${minion.hp}/${minion.maxHp} HP)`);
-            //         }
-            //     });
-            // }
             await displayMessage("---------------------");
             await displayMessage("What will you do?");
 
             const combatActions = [];
-            combatActions.push({ type: 'attack', name: 'Attack', skillName: 'Slash' }); // Basic Attack
+            // Dynamically get the basic attack skill name for the current class
+            const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
+            combatActions.push({ type: 'attack', name: 'Attack', skillName: playerBasicAttackSkillName }); 
 
-            // Add active skills
+            // Add active skills (excluding the basic attack already added)
             playerStats.activeSkills.forEach(skillName => {
-                // Exclude 'Slash' if it's already the basic attack for the player's class
                 const baseClassStartingSkills = basePlayerClasses[playerProgression.baseClass]?.startingSkills || [];
-                if (!baseClassStartingSkills.includes(skillName) || skillName !== 'Slash') { // Only add if not a basic attack already handled by 'Attack'
+                if (!baseClassStartingSkills.includes(skillName)) { 
                     combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
                 }
             });
 
             combatActions.push({ type: 'flee', name: 'Flee' });
-            combatActions.push({ type: 'stats', name: 'Stats' });
-            combatActions.push({ type: 'class_lore', name: 'Class Lore' });
+            // Removed stats and class_lore from numbered menu as per feedback
+            // combatActions.push({ type: 'stats', name: 'Stats' });
+            // combatActions.push({ type: 'class_lore', name: 'Class Lore' });
 
             for (let i = 0; i < combatActions.length; i++) {
                 const action = combatActions[i];
@@ -1589,6 +1591,12 @@
                 playerStats.def += 1; // Also increase defense
                 playerStats.critChance = Math.min(0.5, playerStats.critChance + 0.01); // Cap crit chance
 
+                // Increase max resource on level up
+                playerStats.resource.max += 2;
+                playerStats.resource.current = playerStats.resource.max; // Refill to new max
+                await displayMessage(`Your ${playerStats.resource.type} increases by +2 (now ${playerStats.resource.current}/${playerStats.resource.max}).`, true);
+
+
                 await handleEvolution();
                 updatePlayerHud(); // Update HUD after level up/evolution
             }
@@ -1913,6 +1921,7 @@
          * Displays the class evolution tree and lore.
          */
         async function displayClassLore() { // New function for class lore
+            gameOutput.innerHTML = ''; // Clear log for new action
             if (!playerProgression.baseClass) {
                 await displayMessage("You need to choose a class first to view its lore!", true);
                 return;
@@ -1932,24 +1941,43 @@
 
             // Identity
             hudContent += `<div class="hud-section">`;
-            hudContent += `<strong>${playerStats.name || 'Player'}</strong><br>`;
-            hudContent += `${playerProgression.currentEvolutionName} / Lv${playerStats.level}`;
+            hudContent += `<strong>${playerProgression.currentEvolutionName || 'Adventurer'}</strong><br>`; // Use current evolution name
+            hudContent += `Level: ${playerStats.level}`;
+            if (playerProgression.baseClass) {
+                hudContent += `<br>Class: ${playerProgression.baseClass.charAt(0).toUpperCase() + playerProgression.baseClass.slice(1)}`;
+            }
             if (playerProgression.currentBranch) {
-                hudContent += `<br>(${playerProgression.currentBranch.charAt(0).toUpperCase() + playerProgression.currentBranch.slice(1).replace(/_/g, ' ')})`;
+                hudContent += `<br>Branch: ${playerProgression.currentBranch.charAt(0).toUpperCase() + playerProgression.currentBranch.slice(1).replace(/_/g, ' ') || 'Unspecialized'}`;
             }
             hudContent += `</div>`;
 
             // Vitals (HP)
             const hpPercent = (playerStats.currentHP / playerStats.maxHP) * 100;
-            let hpBarColorClass = 'low';
-            if (hpPercent > 60) hpBarColorClass = 'green';
-            if (hpPercent < 30) hpBarColorClass = 'critical';
+            let hpBarColorClass = ''; // Default to no specific color class
+            if (hpPercent <= 30) {
+                hpBarColorClass = 'critical';
+            } else if (hpPercent <= 60) {
+                hpBarColorClass = 'low';
+            } else {
+                hpBarColorClass = 'green'; // Assuming green is default for healthy
+            }
+
 
             hudContent += `<div class="hud-section">`;
             hudContent += `HP: ${playerStats.currentHP}/${playerStats.maxHP}`;
             hudContent += `<div class="hud-hp-bar-container"><div class="hud-hp-bar ${hpBarColorClass}" style="width: ${hpPercent}%;"></div></div>`;
             hudContent += `DEF: ${playerStats.def}`;
             // Add resistances later
+            hudContent += `</div>`;
+
+            // Primary Stats
+            hudContent += `<div class="hud-section">`;
+            hudContent += `STR: ${playerStats.strength}<br>`;
+            hudContent += `INT: ${playerStats.intelligence}<br>`;
+            hudContent += `AGI: ${playerStats.agility}<br>`;
+            hudContent += `Base Dmg: ${playerStats.baseDamageMin}-${playerStats.baseDamageMax}<br>`;
+            hudContent += `Crit Chance: ${(playerStats.critChance * 100).toFixed(0)}%<br>`;
+            hudContent += `Crit Multi: x${playerStats.critMultiplier.toFixed(2)}`;
             hudContent += `</div>`;
 
             // Primary Resource
@@ -2018,6 +2046,8 @@
                 return;
             }
 
+            gameOutput.innerHTML = ''; // Clear log for new action
+
             // --- Handle Class Selection Phase ---
             if (awaitingClassSelection) {
                 if (basePlayerClasses[cleanedCommand]) {
@@ -2079,7 +2109,7 @@
                     await displayRoomDescription();
                     break;
                 case 'help':
-                    await displayMessage("Available commands: go [direction], take [item], inventory (i), look, help, quit, stats, add_xp [amount], use [skill], class_lore (cl).");
+                    await displayMessage("Available commands: go [direction], take [item], inventory (i), look, help, quit, add_xp [amount], use [skill], class_lore (cl).");
                     break;
                 case 'quit':
                     await displayMessage("Thanks for playing! Game Over.", true);
@@ -2087,9 +2117,6 @@
                     break;
                 case 'start':
                     await startGame();
-                    break;
-                case 'stats':
-                    await displayPlayerStats();
                     break;
                 case 'add_xp':
                     const xpAmount = parseInt(argument);
@@ -2126,7 +2153,7 @@
                         playerStats.resource = { ...legendaryAndSecretClasses.the_hollow_king.coreResource };
                         await displayMessage(`A forbidden transformation! You are now ${legendaryAndSecretClasses.the_hollow_king.name}!`, true);
                         await displayMessage(`"${legendaryAndSecretClasses.the_hollow_king.uponUnlock}"`, true);
-                        await displayPlayerStats();
+                        updatePlayerHud(); // Update HUD after transformation
                     } else {
                         await displayMessage("You cannot become The Hollow King yet. You must be an Eternal Lich (Necromancer).");
                     }
@@ -2161,20 +2188,22 @@
 
             // Define the combat menu actions dynamically
             const combatActions = [];
-            combatActions.push({ type: 'attack', name: 'Attack', skillName: 'Slash' }); // Basic Attack (using Slash as the default name)
+            // Dynamically get the basic attack skill name for the current class
+            const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
+            combatActions.push({ type: 'attack', name: 'Attack', skillName: playerBasicAttackSkillName }); 
 
-            // Add active skills
+            // Add active skills (excluding the basic attack already added)
             playerStats.activeSkills.forEach(skillName => {
-                // Exclude 'Slash' if it's already the basic attack for the player's class
                 const baseClassStartingSkills = basePlayerClasses[playerProgression.baseClass]?.startingSkills || [];
-                if (!baseClassStartingSkills.includes(skillName) || skillName !== 'Slash') { // Only add if not a basic attack already handled by 'Attack'
+                if (!baseClassStartingSkills.includes(skillName)) { 
                     combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
                 }
             });
 
             combatActions.push({ type: 'flee', name: 'Flee' });
-            combatActions.push({ type: 'stats', name: 'Stats' });
-            combatActions.push({ type: 'class_lore', name: 'Class Lore' });
+            // Removed stats and class_lore from numbered menu as per feedback
+            // combatActions.push({ type: 'stats', name: 'Stats' });
+            // combatActions.push({ type: 'class_lore', name: 'Class Lore' });
 
             // --- Handle Numeric Input (Menu Selection) ---
             const numericInput = parseInt(mainCommandRaw);
@@ -2210,7 +2239,7 @@
                     await displayRoomDescription();
                     return; // End combat command processing immediately
                 } else if (chosenAction.type === 'stats') {
-                    await displayPlayerStats();
+                    await displayPlayerStatsContent(); // Call displayPlayerStatsContent
                     return; // Don't advance turn for info command
                 } else if (chosenAction.type === 'class_lore') {
                     await displayClassLore();
@@ -2265,7 +2294,7 @@
                                 await displayClassLore();
                                 return; // Don't advance turn for info command
                             case 'stats':
-                                await displayPlayerStats();
+                                await displayPlayerStatsContent(); // Call displayPlayerStatsContent
                                 return; // Don't advance turn for info command
                             default:
                                 await displayErrorMessage("I don't understand that command.", mainCommandRaw);
@@ -2411,27 +2440,15 @@
 
             // Suggest similar skills if the error was about an unknown skill
             const suggestions = findSimilarSkills(originalCommandPart);
-            if (suggestions.length > 0 && errorMessage.includes("don't understand that command") || errorMessage.includes("don't have the skill")) {
+            if (suggestions.length > 0 && (errorMessage.includes("don't understand that command") || errorMessage.includes("don't have the skill"))) {
                 await displayMessage(`Did you mean: ${suggestions.join(', ')}?`);
             }
 
             // Always show context after an error
+            // Resource info is now primarily in HUD, so just a brief reminder
             await displayMessage("\n--- Current Status ---", true);
-            await displayMessage(`Your HP: ${playerStats.currentHP}/${playerStats.maxHP} | ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}`);
-            if (playerProgression.baseClass === 'necromancer') {
-                let tip = "Tip: Soul Energy is gained from kills (+1, +2 if you land the killing blow) or at end of turns you deal damage (+1).";
-                if (playerStats.activeSkills.includes('Channel the Grave')) {
-                    tip += " You can also 'Channel the Grave' (costs 2 HP, 1-turn cooldown).";
-                }
-                await displayMessage(tip);
-            } else if (playerProgression.baseClass === 'warrior') {
-                await displayMessage("Tip: Momentum is gained +1 per hit, lost if you skip a turn.");
-            } else if (playerProgression.baseClass === 'rogue') {
-                await displayMessage(`Tip: Energy regenerates +${playerStats.resource.regen} per turn.`);
-            } else if (playerProgression.baseClass === 'mage') {
-                await displayMessage(`Tip: Mana regenerates +${playerStats.resource.regen} per turn.`);
-            }
-
+            await displayMessage(`Check HUD for HP and Resource details.`);
+            
             if (inCombat) {
                 const currentLivingEnemies = currentEnemies.filter(e => e.hp > 0);
                 if (currentLivingEnemies.length > 0) {
@@ -2439,9 +2456,9 @@
                 } else {
                     await displayMessage("No enemies currently alive.");
                 }
-                await displayMessage("Valid combat commands: attack [enemy_number], use [skill_name] [target_number], flee, stats, class_lore.");
+                await displayMessage("Valid combat commands: attack [enemy_number], use [skill_name] [target_number], flee, class_lore."); // Removed 'stats'
             } else {
-                await displayMessage("Valid commands: go [direction], take [item], inventory (i), look, help, quit, stats, add_xp [amount], use [skill], class_lore (cl).");
+                await displayMessage("Valid commands: go [direction], take [item], inventory (i), look, help, quit, add_xp [amount], use [skill], class_lore (cl)."); // Removed 'stats'
             }
         }
 
