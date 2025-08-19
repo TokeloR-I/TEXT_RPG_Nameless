@@ -832,8 +832,7 @@
         let playerDealtDamageThisTurn = false; // New: Flag for Necromancer Soul Energy regen
 
         // Typing speed control (milliseconds per character)
-        const TYPING_SPEED = 20; // Original speed
-        const FAST_TYPING_SPEED = TYPING_SPEED * 0.8; // 20% faster
+        const TYPING_SPEED_MS = 16; // 20% faster than 20ms
 
         let playerStats = {
             currentHP: 0,
@@ -941,7 +940,7 @@
             return suggestions.slice(0, 3); // Return up to 3 suggestions
         }
 
-        let currentTypingPromiseResolve = null; // New global variable to hold the resolve function
+        let currentTypingPromiseResolve = null; // Global variable to hold the resolve function for skipping
 
         // --- Game Functions ---
 
@@ -977,7 +976,7 @@
                         }
                         targetElement.textContent += line.charAt(i);
                         gameOutput.scrollTop = gameOutput.scrollHeight; // Keep scrolling to bottom
-                        await sleep(FAST_TYPING_SPEED); // Use faster speed
+                        await sleep(TYPING_SPEED_MS); // Use faster speed
                     }
                     if (skipTyping) {
                         // If skipped, ensure all remaining lines are displayed instantly
@@ -1743,7 +1742,7 @@
             let loreView = `\n--- Class Lore for ${baseClass.charAt(0).toUpperCase() + baseClass.slice(1)} ---\n`;
 
             // Base Class Entry for Lore View
-            loreView += `\n<strong>${baseClass.charAt(0).toUpperCase() + baseClass.slice(1)} (Lv1)</strong>:\n`;
+            loreView += `\n**${baseClass.charAt(0).toUpperCase() + baseClass.slice(1)} (Lv1)**:\n`; // Using Markdown bold
             if (basePlayerClasses[baseClass].lore) {
                 loreView += `  "${basePlayerClasses[baseClass].lore.base}"\n`;
                 loreView += `  Role: ${basePlayerClasses[baseClass].lore.role}\n`;
@@ -1814,14 +1813,14 @@
 
                     // Apply textual "color coding"
                     if (stage.ascended) {
-                        nameDisplayForTree = `<strong><span style="color: #f6ad55;">${stage.name} (Ascended)</span></strong>`; // Gold for Ascended
-                        loreStageTitle = `<strong><span style="color: #f6ad55;">Level ${stage.level} - ${stage.name} (Ascended Form)</span></strong>`;
+                        nameDisplayForTree = `**<span style="color: #f6ad55;">${stage.name} (Ascended)</span>**`; // Gold for Ascended
+                        loreStageTitle = `**<span style="color: #f6ad55;">Level ${stage.level} - ${stage.name} (Ascended Form)</span>**`;
                     } else if (stage.unlockTrigger) {
-                        nameDisplayForTree = `<strong><span style="color: #fc8181;">${stage.name} (Event/Boss Unlock)</span></strong>`; // Red for Event/Boss
-                        loreStageTitle = `<strong><span style="color: #fc8181;">Level ${stage.level} - ${stage.name} (Requires: ${stage.unlockTrigger})</span></strong>`;
+                        nameDisplayForTree = `**<span style="color: #fc8181;">${stage.name} (Event/Boss Unlock)</span>**`; // Red for Event/Boss
+                        loreStageTitle = `**<span style="color: #fc8181;">Level ${stage.level} - ${stage.name} (Requires: ${stage.unlockTrigger})</span>**`;
                     } else {
-                        nameDisplayForTree = `<strong><span style="color: #90cdf4;">${stage.name}</span></strong>`; // Blue for Normal evolution
-                        loreStageTitle = `<strong><span style="color: #90cdf4;">Level ${stage.level} - ${stage.name}</span></strong>`;
+                        nameDisplayForTree = `**<span style="color: #90cdf4;">${stage.name}</span>**`; // Blue for Normal evolution
+                        loreStageTitle = `**<span style="color: #90cdf4;">Level ${stage.level} - ${stage.name}</span>**`;
                     }
 
 
@@ -1859,7 +1858,7 @@
                     }
                     // Special display for Eternal Lich's connection to Hollow King
                     if (stage.secretEvolutionTrigger && baseClass === 'necromancer' && branchKey === 'soulbinder' && stage.name === 'Eternal Lich') {
-                        loreView += `\n  This form is a prerequisite for the ultimate hidden class: <strong>The Hollow King</strong>.\n`;
+                        loreView += `\n  This form is a prerequisite for the ultimate hidden class: **The Hollow King**.\n`; // Markdown bold
                         loreView += `  Unlock Conditions: ${legendaryAndSecretClasses.the_hollow_king.unlockConditions}\n`;
                     }
                 });
@@ -1899,7 +1898,7 @@
 
                 if (currentAscendedSkillName && skillInfo) {
                     loreView += "\n--- Ascended Overdrive (Current Class) ---\n";
-                    loreView += `\n<strong>${currentAscendedSkillName}</strong>: ${skillInfo.description} (1/fight)\n`;
+                    loreView += `\n**${currentAscendedSkillName}**: ${skillInfo.description} (1/fight)\n`; // Markdown bold
                 } else {
                     loreView += "\n--- Ascended Overdrive (Current Class) ---\n";
                     loreView += "No specific Ascended Overdrive found for current class (or it's the Hollow King).\n"; // Fallback for ascended with no skill
@@ -2172,6 +2171,7 @@
             let mainCommand = mainCommandRaw;
             let targetNum = rawTargetNum;
 
+            gameOutput.innerHTML = ''; // Clear log for new action
             await displayMessage(`> ${commandText}`, true); // Echo the command
 
             // Ensure it's the player's turn to act
@@ -2468,6 +2468,13 @@
             if (event.key === 'Enter') {
                 if (!isTyping) { // Only process command if not currently typing
                     await processCommand(event.target.value);
+                }
+            } else if (event.key === ' ') { // Spacebar to skip typing
+                if (isTyping && currentTypingPromiseResolve) {
+                    skipTyping = true;
+                    // Resolve the current typing promise immediately
+                    currentTypingPromiseResolve();
+                    event.preventDefault(); // Prevent space from being typed into input
                 }
             }
         });
