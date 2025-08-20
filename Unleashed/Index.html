@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Adventure</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <main class="main-layout-container">
+        <aside id="player-hud" class="player-hud">
+            </aside>
+        <section class="game-container">
+            <div id="game-output" class="game-output">
+                </div>
+            <div class="game-input-area">
+                <input type="text" id="game-input" class="game-input" placeholder="Type your command...">
+                <button id="submit-command" class="game-submit-btn">Go</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="game.js"></script>
+</body>
+</html>
