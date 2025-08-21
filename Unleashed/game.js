@@ -1,4 +1,5 @@
-        // --- Game Elements ---
+
+// --- Game Elements ---
         const gameOutput = document.getElementById('game-output');
         const gameInput = document.getElementById('game-input');
         const submitButton = document.getElementById('submit-command');
@@ -133,7 +134,7 @@
             'Fortress': { description: 'Create a zone lasting 3 turns, allies take -20% dmg inside.', cost: 2, resource: 'Marks', effects: [{ type: 'create_zone', zone: 'Fortress', duration: 3, effect: { type: 'damage_reduction', value: 0.2 } }], target: 'self', damage_type: 'utility' },
 
             // Necromancer Base Skills
-            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
+            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
             'Raise Skeleton': { description: 'Summon skeleton (5–7 dmg/turn).', cost: 2, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'skeleton', damage: [5, 7], duration: 'permanent' }], target: 'self' },
             'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
             'Channel the Grave': { description: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 1 turn)', cost: 0, resource: 'Soul Energy', effects: [{ type: 'gain_resource', resource: 'Soul Energy', value: 1 }, { type: 'take_true_damage', value: 2 }, { type: 'apply_status', status: 'Channel Cooldown', duration: 1 }], target: 'self' }, // Safety valve
@@ -466,9 +467,6 @@
                               synergy: [
                                 'Free Soul Feast once per fight → strong comeback tool',
                                 'Undying Will → 1 resurrection per fight'
-                              ],
-                              coreLoop: [
-                                'Link enemies → drain health → sustain while whittling enemy down.'
                               ]
                             }
                         ]
@@ -561,7 +559,7 @@
                     'chronomancer': {
                         name: 'Chronomancer',
                         theme: 'Time control, turn manipulation, support.',
-                        mechanic: 'Time Charges — gain 1 per turn, store up to 3; spend to act twice.',
+                        mechanic: 'Time Charges (gain 1/turn, store 3; spend to act twice).',
                         resourceEvolution: [
                             { level: 3, stage: 'Chronomancer', type: 'Time Charges' }
                         ],
@@ -650,6 +648,9 @@
         let skipTyping = false; // New: Flag to skip current typing animation
         let corpsesOnBattlefield = 0; // New: Counter for Necromancer Grave Bolt synergy
         let playerDealtDamageThisTurn = false; // New: Flag for Necromancer Soul Energy regen
+        let usedOverdrives = {}; // New: Track used one-per-fight skills
+        let playerHasTakenTurn = false; // New: Flag for 'Quick Slash' guaranteed crit
+        let turnNumber = 0; // New: Global turn counter for combat
 
         // Typing speed control (milliseconds per character)
         const TYPING_SPEED_MS = 16; // 20% faster than 20ms
@@ -963,6 +964,54 @@
                 await displayMessage("Error: You are in an unknown place. This shouldn't happen!", true);
             }
         }
+        
+        /**
+         * Moves the player to a new room.
+         * @param {string} direction The direction to move (e.g., 'north').
+         */
+        async function movePlayer(direction) {
+            const currentRoomData = rooms[currentRoom];
+            const newRoom = currentRoomData.exits[direction];
+
+            if (newRoom) {
+                currentRoom = newRoom;
+                await displayMessage(`You move to the ${direction}.`);
+                await displayRoomDescription();
+            } else {
+                await displayMessage("You can't go that way.");
+            }
+        }
+
+        /**
+         * Handles the player taking an item from a room.
+         * @param {string} itemName The name of the item to take.
+         */
+        async function takeItem(itemName) {
+            const currentRoomData = rooms[currentRoom];
+            const itemIndex = currentRoomData.items.indexOf(itemName);
+
+            if (itemIndex !== -1) {
+                const item = currentRoomData.items.splice(itemIndex, 1)[0];
+                playerStats.inventory.push(item);
+                await displayMessage(`You pick up the ${item}.`);
+            } else {
+                await displayMessage(`You don't see a '${itemName}' here.`);
+            }
+        }
+        
+        /**
+         * Displays the player's current inventory.
+         */
+        async function showInventory() {
+            if (playerStats.inventory.length > 0) {
+                await displayMessage("--- Inventory ---", true);
+                playerStats.inventory.forEach(item => {
+                    displayMessage(`- ${item}`);
+                });
+            } else {
+                await displayMessage("Your inventory is empty.");
+            }
+        }
 
         /**
          * Starts a combat encounter.
@@ -977,6 +1026,9 @@
             playerDealtDamageThisTurn = false; // Reset damage flag for new combat
             turnOrder = [];
             currentTurnIndex = 0;
+            turnNumber = 1; // Reset turn counter
+            playerHasTakenTurn = false; // Reset for Quick Slash
+            usedOverdrives = {}; // Reset used Overdrives
 
             await displayMessage("\n--- COMBAT INITIATED! ---", true);
 
@@ -997,6 +1049,7 @@
                     newEnemy.isPlayer = false;
                     newEnemy.isMinion = false;
                     newEnemy.statusEffects = []; // Initialize status effects for enemy
+                    newEnemy.lastSkillUsed = null; // New: track last skill used for Spellthief
                     currentEnemies.push(newEnemy);
                     await displayMessage(`A ${newEnemy.name} appears! (HP: ${newEnemy.hp})`);
                 } else {
@@ -1036,7 +1089,7 @@
             const combatActions = [];
             // Dynamically get the basic attack skill name for the current class
             const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
-            combatActions.push({ type: 'attack', name: 'Attack', skillName: playerBasicAttackSkillName }); 
+            combatActions.push({ type: 'attack', name: 'Attack', skillName: playerBasicAttackSkillName });
             
             // Add active skills
             playerStats.activeSkills.forEach(skillName => {
@@ -1065,9 +1118,12 @@
          */
         async function resolveTurn() { // Made async
             if (!inCombat) return;
+            
+            // Re-sort the turn order in case of new combatants (minions, etc.) or turn manipulation.
+            turnOrder = turnOrder.filter(c => c.hp > 0);
+            turnOrder.sort((a, b) => (b.agility || b.spd) - (a.agility || a.spd));
 
             // Clean up dead combatants from turn order
-            turnOrder = turnOrder.filter(c => c.hp > 0);
             currentEnemies = currentEnemies.filter(e => e.hp > 0);
             playerMinions = playerMinions.filter(m => m.hp > 0);
 
@@ -1081,6 +1137,19 @@
             }
 
             const currentCombatant = turnOrder[currentTurnIndex];
+
+            // Handle turn skip effects (Stun, Freeze Time, etc.)
+            const skipTurnEffect = currentCombatant.statusEffects.find(s => s.type === 'skip_turn' || s.name === 'Stun');
+            if (skipTurnEffect) {
+                await displayMessage(`${currentCombatant.name} is unable to act this turn!`);
+                skipTurnEffect.duration--;
+                if (skipTurnEffect.duration <= 0) {
+                    currentCombatant.statusEffects = currentCombatant.statusEffects.filter(s => s !== skipTurnEffect);
+                }
+                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                await resolveTurn();
+                return;
+            }
 
             // If it's the player's turn, display prompt and wait for input
             if (currentCombatant.isPlayer) {
@@ -1106,6 +1175,7 @@
 
             // If we've wrapped around to the start of the turn order, it's the end of the round
             if (currentTurnIndex === 0) {
+                turnNumber++;
                 await endOfRoundEffects(); // Await endOfRoundEffects
             }
             updatePlayerHud(); // Update HUD after each combatant's turn
@@ -1118,18 +1188,20 @@
          */
         async function enemyTurn(enemy) { // Made async
             // Simple AI: always attack the player
-            const player = turnOrder.find(c => c.isPlayer);
-            if (player && player.hp > 0) {
+            // FIX: 12. Add logic to target a taunting minion if one exists.
+            let tauntingMinion = playerMinions.find(m => m.statusEffects.some(s => s.name === 'Taunt'));
+            let target = tauntingMinion || turnOrder.find(c => c.isPlayer);
+
+            if (target && target.hp > 0) {
                 let enemySkill = skillDefinitions[enemy.skills[0]?.name]; // Try to get enemy's first skill
                 if (!enemySkill) {
                     enemySkill = skillDefinitions['Basic Attack']; // Fallback to Basic Attack
                     await displayMessage(`${enemy.name} fumbles and resorts to a basic attack.`);
                 }
 
-                const damageDealt = calculateDamage(enemy, player, enemySkill);
-                // FIX: 5, 11. Damage is dealt directly to the single playerStats object.
-                playerStats.currentHP -= damageDealt;
-                await displayMessage(`${enemy.name} attacks you for ${damageDealt} damage! Your HP: ${playerStats.currentHP}/${playerStats.maxHP}`);
+                const damageDealt = calculateDamage(enemy, target, enemySkill);
+                target.hp -= damageDealt;
+                await displayMessage(`${enemy.name} attacks ${target.name} for ${damageDealt} damage! ${target.name} HP: ${target.hp}/${target.maxHp}`);
             } else {
                 await displayMessage(`${enemy.name} has no target to attack.`);
             }
@@ -1181,19 +1253,65 @@
          */
         function calculateDamage(attacker, defender, skill) {
             let baseDamage = getRandomInt(skill.base_damage[0], skill.base_damage[1]);
-            let isCrit = Math.random() < (attacker.critChance || 0);
+            let critMultiplier = (attacker.critMultiplier || 1.5);
+            let critChance = (attacker.critChance || 0);
             let finalDamage = 0;
+            let isCrit = false;
+
+            // Handle guaranteed crits from traits or skills
+            const hasGuaranteedCrit = attacker.statusEffects.some(s => s.name === 'Guaranteed Crit');
+            if (hasGuaranteedCrit || (skill.name === 'Quick Slash' && !playerHasTakenTurn)) {
+                isCrit = true;
+                attacker.statusEffects = attacker.statusEffects.filter(s => s.name !== 'Guaranteed Crit');
+            } else {
+                isCrit = Math.random() < critChance;
+            }
 
             if (isCrit) {
-                baseDamage = Math.floor(baseDamage * (attacker.critMultiplier || 1.5));
+                baseDamage = Math.floor(baseDamage * critMultiplier);
                 // displayMessage(`Critical Hit!`, true); // Removed instant display, will be part of combat log
             }
 
-            // Apply defense (simple reduction for now)
-            finalDamage = Math.max(0, baseDamage - (defender.def || 0)); // Damage can't be negative
+            // Apply damage modifications before defense
+            // E.g., Berserker's "Blood Frenzy" trait
+            if (attacker.isPlayer && playerProgression.currentEvolutionName === 'Berserker' && attacker.hp <= attacker.maxHp * 0.5) {
+                baseDamage *= 1.1; // +10% dmg
+            }
 
+            if (skill.damage_type === 'true') {
+                finalDamage = baseDamage;
+            } else {
+                // Handle armor penetration
+                let defense = defender.def || 0;
+                if (skill.effects?.some(e => e.type === 'ignore_armor_percent')) {
+                    const ignorePercent = skill.effects.find(e => e.type === 'ignore_armor_percent').value;
+                    defense -= defense * ignorePercent;
+                }
+                
+                // Apply defense and damage reduction effects
+                finalDamage = Math.max(0, baseDamage - defense);
+                const damageReductionEffect = defender.statusEffects.find(s => s.type === 'damage_reduction');
+                if (damageReductionEffect) {
+                    finalDamage *= (1 - damageReductionEffect.value);
+                    defender.statusEffects = defender.statusEffects.filter(s => s !== damageReductionEffect); // DR from guard only lasts one hit
+                }
 
-            return finalDamage;
+                // Check for Bone Armor (Necromancer - Bone Warden)
+                if (defender.isPlayer && playerProgression.currentBranch === 'bone_warden') {
+                    const numMinions = playerMinions.length;
+                    let boneArmorDR = numMinions * 0.02; // 2% per minion
+                    const boneFortressTrait = playerStats.activeTraits.find(t => t.name === 'Bone Fortress');
+                    if (boneFortressTrait) {
+                        boneArmorDR = Math.min(boneArmorDR, 0.15); // Cap at 15%
+                    } else {
+                        boneArmorDR = Math.min(boneArmorDR, 0.10); // Default cap at 10%
+                    }
+                    finalDamage *= (1 - boneArmorDR);
+                    // displayMessage(`Bone Armor absorbed ${Math.round(boneArmorDR * 100)}% of the damage!`); // Feedback
+                }
+            }
+
+            return Math.max(0, Math.floor(finalDamage)); // Final damage can't be negative
         }
 
         /**
@@ -1206,6 +1324,16 @@
         async function applySkillEffect(caster, targets, skillInfo) {
             // Ensure targets is an array for consistent processing
             const actualTargets = Array.isArray(targets) ? targets : [targets];
+            
+            // Check for once-per-fight limit
+            if (skillInfo.oncePerFight) {
+                if (usedOverdrives[skillInfo.name]) {
+                    await displayMessage(`${skillInfo.name} can only be used once per fight!`, true);
+                    return false;
+                }
+                usedOverdrives[skillInfo.name] = true;
+            }
+
 
             // Handle specific safety valve skills
             if (skillInfo.name === 'Channel the Grave') {
@@ -1309,6 +1437,62 @@
                             // This is a placeholder; actual status effect management needs to be built.
                             await displayMessage(`${caster.name} applies status: ${effect.status} (Duration: ${effect.duration})`);
                             break;
+                        case 'stun':
+                            actualTargets.forEach(target => {
+                                target.statusEffects.push({ name: 'Stun', type: 'skip_turn', duration: effect.duration });
+                            });
+                            await displayMessage(`${actualTargets.map(t => t.name).join(', ')} are stunned!`);
+                            break;
+                        case 'taunt_aoe':
+                            actualTargets.forEach(target => {
+                                target.statusEffects.push({ name: 'Taunt', type: 'taunt', duration: effect.duration });
+                            });
+                            await displayMessage(`${actualTargets.map(t => t.name).join(', ')} are taunted!`);
+                            break;
+                        case 'minion_taunt':
+                            playerMinions.filter(m => m.hp > 0).forEach(minion => {
+                                minion.statusEffects.push({ name: 'Taunt', type: 'taunt', duration: effect.duration });
+                            });
+                            await displayMessage(`Your minions are now taunting enemies!`);
+                            break;
+                        case 'instant_kill_if_low_hp':
+                            actualTargets.forEach(target => {
+                                if (target.hp <= target.maxHp * effect.threshold) {
+                                    target.hp = 0;
+                                    await displayMessage(`${target.name} is instantly assassinated!`);
+                                } else {
+                                    await displayMessage(`${target.name} is not weak enough for Assassinate.`);
+                                }
+                            });
+                            break;
+                        case 'guaranteed_crit_next_hit':
+                            caster.statusEffects.push({ name: 'Guaranteed Crit', duration: 1 });
+                            await displayMessage(`${caster.name}'s next attack is guaranteed to be a critical hit!`);
+                            break;
+                        case 'multi_hit':
+                            for (let i = 0; i < effect.count; i++) {
+                                await displayMessage(`--- Hit ${i + 1}/${effect.count} ---`);
+                                for (const target of actualTargets) {
+                                    if (target.hp > 0) {
+                                        let damageDealt = calculateDamage(caster, target, skillInfo);
+                                        target.hp -= damageDealt;
+                                        await displayMessage(`${caster.name} strikes ${target.name} for ${damageDealt} damage! ${target.name} HP: ${target.hp}/${target.maxHp}`);
+                                    }
+                                }
+                            }
+                            break;
+                        case 'extra_turn':
+                            // This is a complex effect. For simplicity, we'll implement it by immediately inserting the target back into the turn order.
+                            // A more robust system would require managing the turn queue more carefully.
+                            const extraTurnTarget = actualTargets[0];
+                            if (extraTurnTarget) {
+                                const newTurnOrder = [...turnOrder];
+                                const currentCombatantIndex = newTurnOrder.findIndex(c => c === caster);
+                                newTurnOrder.splice(currentCombatantIndex + 1, 0, extraTurnTarget);
+                                turnOrder = newTurnOrder;
+                                await displayMessage(`${extraTurnTarget.name} gets an extra turn!`);
+                            }
+                            break;
                         default:
                             await displayMessage(`(Unhandled effect type: ${effect.type} for skill ${skillInfo.name})`);
                             break;
@@ -1316,6 +1500,7 @@
                 }
             }
             playerDealtDamageThisTurn = true; // Mark that player dealt damage this turn
+            playerHasTakenTurn = true; // Mark that player has taken a turn for Quick Slash
             return true; // Skill successfully used
         }
 
@@ -1377,13 +1562,16 @@
                     if (effect.duration !== 'permanent') {
                         effect.duration--;
                     }
-                    // TODO: Apply DoT damage here if effect.type is 'dot'
+                    if (effect.type === 'dot') {
+                        const dotDamage = effect.value;
+                        combatant.hp -= dotDamage;
+                        displayMessage(`${combatant.name} takes ${dotDamage} damage from a DoT effect!`);
+                    }
                     return effect.duration === 'permanent' || effect.duration > 0;
                 });
             }
             updatePlayerHud(); // Update HUD after end of round effects
         }
-
 
         /**
          * Adds experience points to the player and checks for level up.
@@ -2300,4 +2488,7 @@
         });
 
         // --- Initialize the Game ---
-        document.addEventListener('DOMContentLoaded', startGame);
+        document.addEventListener('DOMContentLoaded', () => {
+          startGame();
+        });
+   
