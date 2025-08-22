@@ -245,7 +245,7 @@
         // --- Player Base Classes Definition ---
         const basePlayerClasses = {
             'warrior': {
-                description: "A strong and resilient fighter, adept with weapons. Can evolve into Vanguard, Berserker, or Warden.",
+                description: "A strong and resilient fighter, adept with weapons.",
                 lore: {
                     base: "Steel in your hands, resolve in your heart. You fight because you must — and because no one else will.",
                     role: "Frontline melee, starter class.",
@@ -2492,3 +2492,4 @@
           startGame();
         });
    
+
