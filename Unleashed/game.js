@@ -3,7 +3,7 @@
         const gameOutput = document.getElementById('game-output');
         const gameInput = document.getElementById('game-input');
         const submitButton = document.getElementById('submit-command');
-        const playerHudElement = document.getElementById('player-hud'); // New HUD element reference
+        const playerHudElement = document.getElementById('player-hud'); //HUD element reference
 
         // --- Game World Data ---
         const rooms = {
@@ -2492,4 +2492,5 @@
           startGame();
         });
    
+
 
