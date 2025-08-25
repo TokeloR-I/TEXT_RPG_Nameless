@@ -14,7 +14,7 @@
                     'east': 'dark_passage'
                 },
                 enemies: ['weak_goblin'], // Example: Add enemies to a room
-                items: []
+                items: ['Grigamba stone']
             },
             'wooden_door_room': {
                 description: "You stand before a massive, reinforced wooden door. It looks incredibly sturdy. There's nothing else here. You can go back south.",
@@ -2492,5 +2492,6 @@
           startGame();
         });
    
+
 
 
