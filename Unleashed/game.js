@@ -1,8 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Adventure Game</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to the top for better content display */
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #2d3748; /* Slightly lighter dark background for container */
+            border: 2px solid #4a5568;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #game-output {
+            background-color: #1a202c;
+            min-height: 300px; /* Ensure a minimum height */
+            max-height: 60vh; /* Responsive max height */
+            overflow-y: auto;
+            padding: 1.5rem;
+            color: #9ae6b4; /* Retro green text */
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.5;
+            border-bottom: 2px solid #4a5568;
+        }
+        #game-output p {
+            margin-bottom: 0.5rem;
+        }
+        #game-output p:last-child {
+            margin-bottom: 0;
+        }
+        #input-area {
+            padding: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        #game-input {
+            flex-grow: 1;
+            background-color: #4a5568;
+            border: 1px solid #718096;
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+        #game-input:focus {
+            outline: none;
+            border-color: #63b3ed; /* Focus color */
+            box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.5);
+        }
+        #submit-button {
+            background-color: #63b3ed; /* Blue button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            border: none;
+        }
+        #submit-button:hover {
+            background-color: #4299e1;
+            transform: translateY(-1px);
+        }
+        #submit-button:active {
+            background-color: #3182ce;
+            transform: translateY(0);
+        }
 
-// --- Game Elements ---
+        /* Player HUD Styling */
+        #player-hud {
+            background-color: #1a202c; /* Same as game output for consistency */
+            border-top: 2px solid #4a5568;
+            padding: 1rem 1.5rem;
+            color: #e2e8f0;
+            font-size: 0.875rem; /* text-sm */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Responsive columns */
+            gap: 1rem;
+            font-family: 'Inter', sans-serif; /* HUD uses a more readable font */
+        }
+        .hud-section {
+            background-color: #2d3748; /* Darker background for sections */
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4a5568;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .hud-section strong {
+            color: #90cdf4; /* Blue for titles */
+            font-weight: bold;
+        }
+        .hud-hp-bar-container, .hud-resource-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #4a5568;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .hud-hp-bar {
+            height: 100%;
+            background-color: #48bb78; /* Default green */
+            transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+        .hud-hp-bar.low {
+            background-color: #ecc94b; /* Yellow for low HP */
+        }
+        .hud-hp-bar.critical {
+            background-color: #e53e3e; /* Red for critical HP */
+        }
+        .hud-resource-bar {
+            height: 100%;
+            background-color: #63b3ed; /* Blue for resource */
+            transition: width 0.3s ease-in-out;
+        }
+        .hud-minion-list {
+            color: #a0aec0; /* Lighter gray for minion list */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #game-container {
+                padding: 1rem;
+                border-radius: 0.5rem;
+                align-items: stretch; /* Allow HUD to stretch */
+            }
+            #game-output {
+                font-size: 0.75rem; /* Smaller text on mobile */
+                padding: 1rem;
+                max-height: 50vh;
+            }
+            #input-area {
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 1rem;
+            }
+            #game-input, #submit-button {
+                width: 100%;
+                padding: 0.6rem 1rem;
+            }
+            #player-hud {
+                grid-template-columns: 1fr; /* Single column on mobile */
+                padding: 0.75rem 1rem;
+                gap: 0.75rem;
+            }
+            .hud-section {
+                padding: 0.6rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container" class="rounded-xl shadow-lg">
+        <div id="game-output" class="rounded-t-xl">
+            <!-- Game messages will appear here -->
+        </div>
+        <!-- Player HUD will go here -->
+        <div id="player-hud">
+            <!-- HUD content will be dynamically updated by JavaScript -->
+        </div>
+        <form id="game-form" class="flex items-center gap-4 p-4">
+            <input type="text" id="game-input" placeholder="Type your command..." autocomplete="off" class="flex-grow rounded-md border border-gray-600 bg-gray-700 text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" id="submit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200">
+                Submit
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // --- Game Elements ---
         const gameOutput = document.getElementById('game-output');
         const gameInput = document.getElementById('game-input');
-        const submitButton = document.getElementById('submit-command');
+        const submitButton = document.getElementById('submit-button'); // Corrected ID to match HTML
         const playerHudElement = document.getElementById('player-hud'); //HUD element reference
 
         // --- Game World Data ---
@@ -248,7 +438,7 @@
                 description: "A strong and resilient fighter, adept with weapons.",
                 lore: {
                     base: "Steel in your hands, resolve in your heart. You fight because you must — and because no one else will.",
-                    role: "Frontline melee, starter class.",
+                    role: "Frontline melee, er class.",
                     identity: "Grit, survival, and the will to push forward."
                 },
                 startingItems: ['rusty sword', 'wooden shield', 'old key'],
@@ -1237,7 +1427,7 @@
                         await displayMessage(`${minion.name} tries to attack, but its skill '${minion.skills[0].name}' is not defined!`);
                     }
                 } else {
-                     await displayMessage(`${minion.name} has no skills to use!`);
+                        await displayMessage(`${minion.name} has no skills to use!`);
                 }
             } else {
                 await displayMessage(`${minion.name} has no target to attack.`);
@@ -2489,9 +2679,8 @@
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', () => {
-          startGame();
+            startGame();
         });
-   
-
-
-
+    </script>
+</body>
+</html>
