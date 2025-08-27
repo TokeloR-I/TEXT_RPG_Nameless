@@ -103,7 +103,7 @@ Features aimed at accessibility and immersion:
 - **Enemy AI** – Currently basic; no advanced tactics.  
 - **Items** – Present in inventory but inactive.  
 - **Quests/Events** – No dynamic events yet.  
-
+- **game failing to start** – current perma crash.  
 ---
 
 💡 *Testing & feedback are crucial. The game is evolving with each iteration — your input will help shape its combat, progression, and world-building.*  
