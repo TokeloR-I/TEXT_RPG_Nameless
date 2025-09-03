@@ -12,7 +12,7 @@ This project is a passion-driven creation of a complex, immersive RPG where your
 
 ### 🎭 Deep Class System  
 
-Four distinct playable classes, each with unique mechanics and detailed progression paths:  
+Four distinct playable classes, each with unique mechanics and detailed progression paths :  
 
 - **Warrior** – Frontline melee fighter using *Momentum*. Evolves into defensive **Vanguards**, frenzied **Berserkers**, or battlefield-controlling **Wardens**.  
 - **Necromancer** – Master of death magic & summoning, using *Soul Energy* to raise minions and spread decay.  
