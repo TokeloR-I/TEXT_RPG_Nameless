@@ -26,7 +26,7 @@ Four distinct playable classes, each with unique mechanics and detailed progress
 - Lore-Rich Progression – Narrative flavor for each stage.  
 - Ascended Forms & Hidden Paths – Legendary evolutions like *The Hollow King, Deathlord Eternal*, etc.  
 
----
+-
 
 ### ⚔ Foundational Combat System  
 
