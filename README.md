@@ -4,7 +4,7 @@
 🎮 **Retro Text Adventure Game**  
 
 Welcome to our evolving text-based adventure!  
-This project is a passion-driven creation of a complex, immersive RPG where your choices — especially your class and its evolution — deeply shape your journey.  
+This project is a passion-driven creation of a complex, immersive RPG where your choices — especially your class and its evolution  deeply shape your journey.  
 
 ---
 
