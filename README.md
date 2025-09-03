@@ -106,4 +106,4 @@ Features aimed at accessibility and immersion:
 - **game failing to start** – current perma crash.  
 ---
 
-💡 *Testing & feedback are crucial. The game is evolving with each iteration — your input will help shape its combat, progression, and world-building.*  
+💡 *Testing & feedback are crucial. The game is evolving with each iteration your input will help shape its combat, progression, and world-building.*  
