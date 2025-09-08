@@ -42,6 +42,19 @@
 
         // --- Enemy Definitions ---
         const enemies = {
+                'James_Newton': {
+                name: 'James Newton',
+                hp: 666,
+                maxHp: 666,
+                atk: 666,
+                def: 666,
+                spd: 666,
+                critChance: 666,
+                critMultiplier: 666,
+                resistances: [],
+                specialFlags: [],
+                skills: [{ name: 'Slash', description: 'Deals 6-66 damage.', base_damage: [6, 66], target: 'player', damage_type: 'physical' }]
+            },
             'weak_goblin': {
                 name: 'Weak Goblin',
                 hp: 30,
@@ -1897,3 +1910,4 @@
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', startGame);
+
