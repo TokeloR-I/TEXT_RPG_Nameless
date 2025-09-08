@@ -625,7 +625,7 @@
                     { name: 'Life Inversion', effect: 'Damage heals you; healing damages you.' },
                     { name: 'Soul Erasure', effect: 'Kills leave no corpse; enemies cannot be revived.' },
                     { name: 'Unshackled Command', effect: 'Unlimited summons, but each drains 2% max HP/turn.' },
-                    { name: 'Crown of the Undying', effect: 'If you die, resurrect next turn with 30% HP. Consumes all Hollow Will and permanently reduces max HP by 10%. Cannot trigger if max HP is below 25% of original.' }
+                    { name: 'Crown of the Undying', effect: 'If you die, resurrect next turn with 50% HP. Consumes all Hollow Will and permanently reduces max HP by 10%. Cannot trigger if max HP is below 25% of original.' }
                 ],
                 skills: ['Unmake', 'Echo of Nothing'], // Hollow Crown is a passive effect of a trait, not an active skill
                 overdrive: { name: 'Oblivion’s Call', description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.' },
@@ -1425,7 +1425,7 @@
                 if (hasCrown) {
                     await displayMessage("Your form dissolves into nothingness... but the crown remains.", true);
                     await sleep(1000); // Dramatic pause
-                    playerStats.currentHP = Math.floor(playerStats.maxHP * 0.30); // Resurrect at 30% HP
+                    playerStats.currentHP = Math.floor(playerStats.maxHP * 0.50); // Resurrect at 50% HP
                     await displayMessage("Silence reigns, and from it, you are remade. The Hollow King cannot truly die.", true);
                     updatePlayerHud();
                     // By returning false, we prevent the "DEFEAT!" message and continue the battle.
@@ -1977,3 +1977,4 @@
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', startGame);
+
