@@ -1399,7 +1399,7 @@
         }
 
 
-        /**
+  /**
          * Checks if the battle has ended.
          * @returns {Promise<boolean>} True if battle ended, false otherwise.
          */
@@ -1419,6 +1419,20 @@
             }
 
             if (!isPlayerAlive && inCombat) { // Added inCombat check
+
+                // --- NEW: Hollow King Resurrection Logic ---
+                const hasCrown = playerStats.isHollowKing && playerStats.activeTraits.some(t => t.name === 'Crown of the Undying');
+                if (hasCrown) {
+                    await displayMessage("Your form dissolves into nothingness... but the crown remains.", true);
+                    await sleep(1000); // Dramatic pause
+                    playerStats.currentHP = Math.floor(playerStats.maxHP * 0.30); // Resurrect at 30% HP
+                    await displayMessage("Silence reigns, and from it, you are remade. The Hollow King cannot truly die.", true);
+                    updatePlayerHud();
+                    // By returning false, we prevent the "DEFEAT!" message and continue the battle.
+                    return false; 
+                }
+                // --- End of New Logic ---
+
                 await displayMessage("\n--- DEFEAT! ---", true);
                 inCombat = false;
                 gameActive = false;
@@ -1428,7 +1442,6 @@
             }
             return false;
         }
-
         /**
          * Applies end-of-round effects like resource regeneration and DoTs.
          */
@@ -1545,6 +1558,59 @@
                 }
             }
         }
+
+        /**
+         * Cheat command function to transform the player into The Hollow King.
+         */
+ /**
+         * Cheat command function to transform the player into The Hollow King.
+         */
+        async function transformIntoHollowKing() {
+            if (!playerProgression.baseClass) {
+                await displayMessage("You must select a base class before you can embrace the void.", true);
+                return;
+            }
+
+            const hkData = legendaryAndSecretClasses.the_hollow_king;
+
+            // --- NEW: Grant legendary base stats ---
+            playerStats.maxHP = 500;
+            playerStats.currentHP = 500;
+            playerStats.def = 50;
+            playerStats.strength = 20;
+            playerStats.intelligence = 20;
+            playerStats.agility = 15;
+            playerStats.critChance = 0.25;
+            playerStats.critMultiplier = 2.5;
+            // -----------------------------------------
+
+            // Update Player Stats
+            playerStats.name = hkData.name;
+            playerStats.isHollowKing = true;
+            playerStats.resource = { ...hkData.coreResource, current: hkData.coreResource.initial };
+
+            // Update Skills, including the overdrive skill
+            playerStats.activeSkills = [...hkData.skills, hkData.overdrive.name];
+
+            // Update Traits/Passives
+            playerStats.activeTraits = [...hkData.passives];
+
+            // Update Progression State
+            playerProgression.baseClass = 'hollow_king'; // Custom identifier
+            playerProgression.currentBranch = null;
+            playerProgression.currentEvolutionName = hkData.name;
+            playerProgression.currentEvolutionStageIndex = 0; // or some other indicator
+
+            // Notify the player
+            gameOutput.innerHTML = '';
+            await displayMessage(hkData.uponUnlock, true);
+            await displayMessage("You have become The Hollow King. Your previous self is gone.", true);
+
+            // Update UI and show current state
+            updatePlayerHud();
+            await displayRoomDescription(); // Show the room again with the new context
+        }
+
 
        /**
          * Generates formatted strings for the class evolution tree and lore views.
@@ -1715,6 +1781,7 @@
                     break;
                 case 'class_lore': case 'cl': await displayClassLore(); break;
                 case 'add_xp': await addExperience(parseInt(argument) || 50); break;
+                case 'become_hollow_king': await transformIntoHollowKing(); break; // <-- CHEAT ADDED HERE
                 default: await displayErrorMessage("I don't understand that command.", mainCommand); break;
             }
         }
@@ -1910,5 +1977,3 @@
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', startGame);
-
-
