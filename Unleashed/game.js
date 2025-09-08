@@ -12,7 +12,7 @@
                     'north': 'wooden_door_room',
                     'east': 'dark_passage'
                 },
-                enemies: ['weak_goblin'], // Example: Add enemies to a room
+                enemies: ['weak_goblin','James_Newton'], // Example: Add enemies to a room
                 items: ['Grigamba stone']
             },
             'wooden_door_room': {
@@ -1910,4 +1910,5 @@
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', startGame);
+
 
