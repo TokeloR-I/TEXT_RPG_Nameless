@@ -1007,7 +1007,12 @@
                 if (enemySkill) {
                     const { damage: damageDealt } = calculateDamage(enemy, target, enemySkill);
                     target.hp -= damageDealt;
-                    await displayMessage(`${enemy.name} uses ${enemySkill.name} on ${target.name} for ${damageDealt} damage! ${target.name} HP: ${target.hp}/${target.maxHp}`);
+                    
+                    // --- HARDENED MESSAGE LOGIC ---
+                    const targetName = target.isPlayer ? playerStats.name : target.name;
+                    const targetMaxHp = target.isPlayer ? playerStats.maxHP : target.maxHp; // Always use global playerStats for player's maxHP
+                    await displayMessage(`${enemy.name} uses ${enemySkill.name} on ${targetName} for ${damageDealt} damage! ${targetName} HP: ${target.hp}/${targetMaxHp}`);
+                    // --- END OF FIX ---
                 } else {
                      await displayMessage(`${enemy.name} stares blankly, unable to find a skill to use.`);
                 }
@@ -1024,7 +1029,11 @@
                     if (minionSkill) {
                         const { damage: damageDealt } = calculateDamage(minion, targetEnemy, minionSkill);
                         targetEnemy.hp -= damageDealt;
+
+                        // --- HARDENED MESSAGE LOGIC ---
                         await displayMessage(`${minion.name} attacks ${targetEnemy.name} for ${damageDealt} damage! ${targetEnemy.name} HP: ${targetEnemy.hp}/${targetEnemy.maxHp}`);
+                        // --- END OF FIX ---
+
                         if (targetEnemy.hp <= 0) {
                             await displayMessage(`${targetEnemy.name} has been defeated!`);
                             if (playerProgression.baseClass === 'necromancer') {
@@ -1536,7 +1545,7 @@
             }
         }
 
-        async function processCombatCommand(commandText) {
+       async function processCombatCommand(commandText) {
             const { command: mainCommandRaw, targetNum } = normalizeCommandInput(commandText);
             gameOutput.innerHTML = '';
             await displayMessage(`> ${commandText}`, false);
@@ -1547,11 +1556,15 @@
             }
 
             let actionTaken = false;
-            let resolvedSkillName = resolveSkillName(mainCommandRaw);
-            
-            if (!resolvedSkillName && mainCommandRaw === 'attack') {
-                resolvedSkillName = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
+            let skillToUse = mainCommandRaw;
+
+            // --- REVISED AND SIMPLIFIED ATTACK LOGIC ---
+            if (skillToUse === 'attack') {
+                skillToUse = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
             }
+            
+            const resolvedSkillName = resolveSkillName(skillToUse);
+            // --- END OF REVISION ---
             
             if (resolvedSkillName) {
                 actionTaken = await handlePlayerSkillAction(resolvedSkillName, targetNum);
