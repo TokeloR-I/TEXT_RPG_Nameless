@@ -49,8 +49,8 @@
                 atk: 666,
                 def: 666,
                 spd: 666,
-                critChance: 666,
-                critMultiplier: 666,
+                critChance: 0.6,
+                critMultiplier: 1.5,
                 resistances: [],
                 specialFlags: [],
                 skills: [{ name: 'Slash', description: 'Deals 6-66 damage.', base_damage: [6, 66], target: 'player', damage_type: 'physical' }]
@@ -203,14 +203,12 @@
             'Lightning Arc': { description: 'Deal lightning damage, may chain.', cost: 1, resource: 'Mana', base_damage: [8, 13], effects: [{ type: 'chain_lightning', count: 2 }], target: 'enemy_single', damage_type: 'lightning' },
 
             // Illusionist Branch Skills
-            // FIXED: Skill names changed from sentences to camelCase for easier command parsing.
             'mirrorImage': { description: 'Avoid next hit.', cost: 1, resource: 'Deception Tokens', effects: [{ type: 'avoid_next_hit', duration: 1 }], target: 'self' },
             'confuse': { description: '50% chance enemy skips turn.', cost: 2, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_chance', value: 0.5, duration: 1 }], target: 'enemy_single' },
             'stealSkill': { description: 'Steal enemy’s last used skill for 2 turns.', cost: 3, resource: 'Deception Tokens', effects: [{ type: 'steal_skill', duration: 2 }], target: 'enemy_single' },
             'multiTargetIllusions': { description: 'Up to 3 enemies skip turn.', cost: 4, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_aoe', count: 3, duration: 1 }], target: 'enemy_aoe' },
 
             // Chronomancer Branch Skills
-            // FIXED: Skill names changed from sentences to camelCase for easier command parsing.
             'haste': { description: 'Ally takes extra turn.', cost: 2, resource: 'Time Charges', effects: [{ type: 'extra_turn' }], target: 'ally_single' },
             'slow': { description: 'Enemy loses next turn.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
             'revertHp': { description: 'Revert ally to HP they had 2 turns ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
@@ -225,12 +223,16 @@
             'March of Endless Bones': { description: 'Instantly resurrect all fallen minions and summon 1 free ghoul.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'resurrect_all_minions' }, { type: 'summon', summon_type: 'ghoul', damage: [9, 12], duration: 'permanent' }], target: 'self' }, // Black Pharaoh Ascended
             'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe' }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
             'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
-            'Unmake': { description: 'Remove a target from the fight permanently.', cost: 5, resource: 'Hollow Will', effects: [{ type: 'remove_from_fight_permanent' }], target: 'enemy_single', damage_type: 'true' }, // Hollow King
-            'Echo of Nothing': { description: 'Skip the enemy’s next 2 turns.', cost: 3, resource: 'Hollow Will', effects: [{ type: 'skip_turn', duration: 2 }], target: 'enemy_single' }, // Hollow King
-            'Oblivion’s Call': { description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.', cost: 'all', resource: 'Hollow Will', oncePerFight: true, effects: [{ type: 'erase_enemies', duration: 1 }], target: 'all_enemies' }, // Hollow King Overdrive
-            'Worldflame': { description: 'All elements gain +1 extra effect (burn harder, longer stuns, deeper slows).', cost: 'all', resource: 'Mana', oncePerFight: true, effects: [{ type: 'enhance_all_elements' }], target: 'self' }, // Elementalist Ascended
-            'Arcane Hollow': { description: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', cost: 'all', resource: 'Deception Tokens', oncePerFight: true, effects: [{ type: 'remove_enemy_skill_on_hit_permanent' }], target: 'self' }, // Illusionist Ascended
-            // FIXED: Removed duplicate 'Eternal Architect' skill. 'rearrangeTurnOrder' is now the single source of truth.
+            
+            // Hollow King Skills
+            'Unmake': { description: 'Remove a target from the fight permanently.', cost: 5, resource: 'Hollow Will', effects: [{ type: 'remove_from_fight_permanent' }], target: 'enemy_single', damage_type: 'true' },
+            'Echo of Nothing': { description: 'Skip the enemy’s next 2 turns.', cost: 3, resource: 'Hollow Will', effects: [{ type: 'skip_turn', duration: 2 }], target: 'enemy_single' },
+            'Void Rend': { description: 'A basic strike that generates 3 Hollow Will (or 10 on a critical hit).', cost: 0, resource: 'Hollow Will', base_damage: [6, 8], target: 'enemy_single', damage_type: 'physical' },
+            'Oblivion’s Call': { description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.', cost: 'all', resource: 'Hollow Will', oncePerFight: true, effects: [{ type: 'erase_enemies', duration: 1 }], target: 'all_enemies' },
+            
+            // Other Ascended Skills
+            'Worldflame': { description: 'All elements gain +1 extra effect (burn harder, longer stuns, deeper slows).', cost: 'all', resource: 'Mana', oncePerFight: true, effects: [{ type: 'enhance_all_elements' }], target: 'self' },
+            'Arcane Hollow': { description: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', cost: 'all', resource: 'Deception Tokens', oncePerFight: true, effects: [{ type: 'remove_enemy_skill_on_hit_permanent' }], target: 'self' },
         };
 
 
@@ -259,22 +261,21 @@
         // --- Player Base Classes Definition ---
         const basePlayerClasses = {
             'warrior': {
-                name: 'Warrior', // Added name property
+                name: 'Warrior',
                 description: "A strong and resilient fighter, adept with weapons.",
                 lore: {
                     base: "Steel in your hands, resolve in your heart. You fight because you must — and because no one else will.",
-                    // FIXED: Corrected typo "er class" to "starter class" for clarity.
                     role: "Frontline melee, starter class.",
                     identity: "Grit, survival, and the will to push forward."
                 },
                 startingItems: ['rusty sword', 'wooden shield', 'old key'],
-                startingResource: { type: 'Momentum', initial: 1, max: 10 }, // Starts with 1 Momentum due to Battle-Ready
+                startingResource: { type: 'Momentum', initial: 1, max: 10 },
                 baseStats: { hp: 120, strength: 10, intelligence: 5, agility: 7, def: 5, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 8, baseDamageMax: 12 },
                 startingSkills: ['Slash', 'Guard', 'Power Strike'],
                 startingTraits: [{ name: 'Battle-Ready', effect: 'Start each fight with 1 Momentum.' }]
             },
             'mage': {
-                name: 'Mage', // Added name property
+                name: 'Mage',
                 description: "A wise magic-user, skilled in arcane arts.",
                 lore: {
                     base: "The world is made of rules. You are here to break them.",
@@ -288,7 +289,7 @@
                 startingTraits: []
             },
             'rogue': {
-                name: 'Rogue', // Added name property
+                name: 'Rogue',
                 description: "A nimble and cunning operative, good at stealth and traps.",
                 lore: {
                     base: "Your enemy won’t see the blade until it’s too late.",
@@ -302,15 +303,15 @@
                 startingTraits: []
             },
             'necromancer': {
-                name: 'Necromancer', // Added name property
+                name: 'Necromancer',
                 description: "Master of death magic, summoning, and decay.",
                 lore: {
                     base: "Life is fleeting. Death is patient. You are neither.",
                     role: "Master of death magic, summoning, and decay.",
                     identity: "You walk between realms, plucking secrets from cold lips. The living fear you; the dead obey."
                 },
-                startingItems: ['cracked bone staff', 'small black journal'], // Whispering skull implied narrative item
-                startingResource: { type: 'Soul Energy', initial: 1, max: 10 }, // Seeded with 1 Soul Energy
+                startingItems: ['cracked bone staff', 'small black journal'],
+                startingResource: { type: 'Soul Energy', initial: 1, max: 10 },
                 baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, def: 4, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
                 startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech'],
                 startingTraits: []
@@ -374,120 +375,39 @@
                         name: 'Bone Warden',
                         theme: 'Tanky undead armies & physical defense.',
                         mechanic: 'Bone Armor — reduces dmg by 2% per minion alive (max 10%).',
-                        resourceEvolution: [], // Soul Energy does not evolve in type for this branch
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Bone Warden', trait: 'Grave Command', traitEffect: 'Minions focus the last enemy you attacked.', skill: 'Bone Wall', lore: "Your minions stand in a ring of brittle bone, a shield wall from another world.", loreStance: "Death is your armor.", loreEffect: "The battlefield is a grave, and you are its warden.",
-                                synergy: [
-                                    'Bone Wall (absorb next hit) → protects you while Soul Energy regenerates',
-                                    'Grave Command (minions attack your target) → single-target pressure'
-                                ]
-                            },
-                            { level: 5, name: 'Ossified Champion', trait: 'Minions gain +20% HP', traitEffect: 'Your summoned minions are tougher, granting them increased durability.', skill: 'Shield of the Dead', upgrade: 'Skeletons now deal 6–9 dmg/turn.', lore: "Your summons no longer creak like rotted wood — they march with the weight of stone.", loreStance: "The living quake as they see your legions swell.", loreEffect: "Bone and will, unbroken.",
-                                synergy: [
-                                    'Shield of the Dead (AOE taunt via minions) → forces enemies to hit minions → builds Bone Armor',
-                                    'Skeletons HP +20% → better damage soaking'
-                                ]
-                            },
-                            { level: 8, name: 'Gravekeeper', trait: 'Bone Fortress', traitEffect: '+1% dmg reduction per minion (max 15%).', skill: 'Raise Ghoul', lore: "You no longer wait for death to find your army — you harvest it.", loreStance: "Ghouls tear where skeletons guard.", loreEffect: "Your graveyard is never empty.",
-                                synergy: [
-                                    'Raise Ghoul (high dmg + Weaken) → reduces enemy threat for longer fights',
-                                    'Bone Fortress (extra Bone Armor cap) → big synergy with mass summons'
-                                ]
-                            },
-                            { level: 11, name: 'Death Knight', trait: 'Summons deal +25% dmg', traitEffect: 'Your summoned creatures strike with terrifying force.', skill: 'Reaper’s Charge', upgrade: 'All summons gain +25% dmg.', lore: "You ride at the head of your host, steel and shadow made one.", loreStance: "To see you charge is to know the end is near.", loreEffect: "The dead ride with you.",
-                                synergy: [
-                                    'Reaper’s Charge (big burst + stun) → creates opening for minion swarm',
-                                    'Summons +25% dmg → turns tank army into offensive threat'
-                                ]
-                            },
-                            { level: 14, name: 'Black Pharaoh', trait: '+3 max minions; all summons gain AOE attacks', traitEffect: 'Your legion grows vast, each servant capable of sweeping strikes.', skill: 'March of Endless Bones', ascended: true, lore: "Your throne is a tomb. Your crown, the dust of empires.", loreStance: "Armies of the dead rise at a word.", loreEffect: "All who breathe are subjects-in-waiting.",
-                                synergy: [
-                                    'March of Endless Bones (Overdrive) → instant army reset mid-fight',
-                                    'Max minions +3, all AOE → snowball pressure across enemy team'
-                                ],
-                                coreLoop: [
-                                    'Taunt with minions → soak dmg to build Bone Armor → stun key target → swarm and overwhelm.'
-                                ]
-                            }
+                            { level: 3, name: 'Bone Warden', trait: 'Grave Command', traitEffect: 'Minions focus the last enemy you attacked.', skill: 'Bone Wall', lore: "Your minions stand in a ring of brittle bone, a shield wall from another world." },
+                            { level: 5, name: 'Ossified Champion', trait: 'Minions gain +20% HP', traitEffect: 'Your summoned minions are tougher, granting them increased durability.', skill: 'Shield of the Dead', upgrade: 'Skeletons now deal 6–9 dmg/turn.', lore: "Your summons no longer creak like rotted wood — they march with the weight of stone." },
+                            { level: 8, name: 'Gravekeeper', trait: 'Bone Fortress', traitEffect: '+1% dmg reduction per minion (max 15%).', skill: 'Raise Ghoul', lore: "You no longer wait for death to find your army — you harvest it." },
+                            { level: 11, name: 'Death Knight', trait: 'Summons deal +25% dmg', traitEffect: 'Your summoned creatures strike with terrifying force.', skill: 'Reaper’s Charge', upgrade: 'All summons gain +25% dmg.', lore: "You ride at the head of your host, steel and shadow made one." },
+                            { level: 14, name: 'Black Pharaoh', trait: '+3 max minions; all summons gain AOE attacks', traitEffect: 'Your legion grows vast, each servant capable of sweeping strikes.', skill: 'March of Endless Bones', ascended: true, lore: "Your throne is a tomb. Your crown, the dust of empires." }
                         ]
                     },
                     'plaguecaller': {
                         name: 'Plaguecaller',
                         theme: 'Disease, rot, and battlefield-wide decay.',
                         mechanic: 'Infection Stacks — DoTs can stack 3x on the same enemy.',
-                        resourceEvolution: [], // Soul Energy does not evolve in type for this branch
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Plaguecaller', trait: 'Virulent Touch', traitEffect: 'All basic attacks apply 1 stack of [Infected].', skill: 'Contagion', lore: "Your touch sours flesh; your breath curdles the air.", loreStance: "One cough spreads your kingdom.", loreEffect: "You are the shepherd of rot.",
-                                synergy: [
-                                    'Contagion (infect + spreads) → creates first [Infected] stack',
-                                    'Virulent Touch (passive) → adds [Infected] with basic hits'
-                                ]
-                            },
-                            { level: 5, name: 'Pestilent Sage', trait: 'DoTs last +1 turn', traitEffect: 'Your applied blights linger longer, ensuring a slow, agonizing demise.', skill: 'Black Spit', upgrade: 'DoTs last 1 extra turn.', lore: "Every sickness is a verse in your scripture.", loreStance: "You read the body like an open book.", loreEffect: "Every chapter ends in fever.",
-                                synergy: [
-                                    'Black Spit (Weaken + DoT) → weakens threats while adding stack 2',
-                                    'DoTs last +1 turn → more time for spreads'
-                                ]
-                            },
-                            { level: 8, name: 'Rotbringer', trait: 'Plague Reservoir', traitEffect: 'Killing an infected enemy refunds 1 Soul Energy.', skill: 'Corpse Bloom', lore: "The dead are not still. They swell, they split — and they serve you.", loreStance: "The battlefield blooms with foul flowers.", loreEffect: "Beauty is rot, and rot is yours.",
-                                synergy: [
-                                    'Corpse Bloom (AOE + infection) → multi-target infection generator',
-                                    'Plague Reservoir (refund energy on kill) → keeps infection loop going'
-                                ]
-                            },
-                            { level: 11, name: 'Harbinger of Decay', trait: 'All infections deal +2 dmg/turn', traitEffect: 'Your infections become deadlier, gnawing faster at your foes.', skill: 'Plague Wind', upgrade: 'All infections deal +2 dmg/turn.', lore: "Your shadow carries plague like wind carries rain.", loreStance: "Walls mean nothing; sickness seeps everywhere.", loreEffect: "The end comes not with a roar, but a cough.",
-                                synergy: [
-                                    'Plague Wind (spread all infections) → perfect for multi-target fights',
-                                    'Infections +2 dmg/turn → scaling threat'
-                                ]
-                            },
-                            { level: 14, name: 'Plague Sovereign', trait: 'All DoTs become true dmg, ignore resistances.', traitEffect: 'Your diseases cut through any defense, rendering enemies utterly vulnerable.', skill: 'Plague of Ages', ascended: true, lore: "Your realm is pestilence, your flag a blackened lung.", loreStance: "Disease bows before you.", loreEffect: "Even the immune tremble.",
-                                synergy: [
-                                    'Plague of Ages (Overdrive) → instant triple stacks on all enemies',
-                                    'Infections deal true dmg → ignores resistances entirely'
-                                ],
-                                coreLoop: [
-                                    'Infect → stack DoTs → spread to everyone → let damage tick while defending.'
-                                ]
-                            }
+                            { level: 3, name: 'Plaguecaller', trait: 'Virulent Touch', traitEffect: 'All basic attacks apply 1 stack of [Infected].', skill: 'Contagion', lore: "Your touch sours flesh; your breath curdles the air." },
+                            { level: 5, name: 'Pestilent Sage', trait: 'DoTs last +1 turn', traitEffect: 'Your applied blights linger longer, ensuring a slow, agonizing demise.', skill: 'Black Spit', upgrade: 'DoTs last 1 extra turn.', lore: "Every sickness is a verse in your scripture." },
+                            { level: 8, name: 'Rotbringer', trait: 'Plague Reservoir', traitEffect: 'Killing an infected enemy refunds 1 Soul Energy.', skill: 'Corpse Bloom', lore: "The dead are not still. They swell, they split — and they serve you." },
+                            { level: 11, name: 'Harbinger of Decay', trait: 'All infections deal +2 dmg/turn', traitEffect: 'Your infections become deadlier, gnawing faster at your foes.', skill: 'Plague Wind', upgrade: 'All infections deal +2 dmg/turn.', lore: "Your shadow carries plague like wind carries rain." },
+                            { level: 14, name: 'Plague Sovereign', trait: 'All DoTs become true dmg, ignore resistances.', traitEffect: 'Your diseases cut through any defense, rendering enemies utterly vulnerable.', skill: 'Plague of Ages', ascended: true, lore: "Your realm is pestilence, your flag a blackened lung." }
                         ]
                     },
                     'soulbinder': {
                         name: 'Soulbinder',
                         theme: 'Soul manipulation, linking, possession.',
                         mechanic: 'Soul Chains — Linked enemies share damage.',
-                        resourceEvolution: [], // Soul Energy does not evolve in type for this branch
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Soulbinder', trait: 'Binding Will', traitEffect: 'Links last 1 extra turn.', skill: 'Soul Chain', lore: "Threads unseen tie life to death — you pluck them at will.", loreStance: "Pain flows both ways.", loreEffect: "You are the knot no one can untangle.",
-                                synergy: [
-                                    'Soul Chain (link 2) → every hit doubles in value',
-                                    'Binding Will (extra turn on links) → longer uptime'
-                                ]
-                            },
-                            { level: 5, name: 'Chain of Woe', trait: 'Wound Transfer', traitEffect: 'Linked enemies take +10% dmg from all sources.', skill: 'Soul Chain', upgrade: 'Can link up to 3 enemies.', lore: "Your chains stretch across the battlefield, binding more than flesh.", loreStance: "Fear spreads faster than steel.", loreEffect: "All are linked in your web.",
-                                synergy: [
-                                    'Link up to 3 enemies → massive spread damage potential',
-                                    'Wound Transfer (+10% dmg taken) → softens all linked targets'
-                                ]
-                            },
-                            { level: 8, name: 'Wraithlord', trait: 'Spirit Lash', traitEffect: 'Linked enemies take 3 dmg/turn.', skill: 'Possession', lore: "Your will spills from your skull into theirs.", loreStance: "An enemy’s eyes glaze — and they strike their own.", loreEffect: "You do not command; you possess.",
-                                synergy: [
-                                    'Possession (control enemy 1 turn) → disrupts big threats',
-                                    'Spirit Lash (3 dmg/turn to linked) → passive chip'
-                                ]
-                            },
-                            { level: 11, name: 'Eidolon King', trait: 'You heal for 100% of Soul Feast dmg', traitEffect: 'Every heartbeat steals from them to feed you.', skill: 'Soul Feast', upgrade: 'You heal for 100% of Soul Feast dmg.', lore: "Your enemies live in agony, not from wounds, but from your pull.", loreStance: "Every heartbeat steals from them to feed you.", loreEffect: "Life is your leash.",
-                                synergy: [
-                                    'Soul Feast (drain HP from linked) → healing + pressure',
-                                    'Soul Feast heals 100% dmg dealt → sustain for long fights'
-                                ]
-                            },
-                            { level: 14, name: 'Eternal Lich', trait: 'Undying Will', traitEffect: 'First death per fight resurrects you at 50% HP.', skill: 'Unmake', upgrade: 'Soul Feast becomes free to cast once per fight.', ascended: true, lore: "Your body is a memory; your soul is iron.", loreStance: "Death is a pause, not an end.", loreEffect: "You rule the grave without leaving it.", secretEvolutionTrigger: true,
-                                synergy: [
-                                    'Free Soul Feast once per fight → strong comeback tool',
-                                    'Undying Will → 1 resurrection per fight'
-                                ]
-                            }
+                            { level: 3, name: 'Soulbinder', trait: 'Binding Will', traitEffect: 'Links last 1 extra turn.', skill: 'Soul Chain', lore: "Threads unseen tie life to death — you pluck them at will." },
+                            { level: 5, name: 'Chain of Woe', trait: 'Wound Transfer', traitEffect: 'Linked enemies take +10% dmg from all sources.', skill: 'Soul Chain', upgrade: 'Can link up to 3 enemies.', lore: "Your chains stretch across the battlefield, binding more than flesh." },
+                            { level: 8, name: 'Wraithlord', trait: 'Spirit Lash', traitEffect: 'Linked enemies take 3 dmg/turn.', skill: 'Possession', lore: "Your will spills from your skull into theirs." },
+                            { level: 11, name: 'Eidolon King', trait: 'You heal for 100% of Soul Feast dmg', traitEffect: 'Every heartbeat steals from them to feed you.', skill: 'Soul Feast', upgrade: 'You heal for 100% of Soul Feast dmg.', lore: "Your enemies live in agony, not from wounds, but from your pull." },
+                            { level: 14, name: 'Eternal Lich', trait: 'Undying Will', traitEffect: 'First death per fight resurrects you at 50% HP.', skill: 'Unmake', upgrade: 'Soul Feast becomes free to cast once per fight.', ascended: true, lore: "Your body is a memory; your soul is iron.", secretEvolutionTrigger: true }
                         ]
                     }
                 }
@@ -503,11 +423,11 @@
                             { level: 3, stage: 'Assassin', type: 'Stealth Tokens' }
                         ],
                         stages: [
-                            { level: 3, name: 'Assassin', trait: '+25% crit dmg', traitEffect: 'Your critical strikes deal more damage.', skill: 'Shadowstep', lore: "You become one with the shadows, striking from unseen angles with deadly precision.", loreStance: "Strike from the unseen.", loreEffect: "Your presence is a whisper before the storm." },
-                            { level: 5, name: 'Shadowblade', trait: 'Garrote applies Silence for 1 turn', traitEffect: 'Your Garrote skill now silences enemies, preventing them from casting spells.', skill: 'Garrote', lore: "Your blade is a phantom, slipping past defenses to find the vital points. Silence is your deadliest weapon.", loreStance: "Silence your foes.", loreEffect: "Your strikes disrupt the enemy's very will to fight." },
-                            { level: 8, name: 'Phantom', trait: 'Marked for Death deals +50% dmg', traitEffect: 'Marked enemies take significantly more damage from your attacks.', skill: 'Marked for Death', lore: "You move like a ghost, marking your prey for a swift and inevitable demise. They never see it coming.", loreStance: "Mark your prey.", loreEffect: "The shadows guide your hand to the enemy's weakness." },
-                            { level: 11, name: 'Death’s Whisper', trait: '+50% crit dmg', traitEffect: 'Your critical strikes become even more devastating.', skill: 'Assassinate', lore: "You become the embodiment of death itself, a whisper in the dark that silences all opposition. None escape your final judgment.", loreStance: "The final whisper.", loreEffect: "You can instantly eliminate weakened foes, leaving no trace." },
-                            { level: 14, name: 'Death’s Whisper (Ascended)', trait: 'Start every fight in Stealth.', traitEffect: 'You begin every combat encounter hidden from your enemies, allowing for a decisive opening strike.', skill: 'Assassinate', ascended: true, lore: "You are the ultimate assassin, a legend whispered in hushed tones. Your presence is death, swift and unseen.", loreStance: "The unseen death.", loreEffect: "Every battle begins on your terms, from the depths of shadow." }
+                            { level: 3, name: 'Assassin', trait: '+25% crit dmg', traitEffect: 'Your critical strikes deal more damage.', skill: 'Shadowstep', lore: "You become one with the shadows, striking from unseen angles with deadly precision." },
+                            { level: 5, name: 'Shadowblade', trait: 'Garrote applies Silence for 1 turn', traitEffect: 'Your Garrote skill now silences enemies, preventing them from casting spells.', skill: 'Garrote', lore: "Your blade is a phantom, slipping past defenses to find the vital points. Silence is your deadliest weapon." },
+                            { level: 8, name: 'Phantom', trait: 'Marked for Death deals +50% dmg', traitEffect: 'Marked enemies take significantly more damage from your attacks.', skill: 'Marked for Death', lore: "You move like a ghost, marking your prey for a swift and inevitable demise. They never see it coming." },
+                            { level: 11, name: 'Death’s Whisper', trait: '+50% crit dmg', traitEffect: 'Your critical strikes become even more devastating.', skill: 'Assassinate', lore: "You become the embodiment of death itself, a whisper in the dark that silences all opposition. None escape your final judgment." },
+                            { level: 14, name: 'Death’s Whisper (Ascended)', trait: 'Start every fight in Stealth.', traitEffect: 'You begin every combat encounter hidden from your enemies, allowing for a decisive opening strike.', skill: 'Assassinate', ascended: true, lore: "You are the ultimate assassin, a legend whispered in hushed tones. Your presence is death, swift and unseen." }
                         ]
                     },
                     'duelist': {
@@ -518,11 +438,11 @@
                             { level: 3, stage: 'Duelist', type: 'Combo Points' }
                         ],
                         stages: [
-                            { level: 3, name: 'Duelist', trait: 'Riposte deals +50% dmg', traitEffect: 'Your counterattacks strike with increased force, punishing your aggressors.', skill: 'Riposte', lore: "Every parry is an invitation, every dodge a dance. You turn the enemy's aggression against them.", loreStance: "Dance of blades.", loreEffect: "You excel in one-on-one combat, turning defense into offense." },
-                            { level: 5, name: 'Swashbuckler', trait: 'Can parry ranged attacks', traitEffect: 'You can now deflect projectiles, extending your defensive prowess.', skill: 'Flurry', lore: "With a flourish and a grin, you weave through the fray, a whirlwind of steel and daring. The battlefield is your stage.", loreStance: "Whirlwind of steel.", loreEffect: "You can unleash a rapid succession of strikes, overwhelming multiple foes." },
-                            { level: 8, name: 'Blade Dancer', trait: 'Combo finishers refund 1 Energy', traitEffect: 'Your finishing moves become more efficient, allowing for sustained offense.', skill: 'Flurry', lore: "Your movements are poetry in motion, a deadly ballet of blades. Each strike flows seamlessly into the next.", loreStance: "Poetry in motion.", loreEffect: "You can unleash a rapid succession of strikes, overwhelming multiple foes." },
-                            { level: 11, name: 'Crimson Vortex', trait: 'Blade Storm hits all enemies twice', traitEffect: 'Your ultimate attack now strikes every enemy twice, creating a devastating area of effect.', skill: 'Blade Storm', lore: "You become a crimson maelstrom, a whirlwind of lethal intent. None can escape your furious dance of death.", loreStance: "Crimson maelstrom.", loreEffect: "You can unleash a devastating area-of-effect attack, striking all enemies multiple times." },
-                            { level: 14, name: 'Crimson Vortex (Ascended)', trait: 'All finishers cost 0 Energy for first 2 turns.', traitEffect: 'Your finishing moves become free to cast for the initial turns of combat, allowing for an explosive opening.', skill: 'Blade Storm', ascended: true, lore: "You are the embodiment of pure martial artistry, a living storm of blades. Your presence tears through any opposition.", loreStance: "The living storm.", loreEffect: "Your combat prowess reaches its peak, allowing for an overwhelming initial assault." }
+                            { level: 3, name: 'Duelist', trait: 'Riposte deals +50% dmg', traitEffect: 'Your counterattacks strike with increased force, punishing your aggressors.', skill: 'Riposte', lore: "Every parry is an invitation, every dodge a dance. You turn the enemy's aggression against them." },
+                            { level: 5, name: 'Swashbuckler', trait: 'Can parry ranged attacks', traitEffect: 'You can now deflect projectiles, extending your defensive prowess.', skill: 'Flurry', lore: "With a flourish and a grin, you weave through the fray, a whirlwind of steel and daring. The battlefield is your stage." },
+                            { level: 8, name: 'Blade Dancer', trait: 'Combo finishers refund 1 Energy', traitEffect: 'Your finishing moves become more efficient, allowing for sustained offense.', skill: 'Flurry', lore: "Your movements are poetry in motion, a deadly ballet of blades. Each strike flows seamlessly into the next." },
+                            { level: 11, name: 'Crimson Vortex', trait: 'Blade Storm hits all enemies twice', traitEffect: 'Your ultimate attack now strikes every enemy twice, creating a devastating area of effect.', skill: 'Blade Storm', lore: "You become a crimson maelstrom, a whirlwind of lethal intent. None can escape your furious dance of death." },
+                            { level: 14, name: 'Crimson Vortex (Ascended)', trait: 'All finishers cost 0 Energy for first 2 turns.', traitEffect: 'Your finishing moves become free to cast for the initial turns of combat, allowing for an explosive opening.', skill: 'Blade Storm', ascended: true, lore: "You are the embodiment of pure martial artistry, a living storm of blades. Your presence tears through any opposition." }
                         ]
                     },
                     'saboteur': {
@@ -533,11 +453,11 @@
                             { level: 3, stage: 'Saboteur', type: 'Trap Charges' }
                         ],
                         stages: [
-                            { level: 3, name: 'Saboteur', trait: 'Caltrops apply -50% speed for 2 turns', traitEffect: 'Your caltrops significantly reduce enemy movement, controlling the battlefield.', skill: 'Caltrops', lore: "The battlefield is your playground, and your enemies are merely pawns in your deadly game of traps and diversions.", loreStance: "Master of the field.", loreEffect: "You can deploy traps to hinder and control enemy movement." },
-                            { level: 5, name: 'Trickster', trait: 'Smoke Bomb blinds enemies (-25% hit chance, 1 turn)', traitEffect: 'Your smoke bombs now blind foes, making them miss their attacks.', skill: 'Smoke Bomb', lore: "You revel in chaos and confusion, using misdirection and cunning to outwit your opponents. They never know what hit them.", loreStance: "Embrace chaos.", loreEffect: "You can obscure the battlefield, blinding enemies and creating openings." },
-                            { level: 8, name: 'Smoke Phantom', trait: 'Traps deal +50% dmg', traitEffect: 'Your deployed traps become deadlier, inflicting more damage upon activation.', skill: 'Poison Trap', lore: "You move through the smoke and shadows like a wraith, your traps appearing from nowhere to ensnare your unsuspecting foes.", loreStance: "Wraith in the mist.", loreEffect: "You can deploy more potent traps, inflicting damage over time." },
-                            { level: 11, name: 'Shadow Engineer', trait: 'Clockwork Bomb deals 20-28 dmg AOE', traitEffect: 'Your clockwork bombs unleash a devastating explosion, damaging multiple enemies.', skill: 'Clockwork Bomb', lore: "Your mind is a forge of cunning devices, each one a testament to your mastery of demolition and strategic disruption. No obstacle can stand in your way.", loreStance: "Architect of destruction.", loreEffect: "You can deploy powerful delayed explosives to decimate enemy formations." },
-                            { level: 14, name: 'Shadow Engineer (Ascended)', trait: 'Can place traps instantly without ending turn.', traitEffect: 'You can deploy traps with unparalleled speed, allowing for dynamic and reactive battlefield control.', skill: 'Clockwork Bomb', ascended: true, lore: "You are the ultimate architect of chaos, your traps and gadgets transforming the battlefield into a death trap for your enemies. None can escape your intricate designs.", loreStance: "The ultimate architect.", loreEffect: "Your trap deployment becomes seamless, allowing for continuous battlefield manipulation." }
+                            { level: 3, name: 'Saboteur', trait: 'Caltrops apply -50% speed for 2 turns', traitEffect: 'Your caltrops significantly reduce enemy movement, controlling the battlefield.', skill: 'Caltrops', lore: "The battlefield is your playground, and your enemies are merely pawns in your deadly game of traps and diversions." },
+                            { level: 5, name: 'Trickster', trait: 'Smoke Bomb blinds enemies (-25% hit chance, 1 turn)', traitEffect: 'Your smoke bombs now blind foes, making them miss their attacks.', skill: 'Smoke Bomb', lore: "You revel in chaos and confusion, using misdirection and cunning to outwit your opponents. They never know what hit them." },
+                            { level: 8, name: 'Smoke Phantom', trait: 'Traps deal +50% dmg', traitEffect: 'Your deployed traps become deadlier, inflicting more damage upon activation.', skill: 'Poison Trap', lore: "You move through the smoke and shadows like a wraith, your traps appearing from nowhere to ensnare your unsuspecting foes." },
+                            { level: 11, name: 'Shadow Engineer', trait: 'Clockwork Bomb deals 20-28 dmg AOE', traitEffect: 'Your clockwork bombs unleash a devastating explosion, damaging multiple enemies.', skill: 'Clockwork Bomb', lore: "Your mind is a forge of cunning devices, each one a testament to your mastery of demolition and strategic disruption. No obstacle can stand in your way." },
+                            { level: 14, name: 'Shadow Engineer (Ascended)', trait: 'Can place traps instantly without ending turn.', traitEffect: 'You can deploy traps with unparalleled speed, allowing for dynamic and reactive battlefield control.', skill: 'Clockwork Bomb', ascended: true, lore: "You are the ultimate architect of chaos, your traps and gadgets transforming the battlefield into a death trap for your enemies. None can escape your intricate designs." }
                         ]
                     }
                 }
@@ -550,14 +470,14 @@
                         theme: 'Fire, ice, lightning — raw power.',
                         mechanic: 'Elemental Resonance — casting same element twice in a row gives +50% dmg.',
                         resourceEvolution: [
-                            { level: 3, stage: 'Elementalist', type: 'Mana' } // Mana is base resource, but listed for clarity of evolution
+                            { level: 3, stage: 'Elementalist', type: 'Mana' }
                         ],
                         stages: [
-                            { level: 3, name: 'Elementalist', trait: 'Elemental Affinity', traitEffect: 'Casting same element twice in a row gives +50% dmg.', skill: 'Fireball', lore: "You command the primal forces of nature, weaving fire, ice, and lightning into devastating spells.", loreStance: "Master of elements.", loreEffect: "You gain access to fundamental elemental spells." },
-                            { level: 5, name: 'Pyromancer', trait: 'Fireball leaves Burn', traitEffect: 'Your Fireball spell now inflicts a damage-over-time effect.', skill: 'Fireball', upgrade: 'Fireball leaves Burn (3 dmg/turn).', lore: "The flames within you burn brighter, transforming you into a conduit of pure destructive fire. Your enemies will be incinerated.", loreStance: "Conduit of fire.", loreEffect: "Your fire spells become more potent, leaving lingering burns." },
-                            { level: 8, name: 'Stormcaller', trait: 'Lightning Arc chains to 2 extra enemies', traitEffect: 'Your Lightning Arc spell now strikes multiple targets, arcing between foes.', skill: 'Lightning Arc', upgrade: 'Lightning Arc chains to 2 extra enemies.', lore: "The fury of the storm answers your call, unleashing torrents of lightning and wind upon your enemies. Chaos is your ally.", loreStance: "Fury of the storm.", loreEffect: "You can gain the ability to strike multiple targets with lightning." },
-                            { level: 11, name: 'Archmage', trait: 'Mix elements for hybrid effects', traitEffect: 'You can combine different elemental spells for unique and powerful hybrid effects.', skill: 'Fireball', upgrade: 'Mix elements for hybrid effects (fire+ice=steam slow, etc.).', lore: "You transcend the boundaries of individual elements, becoming a true master of arcane forces. All magic bends to your will.", loreStance: "Master of arcane.", loreEffect: "You can weave complex elemental combinations, creating new spell effects." },
-                            { level: 14, name: 'Worldflame', trait: 'All elements gain +1 extra effect', traitEffect: 'Your elemental spells gain additional powerful effects, augmenting their destructive potential.', skill: 'Worldflame', ascended: true, lore: "You are the living embodiment of elemental fury, a cataclysm walking. Worlds burn and freeze at your command.", loreStance: "Cataclysm walking.", loreEffect: "Your elemental spells reach their peak, gaining enhanced secondary effects." }
+                            { level: 3, name: 'Elementalist', trait: 'Elemental Affinity', traitEffect: 'Casting same element twice in a row gives +50% dmg.', skill: 'Fireball', lore: "You command the primal forces of nature, weaving fire, ice, and lightning into devastating spells." },
+                            { level: 5, name: 'Pyromancer', trait: 'Fireball leaves Burn', traitEffect: 'Your Fireball spell now inflicts a damage-over-time effect.', skill: 'Fireball', upgrade: 'Fireball leaves Burn (3 dmg/turn).', lore: "The flames within you burn brighter, transforming you into a conduit of pure destructive fire. Your enemies will be incinerated." },
+                            { level: 8, name: 'Stormcaller', trait: 'Lightning Arc chains to 2 extra enemies', traitEffect: 'Your Lightning Arc spell now strikes multiple targets, arcing between foes.', skill: 'Lightning Arc', upgrade: 'Lightning Arc chains to 2 extra enemies.', lore: "The fury of the storm answers your call, unleashing torrents of lightning and wind upon your enemies. Chaos is your ally." },
+                            { level: 11, name: 'Archmage', trait: 'Mix elements for hybrid effects', traitEffect: 'You can combine different elemental spells for unique and powerful hybrid effects.', skill: 'Fireball', upgrade: 'Mix elements for hybrid effects (fire+ice=steam slow, etc.).', lore: "You transcend the boundaries of individual elements, becoming a true master of arcane forces. All magic bends to your will." },
+                            { level: 14, name: 'Worldflame', trait: 'All elements gain +1 extra effect', traitEffect: 'Your elemental spells gain additional powerful effects, augmenting their destructive potential.', skill: 'Worldflame', ascended: true, lore: "You are the living embodiment of elemental fury, a cataclysm walking. Worlds burn and freeze at your command." }
                         ]
                     },
                     'illusionist': {
@@ -568,12 +488,11 @@
                             { level: 3, stage: 'Illusionist', type: 'Deception Tokens' }
                         ],
                         stages: [
-                            // FIXED: Mapped old descriptive skill names to new camelCase names.
-                            { level: 3, name: 'Illusionist', trait: 'Mirror Image avoids next hit', traitEffect: 'Your Mirror Image spell guarantees evasion of the next incoming attack.', skill: 'mirrorImage', lore: "You weave veils of illusion, twisting perception and confounding your enemies. Reality is merely a suggestion.", loreStance: "Reality is a suggestion.", loreEffect: "You can create illusory duplicates to avoid incoming attacks." },
-                            { level: 5, name: 'Shadowmind', trait: 'Confuse has 50% chance enemy skips turn', traitEffect: 'Your Confuse spell has a chance to make enemies skip their turn entirely.', skill: 'confuse', lore: "You delve into the minds of your foes, planting seeds of doubt and fear. Their thoughts become your playground.", loreStance: "Playground of thoughts.", loreEffect: "You can sow confusion, potentially causing enemies to lose their turns." },
-                            { level: 8, name: 'Spellthief', trait: 'Steal enemy’s last used skill for 2 turns', traitEffect: 'You can temporarily steal an enemy’s recently used skill, turning their power against them.', skill: 'stealSkill', lore: "You do not merely counter magic; you claim it. Their spells become your tools, their power your own.", loreStance: "Their power, your own.", loreEffect: "You can temporarily acquire and use enemy abilities." },
-                            { level: 11, name: 'Mindweaver', trait: 'Multi-target illusions, up to 3 enemies skip turn', traitEffect: 'Your illusions can affect multiple enemies, causing widespread disruption.', skill: 'multiTargetIllusions', upgrade: 'Multi-target illusions, up to 3 enemies skip turn.', lore: "Your mental dominion expands, weaving intricate illusions that ensnare the minds of many. Entire battlefields fall silent under your influence.", loreStance: "Silent dominion.", loreEffect: "You can affect multiple targets with your illusions, causing widespread confusion." },
-                            { level: 14, name: 'Arcane Hollow', trait: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', traitEffect: 'Your attacks can permanently strip enemies of their abilities, crippling them for the entire encounter.', skill: 'Arcane Hollow', ascended: true, lore: "You are a void in the weave of magic, consuming spells and abilities with every touch. The very essence of magic unravels before you.", loreStance: "Void in the weave.", loreEffect: "Your touch can permanently erase enemy skills, paving the way for ultimate power." }
+                            { level: 3, name: 'Illusionist', trait: 'Mirror Image avoids next hit', traitEffect: 'Your Mirror Image spell guarantees evasion of the next incoming attack.', skill: 'mirrorImage', lore: "You weave veils of illusion, twisting perception and confounding your enemies. Reality is merely a suggestion." },
+                            { level: 5, name: 'Shadowmind', trait: 'Confuse has 50% chance enemy skips turn', traitEffect: 'Your Confuse spell has a chance to make enemies skip their turn entirely.', skill: 'confuse', lore: "You delve into the minds of your foes, planting seeds of doubt and fear. Their thoughts become your playground." },
+                            { level: 8, name: 'Spellthief', trait: 'Steal enemy’s last used skill for 2 turns', traitEffect: 'You can temporarily steal an enemy’s recently used skill, turning their power against them.', skill: 'stealSkill', lore: "You do not merely counter magic; you claim it. Their spells become your tools, their power your own." },
+                            { level: 11, name: 'Mindweaver', trait: 'Multi-target illusions, up to 3 enemies skip turn', traitEffect: 'Your illusions can affect multiple enemies, causing widespread disruption.', skill: 'multiTargetIllusions', upgrade: 'Multi-target illusions, up to 3 enemies skip turn.', lore: "Your mental dominion expands, weaving intricate illusions that ensnare the minds of many. Entire battlefields fall silent under your influence." },
+                            { level: 14, name: 'Arcane Hollow', trait: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', traitEffect: 'Your attacks can permanently strip enemies of their abilities, crippling them for the entire encounter.', skill: 'Arcane Hollow', ascended: true, lore: "You are a void in the weave of magic, consuming spells and abilities with every touch. The very essence of magic unravels before you." }
                         ]
                     },
                     'chronomancer': {
@@ -584,12 +503,11 @@
                             { level: 3, stage: 'Chronomancer', type: 'Time Charges' }
                         ],
                         stages: [
-                            // FIXED: Mapped old descriptive skill names to new camelCase names.
-                            { level: 3, name: 'Chronomancer', trait: 'Haste grants ally extra turn', traitEffect: 'Your Haste spell grants an ally an immediate extra turn, accelerating their actions.', skill: 'haste', lore: "You bend the fabric of time, accelerating allies and slowing foes. The battlefield moves to your rhythm.", loreStance: "Rhythm of time.", loreEffect: "You can manipulate the flow of time for allies." },
-                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'You can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed.", loreStance: "Knotting fate.", loreEffect: "You can bind enemies in temporal distortions, causing them to lose turns." },
-                            { level: 8, name: 'Riftseer', trait: 'Revert ally to HP they had 2 turns ago', traitEffect: 'You can rewind an ally’s health state, undoing recent damage or debuffs.', skill: 'revertHp', lore: "You gaze into the echoes of the past, pulling fragments of what was to mend what is. Time is a tool in your hands.", loreStance: "Echoes of the past.", loreEffect: "You can undo recent damage or debuffs to allies by rewinding their health." },
-                            { level: 11, name: 'Epoch Guardian', trait: 'Freeze time for 1 turn (enemies can’t act)', traitEffect: 'You can momentarily halt the flow of time for your enemies, rendering them immobile.', skill: 'freezeTime', lore: "You stand as a bulwark against the ravages of time, able to halt its relentless march for your foes. The present is yours to command.", loreStance: "Command the present.", loreEffect: "You can freeze enemies in time, preventing them from acting." },
-                            { level: 14, name: 'Eternal Architect', trait: 'Rearrange entire turn order for 3 turns.', traitEffect: 'You can completely reorder the combat sequence for a limited time, dictating who acts when.', skill: 'rearrangeTurnOrder', ascended: true, lore: "You are the master of causality, the architect of destiny. Time is but clay in your hands, to be molded as you see fit.", loreStance: "Architect of destiny.", loreEffect: "You gain ultimate control over the flow of combat, dictating the turn order itself." }
+                            { level: 3, name: 'Chronomancer', trait: 'Haste grants ally extra turn', traitEffect: 'Your Haste spell grants an ally an immediate extra turn, accelerating their actions.', skill: 'haste', lore: "You bend the fabric of time, accelerating allies and slowing foes. The battlefield moves to your rhythm." },
+                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'You can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed." },
+                            { level: 8, name: 'Riftseer', trait: 'Revert ally to HP they had 2 turns ago', traitEffect: 'You can rewind an ally’s health state, undoing recent damage or debuffs.', skill: 'revertHp', lore: "You gaze into the echoes of the past, pulling fragments of what was to mend what is. Time is a tool in your hands." },
+                            { level: 11, name: 'Epoch Guardian', trait: 'Freeze time for 1 turn (enemies can’t act)', traitEffect: 'You can momentarily halt the flow of time for your enemies, rendering them immobile.', skill: 'freezeTime', lore: "You stand as a bulwark against the ravages of time, able to halt its relentless march for your foes. The present is yours to command." },
+                            { level: 14, name: 'Eternal Architect', trait: 'Rearrange entire turn order for 3 turns.', traitEffect: 'You can completely reorder the combat sequence for a limited time, dictating who acts when.', skill: 'rearrangeTurnOrder', ascended: true, lore: "You are the master of causality, the architect of destiny. Time is but clay in your hands, to be molded as you see fit." }
                         ]
                     }
                 }
@@ -604,56 +522,31 @@
                 unlockPath: 'Eternal Lich (Necromancer) + Abyssal King (Warrior) + Throne of Bones event.',
                 mechanic: 'Legion of the Dead — Unlimited minion cap for 5 turns.',
                 signatureSkill: 'Death’s Dominion',
-                lore: "You do not command the dead — you are the dead. Every corpse is your tongue, every bone your banner.",
-                loreEffect: "To face you is to face an army that does not break. The living are just recruits waiting for their turn."
+                lore: "You do not command the dead — you are the dead. Every corpse is your tongue, every bone your banner."
             },
             'the_hollow_king': {
                 name: 'The Hollow King',
                 description: 'A crown of absence. A throne of silence. The world itself forgets your name.',
-                whispers: [
-                    "There is a king with no name, no crown, and no face.",
-                    "He does not raise the dead — he hollows the living.",
-                    "Strike him down, and you will rise in his place… but you will not be you anymore."
-                ],
                 uponUnlock: "You wake to silence. The wind does not stir. The earth does not move. The throne you sit upon is carved from nothing, and in that nothing… you reign.",
                 unlockConditions: 'Start Necromancer (Soulbinder path). Reach Eternal Lich. During Throne of Bones, die while controlling at least 3 enemy souls. Revive not as yourself, but as The Hollow King.',
                 identity: "A being stripped of self, ruling through the absence of all things. He is the echo of a soul that was, filled with the weight of what is not.",
-                legacy: "No one remembers the Hollow King until they stand before him. Those who kneel are never seen again — not even as bones.",
                 coreResource: { type: 'Hollow Will', initial: 0, max: 5, gain: 'from erasing enemies (permanent removal from battle)' },
-                mechanic: 'Hollow Will — gained from erasing enemies (max 5).', // Added mechanic for Hollow King
                 passives: [
                     { name: 'Life Inversion', effect: 'Damage heals you; healing damages you.' },
                     { name: 'Soul Erasure', effect: 'Kills leave no corpse; enemies cannot be revived.' },
                     { name: 'Unshackled Command', effect: 'Unlimited summons, but each drains 2% max HP/turn.' },
                     { name: 'Crown of the Undying', effect: 'If you die, resurrect next turn with 30% HP. Consumes all Hollow Will and permanently reduces max HP by 10%. Cannot trigger if max HP is below 25% of original.' }
                 ],
-                skills: ['Unmake', 'Echo of Nothing'], // Hollow Crown is a passive effect of a trait, not an active skill
-                overdrive: { name: 'Oblivion’s Call', description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.' },
-                playstyleSummary: [
-                    'Absolute control — can delete enemies, skip turns, swarm with infinite summons.',
-                    'Immortal… for a price — every death brings you back weaker, forcing long-term survival planning.',
-                    'Self-sabotaging power — summons drain your life, but you’re healed by damage, encouraging a hyper-aggressive style.'
-                ],
-                coreLoop: [ // Core loop for Hollow King
-                    'Aggressive erasure → keep Hollow Will banked for resurrection → swarm endlessly until nothing remains.'
-                ]
+                skills: ['Unmake', 'Echo of Nothing'],
+                overdrive: { name: 'Oblivion’s Call', description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.' }
             },
-            'reality_breaker': { // Legendary Mage class
+            'reality_breaker': {
                 name: 'Reality Breaker',
                 description: 'A being who shatters the very fabric of existence, twisting reality to their will.',
-                unlockPath: 'Arcane Hollow (Mage) + ??? event.', // Placeholder for full unlock
-                lore: "You are the ultimate truth, the ultimate lie. Reality itself is a malleable canvas for your desires.",
-                loreEffect: "The laws of the universe bend to your whim. What is real, and what is illusion? Only you know."
+                unlockPath: 'Arcane Hollow (Mage) + ??? event.',
+                lore: "You are the ultimate truth, the ultimate lie. Reality itself is a malleable canvas for your desires."
             }
         };
-
-        // Cross-Branch Synergy Notes
-        const crossBranchSynergies = [
-            'Bone Warden + Plaguecaller: Corpse Bloom in a minion-heavy build creates a self-feeding infection loop.',
-            'Plaguecaller + Soulbinder: Link infected enemies to double every tick of DoT damage.',
-            'Black Pharaoh + Eternal Lich: Minion army sustains the Lich’s resurrection window by keeping damage off them.'
-        ];
-
 
         // --- Global Game State Variables ---
         let currentRoom = 'starting_room';
@@ -673,14 +566,12 @@
         let playerHasTakenTurn = false;
         let turnNumber = 0;
 
-        // Typing speed control (milliseconds per character)
-        const TYPING_SPEED_MS = 16; // 20% faster than 20ms
+        const TYPING_SPEED_MS = 16;
 
         let playerStats = {
             name: 'Adventurer',
             currentHP: 0,
             maxHP: 0,
-            // Using a getter/setter for `hp` ensures backward compatibility while standardizing on `currentHP`
             get hp() { return this.currentHP; },
             set hp(value) { this.currentHP = value; },
             strength: 0,
@@ -699,7 +590,6 @@
             activeSkills: [],
             activeTraits: [],
             statusEffects: [],
-            // Special flags for Legendary/Secret forms
             isHollowKing: false,
             controlledSouls: 0
         };
@@ -712,32 +602,16 @@
         };
 
         // --- Helper Functions ---
-        /**
-         * Generates a random integer between min and max (inclusive).
-         * @param {number} min
-         * @param {number} max
-         * @returns {number}
-         */
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        /**
-         * Delays execution for a given number of milliseconds.
-         * @param {number} ms - The delay in milliseconds.
-         * @returns {Promise<void>} A promise that resolves after the delay.
-         */
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        /**
-         * Normalizes a command input string for parsing.
-         * @param {string} input - The raw command string.
-         * @returns {{command: string, targetNum: number|null}} An object with `command` and `targetNum`.
-         */
         function normalizeCommandInput(input) {
             let cleaned = input.toLowerCase().trim().replace(/\s+/g, ' ');
             let targetNum = null;
@@ -750,11 +624,6 @@
             return { command, targetNum };
         }
 
-        /**
-         * Finds similar skill names based on a given input.
-         * @param {string} inputSkillName - The skill name to match.
-         * @returns {Array<string>} Up to 3 suggestions.
-         */
         function findSimilarSkills(inputSkillName) {
             const allSkills = Object.keys(skillDefinitions);
             const suggestions = [];
@@ -781,14 +650,6 @@
         let currentTypingPromiseResolve = null;
 
         // --- Game Functions ---
-
-        /**
-         * Adds a message to the game output display with a typing effect.
-         * @param {string} message - The text message to display.
-         * @param {boolean} [isImportant=false] - If true, displays the message in bold.
-         * @param {boolean} [isHTML=false] - If true, treats the message as HTML.
-         * @returns {Promise<void>} A promise that resolves when the message is fully typed.
-         */
         async function displayMessage(message, isImportant = false, isHTML = false) {
             isTyping = true;
             skipTyping = false;
@@ -801,19 +662,16 @@
                 const lines = message.split('\n');
                 for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                     const line = lines[lineIndex];
-                    if (line.trim() === '') continue; // Skip empty lines
+                    if (line.trim() === '') continue;
 
                     const p = document.createElement('p');
                     gameOutput.appendChild(p);
                     
-                    // FIXED: This now properly handles HTML content by using innerHTML,
-                    // allowing for colors and other formatting from the lore descriptions.
-                    // The typing effect is disabled for HTML lines to prevent broken tags.
                     if (isHTML || (isImportant && line.includes('<'))) {
                         p.innerHTML = line;
                         gameOutput.scrollTop = gameOutput.scrollHeight;
                         if (skipTyping) continue;
-                        await sleep(TYPING_SPEED_MS * 5); // A small delay for HTML lines
+                        await sleep(TYPING_SPEED_MS * 5);
                     } else {
                          if (isImportant) p.style.fontWeight = 'bold';
 
@@ -829,7 +687,6 @@
                     }
 
                     if (skipTyping) {
-                        // If skipped, instantly display all remaining lines
                         for (let j = lineIndex + 1; j < lines.length; j++) {
                             const nextLine = lines[j];
                             if (nextLine.trim() === '') continue;
@@ -842,7 +699,7 @@
                              }
                             gameOutput.appendChild(nextP);
                         }
-                        break; // Exit the main loop
+                        break;
                     }
                 }
 
@@ -856,15 +713,9 @@
             });
         }
 
-
-        /**
-         * Initializes player stats and progression based on the chosen base class.
-         * @param {string} className - The key for the chosen base class (e.g., 'warrior').
-         */
         function initializePlayer(className) {
             const baseClassInfo = basePlayerClasses[className];
             if (baseClassInfo) {
-                // FIXED: The player's name was not being initialized from the class data.
                 playerStats.name = baseClassInfo.name || className.charAt(0).toUpperCase() + className.slice(1);
                 playerStats.currentHP = baseClassInfo.baseStats.hp;
                 playerStats.maxHP = baseClassInfo.baseStats.hp;
@@ -889,7 +740,7 @@
                 playerProgression.baseClass = className;
                 playerProgression.currentBranch = null;
                 playerProgression.currentEvolutionName = baseClassInfo.name || className.charAt(0).toUpperCase() + className.slice(1);
-                playerProgression.currentEvolutionStageIndex = -1; // -1 indicates base class
+                playerProgression.currentEvolutionStageIndex = -1;
 
                 updatePlayerHud();
             } else {
@@ -897,16 +748,11 @@
             }
         }
 
-
-        /**
-         * Starts or restarts the game.
-         */
         async function startGame() {
             gameOutput.innerHTML = '';
             await displayMessage("Welcome to the Retro Adventure!", true);
             await displayMessage("To begin your journey, choose your path. Available classes:");
 
-            // FIXED: Used a for...of loop to ensure messages display in order.
             for (const className in basePlayerClasses) {
                 await displayMessage(`- ${className.charAt(0).toUpperCase() + className.slice(1)}: ${basePlayerClasses[className].description}`);
             }
@@ -920,9 +766,6 @@
             gameInput.focus();
         }
 
-        /**
-         * Displays the description of the current room and available actions.
-         */
         async function displayRoomDescription() {
             gameOutput.innerHTML = '';
             const room = rooms[currentRoom];
@@ -933,7 +776,6 @@
 
                 if (Object.keys(room.exits).length > 0) {
                     await displayMessage("\n-- Exits --", true);
-                    // FIXED: Used a for...of loop for correct async behavior.
                     for (const direction in room.exits) {
                         await displayMessage(`👣 Go ${direction}`);
                     }
@@ -941,7 +783,6 @@
 
                 if (room.enemies && room.enemies.length > 0) {
                     await displayMessage("\n-- Enemies Present --", true);
-                    // FIXED: Used a for...of loop for correct async behavior.
                     for (const enemyKey of room.enemies) {
                         const enemyInfo = enemies[enemyKey];
                         if (enemyInfo) {
@@ -953,7 +794,6 @@
 
                 if (room.items && room.items.length > 0) {
                     await displayMessage("\n-- Items here --", true);
-                    // FIXED: Used a for...of loop for correct async behavior.
                     for (const item of room.items) {
                         await displayMessage(`✋ Take ${item}`);
                     }
@@ -961,7 +801,6 @@
 
                 if (playerStats.activeSkills.length > 0 && playerProgression.baseClass) {
                     await displayMessage("\n-- Skills --", true);
-                    // FIXED: Used a for...of loop for correct async behavior.
                     for (const skillName of playerStats.activeSkills) {
                         const skillInfo = skillDefinitions[skillName];
                         if (skillInfo) {
@@ -970,8 +809,6 @@
                                 skillDisplay += ` [Cost: ${skillInfo.cost} ${playerStats.resource.type}]`;
                             }
                             await displayMessage(skillDisplay);
-                        } else {
-                            await displayMessage(`✨ Use ${skillName} (Description missing!)`);
                         }
                     }
                 }
@@ -987,10 +824,6 @@
             }
         }
 
-        /**
-         * Moves the player to a new room.
-         * @param {string} direction The direction to move (e.g., 'north').
-         */
         async function movePlayer(direction) {
             const currentRoomData = rooms[currentRoom];
             const newRoom = currentRoomData.exits[direction];
@@ -1004,10 +837,6 @@
             }
         }
 
-        /**
-         * Handles the player taking an item from a room.
-         * @param {string} itemName The name of the item to take.
-         */
         async function takeItem(itemName) {
             const currentRoomData = rooms[currentRoom];
             const itemIndex = currentRoomData.items.map(item => item.toLowerCase()).indexOf(itemName.toLowerCase());
@@ -1022,13 +851,9 @@
             }
         }
 
-        /**
-         * Displays the player's current inventory.
-         */
         async function showInventory() {
             if (playerStats.inventory.length > 0) {
                 await displayMessage("--- Inventory ---", true);
-                // FIXED: Replaced forEach with a for...of loop to ensure messages display one by one.
                 for (const item of playerStats.inventory) {
                     await displayMessage(`- ${item}`);
                 }
@@ -1037,10 +862,6 @@
             }
         }
 
-        /**
-         * Starts a combat encounter.
-         * @param {Array<string>} enemyKeys - An array of enemy keys.
-         */
         async function startCombat(enemyKeys) {
             gameOutput.innerHTML = '';
             inCombat = true;
@@ -1071,8 +892,6 @@
                     newEnemy.lastSkillUsed = null;
                     currentEnemies.push(newEnemy);
                     await displayMessage(`A ${newEnemy.name} appears! (HP: ${newEnemy.hp})`);
-                } else {
-                    await displayMessage(`Warning: Unknown enemy type '${key}' encountered.`);
                 }
             }
             
@@ -1084,13 +903,9 @@
                 await displayMessage(`${combatant.name} (SPD: ${combatant.agility || combatant.spd})`);
             }
             updatePlayerHud();
-
             await resolveTurn();
         }
 
-        /**
-         * Displays the current state of combat.
-         */
         async function displayCombatState() {
             for (const [index, enemy] of currentEnemies.entries()) {
                 if (enemy.hp > 0) {
@@ -1101,12 +916,18 @@
             await displayMessage("What will you do?");
 
             const combatActions = [];
-            // FIXED: Dynamically get the basic attack skill for the player's class.
-            const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
-            combatActions.push({ type: 'attack', name: `Attack (${playerBasicAttackSkillName})`, skillName: playerBasicAttackSkillName });
+
+            if (playerStats.isHollowKing) {
+                combatActions.push({ type: 'attack', name: 'Attack (Void Rend)', skillName: 'Void Rend' });
+            } else {
+                const playerBasicAttackSkillName = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
+                combatActions.push({ type: 'attack', name: `Attack (${playerBasicAttackSkillName})`, skillName: playerBasicAttackSkillName });
+            }
 
             playerStats.activeSkills.forEach(skillName => {
-                combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
+                if (skillName !== 'Void Rend') {
+                   combatActions.push({ type: 'skill', name: skillName, skillName: skillName });
+                }
             });
 
             combatActions.push({ type: 'flee', name: 'Flee' });
@@ -1121,20 +942,15 @@
                 }
                 await displayMessage(displayLine);
             }
-            await displayMessage("Type a command directly (e.g., 'attack 1', 'use grave bolt 1', 'gb 1').");
+            await displayMessage("Type a command directly (e.g., 'attack 1', 'unmake 1').");
         }
 
-        /**
-         * Resolves one full turn in combat.
-         */
         async function resolveTurn() {
             if (!inCombat) return;
 
-            // FIXED: Clean up dead combatants from the main arrays first.
             currentEnemies = currentEnemies.filter(e => e.hp > 0);
             playerMinions = playerMinions.filter(m => m.hp > 0);
             
-            // Re-create turn order from living combatants
             turnOrder = [playerStats, ...currentEnemies, ...playerMinions].filter(c => c.hp > 0);
             turnOrder.sort((a, b) => (b.agility || b.spd) - (a.agility || a.spd));
 
@@ -1146,11 +962,9 @@
 
             const currentCombatant = turnOrder[currentTurnIndex];
             
-            // Handle turn skip effects
             const skipTurnEffect = currentCombatant.statusEffects.find(s => s.type === 'skip_turn' || s.name === 'Stun');
             if (skipTurnEffect) {
                 await displayMessage(`${currentCombatant.name} is unable to act this turn!`);
-                // Duration is handled at end of round, so we just skip the turn here
                 currentTurnIndex = (currentTurnIndex + 1);
                 if (currentTurnIndex >= turnOrder.length) await endOfRoundEffects();
                 await resolveTurn();
@@ -1183,21 +997,15 @@
             await resolveTurn();
         }
 
-    /**
-         * Handles an enemy's turn.
-         * @param {object} enemy - The enemy taking the turn.
-         */
         async function enemyTurn(enemy) {
             let tauntingMinion = playerMinions.find(m => m.statusEffects.some(s => s.name === 'Taunt'));
             let target = tauntingMinion || playerStats;
 
             if (target && target.hp > 0) {
-                // --- FIX: Use the skill directly from the enemy's data ---
                 const enemySkill = enemy.skills[0] || skillDefinitions['Basic Attack'];
-                // --------------------------------------------------------
 
                 if (enemySkill) {
-                    const damageDealt = calculateDamage(enemy, target, enemySkill);
+                    const { damage: damageDealt } = calculateDamage(enemy, target, enemySkill);
                     target.hp -= damageDealt;
                     await displayMessage(`${enemy.name} uses ${enemySkill.name} on ${target.name} for ${damageDealt} damage! ${target.name} HP: ${target.hp}/${target.maxHp}`);
                 } else {
@@ -1208,18 +1016,13 @@
             }
         }
 
-        /**
-         * Handles a minion's turn.
-         * @param {object} minion - The minion taking the turn.
-         */
         async function minionTurn(minion) {
             const targetEnemy = currentEnemies.find(e => e.hp > 0);
             if (targetEnemy) {
-                // FIXED: Added a check to ensure minion has skills defined.
                 if (minion.skills && minion.skills.length > 0) {
                     const minionSkill = skillDefinitions[minion.skills[0].name];
                     if (minionSkill) {
-                        const damageDealt = calculateDamage(minion, targetEnemy, minionSkill);
+                        const { damage: damageDealt } = calculateDamage(minion, targetEnemy, minionSkill);
                         targetEnemy.hp -= damageDealt;
                         await displayMessage(`${minion.name} attacks ${targetEnemy.name} for ${damageDealt} damage! ${targetEnemy.name} HP: ${targetEnemy.hp}/${targetEnemy.maxHp}`);
                         if (targetEnemy.hp <= 0) {
@@ -1231,24 +1034,13 @@
                             corpsesOnBattlefield++;
                             await displayMessage(`A corpse is left on the battlefield. Total corpses: ${corpsesOnBattlefield}`);
                         }
-                    } else {
-                        await displayMessage(`${minion.name} tries to attack, but its skill '${minion.skills[0].name}' is not defined!`);
                     }
-                } else {
-                    await displayMessage(`${minion.name} has no skills to use!`);
                 }
             } else {
                 await displayMessage(`${minion.name} has no target to attack.`);
             }
         }
 
-        /**
-         * Calculates damage from attacker to defender.
-         * @param {object} attacker - The attacking combatant.
-         * @param {object} defender - The defending combatant.
-         * @param {object} skill - The skill definition used.
-         * @returns {number} The calculated damage.
-         */
         function calculateDamage(attacker, defender, skill) {
             let baseDamage = getRandomInt(skill.base_damage[0], skill.base_damage[1]);
             let critMultiplier = (attacker.critMultiplier || 1.5);
@@ -1266,7 +1058,6 @@
 
             if (isCrit) {
                 baseDamage = Math.floor(baseDamage * critMultiplier);
-                // The combat message will indicate the critical hit
             }
             
             if (skill.damage_type === 'true' || skill.effects?.some(e => e.type === 'true_damage')) {
@@ -1293,23 +1084,9 @@
                 }
             }
 
-            return Math.max(0, Math.floor(finalDamage));
+            return { damage: Math.max(0, Math.floor(finalDamage)), isCrit: isCrit };
         }
 
-        /**
-         * Applies the effects of a skill.
-         * @param {object} caster - The combatant using the skill.
-         * @param {object | Array<object>} targets - The target(s) of the skill.
-         * @param {object} skillInfo - The skill definition.
-         * @returns {Promise<boolean>} True if the skill effect was successfully applied.
-         */
-        /**
-         * Applies the effects of a skill.
-         * @param {object} caster - The combatant using the skill.
-         * @param {object | Array<object>} targets - The target(s) of the skill.
-         * @param {object} skillInfo - The skill definition.
-         * @returns {Promise<boolean>} True if the skill effect was successfully applied.
-         */
         async function applySkillEffect(caster, targets, skillInfo) {
             const actualTargets = Array.isArray(targets) ? targets : [targets];
             
@@ -1321,34 +1098,102 @@
                 usedOverdrives[skillInfo.name] = true;
             }
 
-            // Handle damage
             if (skillInfo.base_damage) {
-                // ... (rest of the damage logic remains the same) ...
+                const multiHitCount = skillInfo.effects?.find(e => e.type === 'multi_hit')?.count || 1;
+                for (let hit = 1; hit <= multiHitCount; hit++) {
+                    if (multiHitCount > 1) await displayMessage(`--- Hit ${hit}/${multiHitCount} ---`);
+                    for (const target of actualTargets) {
+                        if (target.hp <= 0) continue;
+                        
+                        const damageResult = calculateDamage(caster, target, skillInfo);
+                        let damageDealt = damageResult.damage;
+                        let critMessage = damageResult.isCrit ? " (CRITICAL HIT!)" : "";
+                        
+                        if (skillInfo.effects?.some(e => e.type === 'bonus_damage_per_corpse')) {
+                            const bonusEffect = skillInfo.effects.find(e => e.type === 'bonus_damage_per_corpse');
+                            const bonusDmg = corpsesOnBattlefield * bonusEffect.value;
+                            damageDealt += bonusDmg;
+                            if (bonusDmg > 0) await displayMessage(`(${skillInfo.name} gains ${bonusDmg} bonus damage!)`);
+                        }
+
+                        target.hp -= damageDealt;
+                        await displayMessage(`${caster.name} uses ${skillInfo.name} on ${target.name} for ${damageDealt} damage!${critMessage}`, true);
+
+                        if (caster.isPlayer && skillInfo.name === 'Void Rend') {
+                            const willGained = damageResult.isCrit ? 10 : 3;
+                            caster.resource.current = Math.min(caster.resource.max, caster.resource.current + willGained);
+                            await displayMessage(`You generated ${willGained} Hollow Will!`);
+                        }
+                        
+                        if (skillInfo.effects?.some(e => e.type === 'heal_from_damage')) {
+                            const healEffect = skillInfo.effects.find(e => e.type === 'heal_from_damage');
+                            const healAmount = Math.floor(damageDealt * healEffect.ratio);
+                            caster.hp = Math.min(caster.maxHp, caster.hp + healAmount);
+                            await displayMessage(`${caster.name} leeches ${healAmount} HP!`);
+                        }
+                    }
+                }
+                 for (const target of actualTargets) {
+                    if (target.hp <= 0 && !target.isMarkedForDeath) {
+                        target.isMarkedForDeath = true;
+                        await displayMessage(`${target.name} has been defeated!`);
+                        if (!target.isPlayer && !target.isMinion) {
+                            corpsesOnBattlefield++;
+                            await displayMessage(`A corpse is left on the battlefield. Total corpses: ${corpsesOnBattlefield}`);
+                            if (caster.isPlayer && playerProgression.baseClass === 'necromancer') {
+                                playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 2);
+                                await displayMessage(`You gained 2 Soul Energy from the killing blow!`);
+                            }
+                        }
+                    }
+                }
             }
 
-            // Handle other effects
             if (skillInfo.effects) {
                 for (const effect of skillInfo.effects) {
-                    // --- FIX: LOGIC FOR HOLLOW KING SKILLS ---
                     if (playerStats.isHollowKing) {
                         switch (effect.type) {
                             case 'remove_from_fight_permanent':
                                 for (const target of actualTargets) {
                                     await displayMessage(`The Hollow King gestures at ${target.name}. It flickers and is GONE.`, true);
-                                    target.hp = 0; // Mark for death
-                                    // Immediately remove the enemy from the active list
+                                    target.hp = 0;
                                     currentEnemies = currentEnemies.filter(e => e.id !== target.id);
                                 }
-                                continue; // Skip to next effect
+                                continue;
                         }
                     }
-                    // --- END OF FIX ---
 
                     switch (effect.type) {
                         case 'summon':
-                            // ... (rest of the effect logic remains the same) ...
+                            const minionTemplate = minionDefinitions[effect.summon_type];
+                            if (minionTemplate) {
+                                const newMinion = JSON.parse(JSON.stringify(minionTemplate));
+                                newMinion.id = `minion_${Date.now()}`;
+                                newMinion.isPlayer = false;
+                                newMinion.isMinion = true;
+                                newMinion.statusEffects = [];
+                                playerMinions.push(newMinion);
+                                await displayMessage(`${caster.name} summons a ${newMinion.name}!`);
+                            }
                             break;
-                        // ... other cases ...
+                        case 'damage_reduction':
+                            caster.statusEffects.push({ name: 'Guard', type: 'damage_reduction', value: effect.value, duration: effect.duration + 1 });
+                            await displayMessage(`${caster.name} braces for impact!`);
+                            break;
+                        case 'stun':
+                             for(const target of actualTargets) {
+                                if (target.hp > 0) {
+                                    target.statusEffects.push({ name: 'Stun', type: 'skip_turn', duration: effect.duration + 1 });
+                                }
+                             }
+                             await displayMessage(`${actualTargets.map(t => t.name).join(', ')} are stunned!`);
+                            break;
+                         case 'minion_taunt':
+                            playerMinions.filter(m => m.hp > 0).forEach(minion => {
+                                minion.statusEffects.push({ name: 'Taunt', type: 'taunt', duration: effect.duration + 1 });
+                            });
+                            await displayMessage(`Your minions are now taunting enemies!`);
+                            break;
                     }
                 }
             }
@@ -1359,16 +1204,11 @@
             return true;
         }
 
-
-  /**
-         * Checks if the battle has ended.
-         * @returns {Promise<boolean>} True if battle ended, false otherwise.
-         */
         async function checkBattleEnd() {
             const livingEnemies = currentEnemies.filter(enemy => enemy.hp > 0);
             const isPlayerAlive = playerStats.currentHP > 0;
 
-            if (livingEnemies.length === 0 && inCombat) { // Added inCombat check
+            if (livingEnemies.length === 0 && inCombat) {
                 await displayMessage("\n--- VICTORY! ---", true);
                 inCombat = false;
                 const baseExp = 50;
@@ -1379,20 +1219,16 @@
                 return true;
             }
 
-            if (!isPlayerAlive && inCombat) { // Added inCombat check
-
-                // --- NEW: Hollow King Resurrection Logic ---
+            if (!isPlayerAlive && inCombat) {
                 const hasCrown = playerStats.isHollowKing && playerStats.activeTraits.some(t => t.name === 'Crown of the Undying');
                 if (hasCrown) {
                     await displayMessage("Your form dissolves into nothingness... but the crown remains.", true);
-                    await sleep(1000); // Dramatic pause
-                    playerStats.currentHP = Math.floor(playerStats.maxHP * 0.30); // Resurrect at 30% HP
+                    await sleep(1000);
+                    playerStats.currentHP = Math.floor(playerStats.maxHP * 0.30);
                     await displayMessage("Silence reigns, and from it, you are remade. The Hollow King cannot truly die.", true);
                     updatePlayerHud();
-                    // By returning false, we prevent the "DEFEAT!" message and continue the battle.
                     return false; 
                 }
-                // --- End of New Logic ---
 
                 await displayMessage("\n--- DEFEAT! ---", true);
                 inCombat = false;
@@ -1403,23 +1239,19 @@
             }
             return false;
         }
-        /**
-         * Applies end-of-round effects like resource regeneration and DoTs.
-         */
+
         async function endOfRoundEffects() {
             await displayMessage("\n--- End of Round ---", true);
             turnNumber++;
-            currentTurnIndex = 0; // Reset for the new round
-            playerHasTakenTurn = false; // Reset for new round (e.g., Quick Slash)
+            currentTurnIndex = 0;
+            playerHasTakenTurn = false;
 
-            // Necromancer Soul Energy gain
             if (playerProgression.baseClass === 'necromancer' && playerDealtDamageThisTurn) {
                 playerStats.resource.current = Math.min(playerStats.resource.max, playerStats.resource.current + 1);
                 await displayMessage(`You gained 1 Soul Energy!`);
             }
             playerDealtDamageThisTurn = false;
 
-            // Process status effects for all living combatants
             for (const combatant of [playerStats, ...currentEnemies, ...playerMinions].filter(c => c.hp > 0)) {
                 combatant.statusEffects = combatant.statusEffects.filter(effect => {
                     if (effect.duration !== 'permanent') {
@@ -1431,20 +1263,13 @@
             updatePlayerHud();
         }
 
-        /**
-         * Adds experience points to the player and checks for level up.
-         * @param {number} amount - The amount of experience to add.
-         */
         async function addExperience(amount) {
-            if (!playerProgression.baseClass) return; // Can't gain XP before choosing a class
+            if (!playerProgression.baseClass) return;
             playerStats.experience += amount;
             await displayMessage(`You gained ${amount} experience points!`);
             await checkLevelUp();
         }
 
-        /**
-         * Checks if the player has enough experience to level up and handles it.
-         */
         async function checkLevelUp() {
             while (playerStats.experience >= playerStats.expToNextLevel) {
                 playerStats.experience -= playerStats.expToNextLevel;
@@ -1470,9 +1295,6 @@
             }
         }
 
-        /**
-         * Handles class evolution based on level and current branch.
-         */
         async function handleEvolution() {
             if (playerStats.isHollowKing) {
                 await displayMessage("Your form is beyond conventional evolution.", true);
@@ -1495,7 +1317,6 @@
             
             if (playerProgression.currentBranch) {
                  const currentBranchPath = currentBaseClass.branches[playerProgression.currentBranch].stages;
-                 // Find the next evolution stage the player qualifies for but hasn't reached yet
                  const nextStage = currentBranchPath.find((stage, index) => playerStats.level >= stage.level && index > playerProgression.currentEvolutionStageIndex);
 
                 if (nextStage) {
@@ -1520,9 +1341,6 @@
             }
         }
 
-     /**
-         * Cheat command function to transform the player into The Hollow King.
-         */
         async function transformIntoHollowKing() {
             if (!playerProgression.baseClass) {
                 await displayMessage("You must select a base class before you can embrace the void.", true);
@@ -1531,7 +1349,6 @@
 
             const hkData = legendaryAndSecretClasses.the_hollow_king;
 
-            // --- GRANT LEGENDARY STATS (RE-CONFIRMED FIX) ---
             playerStats.maxHP = 500;
             playerStats.currentHP = 500;
             playerStats.def = 50;
@@ -1540,39 +1357,27 @@
             playerStats.agility = 15;
             playerStats.critChance = 0.25;
             playerStats.critMultiplier = 2.5;
-            // -----------------------------------------
-
-            // Update Player Stats
+            
             playerStats.name = hkData.name;
             playerStats.isHollowKing = true;
-            playerStats.resource = { ...hkData.coreResource, current: hkData.coreResource.initial };
+            playerStats.resource = { ...hkData.coreResource, current: hkData.coreResource.initial, max: 10 }; // Give max Will
 
-            // Update Skills, including the overdrive skill
-            playerStats.activeSkills = [...hkData.skills, hkData.overdrive.name];
-
-            // Update Traits/Passives
+            playerStats.activeSkills = ['Void Rend', ...hkData.skills, hkData.overdrive.name];
             playerStats.activeTraits = [...hkData.passives];
 
-            // Update Progression State
-            playerProgression.baseClass = 'hollow_king'; // Custom identifier
+            playerProgression.baseClass = 'hollow_king';
             playerProgression.currentBranch = null;
             playerProgression.currentEvolutionName = hkData.name;
             playerProgression.currentEvolutionStageIndex = 0;
 
-            // Notify the player
             gameOutput.innerHTML = '';
             await displayMessage(hkData.uponUnlock, true);
             await displayMessage("You have become The Hollow King. Your previous self is gone.", true);
-
-            // Update UI and show current state
+            
             updatePlayerHud();
             await displayRoomDescription();
         }
 
-       /**
-         * Generates formatted strings for the class evolution tree and lore views.
-         * @returns {object} An object containing 'tree' and 'lore' formatted strings.
-         */
         function getClassEvolutionFormattedViews() {
             if (playerStats.isHollowKing) {
                 const hk = legendaryAndSecretClasses.the_hollow_king;
@@ -1604,9 +1409,6 @@
             return { tree: treeView, lore: "Lore details can be expanded here." };
         }
 
-        /**
-         * Displays the class evolution tree and lore.
-         */
         async function displayClassLore() {
             gameOutput.innerHTML = '';
             if (!playerProgression.baseClass) {
@@ -1614,13 +1416,9 @@
                 return;
             }
             const evolutionViews = getClassEvolutionFormattedViews();
-            await displayMessage(evolutionViews.tree, true, true); // Display tree view as HTML
-            // await displayMessage(evolutionViews.lore, false, true); // Display lore view as HTML
+            await displayMessage(evolutionViews.tree, true, true);
         }
 
-        /**
-         * Updates the Player HUD with current player stats and resources.
-         */
         function updatePlayerHud() {
             if (!playerHudElement || !playerProgression.baseClass) {
                 if(playerHudElement) playerHudElement.innerHTML = '';
@@ -1666,11 +1464,6 @@
             playerHudElement.innerHTML = hudContent;
         }
 
-
-        /**
-         * Processes the player's command.
-         * @param {string} commandText - The command entered by the player.
-         */
         async function processCommand(commandText) {
             const cleanedCommand = commandText.trim();
             gameInput.value = '';
@@ -1738,15 +1531,11 @@
                     break;
                 case 'class_lore': case 'cl': await displayClassLore(); break;
                 case 'add_xp': await addExperience(parseInt(argument) || 50); break;
-                case 'become_hollow_king': await transformIntoHollowKing(); break; // <-- CHEAT ADDED HERE
+                case 'become_hollow_king': await transformIntoHollowKing(); break;
                 default: await displayErrorMessage("I don't understand that command.", mainCommand); break;
             }
         }
 
-        /**
-         * Processes commands when the game is in combat mode.
-         * @param {string} commandText - The command entered by the player.
-         */
         async function processCombatCommand(commandText) {
             const { command: mainCommandRaw, targetNum } = normalizeCommandInput(commandText);
             gameOutput.innerHTML = '';
@@ -1758,16 +1547,16 @@
             }
 
             let actionTaken = false;
-            const resolvedSkillName = resolveSkillName(mainCommandRaw);
+            let resolvedSkillName = resolveSkillName(mainCommandRaw);
+            
+            if (!resolvedSkillName && mainCommandRaw === 'attack') {
+                resolvedSkillName = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
+            }
             
             if (resolvedSkillName) {
                 actionTaken = await handlePlayerSkillAction(resolvedSkillName, targetNum);
             } else {
                 switch (mainCommandRaw) {
-                    case 'attack':
-                        const playerBasicAttack = basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash';
-                        actionTaken = await handlePlayerSkillAction(playerBasicAttack, targetNum);
-                        break;
                     case 'flee':
                         inCombat = false;
                         await displayMessage("You fled from combat!");
@@ -1775,8 +1564,8 @@
                         return;
                     case 'class_lore': case 'cl':
                         await displayClassLore();
-                        await displayCombatState(); // Re-display combat prompt
-                        return; // Does not consume a turn
+                        await displayCombatState();
+                        return;
                     default:
                         await displayErrorMessage("Unknown command in combat.", mainCommandRaw);
                         return;
@@ -1793,11 +1582,6 @@
             }
         }
         
-        /**
-         * Resolves a skill name from input, checking aliases and full names.
-         * @param {string} input - The raw command part for the skill.
-         * @returns {string|null} The canonical skill name or null if not found.
-         */
         function resolveSkillName(input) {
             const lowerInput = input.toLowerCase();
             if (skillAliases[lowerInput]) return skillAliases[lowerInput];
@@ -1807,13 +1591,6 @@
             return null;
         }
 
-
-        /**
-         * Handles player's skill actions, including target resolution and resource checks.
-         * @param {string} skillName - The normalized skill name.
-         * @param {number|null} targetNum - The target number from input.
-         * @returns {Promise<boolean>} True if action was successfully taken.
-         */
         async function handlePlayerSkillAction(skillName, targetNum) {
             const skillInfo = skillDefinitions[skillName];
 
@@ -1870,11 +1647,6 @@
             return await applySkillEffect(playerStats, targets, skillInfo);
         }
 
-        /**
-         * Helper to get a target enemy by its 1-based index.
-         * @param {number} index - The 1-based index of the enemy.
-         * @returns {object | null} The enemy object or null.
-         */
         function getTargetEnemy(index) {
             const livingEnemies = currentEnemies.filter(e => e.hp > 0);
             if (index > 0 && index <= livingEnemies.length) return livingEnemies[index - 1];
@@ -1882,12 +1654,6 @@
             return null;
         }
         
-        /**
-         * Generates a standardized invalid target message.
-         * @param {number} targetNum - The invalid target number.
-         * @param {Array<object>} livingEnemies - The list of valid targets.
-         * @returns {string} The formatted message.
-         */
         function getInvalidTargetMessage(targetNum, livingEnemies) {
             let msg = `Invalid target '${targetNum || 'none specified'}'.`;
             if (livingEnemies.length === 0) {
@@ -1898,11 +1664,6 @@
             return msg;
         }
 
-        /**
-         * Displays a helpful error message with context.
-         * @param {string} errorMessage - The specific error.
-         * @param {string} originalCommandPart - The part of the command that caused the error.
-         */
         async function displayErrorMessage(errorMessage, originalCommandPart) {
             await displayMessage(`Error: ${errorMessage}`, true);
             const suggestions = findSimilarSkills(originalCommandPart);
@@ -1920,10 +1681,9 @@
             if (event.key === 'Enter') {
                 await processCommand(event.target.value);
             } else if (event.key === ' ') {
-                // FIXED: Only allow space to skip if input is empty, to avoid skipping when typing multi-word commands.
                 if (isTyping && currentTypingPromiseResolve && event.target.value.trim() === '') {
                     skipTyping = true;
-                    event.preventDefault(); // Prevent space from being typed
+                    event.preventDefault();
                 }
             }
         });
