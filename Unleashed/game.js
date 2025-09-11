@@ -4,85 +4,157 @@
         const submitButton = document.getElementById('submit-button');
         const playerHudElement = document.getElementById('player-hud'); //HUD element reference
 
-        // --- Game World Data ---
+// --- Game World Data ---
         const rooms = {
             'starting_room': {
                 description: "You awaken in a damp, musty cellar. A faint light filters through a crack in the ceiling. Crows circle above the broken ceiling. You don’t remember how you got here… but your hands glow faintly with forbidden power.",
                 exits: {
-                    'north': 'wooden_door_room',
-                    'east': 'dark_passage'
+                    'north': 'hallway_of_chains',
+                    'east': 'collapsed_wine_cellar'
                 },
-                enemies: ['weak_goblin','James_Newton'], // Example: Add enemies to a room
+                enemies: ['James_Newton'],
                 items: ['Grigamba stone']
             },
-            'wooden_door_room': {
-                description: "You stand before a massive, reinforced wooden door. It looks incredibly sturdy. There's nothing else here. You can go back south.",
-                exits: {
-                    'south': 'starting_room'
-                },
-                items: []
+            'hallway_of_chains': {
+                description: "A narrow hallway carved from stone, dripping with condensation. Broken chains hang from the walls, as if something was once bound here. The air hums faintly, resonating with your glowing hands.",
+                exits: { 'south': 'starting_room' },
+                enemies: ['shackled_ghoul', 'shackled_ghoul', 'rust_rat'],
+                items: ['Cracked Lantern', 'Rusted Key', 'Moldy Bread']
             },
-            'dark_passage': {
-                description: "The passage is cold and smells of stale air. You hear dripping water somewhere ahead. You can go west to return to the cellar, or continue deeper east.",
+            'collapsed_wine_cellar': {
+                description: "A collapsed wine cellar, shelves overturned, shattered bottles across the floor. The smell of sour grapes and vinegar fills the air. The crunch of glass echoes underfoot, alerting nearby foes.",
                 exits: {
                     'west': 'starting_room',
-                    'east': 'cavern_entrance'
+                    'east': 'cellar_tunnels' // New exit deeper east
                 },
-                enemies: ['hungry_wolf', 'weak_goblin'], // More enemies
-                items: []
+                enemies: ['cellar_vermin', 'cellar_vermin', 'drunken_shade'],
+                items: ['Half-full Wine Bottle', 'Bandages', 'Shard of Glass']
             },
-            'cavern_entrance': {
-                description: "The dark passage opens into a small, echoing cavern. A faint, glowing mushroom illuminates the damp walls. There's a shimmering pool of water in the center. You can go west to the dark passage.",
+            // NEW EASTERN PATH
+            'cellar_tunnels': {
+                description: "You step deeper into the cellar tunnels. The air is thicker here, filled with mildew. Wooden support beams creak under unseen weight. Rats scurry along the edges, watching.",
                 exits: {
-                    'west': 'dark_passage'
+                    'west': 'collapsed_wine_cellar',
+                    'east': 'stagnant_chamber'
                 },
-                items: ['glowing mushroom']
+                enemies: ['bone_gnawer', 'bone_gnawer', 'shackled_ghoul'],
+                items: ['Pouch of Salt', 'Leather Strap', 'Small Coin Purse']
+            },
+            'stagnant_chamber': {
+                description: "A wide chamber where collapsed wine barrels have spilled into stagnant pools. The stench of rot is overwhelming. Something stirs in the water.",
+                exits: {
+                    'west': 'cellar_tunnels',
+                    'east': 'ritual_chamber'
+                },
+                enemies: ['mire_lurker', 'mire_lurker', 'drunken_shade'],
+                items: ['Oil-soaked Rag', 'Wooden Shield', 'Strange Coin']
+            },
+            'ritual_chamber': {
+                description: "This chamber feels different. The stone walls are smoother, less natural — carved deliberately. A faint chanting echoes from beyond a sealed archway at the far side. A glowing sigil is etched into the floor, faintly pulsing. This must be close to the heart of the cellar.",
+                exits: {
+                    'west': 'stagnant_chamber',
+                    'east': 'wardens_roost' // Leads to the boss
+                },
+                enemies: ['cult_acolyte', 'cult_acolyte', 'shackled_ghoul_stronger'],
+                items: ['Ritual Dagger', 'Healing Herb Bundle', 'Crow Feather Charm']
+            },
+            'wardens_roost': {
+                description: "The air is still here. Broken statues line the walls, each depicting chained prisoners with crow masks. A tall armored figure stands in the center, his helm crowned with feathers. His eyes glow faint red, and his voice croaks like a raven.",
+                exits: {
+                    // No exits until the boss is defeated
+                },
+                enemies: ['crow_touched_warden'],
+                items: []
             }
         };
 
         // --- Enemy Definitions ---
         const enemies = {
-                'James_Newton': {
+            'James_Newton': {
                 name: 'James Newton',
-                hp: 666,
-                maxHp: 666,
-                atk: 666,
-                def: 666,
-                spd: 666,
-                critChance: 0.6,
-                critMultiplier: 1.5,
-                resistances: [],
-                specialFlags: [],
-                skills: [{ name: 'Slash', description: 'Deals 6-66 damage.', base_damage: [6, 66], target: 'player', damage_type: 'physical' }]
+                hp: 666, maxHp: 666, atk: 20, def: 66, spd: 20,
+                critChance: 0.6, critMultiplier: 1.5,
+                skills: [{ name: 'Heavy Slash', base_damage: [20, 30] }]
             },
             'weak_goblin': {
                 name: 'Weak Goblin',
-                hp: 30,
-                maxHp: 30,
-                atk: 5,
-                def: 2,
-                spd: 8,
-                critChance: 0.1,
-                critMultiplier: 1.5,
-                resistances: [],
-                specialFlags: [],
-                skills: [{ name: 'Goblin Slash', description: 'Deals 5-8 damage.', base_damage: [5, 8], target: 'player', damage_type: 'physical' }]
+                hp: 30, maxHp: 30, atk: 5, def: 2, spd: 8,
+                critChance: 0.1, critMultiplier: 1.5,
+                skills: [{ name: 'Goblin Slash', base_damage: [5, 8] }]
             },
             'hungry_wolf': {
                 name: 'Hungry Wolf',
-                hp: 40,
-                maxHp: 40,
-                atk: 7,
-                def: 3,
-                spd: 12,
-                critChance: 0.2,
-                critMultiplier: 1.7,
-                resistances: [],
-                specialFlags: [],
-                skills: [{ name: 'Bite', description: 'Deals 7-10 damage.', base_damage: [7, 10], target: 'player', damage_type: 'physical' }]
+                hp: 40, maxHp: 40, atk: 7, def: 3, spd: 12,
+                critChance: 0.2, critMultiplier: 1.7,
+                skills: [{ name: 'Bite', base_damage: [7, 10] }]
+            },
+            'shackled_ghoul': {
+                name: 'Shackled Ghoul',
+                hp: 20, maxHp: 20, atk: 8, def: 1, spd: 14,
+                critChance: 0.15, critMultiplier: 1.6,
+                specialFlags: ['undead', 'weak_to_light'],
+                skills: [{ name: 'Frenzied Bite', base_damage: [6, 10] }]
+            },
+            'rust_rat': {
+                name: 'Rust Rat',
+                hp: 15, maxHp: 15, atk: 4, def: 2, spd: 16,
+                critChance: 0.1, critMultiplier: 1.5,
+                skills: [{ name: 'Corroding Bite', base_damage: [3, 5] }]
+            },
+            'cellar_vermin': {
+                name: 'Cellar Vermin',
+                hp: 25, maxHp: 25, atk: 6, def: 1, spd: 13,
+                critChance: 0.1, critMultiplier: 1.5,
+                skills: [{ name: 'Quick Swipe', base_damage: [5, 8] }]
+            },
+            'drunken_shade': {
+                name: 'Drunken Shade',
+                hp: 30, maxHp: 30, atk: 2, def: 4, spd: 7,
+                critChance: 0.05, critMultiplier: 1.5,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Disorienting Whisper', base_damage: [1, 3] }]
+            },
+            'bone_gnawer': {
+                name: 'Bone Gnawer',
+                hp: 18, maxHp: 18, atk: 6, def: 3, spd: 15,
+                critChance: 0.1, critMultiplier: 1.5,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Ankle Snap', base_damage: [6, 9] }]
+            },
+            'mire_lurker': {
+                name: 'Mire Lurker',
+                hp: 35, maxHp: 35, atk: 5, def: 2, spd: 6,
+                critChance: 0.05, critMultiplier: 1.5,
+                skills: [{ name: 'Corrosive Spit', base_damage: [4, 7] }]
+            },
+            'cult_acolyte': {
+                name: 'Cult Acolyte',
+                hp: 22, maxHp: 22, atk: 7, def: 1, spd: 9,
+                critChance: 0.1, critMultiplier: 1.6,
+                skills: [{ name: 'Hexing Blade', base_damage: [7, 11] }]
+            },
+            'shackled_ghoul_stronger': {
+                name: 'Ritual-Scarred Ghoul',
+                hp: 40, maxHp: 40, atk: 10, def: 3, spd: 12,
+                critChance: 0.15, critMultiplier: 1.6,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Frenzied Bite', base_damage: [9, 14] }]
+            },
+            'crow_touched_warden': {
+                name: 'The Crow-Touched Warden',
+                id: 'crow_touched_warden',
+                hp: 150, maxHp: 150, atk: 15, def: 8, spd: 10,
+                critChance: 0.2, critMultiplier: 1.7,
+                specialFlags: ['boss'],
+                skills: [
+                    { name: 'Halberd Sweep', base_damage: [15, 20] },
+                    { name: 'Summon Crows', base_damage: [5, 8] },
+                    { name: 'Chain Lock', base_damage: [10, 12] }
+                ]
             }
-            // Add more enemies here
         };
+		
+		
 
         // --- Minion Definitions (New) ---
         const minionDefinitions = {
@@ -837,14 +909,20 @@
             }
         }
 
-        async function takeItem(itemName) {
+       async function takeItem(itemName) {
             const currentRoomData = rooms[currentRoom];
             const itemIndex = currentRoomData.items.map(item => item.toLowerCase()).indexOf(itemName.toLowerCase());
 
             if (itemIndex !== -1) {
-                const item = currentRoomData.items.splice(itemIndex, 1)[0];
-                playerStats.inventory.push(item);
-                await displayMessage(`You pick up the ${item}.`);
+                const genericItemName = currentRoomData.items.splice(itemIndex, 1)[0];
+                let receivedItem = genericItemName;
+
+                if (adaptiveLoot[genericItemName] && playerProgression.baseClass) {
+                    receivedItem = adaptiveLoot[genericItemName][playerProgression.baseClass] || genericItemName;
+                }
+                
+                playerStats.inventory.push(receivedItem);
+                await displayMessage(`You pick up the ${receivedItem}.`);
                 updatePlayerHud();
             } else {
                 await displayMessage(`You don't see a '${itemName}' here.`);
@@ -1488,8 +1566,7 @@
 
             playerHudElement.innerHTML = hudContent;
         }
-
-        async function processCommand(commandText) {
+async function processCommand(commandText) {
             const cleanedCommand = commandText.trim();
             gameInput.value = '';
 
@@ -1512,7 +1589,7 @@
                 if (basePlayerClasses[className]) {
                     initializePlayer(className);
                     awaitingClassSelection = false;
-                    await displayMessage(`You have chosen to be a ${playerProgression.baseClass}!`, true);
+                    await displayMessage(`You have chosen to be a ${className}!`, true);
                     await displayRoomDescription();
                 } else {
                     await displayMessage("That is not a valid class. Please choose again.");
@@ -1520,23 +1597,15 @@
                 return;
             }
 
-            if (awaitingBranchSelection) {
-                const branchName = cleanedCommand.toLowerCase().replace(' ', '_');
-                const availableBranches = Object.keys(evolutionPaths[playerProgression.baseClass].branches);
-                if (availableBranches.includes(branchName)) {
-                    playerProgression.currentBranch = branchName;
-                    awaitingBranchSelection = false;
-                    await displayMessage(`You have chosen the path of the ${branchName.replace(/_/g, ' ')}!`, true);
-                    await handleEvolution();
-                } else {
-                    await displayMessage("That is not a valid branch. Please choose again.");
-                }
-                return;
-            }
+            // --- FIX STARTS HERE ---
+            // Manually parse the command and argument for out-of-combat actions
+            const lowerCaseCommand = cleanedCommand.toLowerCase();
+            const parts = lowerCaseCommand.split(' ');
+            const mainCommand = parts[0];
+            const argument = parts.slice(1).join(' ');
+            // --- FIX ENDS HERE ---
 
             await displayMessage(`> ${cleanedCommand}`, false);
-            const { command: mainCommand, targetNum } = normalizeCommandInput(cleanedCommand);
-            const argument = cleanedCommand.split(' ').slice(1).join(' ');
 
             switch (mainCommand) {
                 case 'go': await movePlayer(argument); break;
@@ -1625,61 +1694,6 @@
             return null;
         }
 
-        async function handlePlayerSkillAction(skillName, targetNum) {
-            const skillInfo = skillDefinitions[skillName];
-
-            if (!skillInfo || !playerStats.activeSkills.includes(skillName)) {
-                await displayErrorMessage(`You don't know the skill '${skillName}'.`, skillName);
-                return false;
-            }
-
-            const cost = skillInfo.cost === 'all' ? playerStats.resource.current : (skillInfo.cost || 0);
-            if (playerStats.resource.current < cost) {
-                await displayErrorMessage(`Not enough ${playerStats.resource.type}!`, skillName);
-                return false;
-            }
-
-            let targets = [];
-            const livingEnemies = currentEnemies.filter(e => e.hp > 0);
-
-            switch (skillInfo.target) {
-                case 'enemy_single':
-                    const targetEnemy = getTargetEnemy(targetNum);
-                    if (!targetEnemy) {
-                        await displayErrorMessage(getInvalidTargetMessage(targetNum, livingEnemies), skillName);
-                        return false;
-                    }
-                    targets.push(targetEnemy);
-                    break;
-                case 'self':
-                    targets.push(playerStats);
-                    break;
-                case 'enemy_aoe': case 'all_enemies':
-                    targets = livingEnemies;
-                    if (targets.length === 0) {
-                        await displayErrorMessage(`No enemies to target.`, skillName);
-                        return false;
-                    }
-                    break;
-                 case 'minions':
-                    targets = playerMinions.filter(m => m.hp > 0);
-                     if (targets.length === 0) {
-                        await displayErrorMessage(`You have no minions to target.`, skillName);
-                        return false;
-                    }
-                    break;
-                default:
-                    await displayErrorMessage(`Target type '${skillInfo.target}' is not implemented.`, skillName);
-                    return false;
-            }
-
-            if (cost > 0) {
-                playerStats.resource.current -= cost;
-                await displayMessage(`Used ${cost} ${playerStats.resource.type}.`);
-            }
-
-            return await applySkillEffect(playerStats, targets, skillInfo);
-        }
 
         function getTargetEnemy(index) {
             const livingEnemies = currentEnemies.filter(e => e.hp > 0);
