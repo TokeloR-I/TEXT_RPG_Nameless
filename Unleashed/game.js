@@ -1096,6 +1096,13 @@
             return { damage: Math.max(0, Math.floor(finalDamage)), isCrit: isCrit };
         }
 
+        /**
+         * Applies the effects of a skill.
+         * @param {object} caster - The combatant using the skill.
+         * @param {object | Array<object>} targets - The target(s) of the skill.
+         * @param {object} skillInfo - The skill definition.
+         * @returns {Promise<boolean>} True if the skill effect was successfully applied.
+         */
         async function applySkillEffect(caster, targets, skillInfo) {
             const actualTargets = Array.isArray(targets) ? targets : [targets];
             
@@ -1114,6 +1121,8 @@
                     for (const target of actualTargets) {
                         if (target.hp <= 0) continue;
                         
+                        // Use a fallback name in case the skillInfo name is corrupted
+                        const skillNameForDisplay = skillInfo.name || "a powerful strike";
                         const damageResult = calculateDamage(caster, target, skillInfo);
                         let damageDealt = damageResult.damage;
                         let critMessage = damageResult.isCrit ? " (CRITICAL HIT!)" : "";
@@ -1122,17 +1131,24 @@
                             const bonusEffect = skillInfo.effects.find(e => e.type === 'bonus_damage_per_corpse');
                             const bonusDmg = corpsesOnBattlefield * bonusEffect.value;
                             damageDealt += bonusDmg;
-                            if (bonusDmg > 0) await displayMessage(`(${skillInfo.name} gains ${bonusDmg} bonus damage!)`);
+                            if (bonusDmg > 0) await displayMessage(`(${skillNameForDisplay} gains ${bonusDmg} bonus damage!)`);
                         }
 
                         target.hp -= damageDealt;
-                        await displayMessage(`${caster.name} uses ${skillInfo.name} on ${target.name} for ${damageDealt} damage!${critMessage}`, true);
+                        await displayMessage(`${caster.name} uses ${skillNameForDisplay} on ${target.name} for ${damageDealt} damage!${critMessage}`, true);
 
-                        if (caster.isPlayer && skillInfo.name === 'Void Rend') {
+                        // --- ROBUST RESOURCE GENERATION FIX ---
+                        // Instead of checking for a name that might be missing, we check for the skill's unique property: a cost of 0.
+                        if (caster.isPlayer && caster.isHollowKing && skillInfo.cost === 0) {
                             const willGained = damageResult.isCrit ? 10 : 3;
-                            caster.resource.current = Math.min(caster.resource.max, caster.resource.current + willGained);
-                            await displayMessage(`You generated ${willGained} Hollow Will!`);
+                            const currentWill = caster.resource.current;
+                            caster.resource.current = Math.min(caster.resource.max, currentWill + willGained);
+                            // Only show the message if will was actually gained (i.e., not already at max)
+                            if (caster.resource.current > currentWill) {
+                                await displayMessage(`You generated ${caster.resource.current - currentWill} Hollow Will!`);
+                            }
                         }
+                        // --- END OF FIX ---
                         
                         if (skillInfo.effects?.some(e => e.type === 'heal_from_damage')) {
                             const healEffect = skillInfo.effects.find(e => e.type === 'heal_from_damage');
@@ -1545,7 +1561,10 @@
             }
         }
 
-       async function processCombatCommand(commandText) {
+        /**
+         * Processes commands when the game is in combat mode.
+         */
+        async function processCombatCommand(commandText) {
             const { command: mainCommandRaw, targetNum } = normalizeCommandInput(commandText);
             gameOutput.innerHTML = '';
             await displayMessage(`> ${commandText}`, false);
@@ -1556,34 +1575,36 @@
             }
 
             let actionTaken = false;
-            let skillToUse = mainCommandRaw;
 
-            // --- REVISED AND SIMPLIFIED ATTACK LOGIC ---
-            if (skillToUse === 'attack') {
-                skillToUse = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
-            }
-            
-            const resolvedSkillName = resolveSkillName(skillToUse);
-            // --- END OF REVISION ---
-            
-            if (resolvedSkillName) {
-                actionTaken = await handlePlayerSkillAction(resolvedSkillName, targetNum);
+            // --- FINAL, ROBUST FIX FOR THE 'ATTACK' COMMAND ---
+            if (mainCommandRaw === 'attack') {
+                // If the command is 'attack', determine the correct basic skill and call the action handler directly.
+                const skillName = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
+                actionTaken = await handlePlayerSkillAction(skillName, targetNum);
             } else {
-                switch (mainCommandRaw) {
-                    case 'flee':
-                        inCombat = false;
-                        await displayMessage("You fled from combat!");
-                        await displayRoomDescription();
-                        return;
-                    case 'class_lore': case 'cl':
-                        await displayClassLore();
-                        await displayCombatState();
-                        return;
-                    default:
-                        await displayErrorMessage("Unknown command in combat.", mainCommandRaw);
-                        return;
+                // For any other command, try to resolve it as a named skill.
+                const resolvedSkillName = resolveSkillName(mainCommandRaw);
+                if (resolvedSkillName) {
+                    actionTaken = await handlePlayerSkillAction(resolvedSkillName, targetNum);
+                } else {
+                    // If it's not a known skill, check for other commands like 'flee'.
+                    switch (mainCommandRaw) {
+                        case 'flee':
+                            inCombat = false;
+                            await displayMessage("You fled from combat!");
+                            await displayRoomDescription();
+                            return; // Exit the function immediately
+                        case 'class_lore': case 'cl':
+                            await displayClassLore();
+                            await displayCombatState();
+                            return; // Exit the function immediately
+                        default:
+                            await displayErrorMessage("Unknown command in combat.", mainCommandRaw);
+                            return; // Exit the function immediately
+                    }
                 }
             }
+            // --- END OF FIX ---
 
             if (actionTaken) {
                 if (await checkBattleEnd()) return;
