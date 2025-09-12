@@ -1,9 +1,9 @@
 // --- Game Elements ---
-        const gameOutput = document.getElementById('game-output');
+         const gameOutput = document.getElementById('game-output');
         const gameInput = document.getElementById('game-input');
         const submitButton = document.getElementById('submit-button');
+        const skipButton = document.getElementById('skip-button'); // <-- ADD THIS LINE
         const playerHudElement = document.getElementById('player-hud'); //HUD element reference
-
 // --- Game World Data ---
         const rooms = {
             'starting_room': {
@@ -722,11 +722,19 @@
         let currentTypingPromiseResolve = null;
 
         // --- Game Functions ---
+ /**
+         * Adds a message to the game output display with a typing effect.
+         * @param {string} message - The text message to display.
+         * @param {boolean} [isImportant=false] - If true, displays the message in bold.
+         * @param {boolean} [isHTML=false] - If true, treats the message as HTML.
+         * @returns {Promise<void>} A promise that resolves when the message is fully typed.
+         */
         async function displayMessage(message, isImportant = false, isHTML = false) {
             isTyping = true;
             skipTyping = false;
             gameInput.disabled = true;
             submitButton.disabled = true;
+            skipButton.hidden = false; // <-- SHOW the skip button
 
             return new Promise(async (resolve) => {
                 currentTypingPromiseResolve = resolve;
@@ -734,7 +742,7 @@
                 const lines = message.split('\n');
                 for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                     const line = lines[lineIndex];
-                    if (line.trim() === '') continue;
+                    if (line.trim() === '') continue; // Skip empty lines
 
                     const p = document.createElement('p');
                     gameOutput.appendChild(p);
@@ -743,7 +751,7 @@
                         p.innerHTML = line;
                         gameOutput.scrollTop = gameOutput.scrollHeight;
                         if (skipTyping) continue;
-                        await sleep(TYPING_SPEED_MS * 5);
+                        await sleep(TYPING_SPEED_MS * 5); // A small delay for HTML lines
                     } else {
                          if (isImportant) p.style.fontWeight = 'bold';
 
@@ -771,7 +779,7 @@
                              }
                             gameOutput.appendChild(nextP);
                         }
-                        break;
+                        break; // Exit the main loop
                     }
                 }
 
@@ -780,6 +788,7 @@
                 currentTypingPromiseResolve = null;
                 gameInput.disabled = false;
                 submitButton.disabled = false;
+                skipButton.hidden = true; // <-- HIDE the skip button
                 gameInput.focus();
                 resolve();
             });
@@ -1738,6 +1747,21 @@ async function processCommand(commandText) {
 
         submitButton.addEventListener('click', async () => {
             await processCommand(gameInput.value);
+        });
+		  // --- Event Listeners ---
+        gameInput.addEventListener('keypress', async (event) => {
+            // ... (existing code)
+        });
+
+        submitButton.addEventListener('click', async () => {
+            // ... (existing code)
+        });
+
+        // ADD THIS NEW EVENT LISTENER
+        skipButton.addEventListener('click', () => {
+            if (isTyping) {
+                skipTyping = true;
+            }
         });
 
         // --- Initialize the Game ---
