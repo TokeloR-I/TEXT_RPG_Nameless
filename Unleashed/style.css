@@ -150,3 +150,6 @@ body {
         padding-top: 1rem; /* Adjust padding for mobile */
     }
 }
+#skip-button[hidden] {
+    display: none;
+}
