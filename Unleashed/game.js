@@ -847,12 +847,16 @@
             gameInput.focus();
         }
 
+        /**
+         * Displays the description of the current room and available actions.
+         */
         async function displayRoomDescription() {
             gameOutput.innerHTML = '';
             const room = rooms[currentRoom];
             if (room) {
                 await displayMessage("--- " + currentRoom.replace(/_/g, ' ').toUpperCase() + " ---", true);
                 await displayMessage(room.description);
+                
                 await displayMessage("\nWhat do you do?");
 
                 if (Object.keys(room.exits).length > 0) {
@@ -879,26 +883,6 @@
                         await displayMessage(`✋ Take ${item}`);
                     }
                 }
-
-                if (playerStats.activeSkills.length > 0 && playerProgression.baseClass) {
-                    await displayMessage("\n-- Skills --", true);
-                    for (const skillName of playerStats.activeSkills) {
-                        const skillInfo = skillDefinitions[skillName];
-                        if (skillInfo) {
-                            let skillDisplay = `✨ Use ${skillName} (${skillInfo.description})`;
-                            if ((Number.isFinite(skillInfo.cost) && skillInfo.cost > 0) || skillInfo.cost === 'all') {
-                                skillDisplay += ` [Cost: ${skillInfo.cost} ${playerStats.resource.type}]`;
-                            }
-                            await displayMessage(skillDisplay);
-                        }
-                    }
-                }
-
-                await displayMessage("\n-- General Commands --", true);
-                await displayMessage("📜 Inventory (i)");
-                await displayMessage("👀 Look (re-examine room)");
-                await displayMessage("❓ Help (list all commands)");
-                await displayMessage("🚪 Quit (end game)");
 
             } else {
                 await displayMessage("Error: You are in an unknown place. This shouldn't happen!", true);
@@ -1531,20 +1515,49 @@
             await displayMessage(evolutionViews.tree, true, true);
         }
 
+        /**
+         * Updates the Player HUD with current player stats, skills, and commands.
+         */
         function updatePlayerHud() {
             if (!playerHudElement || !playerProgression.baseClass) {
                 if(playerHudElement) playerHudElement.innerHTML = '';
                 return;
             }
 
-            const hpPercent = (playerStats.currentHP / playerStats.maxHP) * 100;
+            const hpPercent = (playerStats.maxHP > 0 ? (playerStats.currentHP / playerStats.maxHP) * 100 : 0);
             let hpBarColorClass = hpPercent <= 30 ? 'critical' : hpPercent <= 60 ? 'low' : '';
             const resourcePercent = (playerStats.resource.max > 0) ? (playerStats.resource.current / playerStats.resource.max) * 100 : 0;
             
+            // --- Build Skills List ---
+            let skillsHtml = '';
+            if (playerStats.activeSkills.length > 0) {
+                playerStats.activeSkills.forEach(skillName => {
+                    const skillInfo = skillDefinitions[skillName];
+                    if (skillInfo) {
+                        // Create a simple description, e.g., (8-12 dmg), (Summon)
+                        let detail = '';
+                        if (skillInfo.base_damage) {
+                            detail = `(${skillInfo.base_damage[0]}-${skillInfo.base_damage[1]} dmg)`;
+                        } else if (skillInfo.effects?.some(e => e.type === 'summon')) {
+                            detail = '(Summon)';
+                        } else if (skillInfo.effects) {
+                            detail = '(Effect)';
+                        }
+
+                        skillsHtml += `
+                            <li class="hud-action-item">
+                                <span class="hud-icon">✨</span>
+                                <span>Use ${skillName} ${detail}</span>
+                            </li>
+                        `;
+                    }
+                });
+            }
+
             let hudContent = `
                 <div class="hud-section">
                     <strong>${playerStats.name}</strong><br>
-                    Lvl ${playerStats.level} ${playerProgression.currentEvolutionName || playerProgression.baseClass}
+                    Lvl ${playerStats.level} ${playerProgression.currentEvolutionName}
                 </div>
                 <div class="hud-section">
                     HP: ${playerStats.currentHP}/${playerStats.maxHP}
@@ -1555,26 +1568,26 @@
                     ${playerStats.resource.type}: ${playerStats.resource.current}/${playerStats.resource.max}
                     <div class="hud-bar-container"><div class="hud-resource-bar" style="width: ${resourcePercent}%;"></div></div>
                 </div>
-            `;
-            
-             if (playerMinions.length > 0) {
-                hudContent += `<div class="hud-section"><strong>Minions (${playerMinions.filter(m => m.hp > 0).length})</strong><br>`;
-                playerMinions.forEach(minion => {
-                    if (minion.hp > 0) hudContent += `<span class="hud-minion-list">• ${minion.name} ${minion.hp}/${minion.maxHp} HP</span><br>`;
-                });
-                hudContent += `</div>`;
-            }
+                
+                <div class="hud-section">
+                    <strong>-- Skills --</strong>
+                    <ul class="hud-actions-list">${skillsHtml}</ul>
+                </div>
 
-            if (playerStats.statusEffects.length > 0) {
-                hudContent += `<div class="hud-section"><strong>Effects</strong><br>`;
-                playerStats.statusEffects.forEach(effect => {
-                    hudContent += `<span class="text-xs text-blue-300">${effect.name} (${effect.duration -1}t)</span><br>`;
-                });
-                hudContent += `</div>`;
-            }
+                <div class="hud-section">
+                    <strong>-- General Commands --</strong>
+                    <ul class="hud-actions-list">
+                        <li class="hud-action-item"><span class="hud-icon">📜</span><span>Inventory (i)</span></li>
+                        <li class="hud-action-item"><span class="hud-icon">👀</span><span>look (re-examine room)</span></li>
+                        <li class="hud-action-item"><span class="hud-icon">❓</span><span>help (list all commands)</span></li>
+                        <li class="hud-action-item"><span class="hud-icon">🚪</span><span>quit (end game)</span></li>
+                    </ul>
+                </div>
+            `;
 
             playerHudElement.innerHTML = hudContent;
         }
+		
 async function processCommand(commandText) {
             const cleanedCommand = commandText.trim();
             gameInput.value = '';
@@ -1648,40 +1661,74 @@ async function processCommand(commandText) {
             await displayMessage(`> ${commandText}`, false);
 
             if (!turnOrder[currentTurnIndex]?.isPlayer) {
-                await displayMessage("It's not your turn yet!");
+                await displayMessage("Not your turn!");
                 return;
             }
 
             let actionTaken = false;
+            let skillName = null;
 
-            // --- FINAL, ROBUST FIX FOR THE 'ATTACK' COMMAND ---
+            // 1. Resolve the player's input into a valid skill name
             if (mainCommandRaw === 'attack') {
-                // If the command is 'attack', determine the correct basic skill and call the action handler directly.
-                const skillName = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
-                actionTaken = await handlePlayerSkillAction(skillName, targetNum);
+                skillName = playerStats.isHollowKing ? 'Void Rend' : (basePlayerClasses[playerProgression.baseClass]?.startingSkills[0] || 'Slash');
             } else {
-                // For any other command, try to resolve it as a named skill.
-                const resolvedSkillName = resolveSkillName(mainCommandRaw);
-                if (resolvedSkillName) {
-                    actionTaken = await handlePlayerSkillAction(resolvedSkillName, targetNum);
-                } else {
-                    // If it's not a known skill, check for other commands like 'flee'.
-                    switch (mainCommandRaw) {
-                        case 'flee':
-                            inCombat = false;
-                            await displayMessage("You fled from combat!");
-                            await displayRoomDescription();
-                            return; // Exit the function immediately
-                        case 'class_lore': case 'cl':
-                            await displayClassLore();
-                            await displayCombatState();
-                            return; // Exit the function immediately
-                        default:
-                            await displayErrorMessage("Unknown command in combat.", mainCommandRaw);
-                            return; // Exit the function immediately
+                skillName = resolveSkillName(mainCommandRaw);
+            }
+
+            // 2. If the input resolved to a known skill, execute it
+            if (skillName) {
+                const skillInfo = skillDefinitions[skillName];
+                if (!skillInfo || !playerStats.activeSkills.includes(skillName)) {
+                    await displayErrorMessage(`You don't know the skill '${skillName}'.`, mainCommandRaw);
+                    return;
+                }
+
+                const cost = skillInfo.cost === 'all' ? playerStats.resource.current : (skillInfo.cost || 0);
+                if (playerStats.resource.current < cost) {
+                    await displayErrorMessage(`Not enough ${playerStats.resource.type}!`, skillName);
+                    return;
+                }
+
+                let targets = [];
+                const livingEnemies = currentEnemies.filter(e => e.hp > 0);
+                if (skillInfo.target === 'enemy_single') {
+                    const targetEnemy = getTargetEnemy(targetNum);
+                    if (!targetEnemy) {
+                        await displayErrorMessage(getInvalidTargetMessage(targetNum, livingEnemies), skillName);
+                        return;
                     }
+                    targets.push(targetEnemy);
+                } else {
+                    targets = livingEnemies;
+                }
+
+                if (cost > 0) {
+                    playerStats.resource.current -= cost;
+                    await displayMessage(`Used ${cost} ${playerStats.resource.type}.`);
+                }
+                
+                actionTaken = await applySkillEffect(playerStats, targets, skillInfo);
+
+            } else {
+                // 3. If not a skill, check for other commands like 'flee'
+                switch (mainCommandRaw) {
+                    case 'flee':
+                        inCombat = false;
+                        await displayMessage("You fled!");
+                        await displayRoomDescription();
+                        return;
+                    default:
+                        await displayErrorMessage("Unknown combat command.", mainCommandRaw);
+                        return;
                 }
             }
+
+             // 4. If an action was taken, advance the turn
+           // if (actionTaken) {
+             //   currentTurnIndex++;
+          //      await resolveTurn();
+          //  }
+    //    }
             // --- END OF FIX ---
 
             if (actionTaken) {
@@ -1693,6 +1740,7 @@ async function processCommand(commandText) {
                 await resolveTurn();
             }
         }
+		
         
         function resolveSkillName(input) {
             const lowerInput = input.toLowerCase();
