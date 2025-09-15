@@ -153,3 +153,22 @@ body {
 #skip-button[hidden] {
     display: none;
 }
+/* New HUD styles for skills and commands */
+.hud-actions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hud-action-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.hud-icon {
+    width: 20px;
+    margin-right: 0.75rem;
+    color: #f6ad55; /* Orange icon color from your 'strong' tag style */
+    text-align: center;
+}
