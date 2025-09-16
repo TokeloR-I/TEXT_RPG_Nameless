@@ -141,17 +141,18 @@
                 skills: [{ name: 'Frenzied Bite', base_damage: [9, 14] }]
             },
             'crow_touched_warden': {
-                name: 'The Crow-Touched Warden',
-                id: 'crow_touched_warden',
-                hp: 150, maxHp: 150, atk: 15, def: 8, spd: 10,
-                critChance: 0.2, critMultiplier: 1.7,
-                specialFlags: ['boss'],
-                skills: [
-                    { name: 'Halberd Sweep', base_damage: [15, 20] },
-                    { name: 'Summon Crows', base_damage: [5, 8] },
-                    { name: 'Chain Lock', base_damage: [10, 12] }
-                ]
-            }
+            name: 'The Crow-Touched Warden',
+            id: 'crow_touched_warden',
+            hp: 320, maxHp: 320, atk: 24, def: 14, spd: 12, // <-- Updated Stats
+            critChance: 0.25, critMultiplier: 1.8,
+            specialFlags: ['boss'],
+            // Skills and Passives would go here, but the engine can't read them yet
+            skills: [ 
+                { name: 'Halberd Sweep', base_damage: [20, 28] },
+                { name: 'Summon Crows', base_damage: [0, 0] }, // Placeholder damage
+                { name: 'Chain Lock', base_damage: [15, 20] },
+                { name: 'Murder’s Judgment', base_damage: [35, 45] }
+            ]
         };
 		
 		
@@ -1814,3 +1815,4 @@ async function processCommand(commandText) {
 
         // --- Initialize the Game ---
         document.addEventListener('DOMContentLoaded', startGame);
+
