@@ -426,6 +426,6 @@ Not applied yet. That's a design decision.
 | `node tools/balance.js` | Bot win rates per class. Add `--set gameRules.postFightHealPct=0.35` to try a change without editing anything |
 | `node tools/missing-effects.js` | The current list of unbuilt skill effects |
 | `node tools/play-cli.js --seed 42` | Play in a terminal with a repeatable seed |
-| `node tests/run-tests.js` | Run all tests |
+| `node tests/run-tests.js` | Run all tests (add words to run only matching files, e.g. `rogue`) |
 
 **Balance knobs** (bottom of `src/data.js`): `gameRules` (stat scaling, post-fight heal, minion cap), `resourceRules`, `itemDefinitions`, enemy stats and XP.

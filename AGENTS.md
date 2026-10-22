@@ -27,7 +27,11 @@ If your role isn't in the table, ask the owner before editing. **When in doubt, 
 Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa: report #3`.
 
 ## 3. Architecture rules (don't break these)
-- `src/engine.js` never touches the DOM, timers or `window`. It returns events; front ends (`ui/`) play them.
+- The engine (`src/engine.js` + `src/engine/*.js`) never touches the DOM, timers or `window`. It returns events;
+  front ends (`ui/`) play them.
+- `src/engine.js` is the core (API, output, state, routing). Other rules go in the matching `src/engine/` module as
+  plain `GameEngine` methods; the core copies them onto the prototype and throws if two modules define the same name.
+  A new module must be added to `MODULES` in `src/engine.js` **and** as a `<script>` in `index.html` before engine.js.
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data
   field or effect entry can express it.
 - Every skill effect type is one entry in `src/effects.js` plus tests.
@@ -54,13 +58,13 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 1. `npm run backlog` and pick a missing or partial effect type.
 2. Read the skill descriptions that use it in `src/data.js` and the relevant design doc.
 3. Add the registry entry in `src/effects.js`. Hooks are documented at the top of that file.
-4. Add at least one fixed-seed test in `tests/run-tests.js`.
+4. Add at least one fixed-seed test in the matching `tests/NN-area.test.js` (shared builders: `tests/helpers.js`).
 5. `npm test` green, including the fuzz tests.
 
 ## 6. Commands
 | | |
 |---|---|
-| `npm test` | all tests (required before every PR) |
+| `npm test` | all tests (required before every PR). One area only: `node tests/run-tests.js rogue qa1` |
 | `npm run balance` | bot plays the dungeon per class, prints win rates (`-- --set path=value` to try a change) |
 | `npm run backlog` | skill effects not built yet |
 | `npm run pending` | design values still awaiting approval |
