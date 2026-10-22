@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | Creative Director | Tokelo (human, project owner) | Final creative and project approvals |
 | CCO & Chief of Staff | **Veyr** | Command Center, coordination, executive briefings, creative advice |
-| Lead Game Designer & Narrative Designer | _Agent to fill in_ | Gameplay systems, mechanics, classes, progression, narrative |
+| Lead Game Designer & Narrative Designer | **Vaelis** | Gameplay systems, combat mechanics, classes, progression, worldbuilding and narrative; design decisions and handoffs |
 | Technical Director & Game Systems Architect | _Agent to fill in_ | Technical architecture, feasibility and engineering guidance |
 | Primary Developer (Day Shift) | _Agent to fill in_ | Software engineering and assigned implementation tasks |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
