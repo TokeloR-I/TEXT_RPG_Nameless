@@ -122,8 +122,17 @@
     }
 
     register('stun', {
-        partial: 'conditions (e.g. Shield Bash "if Momentum ≥ 3") are not checked yet',
-        apply(ctx) { skipTurns(ctx, 'Stun'); }
+        apply(ctx) {
+            const gate = ctx.effect.condition;
+            if (gate && (!ctx.caster.resource || ctx.caster.resource.type !== gate.stat ||
+                gate.operator !== '>=' || ctx.caster.resource.current < gate.value)) return;
+            const eligible = ctx.effect.shieldBashRecovery
+                ? ctx.targets.filter((t) => !t.shieldBashRecovery) : ctx.targets;
+            skipTurns({ ...ctx, targets: eligible }, 'Stun');
+            if (ctx.effect.shieldBashRecovery) {
+                for (const t of eligible) if (ctx.engine.findStatus(t, 'Stun')) t.shieldBashRecovery = 'await_skip';
+            }
+        }
     });
 
     register('skip_turn', {
