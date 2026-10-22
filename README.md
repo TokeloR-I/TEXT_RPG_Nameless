@@ -15,9 +15,16 @@ engine can drive the text version now and a Phaser side-scroller later.
 src/data.js       rooms, enemies, skills, classes, evolutions (pure data)
 src/effects.js    effect registry: one entry per effect type
 src/statuses.js   status pipeline: stacking, durations, Control Resistance, overflow, cleansing, reactions
-src/engine.js     all rules: exploration, combat, leveling, evolution (no DOM)
+src/engine.js     engine core: public API, output, save/restore, command routing (no DOM)
+src/engine/       the rest of the rules, one module per area:
+  exploration.js    rooms, items, resting
+  combat.js         fight flow, turn order, enemy and minion turns, marks
+  combat-input.js   player commands in a fight, menus, targeting
+  skills.js         casting, damage pipeline, primitives the effect registry calls
+  progression.js    XP, levels, evolution, skill trees
+  util.js           seeded RNG and small helpers
 ui/text-ui.js     the only file touching the DOM: typing effect, HUD
-tests/            headless tests (node tests/run-tests.js)
+tests/            headless tests, one file per area (NN-area.test.js) + helpers.js
 tools/            balance bot, backlog, pending decisions, terminal player, single-file build
 docs/             design status, engine reports, approved design handoffs (docs/design/)
 qa/               QA & balance reports
@@ -49,7 +56,8 @@ Balance knobs live in `gameRules`, `resourceRules` and `itemDefinitions` at the 
 ## Adding a skill effect
 1. `node tools/missing-effects.js` to see the backlog.
 2. Add an entry in `src/effects.js` (hooks are documented at the top of the file).
-3. Add a test in `tests/run-tests.js`, then run `node tests/run-tests.js`.
+3. Add a test in the matching `tests/NN-area.test.js`, then run `npm test`
+   (or only some files: `node tests/run-tests.js rogue qa1`).
 4. `node tools/build-single.js` to refresh the single-file build.
 
 Requires Node.js 18+ for tests and tools only. The game itself needs just a browser.
