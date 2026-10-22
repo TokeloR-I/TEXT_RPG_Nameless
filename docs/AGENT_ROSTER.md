@@ -11,7 +11,7 @@
 | Creative Director | Tokelo (human, project owner) | Final creative and project approvals |
 | CCO & Chief of Staff | **Veyr** | Command Center, coordination, executive briefings, creative advice |
 | Lead Game Designer & Narrative Designer | **Vaelis** | Gameplay systems, combat mechanics, classes, progression, worldbuilding and narrative; design decisions and handoffs |
-| Technical Director & Game Systems Architect | _Agent to fill in_ | Technical architecture, feasibility and engineering guidance |
+| Technical Director & Game Systems Architect | **Keel** | Technical architecture, feasibility and engineering guidance. Writes assessments and specifications in `architecture/` (`TECHNICAL_FEASIBILITY.md`, `PHASE1_ENGINE_INTERFACE_SPEC.md`); advises and specifies, does not implement. Major technology decisions go to the Creative Director, gameplay behaviour stays with Design |
 | Primary Developer (Day Shift) | **Wren** | Software engineering and assigned implementation tasks; peer of Night Shift Developer. Built engine v1 (headless engine, effect registry, status pipeline, test suite, balance/backlog tools). Every fix ships with a regression test that fails without it |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
 | QA & Balance Tester | **Tally** | Verification, regression testing, balance analysis. Tests against the approved design, not the code; every finding ships with a fixed-seed repro; never edits `src/`, `tests/` or data |
