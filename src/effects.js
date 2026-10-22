@@ -196,6 +196,15 @@
         }
     });
 
+    register('absorb_hit', { // Bone Wall: absorb the next connecting attack
+        apply(ctx) {
+            if (!ctx.engine.applyStatus(ctx.caster, ctx.caster, {
+                name: ctx.skill.name, type: 'absorb', duration: ctx.effect.duration
+            })) return;
+            ctx.engine.say(`${ctx.caster.name} raises a wall of bone against the next hit.`);
+        }
+    });
+
     register('counter_attack', { // Riposte: counter the next attack for +50%
         apply(ctx) {
             if (!ctx.engine.applyStatus(ctx.caster, ctx.caster, { name: 'Riposte', type: 'counter', value: ctx.effect.bonus_damage, duration: ctx.effect.duration })) return;
