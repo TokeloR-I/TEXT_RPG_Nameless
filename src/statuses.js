@@ -15,9 +15,10 @@
  * each completed round in which its holder had a turn after it was applied.
  * So "N turns" = N of the HOLDER's turns, regardless of speed order, stuns or
  * bonus turns. That gives DoTs and turn-skips exactly N ticks/skipped turns.
- * Known issue QA-1 (design decision pending, don't change without approval):
- * statuses used on someone ELSE's turn (Marked for Death, Expose, Guard, Evasion,
- * Riposte, Taunt) can expire before that turn comes when the holder acts first.
+ * EXCEPTION (QA-1, approved Option A): statuses that declare an `expiry` policy in
+ * statusDefinitions (Marked for Death, Expose, Guard) expire by opportunity instead;
+ * see "opportunity-based expiry" below. Evasion, Riposte and Taunt are NOT covered
+ * (not approved) and keep the round-based rule.
  *
  * Every undecided design value lives in data.js (statusDefinitions,
  * statusRules, statusReactions) as `null` = PENDING. A pending value keeps
@@ -145,6 +146,9 @@
                 target.statusEffects.push(inst);
             }
 
+            // --- QA-1: opportunity-based expiry for the statuses that declare a policy
+            this.initExpiryPolicy(source, inst, duration);
+
             // --- rules 7–9: Overflow Burst when re-applied while already capped
             if (wasAtCap) this.rollOverflow(source, target, inst);
 
@@ -177,6 +181,7 @@
             for (const x of [this.player, ...c.enemies, ...c.minions]) {
                 if (x.hp <= 0) continue;
                 x.statusEffects = x.statusEffects.filter((s) => {
+                    if (s.policy) return true;          // QA-1: expires by opportunity, not by round
                     if (s.duration === 'permanent' || s.duration == null) return true;
                     if (!s.armed) return true;          // holder hasn't had a turn with it yet
                     if (--s.duration > 0) return true;
@@ -185,6 +190,65 @@
                 });
                 this.recoverControlResistance(x);
             }
+        };
+
+        // ---------------------------------------------------------------
+        // QA-1: opportunity-based expiry (Option A, docs/design/QA_1_REACTIVE_STATUS_DECISION.md)
+        //   applier_turns          lasts through N of the APPLIER's actionable normal turns after the
+        //                          application turn (N = the skill's duration). Skipped (stunned) turns
+        //                          and Haste bonus actions don't count. Marked for Death, Expose.
+        //   holder_next_turn_start ends when the HOLDER's next scheduled normal turn begins, even if
+        //                          that turn is skipped. Guard.
+        // Declared per status in data (statusDefinitions[name].expiry). Everything else keeps the
+        // round-based lifecycle.
+        // ---------------------------------------------------------------
+        P.sideOf = function (c) { return c && (c.isPlayer || c.isMinion) ? 'player' : 'enemy'; };
+
+        P.initExpiryPolicy = function (source, inst, duration) {
+            const pol = this.statusDef(inst.name).expiry;
+            if (!pol) return;
+            inst.policy = pol.type;
+            inst.consumeOn = pol.consumeOn || null;
+            if (pol.type === 'applier_turns') {
+                inst.duration = duration != null ? duration : pol.turns;   // full window again on refresh
+                inst.appliedSeq = source.normalTurns || 0;                 // the application turn never counts
+                inst.applierSide = this.sideOf(source);
+            } else if (pol.type === 'holder_next_turn_start') {
+                inst.duration = null;
+            }
+        };
+
+        /** An actionable normal turn begins (not a skipped turn, not a Haste bonus action). */
+        P.beginNormalTurn = function (actor) { actor.normalTurns = (actor.normalTurns || 0) + 1; };
+
+        /** An actionable normal turn ends: count down this actor's applier_turns windows. */
+        P.endNormalTurn = function (actor) {
+            if (!this.combat) return;
+            for (const x of [this.player, ...this.combat.enemies, ...this.combat.minions]) {
+                x.statusEffects = x.statusEffects.filter((s) => {
+                    if (s.policy !== 'applier_turns' || s.appliedBy !== actor.id) return true;
+                    if (s.appliedSeq >= (actor.normalTurns || 0)) return true; // applied during this turn
+                    if (--s.duration > 0) return true;
+                    if (x.hp > 0) this.say(`[${s.name}] wears off ${x.name}.`);
+                    return false;
+                });
+            }
+        };
+
+        /** The holder's next scheduled turn begins (acting or skipped): end holder_next_turn_start statuses. */
+        P.expireAtTurnStart = function (actor) {
+            actor.statusEffects = actor.statusEffects.filter((s) => {
+                if (s.policy !== 'holder_next_turn_start') return true;
+                this.say(`[${s.name}] wears off ${actor.name}.`);
+                return false;
+            });
+        };
+
+        /** Can this attacker use (and consume) the mark? Only the applier's side, if the policy says so. */
+        P.markEligible = function (attacker, mark) {
+            if (mark.consumeOn !== 'positive_allied_hit') return true;
+            const side = mark.applierSide || this.sideOf(this.findCombatant(mark.appliedBy));
+            return this.sideOf(attacker) === side;
         };
 
         // ---------------------------------------------------------------

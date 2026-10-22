@@ -33,7 +33,9 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 - Every skill effect type is one entry in `src/effects.js` plus tests.
 - **Statuses always go through `engine.applyStatus(source, target, spec)`** (`src/statuses.js`). Players, enemies and
   summons share one pipeline. Durations are **round-based**: −1 at the end of each round in which the holder had a
-  turn after the status was applied. Never tick durations anywhere else.
+  turn after the status was applied. Never tick durations anywhere else. **Only exception:** statuses with an
+  `expiry` policy in `statusDefinitions` (QA-1: Marked for Death, Expose, Guard) expire by opportunity
+  (`applier_turns` / `holder_next_turn_start`, see `src/statuses.js`). Adding a policy to another status needs design approval.
 - Randomness only through `engine.rng()` / `engine.randInt()` so runs are reproducible from a seed.
 
 ## 4. Design authority

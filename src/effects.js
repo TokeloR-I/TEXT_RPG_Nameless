@@ -386,9 +386,8 @@
     // ---------- Marks ----------
     // A mark is a status { type: 'mark', name, value, duration, appliedBy } on any combatant.
     // What each mark DOES lives in engine.markModifiers (damage) and engine.speedOf (Pin).
-    // Durations are round-based and count the HOLDER's turns, like every status (statuses.js).
-    // Known issue QA-1 (design decision pending): marks used on someone else's turn, e.g.
-    // Marked for Death, can expire before the applier can use them when the target is slower.
+    // Durations are round-based (holder's turns), except marks with an `expiry` policy in data:
+    // Marked for Death and Expose count the APPLIER's actionable normal turns (QA-1, Option A).
     register('apply_mark', {
         apply(ctx) {
             for (const t of ctx.targets.filter((t) => t.hp > 0)) ctx.engine.applyMark(ctx.caster, t, ctx.effect);
