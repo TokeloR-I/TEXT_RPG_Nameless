@@ -13,8 +13,11 @@
  *
  * Durations are ROUND-BASED (rule 11): a status loses 1 duration at the end of
  * each completed round in which its holder had a turn after it was applied.
- * So "N turns" = N effective turns/ticks for the holder, regardless of speed
- * order, stuns or bonus turns.
+ * So "N turns" = N of the HOLDER's turns, regardless of speed order, stuns or
+ * bonus turns. That gives DoTs and turn-skips exactly N ticks/skipped turns.
+ * Known issue QA-1 (design decision pending, don't change without approval):
+ * statuses used on someone ELSE's turn (Marked for Death, Expose, Guard, Evasion,
+ * Riposte, Taunt) can expire before that turn comes when the holder acts first.
  *
  * Every undecided design value lives in data.js (statusDefinitions,
  * statusRules, statusReactions) as `null` = PENDING. A pending value keeps

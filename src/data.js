@@ -75,7 +75,7 @@
         // --- Enemy Definitions ---
         const enemies = {
             'James_Newton': {
-                name: 'James Newton',
+                name: 'James Newton', properName: true, // text only: no "a" before the name
                 hp: 666, maxHp: 666, xp: 1000, atk: 20, def: 66, spd: 20,
                 critChance: 0.6, critMultiplier: 1.5,
                 skills: [{ name: 'Heavy Slash', base_damage: [20, 30] }]
