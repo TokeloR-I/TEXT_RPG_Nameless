@@ -1,0 +1,15 @@
+{
+  "name": "ensos-last-stand",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn-based dungeon RPG with class evolution. Headless engine + text UI.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "balance": "node tools/balance.js",
+    "backlog": "node tools/missing-effects.js",
+    "pending": "node tools/pending-decisions.js",
+    "play": "node tools/play-cli.js",
+    "build": "node tools/build-single.js"
+  }
+}
