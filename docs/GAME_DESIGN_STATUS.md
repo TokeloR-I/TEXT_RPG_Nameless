@@ -159,7 +159,9 @@ The whole dungeon contains 85 HP of healing items.
 *Updated after the status-engine batch. Full details: `STATUS_ENGINE_REPORT.md`.*
 
 One shared pipeline for players, enemies and summons. **Durations are round-based:** a status loses 1 at the end of each
-round in which its holder had a turn after it was applied, so "N turns" means N effective turns regardless of speed.
+round in which its holder had a turn after it was applied, so "N turns" means N of the holder's turns regardless of speed.
+That's exact for DoTs and turn-skips. Statuses used on someone else's turn (Marked for Death, Expose, Guard, Evasion, Riposte,
+Taunt) can expire before they're usable when speed order is unfavourable (QA-1, design decision pending).
 One instance per status per target: stackable statuses gain intensity up to a cap (only Infection: 2 dmg/stack, cap 3,
 3 turns), and re-applying always refreshes the duration. DoTs deal damage at the start of the holder's turn and ignore armor.
 Control Resistance, overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.
@@ -414,7 +416,7 @@ Not applied yet. That's a design decision.
 - **The engine has no screen.** It takes a command and returns what happened. The text version and a future
   side-scroller are just two different screens on the same engine.
 - **Seeded randomness:** any run can be replayed exactly, which is useful for reproducing bugs.
-- **73 automated tests**, including random stress tests and full-dungeon bot runs.
+- **An automated test suite** (`npm test`; count shown in CI), including random stress tests and full-dungeon bot runs.
 
 **Tools the team can use** (Node.js needed for these, not for playing):
 | Command | What it does |

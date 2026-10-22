@@ -375,10 +375,11 @@
     });
 
     // ---------- Marks ----------
-    // A mark is a debuff on an enemy: { type: 'mark', name, value, duration, appliedBy }.
+    // A mark is a status { type: 'mark', name, value, duration, appliedBy } on any combatant.
     // What each mark DOES lives in engine.markModifiers (damage) and engine.speedOf (Pin).
-    // Mark durations count the APPLIER's turns, starting with their next one, so
-    // "for 2 turns" means "for your next 2 turns", no matter the speed order.
+    // Durations are round-based and count the HOLDER's turns, like every status (statuses.js).
+    // Known issue QA-1 (design decision pending): marks used on someone else's turn, e.g.
+    // Marked for Death, can expire before the applier can use them when the target is slower.
     register('apply_mark', {
         apply(ctx) {
             for (const t of ctx.targets.filter((t) => t.hp > 0)) ctx.engine.applyMark(ctx.caster, t, ctx.effect);

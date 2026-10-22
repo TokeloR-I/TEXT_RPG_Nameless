@@ -155,7 +155,7 @@
             this.combat = null;
             this.pendingBranchChoice = false;
             this.flags = { eventsUnlocked: false };
-            this.stats = { fights: 0, kills: 0, rounds: 0 };
+            this.stats = { fights: 0, kills: 0, rounds: 0, credited: [] };
             this.progression = { baseClass: null, branch: null, evolutionName: null, stageIndex: -1 };
         }
 
@@ -255,7 +255,7 @@
                 this.say('-- Enemies Present --', { important: true });
                 for (const key of room.enemies) {
                     const e = this.data.enemies[key];
-                    if (e) this.say(`Beware! A ${e.name} lurks here.`);
+                    if (e) this.say(`Beware! ${cap(this.withArticle(e))} lurks here.`);
                 }
                 this.say('⚔️ Engage (start combat)');
             }
@@ -334,7 +334,7 @@
             this.say('--- COMBAT INITIATED! ---', { important: true });
             const enemies = enemyKeys.map((key, i) => {
                 const e = clone(this.data.enemies[key]);
-                Object.assign(e, { id: `enemy_${i}`, key, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
+                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${this.currentRoom}#${i}`, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
                 return e;
             });
             this.combat = {
@@ -352,11 +352,17 @@
                 this.say(`(${r.type}: ${r.current}/${r.max} to start the fight)`);
             }
 
-            for (const e of enemies) this.say(`A ${e.name} appears! (HP: ${e.hp})`);
+            for (const e of enemies) this.say(`${cap(this.withArticle(e))} appears! (HP: ${e.hp})`);
             this.newRound();
             this.say('--- Battle Order ---', { important: true });
             for (const c of this.combat.order) this.say(`${c.name} (SPD: ${this.speedOf(c)})`);
             this.advance();
+        }
+
+        /** "a Rust Rat", "an Acolyte", but "The Crow-Touched Warden" / "James Newton" (QA-7). */
+        withArticle(e) {
+            if (e.properName || /^the\s/i.test(e.name)) return e.name;
+            return `${/^[aeiou]/i.test(e.name) ? 'an' : 'a'} ${e.name}`;
         }
 
         alive(list) { return list.filter((c) => c.hp > 0 && !c.erased); }
@@ -544,7 +550,7 @@
                 const healed = this.heal(p, Math.floor(p.maxHp * rules.postFightHealPct));
                 if (healed > 0) this.say(`You catch your breath. +${healed} HP (${p.hp}/${p.maxHp}).`);
                 this.say(`You defeated all enemies and gained ${xp} XP!`);
-                this.addExperience(xp);
+                this.addExperience(xp, { quiet: true });
                 if (room.onClear && room.onClear.type === 'win') { this.win(room.onClear); return true; }
                 this.say('');
                 this.describeRoom(false);
@@ -825,6 +831,9 @@
                 this.say('--- Your Minions ---', { important: true });
                 minions.forEach((m) => this.say(`${m.name} (${m.hp}/${m.maxHp} HP)${this.statusTag(m)}`));
             }
+            const p = this.player;
+            this.say('--- You ---', { important: true });
+            this.say(`${p.name} (${Math.max(0, p.hp)}/${p.maxHp} HP) · ${p.resource.type}: ${p.resource.current}/${p.resource.max}${this.statusTag(p)}`);
             this.say('---------------------');
             this.say('What will you do?');
             this.say(`> Attack (${this.basicAttackName()})`);
@@ -1005,7 +1014,12 @@
             if (target.isPlayer) return;
             this.say(`${target.name} has been defeated!`);
             if (target.isMinion) return;
-            if (this.isPlayerSide(source)) this.stats.kills++;
+            // QA-6: credit each enemy once, even if it comes back after you flee (whether it should come
+            // back is a pending design question; this only fixes the count).
+            if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {
+                this.stats.kills++;
+                this.stats.credited.push(target.entityKey);
+            }
             if (!p.isHollowKing) {
                 this.combat.corpses++;
                 this.say(`A corpse is left on the battlefield. Total corpses: ${this.combat.corpses}`);
@@ -1029,11 +1043,11 @@
         // =====================================================================
         // Progression
         // =====================================================================
-        addExperience(amount) {
+        addExperience(amount, opts = {}) {
             const p = this.player;
             if (!p) return;
             p.xp += amount;
-            this.say(`You gained ${amount} experience points!`);
+            if (!opts.quiet) this.say(`You gained ${amount} experience points!`);
             while (p.xp >= p.xpToNext) {
                 p.xp -= p.xpToNext;
                 p.level++;
