@@ -28,6 +28,7 @@
                 traps: [], delayed: [], extraTurn: false, hpHistory: []
             };
             this.player.statusEffects = [];
+            this.player.shieldBashRecovery = null; // QA-2 #11: lockout bookkeeping never leaks between fights
             this.mode = 'combat';
             const rule = this.resourceRule();
             if (rule.startOfFight != null) {
@@ -118,6 +119,8 @@
                     c.idx++;
                     continue;
                 }
+                // QA-2: a Shield Bash stun that never caused a skip (e.g. cleansed) doesn't start a lockout.
+                if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = null;
                 this.beginNormalTurn(actor);
                 if (actor.isPlayer) {
                     c.hpHistory.push(actor.hp);

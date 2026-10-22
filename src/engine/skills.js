@@ -169,10 +169,12 @@
             target.hp = 0;
             target.erased = true;
             target.dead = true;
+            this.orphanStatusesOf(target);
         }
 
         onDeath(target, source) {
             target.dead = true;
+            this.orphanStatusesOf(target);
             const p = this.player;
             if (target.isPlayer) return;
             this.say(`${target.name} has been defeated!`);

@@ -213,3 +213,91 @@ test('QA-1 #14: a rolled-back command mid-window leaves expiry and consumption i
     };
     assert.strictEqual(run(true), run(false));
 });
+
+// QA-1 applier-death ruling (Creative Director, 22 Oct 2026; handoff matrix #12):
+// a mark whose applier dies mid-fight keeps working until the end of that round, then goes.
+/** Hallway (ghoul A, ghoul B, rat). Only ghoul A's hit puts `markName` on the player; B and the rat
+ *  always hit for 20. Speeds: player 30 > ghouls 20 > rat 1, so you can kill A before it acts again. */
+const markingFoes = (markName, value) => {
+    const hit20 = [{ name: 'Test Hit', base_damage: [20, 20] }];
+    const g = gameWith((d) => {
+        const ghoul = d.enemies.shackled_ghoul, rat = d.enemies.rust_rat;
+        ghoul.skills = [{ name: 'Marking Hit', base_damage: [1, 1], effects: [{ type: 'apply_mark', mark: markName, value, duration: 2 }] }];
+        rat.skills = hit20;
+        ghoul.spd = 20; rat.spd = 1;
+        for (const e of [ghoul, rat]) { e.critChance = 0; e.hp = e.maxHp = 999; }
+    });
+    g.do('warrior', 'n');
+    g.player.spd = 30;
+    g.do('engage');
+    g.player.hp = g.player.maxHp = 9999; g.player.def = 0; g.player.critChance = 0;
+    g.combat.enemies[1].skills = hit20;               // ghoul B doesn't mark
+    return g;
+};
+const at = (g, enemy) => 1 + g.alive(g.combat.enemies).indexOf(enemy);
+const rat = (g) => g.combat.enemies[2];
+
+test('QA-1 death: Expose outlives its applier until the end of that round, then goes before anyone acts', () => {
+    const g = markingFoes('Expose', 0.2);
+    const applier = g.combat.enemies[0];
+    g.do(`attack ${at(g, rat(g))}`);                 // round 1: ghoul A marks you
+    assert.strictEqual(g.findStatus(g.player, 'Expose').appliedBy, applier.id);
+    applier.hp = 1;
+    const n = g.log.length;
+    g.do(`attack ${at(g, applier)}`);                // round 2: A dies before it can act again
+    const [round2, after] = since(g, n).split('--- End of Round ---');
+    assert.ok(applier.dead, 'the applier died');
+    assert.strictEqual((round2.match(/Test Hit on Warrior for 24 damage/g) || []).length, 2, 'both later hits that round still get +20%');
+    assert.match(after, /^\s*\[Expose\] wears off Warrior/, 'removed at the round boundary');
+    assert.strictEqual(g.findStatus(g.player, 'Expose'), null, 'gone, though its window had turns left');
+    const m = g.log.length;
+    g.do(`attack ${at(g, rat(g))}`);                 // round 3
+    assert.strictEqual((since(g, m).match(/Test Hit on Warrior for 20 damage/g) || []).length, 2, 'no Expose next round');
+    assertHealthy(g);
+});
+
+test('QA-1 death: Marked for Death can still be consumed before the boundary, once', () => {
+    const g = markingFoes('Expose', 0.2);
+    g.combat.enemies[0].skills = g.combat.enemies[1].skills;   // nobody marks by attacking here
+    const applier = g.combat.enemies[0];
+    // (marked directly, or ghoul B's very next hit would consume it before the test starts)
+    g.applyMark(applier, g.player, { mark: 'Marked for Death', value: 0.5, duration: 1 });
+    assert.strictEqual(mfd(g.player).appliedBy, applier.id);
+    applier.hp = 1;
+    const n = g.log.length;
+    g.do(`attack ${at(g, applier)}`);
+    const round2 = since(g, n).split('--- End of Round ---')[0];
+    assert.match(round2, /Shackled Ghoul uses Test Hit on Warrior for 30 damage[\s\S]*Rust Rat uses Test Hit on Warrior for 20 damage/,
+        "the dead applier's ally uses it on the first hit; the next hit gets nothing");
+    assert.strictEqual(mfd(g.player), null, 'consumed');
+    assert.doesNotMatch(since(g, n), /Marked for Death\] wears off/, 'consumed, not expired');
+});
+
+test('QA-1 death: revival does not cancel it; a living re-applier does; other statuses ignore death', () => {
+    const g = hallway('warrior');
+    const [a, b] = g.combat.enemies;
+    const p = g.player;
+    // revived in the same round: still expires at round end
+    g.applyMark(a, p, { mark: 'Expose', value: 0.2, duration: 2 });
+    g.applyMark(a, b, { mark: 'Marked for Death', value: 0.5, duration: 1 });
+    g.applyDot(a, p, { name: 'Poison', value: 1, duration: 3 });
+    g.damage(a, 9999, p);
+    assert.ok(g.findStatus(p, 'Expose') && mfd(b), 'still there after the death');
+    a.hp = 10; a.dead = false;                       // same-round revival
+    g.endRound();
+    assert.strictEqual(g.findStatus(p, 'Expose'), null, 'revival does not cancel the round-end expiry');
+    assert.strictEqual(mfd(b), null, 'applies to Marked for Death too');
+    assert.ok(g.findStatus(p, 'Poison'), "DoTs keep their round-based life (not a universal death rule)");
+    // a living applier refreshing the mark makes it a fresh application
+    g.applyMark(a, p, { mark: 'Expose', value: 0.2, duration: 2 });
+    g.damage(a, 9999, p);
+    g.applyMark(b, p, { mark: 'Expose', value: 0.2, duration: 2 });
+    g.endRound();
+    assert.ok(g.findStatus(p, 'Expose'), 'refreshed by a living applier: stays');
+    // erased (Unmake) counts as a death too
+    const c = g.summon('skeleton');
+    g.applyMark(c, b, { mark: 'Expose', value: 0.2, duration: 2 });
+    g.erase(c);
+    g.endRound();
+    assert.strictEqual(g.findStatus(b, 'Expose'), null, 'erased applier');
+});
