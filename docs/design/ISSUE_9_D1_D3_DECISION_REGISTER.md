@@ -17,16 +17,24 @@
 
 **Not approved:** ATB, continuous-time combat, real-time attacks, Phaser or other framework, a particular input key layout, positions/ranks, movement during combat, reworked abilities, numerical balance, engine modifications, or any developer implementation assignment.
 
-## D2 — Battlefield positioning: PENDING CREATIVE DIRECTOR APPROVAL
+## D2 — Battlefield positioning: APPROVED
 
-Options to compare:
-- **A. Fixed ranks/slots (recommended for discussion):** distinct front/rear combat placements, with rules for targeting, flanking, taunts, teleports, traps, zones, summons and formation changes to be separately specified. Slot number and rule values are undecided.
-- **B. Free-position tactical arena:** actual coordinates and movement in combat; supports geometry, pathing, and zones but adds a substantial spatial rules layer.
-- **C. Abstract/non-positional:** graphical staging only; preserves most existing targeting but leaves Shadowstep, Flanked, zones and trap placement without satisfying spatial mechanics.
+**Decision:** Option C — abstract/non-positional graphical combat.
 
-Recommendation for director consideration: **A**, contingent on ability-by-ability compatibility review and no loss of existing class identity.
+**Approval source:** Creative Director's explicit approval in the design discussion on 2026-10-22.
 
-**No approval yet** for fixed ranks, slot counts, player movement rules, area shapes, distance requirements, or targeting restrictions.
+**Intent:** Combatants may be visually arranged and animated on a graphical battlefield, but rendered positions do **not** define combat ranks, distance, movement range, cover, collision, flanking geometry, attack reach, or targeting eligibility. Existing engine targeting and combat calculations remain authoritative.
+
+**Preserve:** Class identities, available attacks, their existing targeting and status rules, summons and turn order, without introducing spatial costs or formation restrictions.
+
+**Design follow-ups, not authorized rules:**
+- **Backstab / [Flanked]:** existing conditional damage still needs a non-positional source/trigger definition. Do not infer adjacency.
+- **Shadowstep:** can be presented as a dash/teleport animation, but any mechanical requirement for physical movement is undecided.
+- **Shield Charge, Lockstep, Fortress, Total Lockdown:** zone/ally-protection/taunt language must be reviewed and specified in abstract terms; do not silently remove or fabricate effects.
+- **Traps:** preserve the existing abstract trigger until a separately approved change. No floor-based hitboxes.
+- **Summons and targeting:** visually readable but not limited by slot occupancy or range.
+
+**Not approved:** spatial ranks/slots, free combat movement, geometric attack shapes, adjacency, flanking by coordinates, changed ability numbers, new targeting restrictions, or Developer implementation. Ability-specific clarification remains pending Creative Director approval.
 
 ## D3 — Perspective and play flow: PENDING
 
