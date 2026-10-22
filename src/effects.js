@@ -53,6 +53,17 @@
         }
     });
 
+    register('bonus_damage_vs_flag_percent', {
+        // Temporary self-buff; the shared status lifecycle handles its one-turn expiry.
+        apply(ctx) {
+            const status = ctx.engine.applyStatus(ctx.caster, ctx.caster, {
+                name: ctx.skill.name, type: 'bonus_damage_vs_flag_percent',
+                flag: ctx.effect.flag, value: ctx.effect.value, duration: ctx.effect.duration
+            });
+            if (status) ctx.engine.say(`${ctx.caster.name} invokes ${ctx.skill.name}!`);
+        }
+    });
+
     register('bonus_damage_vs_flag', {
         afterCalc(ctx, hit) {
             if ((hit.target.specialFlags || []).includes(ctx.effect.flag)) {
