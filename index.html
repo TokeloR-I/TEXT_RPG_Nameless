@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enso's Last Stand</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <main class="main-layout-container">
+        <aside id="player-hud" class="player-hud"></aside>
+        <section class="game-container">
+            <div id="game-output" class="game-output"></div>
+            <div class="game-input-area">
+                <input type="text" id="game-input" class="game-input" placeholder="Type your command..." autocomplete="off">
+                <button id="submit-button" class="game-submit-btn">Go</button>
+                <button id="skip-button" class="game-submit-btn" hidden>Skip</button>
+            </div>
+        </section>
+    </main>
+    <!-- Engine (no DOM) -->
+    <script src="src/data.js"></script>
+    <script src="src/effects.js"></script>
+    <script src="src/statuses.js"></script>
+    <script src="src/engine.js"></script>
+    <!-- Front end -->
+    <script src="ui/text-ui.js"></script>
+</body>
+</html>

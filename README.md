@@ -1,92 +1,58 @@
-# TEXT_RPG_Nameless  
-*(Working titles: Nameless RPG / ENSO’s Last Stand)*  
+# Enso's Last Stand
+*(working titles: Nameless RPG / ENSO's Last Stand)*
 
-🎮 **Retro Text Adventure Game**  
+**About the game, story and features:** [docs/ABOUT_THE_GAME.md](docs/ABOUT_THE_GAME.md)
 
-Welcome to our evolving text-based adventure!  
-This project is a passion-driven creation of a complex, immersive RPG where your choices—especially your class and its evolution—deeply shape your journey.  
+Turn-based dungeon RPG. The game rules live in a UI-free engine, so the same
+engine can drive the text version now and a Phaser side-scroller later.
 
----
+## Play
+- Double-click `index.html`. A single self-contained `EnsosLastStand.html` is attached to every CI run (Actions → latest run → Artifacts), or build it with `npm run build`.
+- Terminal: `npm run play` (add `-- --seed 42` to reproduce a run exactly).
 
-## ✨ What We've Built So Far  
+## Project layout
+```
+src/data.js       rooms, enemies, skills, classes, evolutions (pure data)
+src/effects.js    effect registry: one entry per effect type
+src/statuses.js   status pipeline: stacking, durations, Control Resistance, overflow, cleansing, reactions
+src/engine.js     all rules: exploration, combat, leveling, evolution (no DOM)
+ui/text-ui.js     the only file touching the DOM: typing effect, HUD
+tests/            headless tests (node tests/run-tests.js)
+tools/            balance bot, backlog, pending decisions, terminal player, single-file build
+docs/             design status, engine reports, approved design handoffs (docs/design/)
+qa/               QA & balance reports
+```
 
-### 🗺️ Expanded World & First Dungeon  
-- **New Areas:** Players can now explore the *Hallway of Chains* to the north or venture into the *Collapsed Wine Cellar* to the east, containing tunnels, a ritual chamber, and the Warden's Roost.  
-- **New Enemies:** Shackled Ghouls, Mire Lurkers, and Cult Acolytes provide varied medium-weak challenges.  
-- **First Boss Encounter:** The eastern path ends in a fight with **The Crow-Touched Warden**, a starter boss with unique attacks.  
+**Working on this repo (human or AI): read [AGENTS.md](AGENTS.md) first.**
 
-### 💰 Adaptive Loot System  
-- **Class-Specific Items:** Generic items transform based on class (e.g., "Ritual Dagger" → "Bone Etching Tool" for Necromancer).  
-- **Unique Boss Rewards:** Bosses drop class-specific crafting materials.  
+## How the engine talks to a front end
+```js
+const engine = new ENSO.GameEngine({ seed: 1 });   // seed optional
+engine.start();             // -> [{type:'clear'}, {type:'text', text, important, html}, ...]
+engine.input('attack 1');   // -> events for whatever happened
+engine.getState();          // -> player, combat, enemies, minions (for HUD / sprites)
+```
 
-### 🎭 Deep Class System  
-Four distinct playable classes with unique mechanics and progression:  
+## Commands
+`go <dir>` or `n/s/e/w`, `take <item>`, `use <item>`, `i`, `look`, `engage`, `cl`, `help`, `quit`, `start`
+Combat: `attack 1`, `<skill or alias> <target>`, `use <item>`, `flee`
+Dev cheats: `add_xp <n>`, `become_hollow_king`, `unlock_events`
 
-- **Warrior** – Frontline melee fighter using *Momentum*.  
-- **Necromancer** – Master of death magic & summoning, using *Soul Energy*.  
-- **Rogue** – Agile and evasive precision fighter, using *Energy*.  
-- **Mage** – Ranged magic damage dealer and manipulator, using *Mana*.  
+## Balance testing
+`node tools/balance.js` — a bot plays the full dungeon many times per class and prints win rates.
+Try changes without editing data: `node tools/balance.js --set gameRules.postFightHealPct=0.35`
+Balance knobs live in `gameRules`, `resourceRules` and `itemDefinitions` at the bottom of `src/data.js`.
 
-**Class Features:**  
-- *Legendary Class Testing:* Cheat `become_hollow_king` unlocks the Hollow King with unique skills and a resurrection passive.  
-- *Unique Resources & Mechanics:* Each class uses a distinct resource system.  
-- *Skills & Traits:* New active and passive abilities.  
+## Pending design decisions
+`node tools/pending-decisions.js` — every status-system value still awaiting approval (pending = feature off).
 
-### ⚔ Foundational Combat System  
-- **Turn Order:** Based on *Speed (SPD)*.  
-- **Enemy Encounters:** Triggered per room; player chooses to engage.  
-- **Resource Management:** Spend resources with feedback on insufficiency.  
-- **Minion System:** Summons join turn order.  
-- **Victory/Defeat:** Win when enemies die; lose at 0 HP.  
+## Adding a skill effect
+1. `node tools/missing-effects.js` to see the backlog.
+2. Add an entry in `src/effects.js` (hooks are documented at the top of the file).
+3. Add a test in `tests/run-tests.js`, then run `node tests/run-tests.js`.
+4. `node tools/build-single.js` to refresh the single-file build.
 
-### 💬 Enhanced User Experience  
-- **Typing Effect:** Retro-style gradual text.  
-- **Skippable Text:** “Skip >>” button displays messages instantly.  
-- **Flexible Command Parser:**  
-  - Accepts aliases (`gb` for *Grave Bolt*).  
-  - Handles spacing/format variety (`go east`, `take item`).  
-  - Provides contextual error messages.  
+Requires Node.js 18+ for tests and tools only. The game itself needs just a browser.
 
----
-
-## 🚀 How to Play & Test  
-
-1. Save the files: `index.html`, `style.css`, and `game.js`.  
-2. Open `index.html` in any modern browser.  
-3. Choose a class (e.g., `warrior`, `necromancer`).  
-4. Explore:  
-   - `go [direction]` → Move between rooms (try `go east` for new content).  
-   - `look` → Re-read room details.  
-   - `inventory` / `i` → Check items.  
-
----
-
-## 🧪 Cheats & Debug Commands  
-
-- `become_hollow_king` → Transforms you into the Hollow King.  
-- `add_xp [number]` → Grants XP (e.g., `add_xp 100`).  
-
-### ⚔ Testing Combat  
-- **Start Combat:** Enter a room with enemies and type `engage`.  
-- **Player Actions:**  
-  - `attack [enemy_number]`  
-  - `use [skill_name] [enemy_number]`  
-  - `flee`  
-
-**Hollow King Specifics:**  
-- `use unmake 1` → Test removal skill.  
-- `attack 1` → Test *Void Rend* and Hollow Will generation.  
-
----
-
-## 🚧 Known Limitations / Next Steps  
-
-- ✅ Fixed: Game failing to start.  
-- **Skill Effects:** Many effects (stun, bleed, DoTs) not yet active; some Hollow King effects functional.  
-- **Enemy AI:** Currently basic.  
-- **Items:** Provide passive benefits; most lack active “use” effects.  
-- **Class Evolution:** Data structure in place, system needs full implementation.  
-
----
-
-💡 *Testing & feedback are crucial.* The game evolves with each iteration—your input shapes combat, progression, and world-building.  
+## License
+GPL-3.0, see [LICENSE](LICENSE). The original single-file game is kept in `legacy/text-adventure-v0/`.
