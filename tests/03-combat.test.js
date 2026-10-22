@@ -81,6 +81,68 @@ test('QA-2: Shield Bash Oath gate, no payment, recovery exclusion', () => {
     assert.ok(g.findStatus(foe, 'Stun'), 'eligible after recovery');
 });
 
+// Dragon's Dominion uses existing Fury cost, once-per-fight and round-based buff timing.
+test("Dragon's Dominion: boss-only triple damage, no stacking, expiry and ordinary modifiers", () => {
+    const g = newGame(19).do('warrior', 'engage');
+    g.player.critChance = 0;
+    g.player.strength = 0;
+    const boss = { id: 'boss_dummy', name: 'Boss Dummy', hp: 9999, maxHp: 9999,
+        def: 0, specialFlags: ['boss'], statusEffects: [], critChance: 0 };
+    const ordinary = { id: 'ordinary_dummy', name: 'Ordinary Dummy', hp: 9999, maxHp: 9999,
+        def: 0, specialFlags: [], statusEffects: [], critChance: 0 };
+    const strike = { name: 'Fixed Strike', base_damage: [10, 10], damage_type: 'true' };
+    const roll = (target) => {
+        const hit = g.newHit(target);
+        g.rollDamage(g.player, target, strike, hit);
+        return hit.damage;
+    };
+    assert.strictEqual(roll(boss), 10);
+    assert.strictEqual(roll(ordinary), 10);
+    const dom = g.data.skillDefinitions['Dragon’s Dominion'];
+    g.castSkill(g.player, { name: 'Dragon’s Dominion', ...dom }, [g.player]);
+    assert.strictEqual(roll(boss), 30, '200% bonus means triple damage');
+    assert.strictEqual(roll(ordinary), 10, 'non-boss unaffected');
+    // Other damage modifiers continue working without being applied to non-bosses.
+    g.applyStatus(g.player, boss, { name: 'Expose', type: 'mark', value: 0.2, duration: 2 });
+    g.applyStatus(g.player, ordinary, { name: 'Expose', type: 'mark', value: 0.2, duration: 2 });
+    assert.strictEqual(roll(boss), 36, 'Expose and Dominion compose on boss damage');
+    assert.strictEqual(roll(ordinary), 12, 'Expose works normally on non-bosses');
+    g.removeStatus(boss, g.findStatus(boss, 'Expose'));
+    g.removeStatus(ordinary, g.findStatus(ordinary, 'Expose'));
+    g.castSkill(g.player, { name: 'Dragon’s Dominion', ...dom }, [g.player]);
+    assert.strictEqual(g.player.statusEffects.filter(s => s.name === 'Dragon’s Dominion').length, 1);
+    assert.strictEqual(roll(boss), 30, 'reapplication refreshes instead of stacking');
+    g.player.normalTurns = 1;
+    g.armStatuses(g.player);
+    g.tickStatusesEndOfRound();
+    assert.strictEqual(roll(boss), 10, 'duration 1 wears off');
+    assert.strictEqual(roll(ordinary), 10);
+});
+
+test("Dragon's Dominion: all Fury spent, once per fight and no carry-over", () => {
+    const g = newGame(19).do('warrior', 'engage');
+    const skillName = 'Dragon’s Dominion';
+    g.player.skills.push(skillName);
+    g.player.resource.type = 'Fury Gauge';
+    g.player.resource.current = 5;
+    g.player.resource.max = 10;
+    g.do('dragon’s dominion');
+    assert.match(g.text(), /Used 5 Fury Gauge/, 'all Fury was spent on activation');
+    assert.strictEqual(g.combat.usedOncePerFight[skillName], true);
+    assert.ok(g.findStatus(g.player, skillName), 'buff active after cast');
+    g.player.resource.current = 5;
+    g.do('dragon’s dominion');
+    assert.match(g.text(), /only be used once per fight/);
+    assert.strictEqual(g.player.resource.current, 5);
+    g.mode = 'explore';
+    g.combat = null;
+    g.player.statusEffects = [];
+    g.do('engage');
+    assert.ok(!g.findStatus(g.player, skillName), 'no persistence across encounters');
+    assert.ok(!g.combat.usedOncePerFight[skillName], 'usage resets per encounter');
+});
+
+
 test('multi-hit skills hit the right number of times', () => {
     const g = newGame().do('rogue', 'engage'); // James Newton: tanky, perfect dummy
     g.player.skills.push('Flurry');
