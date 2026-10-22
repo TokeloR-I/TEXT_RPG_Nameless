@@ -944,8 +944,13 @@
             const entries = (skill.effects || []).map((effect) => ({ effect, handler: this.effects[effect.type] }));
             const active = entries.filter((x) => x.handler);
             const base = { engine: this, caster, targets, skill };
+            // QA-14: riders (stun, poison, marks...) only reach targets the attack actually hit.
+            // An absorbed (Bone Wall), dodged or missed hit carries none of them.
+            const reached = new Set();
+            let attacked = false;
 
             if (skill.base_damage && !active.some((x) => x.handler.replacesDamage)) {
+                attacked = true;
                 let hits = 1;
                 for (const x of active) if (x.handler.hits) hits = x.handler.hits({ ...base, effect: x.effect });
                 for (let h = 1; h <= hits; h++) {
@@ -954,6 +959,7 @@
                         if (target.hp <= 0 || target.erased) continue;
                         if (caster.hp <= 0) break;
                         if (!this.hitConnects(caster, target)) continue;
+                        reached.add(target);
                         const hit = this.newHit(target);
                         const ctx = { ...base, target };
                         for (const x of active) if (x.handler.beforeHit) x.handler.beforeHit({ ...ctx, effect: x.effect }, hit);
@@ -967,7 +973,8 @@
                     }
                 }
             }
-            for (const x of active) if (x.handler.apply) x.handler.apply({ ...base, effect: x.effect });
+            const riderBase = attacked ? { ...base, targets: targets.filter((t) => reached.has(t)) } : base;
+            for (const x of active) if (x.handler.apply) x.handler.apply({ ...riderBase, effect: x.effect });
             if (caster.isPlayer && active.some((x) => x.effect.type === 'damage_reduction')) this.resourceEvent('onGuard', 1, 'oath kept');
 
             const missing = entries.filter((x) => !x.handler).map((x) => x.effect.type);
