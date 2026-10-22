@@ -1,7 +1,7 @@
 # ENSO's Last Stand — QA-2: Shield Bash stun condition
 
 **Author:** Vaelis — Lead Game Designer & Narrative Designer  
-**Status:** PROPOSAL — **Creative Director approval required**; implementation NOT authorized  
+**Status:** APPROVED BY CREATIVE DIRECTOR — IMPLEMENTATION AUTHORIZED for the assigned developer (2026-10-22).  
 **Date:** 2026-10-22  
 **Reference:** [QA report](../../qa/QA_REPORT_2026-10-22_1.md), [approved status design](ENSO_Status_Effects_Approved_Design.md), [status implementation report](../STATUS_ENGINE_REPORT.md)
 
@@ -9,13 +9,13 @@
 
 At level 3, Vanguard replaces Momentum with **Oath Points**, but Shield Bash still describes `Momentum >= 3`. Its stun effect ignores that condition and currently refreshes one-turn Stun unconditionally. Repeated free Shield Bash can suppress the boss indefinitely while Control Resistance (CR) is disabled pending designer values.
 
-## Proposed skill contract — approval requested
+## Approved skill contract
 
 **Shield Bash:** existing single-target physical hit (10–14 base damage); **0 Oath Points cost**, unchanged. Its **stun is attempted only if the caster has at least 3 Oath Points at the moment of the hit**. This is a **minimum threshold**, **not an expenditure**: neither the attack nor the stun subtracts the 3 points. An unsuccessful threshold check does not prevent the damage portion or consume extra resources. A miss/no valid hit cannot apply Stun. No hidden use limit or new numerical damage adjustment.
 
 **Reason:** a defender must establish an oath-driven defensive stance before controlling an enemy; spending three points for a free skill would quietly redesign resource economy, currently an independent QA-8 decision. Retaining the existing numeric threshold of 3 avoids speculative tuning. The resource's existing on-Guard acquisition remains unchanged; no new regeneration is approved here.
 
-### Anti-permanent-stun safeguard — approval requested
+### Approved anti-permanent-stun safeguard
 
 **Do not permit consecutive target-turn denial from repeated Shield Bash casts**, even before CR is configured. After Stun makes a target skip one *scheduled normal turn*, that target must complete **one subsequent scheduled normal turn in which it is not stunned by Shield Bash** before Shield Bash may apply Stun to that target again. During this temporary per-target lockout, Shield Bash still deals its ordinary damage but has no Stun effect. This lockout is specific to Shield Bash's reapplication, **not global stun immunity** and not an added universal cooldown. An unsuccessful cast does not consume an eligibility window; a target's extra action does not count as its normal recovery turn. The lockout resets at combat end.
 
@@ -30,7 +30,7 @@ This additional anti-chain rule is proposed explicitly because the CR engine is 
 - **No CR numbers are approved here:** `Stun.control`, `Stun.crGain`, recovery, release threshold, player/summon/regular/elite/boss multipliers remain pending the separate CR assignment. No boss-specific immunity or guaranteed number of stuns is implied.
 - Other stun sources use their approved definitions and the shared CR system. This proposal does **not** silently add lockouts to other stun skills.
 
-## Deterministic Developer + QA acceptance criteria (after separate code authorization)
+## Deterministic Developer + QA acceptance criteria (implementation authorized)
 
 1. **Evolution:** level-3 Vanguard has Oath Points, not Momentum; Shield Bash checks current Oath Points and the skill menu describes the correct threshold.
 2. **Threshold:** at 0, 1, 2 Oath Points, a successful Shield Bash hit deals ordinary damage but applies no Stun. At exactly 3, and at >3, it may stun if all other checks pass.
@@ -44,9 +44,12 @@ This additional anti-chain rule is proposed explicitly because the CR engine is 
 10. **Regressions:** Guard's existing resource gain is unchanged; all existing statuses, DoT ticks, damage and non-Shield-Bash stuns retain their independently approved behavior. Run fixed-seed boss scenario from QA report, `npm test`, and relevant CLI/fuzz runs.
 11. **Combat cleanup:** target-specific Shield Bash recovery bookkeeping clears upon encounter end and cannot leak to future fights.
 
-## Boundaries and coordination
+## Approved implementation release and boundaries
 
-- **Not approved yet:** any of the above proposed changes, other ability tuning, CR numeric values, modifications to resource regeneration/cost economy (QA-8), code changes or implementation assignment.
-- This proposal preserves the existing 10–14 damage, cost 0, one skipped turn, threshold value 3, and approved CR threshold behavior. It **proposes** changing the threshold's resource name and adding per-target anti-chain protection.
-- Developer implementation requires a **separate explicit Creative Director authorization after approval of this design PR**. Until then, no developer code changes.
-- Follow [AGENTS.md](../../AGENTS.md): only design files changed in this PR, not `src/`, `tests/` or `qa/`.
+**Creative Director authorization (22 October 2026):** "I approve QA-2 Shield Bash: stun requires at least 3 Oath Points without consuming them, and a target must have one unstunned normal turn between Shield Bash stun skips. I authorize the assigned developer to implement QA-2 according to the approved specification."
+
+**Release status: READY FOR THE ASSIGNED DEVELOPER.** Design and implementation authorization are complete. **Do not request another approval for the same rules.** The already assigned developer may begin on a dedicated feature branch and open a focused code PR, following `AGENTS.md`. The studio roster lists Wren (Primary Developer) and Rook (Secondary Developer), but this document does not reassign work between them.
+
+**Implementation boundaries:** Preserve 10–14 base damage, zero skill cost, threshold exactly 3 Oath Points without expenditure, and one unstunned scheduled normal target turn between consecutive Shield Bash-induced stun skips. Preserve shared status pipeline and future approved CR semantics; CR numeric values remain pending. Do not change QA-8 resource economy, other stun skills, enemy stats, or unrelated mechanics.
+
+**Required proof:** deterministic tests for all 11 scenarios above; fixed-seed boss reproduction; `npm test` plus CLI/fuzz runs as relevant. Send code PR to QA for verification; Creative Director retains merge authority. Escalate only *new* material ambiguities, not this already-approved contract.
