@@ -293,7 +293,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Base | Grave Bolt | 1 Soul Energy | 10–14 dmg, +2 dmg per corpse on the battlefield. | ✅ works |
 | Base | Raise Skeleton | 2 Soul Energy | Summon skeleton (5–7 dmg/turn). | ✅ works |
 | Base | Soul Leech | 1 Soul Energy | Deal 8 dmg, heal for half dmg dealt. | ✅ works |
-| Bone Warden L3 | Bone Wall | 1 Soul Energy | Absorbs the next hit entirely. | ❌ not implemented (absorb_hit) |
+| Bone Warden L3 | Bone Wall | 1 Soul Energy | Absorbs the next hit entirely. | ✅ works (PR #17, Rook; riders on an absorbed hit don't land, QA-14) |
 | Bone Warden L5 | Shield of the Dead | 2 Soul Energy | All minions taunt for 2 turns. | ✅ works |
 | Bone Warden L8 | Raise Ghoul | 3 Soul Energy | Summon ghoul (9–12 dmg/turn, applies [Weaken]). | ✅ works |
 | Bone Warden L11 | Reaper’s Charge | 3 Soul Energy | 20–28 dmg + stun 1 turn. | ✅ works |
@@ -352,8 +352,9 @@ Black Pharaoh (+3 minions) · Hollow King: Crown of the Undying, Soul Erasure (n
 - **Save/load.**
 - **More content:** one 7-room dungeon, 10 real enemy types, 1 boss.
 
-### 21 skill effect types still to build
-Taunts (Shield Charge, Lockstep) · Fortress zones · Total Lockdown · Bone Wall · Soulbinder's whole kit
+### 20 skill effect types still to build
+*(Live list: `npm run backlog`.)*
+Taunts (Shield Charge, Lockstep) · Fortress zones · Total Lockdown · Soulbinder's whole kit
 (Soul Chain, Soul Feast, Possession) · Overchannel · Steal Skill · Shadowstep's teleport ·
 and most ascended overdrives (Oblivion Reign, Dragon's Dominion, March of Endless Bones, Plague of Ages,
 Death's Dominion, Oblivion's Call, Worldflame, Arcane Hollow, Eternal Architect).

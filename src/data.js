@@ -680,6 +680,7 @@
             'Marked for Death': { category: 'mark' },
             // --- buffs
             'Guard':            { category: 'buff' },
+            'Bone Wall':        { category: 'buff' },
             'Evasion':          { category: 'buff' },
             'Mirror Image':     { category: 'buff' },
             'Riposte':          { category: 'buff' },

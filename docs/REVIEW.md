@@ -112,11 +112,11 @@ All infections +2 dmg (Harbinger) · Traps +50% dmg (Smoke Phantom) · DoTs last
 7. **Trap Charges** (Saboteur) has no gain rule in the design. It keeps the Rogue's Energy regen (3/round) for now.
 8. **Time Charges** "store 3" cap is not enforced, since Freeze Time costs 5 and would be uncastable.
 
-## 🔲 Still missing (21) — next batch candidates
+## 🔲 Still missing (21 at batch 3; 20 now, live list: `npm run backlog`) — next batch candidates
 | Effect | Skill | Note |
 |---|---|---|
 | taunt_aoe | Shield Charge, Lockstep | Warden/Vanguard. Easy |
-| absorb_hit | Bone Wall | Bone Warden L3. Easy |
+| ~~absorb_hit~~ | Bone Wall | ✅ Done: PR #17 (Rook), follow-ups QA-11–14 |
 | create_zone | Fortress | Needs a light "zone" system |
 | link_targets | Soul Chain | Soulbinder L3 — whole Soulbinder branch needs these three |
 | drain_hp_from_linked | Soul Feast | |
@@ -142,5 +142,5 @@ All infections +2 dmg (Harbinger) · Traps +50% dmg (Smoke Phantom) · DoTs last
 
 ## Not effect types, but also not built yet
 Most **traits** that aren't listed above (e.g. Blood Frenzy, Kill Rush, crit-damage traits, Divine Ward),
-**stage upgrades** (e.g. "Skeletons now deal 6–9"), elemental Burn from Pyromancer, and Bone Armor's
-interaction with Bone Wall.
+**stage upgrades** (e.g. "Skeletons now deal 6–9") and elemental Burn from Pyromancer.
+(Bone Wall now exists: an absorbed hit never reaches Bone Armor, so the two don't interact.)
