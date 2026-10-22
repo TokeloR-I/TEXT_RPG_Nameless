@@ -181,6 +181,10 @@
             for (const x of [this.player, ...c.enemies, ...c.minions]) {
                 if (x.hp <= 0) continue;
                 x.statusEffects = x.statusEffects.filter((s) => {
+                    if (s.orphaned) {                   // QA-1 applier-death ruling: its applier died this round
+                        this.say(`[${s.name}] wears off ${x.name}.`);
+                        return false;
+                    }
                     if (s.policy) return true;          // QA-1: expires by opportunity, not by round
                     if (s.duration === 'permanent' || s.duration == null) return true;
                     if (!s.armed) return true;          // holder hasn't had a turn with it yet
@@ -199,6 +203,10 @@
         //                          and Haste bonus actions don't count. Marked for Death, Expose.
         //   holder_next_turn_start ends when the HOLDER's next scheduled normal turn begins, even if
         //                          that turn is skipped. Guard.
+        //   onApplierDeath: 'end_of_round'  (Creative Director ruling, 22 Oct 2026) if the applier dies
+        //                          mid-fight, the status keeps working until the end of THAT round, then
+        //                          goes, whatever its window had left. A same-round revival doesn't cancel
+        //                          it; a refresh by a living applier does (it's a new application).
         // Declared per status in data (statusDefinitions[name].expiry). Everything else keeps the
         // round-based lifecycle.
         // ---------------------------------------------------------------
@@ -209,6 +217,8 @@
             if (!pol) return;
             inst.policy = pol.type;
             inst.consumeOn = pol.consumeOn || null;
+            inst.onApplierDeath = pol.onApplierDeath || null;
+            inst.orphaned = false;                                         // a (re)application has a living applier
             if (pol.type === 'applier_turns') {
                 inst.duration = duration != null ? duration : pol.turns;   // full window again on refresh
                 inst.appliedSeq = source.normalTurns || 0;                 // the application turn never counts
@@ -242,6 +252,14 @@
                 this.say(`[${s.name}] wears off ${actor.name}.`);
                 return false;
             });
+        };
+
+        /** QA-1 applier-death ruling: `actor` just died; its marks expire at the end of this round. */
+        P.orphanStatusesOf = function (actor) {
+            if (!this.combat || !actor) return;
+            for (const x of [this.player, ...this.combat.enemies, ...this.combat.minions]) {
+                for (const s of x.statusEffects) if (s.appliedBy === actor.id && s.onApplierDeath === 'end_of_round') s.orphaned = true;
+            }
         };
 
         /** Can this attacker use (and consume) the mark? Only the applier's side, if the policy says so. */

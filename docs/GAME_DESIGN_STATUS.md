@@ -162,7 +162,9 @@ One shared pipeline for players, enemies and summons. **Durations are round-base
 round in which its holder had a turn after it was applied, so "N turns" means N of the holder's turns regardless of speed.
 That's exact for DoTs and turn-skips. **Exception (QA-1, approved Option A):** Marked for Death and Expose last through the
 applier's next 1 / 2 actionable normal turns (Marked for Death is used up by the first positive-damage allied hit), and Guard
-lasts until the holder's next scheduled turn begins. Their windows no longer depend on speed. Evasion, Riposte and Taunt are unchanged.
+lasts until the holder's next scheduled turn begins. Their windows no longer depend on speed. If the applier of Marked for
+Death or Expose dies mid-fight, the mark keeps working until the end of that round, then goes (a same-round revival doesn't
+save it). Evasion, Riposte and Taunt are unchanged.
 One instance per status per target: stackable statuses gain intensity up to a cap (only Infection: 2 dmg/stack, cap 3,
 3 turns), and re-applying always refreshes the duration. DoTs deal damage at the start of the holder's turn and ignore armor.
 Control Resistance, overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.

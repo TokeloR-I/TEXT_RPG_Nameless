@@ -28,26 +28,6 @@ function fightOut(g, maxTurns = 200) {
     return g;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const warden = (seed = 1) => newGame(seed).do('warrior', 'add_xp 250', 'warden');
 const dummyHit = (g, attackerMarks = [], targetMarks = []) => {
     const attacker = { id: 'player', isPlayer: true, critChance: 0, statusEffects: attackerMarks };
@@ -58,29 +38,12 @@ const dummyHit = (g, attackerMarks = [], targetMarks = []) => {
 };
 const mark = (name, value, duration = 2) => ({ type: 'mark', name, value, duration, appliedBy: 'player' });
 
-
-
-
-
-
-
-
-
-
-
-
 const newtonFight = (cls) => {
     const g = newGame().do(cls, 'engage'); // James Newton: 66 DEF, so direct hits do 0 — only DoTs land
     g.player.hp = g.player.maxHp = 9999;
     g.player.resource.current = g.player.resource.max = 99;
     return g;
 };
-
-
-
-
-
-
 
 const tanky = (cls, ...skills) => { const g = newtonFight(cls); g.player.skills.push(...skills); return g; };
 const hallway = (cls, ...skills) => {
@@ -90,8 +53,6 @@ const hallway = (cls, ...skills) => {
     g.player.skills.push(...skills);
     return g;
 };
-
-
 
 const boneWallFight = (seed = 3) => {
     const g = newGame(seed).do('necromancer', 'add_xp 250', 'bone warden', 'engage');
@@ -110,42 +71,6 @@ const incomingBoneWallHit = (g) => {
     g.castSkill(attacker, { name: 'Test Strike', base_damage: [20, 20],
         damage_type: 'physical', effects: [] }, [g.player]);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /** A simple bot that plays the real dungeon with no cheats. Returns 'won' | 'game_over'. */
 function botRun(cls, seed) {
@@ -199,35 +124,6 @@ const TEST_CR = (d, stunGain = 60) => {
 };
 const stun = (g, target) => g.applyStatus(g.player, target, { name: 'Stun', type: 'skip_turn', duration: 1 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // QA-14: riders on a hit that never reached its target must not land.
 const riderFight = (effects, mutatePlayer) => {
     const g = gameWith((d) => {
@@ -251,11 +147,6 @@ const RIDERS = [
     ['Silence', [{ type: 'silence', duration: 1 }]]
 ];
 
-
-
-
-
-
 const since = (g, n) => g.log.slice(n).filter((e) => e.type === 'text').map((e) => e.text).join('\n');
 /** Rogue in the wine cellar (Cellar Vermin SPD 13 ×2, Drunken Shade SPD 7), with a chosen player speed. */
 const cellar = (spd, ...skills) => {
@@ -269,13 +160,6 @@ const cellar = (spd, ...skills) => {
     return g;
 };
 const mfd = (t) => (t ? t.statusEffects.find((x) => x.name === 'Marked for Death') : null) || null;
-
-
-
-
-
-
-
 
 /** Hallway with fixed 20-damage enemy hits on a 0-DEF player, so guarded hits read 15. */
 const guardFight = (spd, ...skills) => {

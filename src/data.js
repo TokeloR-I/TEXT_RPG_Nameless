@@ -675,9 +675,9 @@
             'Blind':            { category: 'debuff',  control: null, crGain: null },
             // --- marks
             'Pin':              { category: 'mark', control: null, crGain: null },
-            'Expose':           { category: 'mark', expiry: { type: 'applier_turns' } },             // QA-1 (approved Option A)
+            'Expose':           { category: 'mark', expiry: { type: 'applier_turns', onApplierDeath: 'end_of_round' } },             // QA-1 (approved Option A + applier-death ruling)
             'Weaken':           { category: 'mark' },
-            'Marked for Death': { category: 'mark', expiry: { type: 'applier_turns', consumeOn: 'positive_allied_hit' } }, // QA-1
+            'Marked for Death': { category: 'mark', expiry: { type: 'applier_turns', consumeOn: 'positive_allied_hit', onApplierDeath: 'end_of_round' } }, // QA-1
             // --- buffs
             'Guard':            { category: 'buff', expiry: { type: 'holder_next_turn_start' } },   // QA-1
             'Bone Wall':        { category: 'buff' },
