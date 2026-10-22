@@ -161,6 +161,7 @@ test('stun makes an enemy skip its turn', () => {
 test('QA-2: Shield Bash Oath gate, no payment, recovery exclusion', () => {
     const g = newGame(7).do('warrior', 'add_xp 250', 'vanguard', 'e', 'engage');
     const foe = g.combat.enemies[2];
+    foe.hp = foe.maxHp = 999;
     const bash = g.playerSkill('Shield Bash');
     g.player.resource.current = 2;
     g.castSkill(g.player, bash, [foe]);
