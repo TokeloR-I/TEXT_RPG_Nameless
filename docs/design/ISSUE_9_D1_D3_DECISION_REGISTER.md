@@ -36,9 +36,29 @@
 
 **Not approved:** spatial ranks/slots, free combat movement, geometric attack shapes, adjacency, flanking by coordinates, changed ability numbers, new targeting restrictions, or Developer implementation. Ability-specific clarification remains pending Creative Director approval.
 
-## D3 — Perspective and play flow: PENDING
+## D3 — Perspective and play flow: APPROVED
 
-Options for later decision: top-down WASD exploration plus side-view encounter presentation, versus one consistent visual perspective. Await D2 decision before selecting presentation. Proposed flow remains exploration → encounter → hotkey skill/target selection → ordered event playback → exploration; exact controls, transition behavior, UX and accessibility are undecided.
+**Decision:** Option A — top-down keyboard-controlled exploration with a dedicated side-view turn-based battle presentation.
+
+**Approval source:** Creative Director's explicit approval in the design discussion on 2026-10-22.
+
+**Player-facing intent:** Explore a navigable top-down world with keyboard movement; initiate encounters; transition into a dedicated side-view combat scene; choose skills and targets using direct controls; present action results, statuses, summons and turn changes through ordered animations and readable feedback; then return to exploration with results and rewards. This is a presentation decision, **not** an authorization for new combat rules.
+
+**Preserve:** D1's round-based, speed-ordered combat and D2's abstract/non-positional targeting. Side-view sprite placement is visual staging only; no implicit formation slots, distance or collision-based targeting. Character evolution and class-specific effects should remain identifiable in combat.
+
+**Unresolved for subsequent UX specification:** exact keys and remapping, target cycling and confirmation/cancel UX, HUD and combat log, status readability, camera/transitions, animation timing and skip controls, inventory and class-evolution navigation, party/minion display, keyboard/gamepad accessibility, reduced motion and contrast, save/load UX.
+
+**Not approved:** choice of Phaser/Godot or other runtime, art style or assets, animation timings, input bindings, engine interface changes, new combat mechanics, gameplay tuning, or Developer implementation.
+
+## Issue #9 approved-direction summary
+
+| Decision | Approved direction | Scope boundary |
+|---|---|---|
+| D1 | Keyboard exploration + turn-based hotkey combat | No ATB or real-time combat; preserve round-based rules |
+| D2 | Abstract/non-positional battlefield | No slot/rank/distance geometry or targeting restrictions |
+| D3 | Top-down exploration + side-view battle scene | Presentation only; no engine/framework or implementation authorization |
+
+**Remaining decisions outside D1–D3:** D4 framework/dependency; D5 packaging/distribution; D6 asset sourcing; detailed interface and accessibility specification; abstract handling of spatially described abilities; QA-1 status-effective windows, QA-2 Shield Bash, QA-8 branch resources; pending status/CR numeric configuration and balance proposals. These require separate approval. The Developer Agent has received **no implementation authorization** from this document.
 
 ## QA and governance notes
 
