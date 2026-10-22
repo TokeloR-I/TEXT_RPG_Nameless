@@ -17,7 +17,7 @@ const CASES = [
     { status: 'Riposte', skill: 'Riposte', use: 'counters fired', intended: 1 },
     { status: 'Taunt', skill: 'Shield of the Dead', use: 'enemy attacks pulled to a minion', intended: 2, minion: true },
     // controls: holder-turn statuses (expected to be speed-independent today)
-    { status: 'Stun', skill: 'Shield Bash', target: 1, use: 'enemy turns skipped', intended: 1 },
+    { status: 'Stun', skill: 'Reaper’s Charge', target: 1, use: 'enemy turns skipped', intended: 1 },
     { status: 'Silence', skill: 'Garrote', target: 1, use: 'enemy turns silenced', intended: 1 },
     { status: 'Blind', skill: 'Smoke Bomb', use: 'enemy attacks rolled vs blind', intended: 1 },
     { status: 'Bleed', skill: 'Hemorrhage', target: 1, use: 'bleed ticks', intended: 3 },
