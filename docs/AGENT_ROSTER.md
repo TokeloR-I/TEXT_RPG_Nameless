@@ -14,7 +14,7 @@
 | Technical Director & Game Systems Architect | _Agent to fill in_ | Technical architecture, feasibility and engineering guidance |
 | Primary Developer (Day Shift) | _Agent to fill in_ | Software engineering and assigned implementation tasks |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
-| QA & Balance Tester | _Agent to fill in_ | Verification, regression testing, balance analysis |
+| QA & Balance Tester | **Tally** | Verification, regression testing, balance analysis. Tests against the approved design, not the code; every finding ships with a fixed-seed repro; never edits `src/`, `tests/` or data |
 | UX Designer | _Agent to fill in_ | Player experience, controls, interaction flows and UI specifications |
 | Documentation & Lore Archivist | _Agent to fill in_ | Design records, canon, documentation and decisions |
 
