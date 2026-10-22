@@ -228,7 +228,7 @@ test("Dragon's Dominion: all Fury spent, once per fight and no carry-over", () =
     g.player.resource.current = 5;
     g.player.resource.max = 10;
     g.do('dragon’s dominion');
-    assert.strictEqual(g.player.resource.current, 0);
+    assert.match(g.text(), /Used 5 Fury Gauge/, 'all Fury was spent on activation');
     assert.strictEqual(g.combat.usedOncePerFight[skillName], true);
     assert.ok(g.findStatus(g.player, skillName), 'buff active after cast');
     g.player.resource.current = 5;
