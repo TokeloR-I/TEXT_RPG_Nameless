@@ -22,6 +22,35 @@
  * `node tools/pending-decisions.js` lists them all.
  * ========================================================================= */
 (function (global) {
+    /**
+     * QA-4: find reaction recipes that can trigger themselves again, directly or through
+     * other recipes (a cycle in "outcome applies status X" -> "X is part of a recipe's pair").
+     * Such data would recurse forever. Acyclic chains always end, so they are left alone:
+     * whether chains are allowed at all is a pending design decision, not decided here.
+     * Returns [{ index, name, reason }].
+     */
+    function findUnsafeReactions(recipes) {
+        const list = (recipes || []).map((r, index) => ({ r, index }))
+            .filter(({ r }) => r && Array.isArray(r.pair) && typeof r.baseChance === 'number');
+        const applies = (r) => [].concat(r.outcome || []).filter((o) => o && o.type === 'apply_status' && o.status).map((o) => o.status.name);
+        const next = new Map(list.map(({ r, index }) => [index,
+            list.filter((o) => applies(r).some((n) => o.r.pair.includes(n))).map((o) => o.index)]));
+        const unsafe = [];
+        for (const { r, index } of list) {
+            // can we get from this recipe back to itself?
+            const seen = new Set(); const stack = [...next.get(index)];
+            let loops = false;
+            while (stack.length) {
+                const i = stack.pop();
+                if (i === index) { loops = true; break; }
+                if (seen.has(i)) continue;
+                seen.add(i); stack.push(...next.get(i));
+            }
+            if (loops) unsafe.push({ index, name: r.name || r.pair.join(' + '), reason: 'its outcome can re-trigger itself (directly or via other recipes), which would loop forever' });
+        }
+        return unsafe;
+    }
+
     function install(GameEngine) {
         const P = GameEngine.prototype;
         const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -272,8 +301,27 @@
         /** Rule 15: character-driven probability. Design Decision 16 is PAUSED, so this adds nothing yet. */
         P.reactionChanceModifier = function (/* source, recipe */) { return 0; };
 
+        P.unsafeReactionIndexes = function () {
+            if (!this._unsafeReactions) this._unsafeReactions = new Set(findUnsafeReactions(this.data.statusReactions).map((u) => u.index));
+            return this._unsafeReactions;
+        };
+
         P.rollReactions = function (source, target, appliedName, existingNames) {
-            for (const r of this.data.statusReactions || []) {
+            const unsafe = this.unsafeReactionIndexes();
+            const recipes = this.data.statusReactions || [];
+            // Technical backstop only (cycles are already filtered out): a chain can't be longer than the recipe list.
+            this._reactionDepth = (this._reactionDepth || 0) + 1;
+            try {
+                if (this._reactionDepth > recipes.length + 1) throw new Error('reaction chain longer than the recipe list — invalid reaction data');
+                this.rollReactionsInner(source, target, appliedName, existingNames, unsafe, recipes);
+            } finally {
+                this._reactionDepth--;
+            }
+        };
+
+        P.rollReactionsInner = function (source, target, appliedName, existingNames, unsafe, recipes) {
+            for (const [i, r] of recipes.entries()) {
+                if (unsafe.has(i)) continue;                                     // QA-4: self-looping recipes are disabled
                 if (!Array.isArray(r.pair) || !isNum(r.baseChance)) continue; // incomplete recipes stay off
                 const [a, b] = r.pair;
                 const other = appliedName === a ? b : appliedName === b ? a : null;
@@ -296,6 +344,7 @@
     }
 
     const ENSO = global.ENSO || (global.ENSO = {});
+    install.findUnsafeReactions = findUnsafeReactions;
     ENSO.installStatusSystem = install;
     if (typeof module !== 'undefined' && module.exports) module.exports = install;
 })(typeof window !== 'undefined' ? window : globalThis);
