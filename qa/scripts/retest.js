@@ -19,13 +19,16 @@ const stuck = (out) => /Not your turn!/.test(out);
     const g = make(1); ['rogue', 'e', 'engage'].forEach((c) => g.input(c));
     g.player.skills.push('Marked for Death');
     const out = T(g.input('marked for death 3')) + T(g.input('attack 3'));
-    report('QA-1', 'HELD', `design decision pending. Today: Marked for Death on a slower target ${/is consumed/.test(out) ? 'IS used' : 'expires unused'}. Full picture: node qa/scripts/speed_matrix.js`);
+    // QA-1 implemented (approved Option A, PR #30): Marked for Death must be usable on a slower target.
+    report('QA-1', /is consumed/.test(out) ? 'FIXED' : 'STILL OPEN', `Marked for Death on a slower target ${/is consumed/.test(out) ? 'IS used' : 'expires unused'}. Full checks: speed_matrix.js, qa1_expiry.js`);
 }
 {
     const g = make(1); ['warrior', 'add_xp 250', 'vanguard'].forEach((c) => g.input(c));
     g.currentRoom = 'wardens_roost'; let log = T(g.input('engage'));
     for (let i = 0; i < 40 && g.mode === 'combat'; i++) log += T(g.input('shield bash'));
-    report('QA-2', 'HELD', `design decision pending. Today: boss acts ${(log.match(/Warden uses/g) || []).length}x in a Shield Bash fight`);
+    // QA-2 implemented (approved, PRs #31/#38): the boss may never miss two scheduled turns in a row to Shield Bash.
+    const pat = log.split('\n').map((l) => (l.includes("Warden's Turn!") ? 'A' : l.includes('Warden is unable to act') ? 'S' : '')).join('');
+    report('QA-2', !/SS/.test(pat) ? 'FIXED' : 'STILL OPEN', `boss acts ${(log.match(/Warden uses/g) || []).length}x, never two Shield Bash skips in a row: ${!/SS/.test(pat)}. Full checks: qa2_shieldbash.js`);
 }
 {
     const g = make(1); ['warrior', 'add_xp 250', 'vanguard', 'n', 'engage'].forEach((c) => g.input(c));
@@ -102,12 +105,13 @@ quiet(() => {
 // QA-9: CLI turn prompt shows player HP, current resource and statuses.
 {
     const g = make(1); ['warrior', 'n', 'engage'].forEach((c) => g.input(c));
+    g.applyMark(g.combat.enemies[0], g.player, { mark: 'Weaken', value: 0.2, duration: 3 }); // lasts past your next turn start (Guard no longer does, QA-1)
     const out = T(g.input('guard'));
     const prompt = out.slice(out.lastIndexOf('--- Your Turn! ---'));
     const p = g.player;
     const hp = prompt.includes(`${p.hp}/${p.maxHp}`), res = prompt.includes(`${p.resource.current}/${p.resource.max}`) || new RegExp(`${p.resource.type}[^\\n]*${p.resource.current}`).test(prompt);
-    const st = /Guard/.test(prompt.replace(/> Guard/g, ''));
-    report('QA-9', hp && res && st ? 'FIXED' : 'STILL OPEN', `turn prompt shows HP ${hp ? 'yes' : 'no'} · resource ${res ? 'yes' : 'no'} · [Guard] ${st ? 'yes' : 'no'}`);
+    const st = /\[Weaken/.test(prompt);
+    report('QA-9', hp && res && st ? 'FIXED' : 'STILL OPEN', `turn prompt shows HP ${hp ? 'yes' : 'no'} · resource ${res ? 'yes' : 'no'} · [Weaken] ${st ? 'yes' : 'no'}`);
 }
 
 // QA-10: stale technical docs/comments.
