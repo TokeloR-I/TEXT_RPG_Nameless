@@ -177,7 +177,10 @@ check('o+p', 'Enemy skill stuns the player (data-only) and the player loses exac
         const turns = (t.match(/--- Your Turn! ---/g) || []).length, skipped = (t.match(/Warrior is unable to act/g) || []).length;
         out.push(`${spd === 40 ? 'player faster' : 'player slower'}: rounds ${g.combat.round}, your turns ${turns}, skipped ${skipped}`);
     }
-    return { ok: out.every((s) => /rounds 6, your turns 5, skipped 1$/.test(s)), note: out.join(' | ') };
+    // Since PR #6 a stunned player's turn pauses for input, so one command is consumed by the skipped turn.
+    // The invariant: exactly one turn lost, i.e. your turns = rounds - 1.
+    const okOne = (s) => { const [r, t, k] = s.match(/\d+/g).slice(-3).map(Number); return k === 1 && t === r - 1; };
+    return { ok: out.every(okOne), note: out.join(' | ') };
 });
 
 check('q', 'Enemies can mark the player — Expose on the player raises damage taken', () => {
