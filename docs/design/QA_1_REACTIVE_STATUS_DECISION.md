@@ -2,7 +2,7 @@
 
 **Decision ID:** QA-1 / RSD-01  
 **Creative Director approval:** 22 October 2026 — **Option A, opportunity-based reactive status expiration**  
-**Status:** **APPROVED DESIGN DIRECTION**; detailed handoff prepared for review, **implementation NOT authorized**.  
+**Status:** **APPROVED QA-1 DESIGN**; additional applier-death ruling approved 22 October 2026. This clarification does not expand implementation authorization.  
 **Designer:** Vaelis — Lead Game Designer & Narrative Designer  
 **Evidence:** [QA report](../../qa/QA_REPORT_2026-10-22_1.md), [Approved Status Effects design](ENSO_Status_Effects_Approved_Design.md), [Status Engine Report](../STATUS_ENGINE_REPORT.md).
 
@@ -27,7 +27,8 @@ For **Marked for Death, Expose and Guard**, duration is determined by the releva
 - Guard: damage reduction remains active during all incoming attacks until the next scheduled normal turn starts, including multi-hit attacks. An enemy action already completed earlier in the casting round is not retroactively protected. Guard is not consumed on first hit. Recasting refreshes/overwrites its window without stacking magnitude.
 - Applying/refreshing any of these on a bonus action establishes a new application event, but bonus turns do not count as expiry opportunities. Reapplying Marked for Death refreshes rather than adds a second charge. Retain status identity through cleanse, immunity, death, save/restore and display; no shadow parallel status pipeline.
 - All three effects are eligible for selective cleanse and appropriate immunity under the shared status pipeline. A cleansed status expires immediately; ordinary natural expiry and consumption must not be conflated.
-- If the applier becomes permanently unavailable, opportunity expiry at combat end is guaranteed. Handling effects that persist after an applier dies **mid-combat** must preserve existing cleanup semantics; flag ambiguity to the designer rather than inventing permanent marks.
+- **Creative Director ruling — applier death mid-fight:** When an applier dies during combat, its active **Marked for Death** and **Expose** marks remain effective **until the end of the current combat round**, then expire regardless of remaining opportunity counters. Eligible allied hits before that boundary may still benefit; Marked for Death can still be consumed on the first qualifying hit. This applies even if the applier dies before acting in that round. Do not expire immediately on death or let marks persist into the following round. Combat-end cleanup still applies. If the applier is revived within that same round, the already-triggered end-of-round expiry remains scheduled (no automatic cancellation). This rule is specific to these two marks, not a universal death rule for all statuses.
+- **Shield Discipline — existing design, missing implementation:** The Vanguard evolution trait in `src/data.js` describes Guard reduction of **35%**, versus the base Warrior's **25%**. Wren reports the trait is description-only and not currently applied. Track as a **separate existing-design implementation gap**; do not quietly add it to the QA-1 developer's scope or authorize unrelated code changes here.
 - Existing pending Control Resistance, DoT overflow, reaction probabilities, branch resources and other status balances remain pending.
 
 ## Design boundaries
