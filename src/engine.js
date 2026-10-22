@@ -419,6 +419,7 @@
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }
 
                 if (this.startTurn(actor)) {
+                    if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = 'await_recovery';
                     if (actor.hp > 0 && actor.isPlayer) {
                         // QA-5: pause on the player's skipped turn instead of simulating on by itself.
                         // Each command now runs at most ~one round, so a stun-lock can't run away.
@@ -446,6 +447,7 @@
                 this.say(`--- ${actor.name}'s Turn! ---`, { important: true });
                 if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
                 this.endNormalTurn(actor);
+                if (actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
                 c.idx++;
             }
         }
@@ -682,6 +684,7 @@
                 if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
                 c.playerActedThisRound = true;
                 this.endNormalTurn(p);
+                if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
                 c.idx++;
                 this.advance();
                 return;
@@ -760,6 +763,7 @@
             }
             c.extraTurn = false;
             this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
+            if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
             c.idx++;
             this.advance();
         }
