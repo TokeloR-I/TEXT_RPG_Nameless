@@ -56,7 +56,9 @@ section('Cleansing', [
 ]);
 
 // 9. reactions
+const unsafe = require('../src/statuses.js').findUnsafeReactions(data.statusReactions);
 section('Cross-status reactions', [
+    ...unsafe.map((u) => `DISABLED recipe #${u.index} "${u.name}": ${u.reason}`),
     `recipes approved: ${data.statusReactions.length || 'none (PENDING)'}`,
     'character-attribute modifier for reaction chance: PAUSED (Design Decision 16) — currently adds 0'
 ]);

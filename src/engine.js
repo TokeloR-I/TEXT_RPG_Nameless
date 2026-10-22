@@ -19,12 +19,16 @@
     // ---------- small helpers ----------
     function mulberry32(seed) {
         let a = seed >>> 0;
-        return function () {
+        const rng = function () {
             a |= 0; a = (a + 0x6D2B79F5) | 0;
             let t = Math.imul(a ^ (a >>> 15), 1 | a);
             t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
             return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
         };
+        // Snapshot support, so a rolled-back command doesn't shift seeded runs.
+        rng.getState = () => a;
+        rng.setState = (v) => { a = v; };
+        return rng;
     }
     const clone = (o) => JSON.parse(JSON.stringify(o));
     const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -36,6 +40,7 @@
             this.data = options.data || DATA;
             this.effects = options.effects || EFFECTS.registry;
             this.rng = options.seed != null ? mulberry32(options.seed) : Math.random;
+            this.debug = !!options.debug; // print internal errors to the console
             this.out = [];
             this.errors = [];
             this.reset();
@@ -56,17 +61,50 @@
             return this.flush();
         }
 
+        /**
+         * Every command is a transaction (QA-3): if anything throws, the game rolls back to
+         * the state before the command and the player keeps control. A broken skill or bad
+         * data can refuse an action, but can never soft-lock the game.
+         */
         input(raw) {
             const text = String(raw || '').trim();
             if (!text) return this.flush();
+            const snap = this.snapshot();
             try {
                 this.handle(text);
             } catch (err) {
                 this.errors.push(err);
-                this.say(`Internal error: ${err.message}`, { important: true });
-                if (typeof console !== 'undefined') console.error(err);
+                this.restore(snap);
+                this.out = [];
+                this.say(`That didn't work — an internal error stopped it, and nothing happened. (${err.message})`, { important: true });
+                if (this.mode === 'combat' && this.combat && this.combat.awaitingPlayer) this.showCombatState();
+                if (this.debug && typeof console !== 'undefined') console.error(err);
             }
             return this.flush();
+        }
+
+        /** Everything a command can change. */
+        snapshot() {
+            const state = {
+                rooms: this.rooms, currentRoom: this.currentRoom, mode: this.mode, player: this.player,
+                combat: this.combat, pendingBranchChoice: this.pendingBranchChoice, flags: this.flags,
+                stats: this.stats, progression: this.progression
+            };
+            return {
+                json: JSON.stringify(state),
+                rng: typeof this.rng.getState === 'function' ? this.rng.getState() : null
+            };
+        }
+
+        restore(snap) {
+            const s = JSON.parse(snap.json);
+            Object.assign(this, s);
+            if (snap.rng != null && typeof this.rng.setState === 'function') this.rng.setState(snap.rng);
+            // JSON breaks shared references: re-link the turn order to the live combatant objects.
+            if (this.combat) {
+                const byId = new Map([this.player, ...this.combat.enemies, ...this.combat.minions].map((x) => [x.id, x]));
+                this.combat.order = this.combat.order.map((x) => byId.get(x.id)).filter(Boolean);
+            }
         }
 
         getState() {
@@ -375,6 +413,16 @@
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }
 
                 if (this.startTurn(actor)) {
+                    if (actor.hp > 0 && actor.isPlayer) {
+                        // QA-5: pause on the player's skipped turn instead of simulating on by itself.
+                        // Each command now runs at most ~one round, so a stun-lock can't run away.
+                        if (this.checkBattleEnd()) return;
+                        c.awaitingPlayer = true;
+                        c.awaitingContinue = true;
+                        this.say(`${actor.name} is unable to act this turn!`, { important: true });
+                        this.say('(Type anything to continue.)');
+                        return;
+                    }
                     if (actor.hp > 0) this.say(`${actor.name} is unable to act this turn!`);
                     c.idx++;
                     continue;
@@ -597,6 +645,14 @@
             this.say(`> ${raw}`);
 
             if (!c.awaitingPlayer) { this.say('Not your turn!'); return; }
+            if (c.awaitingContinue) {
+                // The player's turn was skipped (stun etc.): any input just moves on.
+                c.awaitingContinue = false;
+                c.awaitingPlayer = false;
+                c.idx++;
+                this.advance();
+                return;
+            }
 
             const { command, targetNum } = this.parseCombatInput(raw);
 
