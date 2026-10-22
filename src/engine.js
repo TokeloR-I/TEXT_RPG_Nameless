@@ -941,6 +941,12 @@
                 }
             }
             final *= this.markModifiers(attacker, target, hit);
+            // Temporary, flag-scoped damage modifiers use the same round-based
+            // status lifecycle as other combat buffs.
+            for (const status of attacker.statusEffects) {
+                if (status.type === 'bonus_damage_vs_flag_percent' &&
+                    (target.specialFlags || []).includes(status.flag)) final *= 1 + status.value;
+            }
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.
