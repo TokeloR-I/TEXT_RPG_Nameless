@@ -203,6 +203,13 @@ test("Dragon's Dominion: boss-only triple damage, no stacking, expiry and ordina
     g.castSkill(g.player, { name: 'Dragon’s Dominion', ...dom }, [g.player]);
     assert.strictEqual(roll(boss), 30, '200% bonus means triple damage');
     assert.strictEqual(roll(ordinary), 10, 'non-boss unaffected');
+    // Other damage modifiers continue working without being applied to non-bosses.
+    g.applyStatus(g.player, boss, { name: 'Expose', type: 'mark', value: 0.2, duration: 2 });
+    g.applyStatus(g.player, ordinary, { name: 'Expose', type: 'mark', value: 0.2, duration: 2 });
+    assert.strictEqual(roll(boss), 36, 'Expose and Dominion compose on boss damage');
+    assert.strictEqual(roll(ordinary), 12, 'Expose works normally on non-bosses');
+    g.removeStatus(boss, g.findStatus(boss, 'Expose'));
+    g.removeStatus(ordinary, g.findStatus(ordinary, 'Expose'));
     g.castSkill(g.player, { name: 'Dragon’s Dominion', ...dom }, [g.player]);
     assert.strictEqual(g.player.statusEffects.filter(s => s.name === 'Dragon’s Dominion').length, 1);
     assert.strictEqual(roll(boss), 30, 'reapplication refreshes instead of stacking');
