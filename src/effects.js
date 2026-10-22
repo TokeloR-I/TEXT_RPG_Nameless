@@ -130,6 +130,7 @@
     function skipTurns(ctx, label) {
         const hit = ctx.targets.filter((t) => t.hp > 0 && ctx.engine.applyStatus(ctx.caster, t, { name: label, type: 'skip_turn', duration: ctx.effect.duration }));
         if (hit.length) ctx.engine.say(`${hit.map(t => t.name).join(', ')} ${hit.length > 1 ? 'are' : 'is'} stunned!`);
+        return hit;
     }
 
     register('stun', {
@@ -139,10 +140,10 @@
                 gate.operator !== '>=' || ctx.caster.resource.current < gate.value)) return;
             const eligible = ctx.effect.shieldBashRecovery
                 ? ctx.targets.filter((t) => !t.shieldBashRecovery) : ctx.targets;
-            skipTurns({ ...ctx, targets: eligible }, 'Stun');
-            if (ctx.effect.shieldBashRecovery) {
-                for (const t of eligible) if (ctx.engine.findStatus(t, 'Stun')) t.shieldBashRecovery = 'await_skip';
-            }
+            const stunned = skipTurns({ ...ctx, targets: eligible }, 'Stun');
+            // QA-2 lockout starts only when THIS bash's stun landed (a resisted bash on a target that
+            // is already stunned by something else doesn't use up the target's eligibility).
+            if (ctx.effect.shieldBashRecovery) for (const t of stunned) t.shieldBashRecovery = 'await_skip';
         }
     });
 
