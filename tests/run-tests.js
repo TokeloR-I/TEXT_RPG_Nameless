@@ -150,12 +150,35 @@ test('Guard (QA-1): protects until your next turn starts, then wears off', () =>
 });
 
 test('stun makes an enemy skip its turn', () => {
-    const g = newGame(7).do('warrior', 'e', 'engage');
-    g.player.skills.push('Shield Bash');
+    const g = newGame(7).do('warrior', 'add_xp 250', 'vanguard', 'e', 'engage');
+    g.player.resource.current = 3;
     g.player.hp = g.player.maxHp = 999;
     g.do('shield bash 3'); // the Drunken Shade (30 HP) survives the hit
     assert.match(g.text(), /is stunned!/);
     assert.match(g.text(), /unable to act this turn/);
+});
+
+test('QA-2: Shield Bash Oath gate, no payment, recovery exclusion', () => {
+    const g = newGame(7).do('warrior', 'add_xp 250', 'vanguard', 'e', 'engage');
+    const foe = g.combat.enemies[2];
+    const bash = g.playerSkill('Shield Bash');
+    g.player.resource.current = 2;
+    g.castSkill(g.player, bash, [foe]);
+    assert.ok(!g.findStatus(foe, 'Stun'), 'below threshold');
+    g.player.resource.current = 3;
+    g.castSkill(g.player, bash, [foe]);
+    assert.ok(g.findStatus(foe, 'Stun'), 'exactly three can stun');
+    assert.strictEqual(g.player.resource.current, 3, 'no cost for threshold');
+    assert.strictEqual(foe.shieldBashRecovery, 'await_skip');
+    g.removeStatus(foe, g.findStatus(foe, 'Stun'));
+    g.castSkill(g.player, bash, [foe]);
+    assert.ok(!g.findStatus(foe, 'Stun'), 'blocked before recovery');
+    foe.shieldBashRecovery = 'await_recovery';
+    g.castSkill(g.player, bash, [foe]);
+    assert.ok(!g.findStatus(foe, 'Stun'), 'blocked during recovery');
+    foe.shieldBashRecovery = null;
+    g.castSkill(g.player, bash, [foe]);
+    assert.ok(g.findStatus(foe, 'Stun'), 'eligible after recovery');
 });
 
 test('multi-hit skills hit the right number of times', () => {
