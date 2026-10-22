@@ -675,11 +675,11 @@
             'Blind':            { category: 'debuff',  control: null, crGain: null },
             // --- marks
             'Pin':              { category: 'mark', control: null, crGain: null },
-            'Expose':           { category: 'mark' },
+            'Expose':           { category: 'mark', expiry: { type: 'applier_turns' } },             // QA-1 (approved Option A)
             'Weaken':           { category: 'mark' },
-            'Marked for Death': { category: 'mark' },
+            'Marked for Death': { category: 'mark', expiry: { type: 'applier_turns', consumeOn: 'positive_allied_hit' } }, // QA-1
             // --- buffs
-            'Guard':            { category: 'buff' },
+            'Guard':            { category: 'buff', expiry: { type: 'holder_next_turn_start' } },   // QA-1
             'Bone Wall':        { category: 'buff' },
             'Evasion':          { category: 'buff' },
             'Mirror Image':     { category: 'buff' },

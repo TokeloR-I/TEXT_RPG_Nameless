@@ -433,6 +433,7 @@
                     c.idx++;
                     continue;
                 }
+                this.beginNormalTurn(actor);
                 if (actor.isPlayer) {
                     c.hpHistory.push(actor.hp);
                     this.detonateBombs();
@@ -444,6 +445,7 @@
                 }
                 this.say(`--- ${actor.name}'s Turn! ---`, { important: true });
                 if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
+                this.endNormalTurn(actor);
                 c.idx++;
             }
         }
@@ -451,6 +453,7 @@
         /** Start of a turn: traps, DoT ticks, statuses become effective. Returns true if the turn is skipped.
          *  Durations are NOT reduced here — they tick once per completed round (see statuses.js). */
         startTurn(actor) {
+            this.expireAtTurnStart(actor); // QA-1: Guard ends as the next scheduled turn begins, even if skipped
             if (!actor.isPlayer && !actor.isMinion) this.springTrap(actor);
             this.tickDots(actor);
             if (actor.hp <= 0) return true;
@@ -515,7 +518,7 @@
             let mult = 1;
             for (const m of this.marksOn(target)) {
                 if (m.name === 'Expose') mult *= 1 + this.intensity(m);
-                if (m.name === 'Marked for Death') { mult *= 1 + this.intensity(m); hit.consumeMarks.push(m); }
+                if (m.name === 'Marked for Death' && this.markEligible(attacker, m)) { mult *= 1 + this.intensity(m); hit.consumeMarks.push(m); }
             }
             for (const m of this.marksOn(attacker)) {
                 if (m.name === 'Weaken') mult *= 1 - Math.min(0.9, this.intensity(m));
@@ -678,6 +681,7 @@
                 c.awaitingPlayer = false;
                 if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
                 c.playerActedThisRound = true;
+                this.endNormalTurn(p);
                 c.idx++;
                 this.advance();
                 return;
@@ -755,6 +759,7 @@
                 return;
             }
             c.extraTurn = false;
+            this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
             c.idx++;
             this.advance();
         }
@@ -933,9 +938,11 @@
             }
             final *= this.markModifiers(attacker, target, hit);
             hit.damage = Math.max(0, Math.floor(final));
-            if (hit.consumeMarks.length) {
+            // QA-1: consume only on positive final damage (after armor and defenses).
+            // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.
+            if (hit.consumeMarks.length && hit.damage > 0) {
                 target.statusEffects = target.statusEffects.filter((s) => !hit.consumeMarks.includes(s));
-                if (hit.damage > 0) this.say(`[${hit.consumeMarks.map((m) => m.name).join(', ')}] is consumed!`);
+                this.say(`[${hit.consumeMarks.map((m) => m.name).join(', ')}] is consumed!`);
             }
             return hit;
         }
