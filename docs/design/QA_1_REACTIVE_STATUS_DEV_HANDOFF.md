@@ -34,7 +34,8 @@ Correct the opportunity/expiry semantics of **only** Marked for Death, Expose (E
 - Keep a status's actor identity and opportunity bookkeeping serializable through existing snapshot/restore; do not create UI-side timing state.
 - Don't use a catch-all `holder turn` change that breaks DoTs, Infection (2/tick, max 3 stacks, 3 turns), hard controls, Control Resistance, or reaction refresh.
 - An existing `markModifiers` / damage path appears to remove marks before checking whether final damage is positive; verify this, then enforce actual consumption only on qualifying damage.
-- If death of an applier causes uncertainty about how active opportunities terminate mid-fight, surface a specific proposed rule to Vaelis/Creative Director; do not invent one.
+- **Approved applier-death rule:** when the owner/applier of Marked for Death or Expose dies during combat, keep that mark active until **the end of that same combat round**. At round end remove the orphaned mark even if the original applier's next actionable turn never occurred. Marked for Death may be consumed normally before the boundary; other eligible attacks still benefit from Expose before the boundary. This is not immediate death cleanup and not permanent persistence. If revived in the same round, the pending round-end expiry is not canceled. Retain normal combat-end cleanup. No change to other status families.
+- **Shield Discipline is a separate gap, not part of QA-1 scope:** Wren identified that Vanguard's pre-existing +35% Guard trait is currently description-only. Base Guard remains 25% in the currently implemented code. Record/track the missing Vanguard behavior independently; do not implement it as an unrequested QA-1 scope expansion.
 
 ### Deterministic test matrix (after authorization)
 
@@ -49,7 +50,7 @@ Correct the opportunity/expiry semantics of **only** Marked for Death, Expose (E
 9. **Guard multiple attacks:** all hits in the protected window reduced; nothing after window.
 10. **Haste:** extra turns do not tick/expire any of the three policies early.
 11. **Stun:** skipped applier turns don't burn Marked/Expose windows; Guard expires on defender's next scheduled turn even if skipped.
-12. **Refresh, cleanse, death, victory:** refreshing resets single instance and full window; cleanse removes immediately; end-of-combat cleanup unchanged.
+12. **Refresh, cleanse, death, victory:** refreshing resets single instance and full window; cleanse removes immediately; end-of-combat cleanup unchanged. When a mark applier dies mid-round, verify Marked for Death and Expose remain beneficial until that round ends, then disappear before any action next round. Verify a first positive-damage allied hit may consume Marked for Death before that expiry, and same-round revival does not cancel expiry.
 13. **Regressions:** unchanged DoT/Poison/Infection tick counts regardless of speed; approved round-based invariant tests and seeded status-engine suites remain green.
 14. **State restoration:** snapshot and replay mid-window preserve deterministic expiry and consumption.
 
