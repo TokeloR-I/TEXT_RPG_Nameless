@@ -69,7 +69,8 @@ quiet(() => {
     // regression guard: a damaging permanent stun must still end in a normal defeat
     const d2 = copy(); d2.enemies.crow_touched_warden.skills = [{ name: 'Chain Lock', base_damage: [12, 12], effects: [{ type: 'stun', duration: 1 }] }];
     const g2 = make(1, d2); g2.input('warrior'); g2.currentRoom = 'wardens_roost';
-    const out2 = T(g2.input('engage'));
+    let out2 = T(g2.input('engage'));
+    for (let i = 0; i < 200 && g2.mode === 'combat'; i++) out2 += T(g2.input('guard')); // stunned turns now pause for input (PR #6)
     report('QA-5b', g2.mode === 'game_over' && !/ran away/.test(out2) ? 'OK' : 'REGRESSED', `damaging permanent stun ends in a normal defeat (mode=${g2.mode})`);
 });
 
