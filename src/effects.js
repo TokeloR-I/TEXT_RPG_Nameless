@@ -189,6 +189,60 @@
         apply(ctx) { applyDot(ctx, 'Bleed', ctx.effect.value, ctx.effect.duration); }
     });
 
+    // Soulbinder N-3/N-4: status-backed memberships and drain snapshots.
+    register('link_targets', {
+        requires(ctx) {
+            const count = ctx.engine.hasTrait('Wound Transfer') ? 3 : ctx.effect.count;
+            const live = ctx.targets.filter(t => t && t.hp > 0 && !t.erased);
+            if (live.length < 2 || new Set(live.map(t => t.id)).size !== live.length)
+                return 'Soul Chain needs at least two different living enemies.';
+            if (live.length !== count && !(count === 3 && live.length === 2 &&
+                ctx.engine.alive(ctx.engine.combat.enemies).length === 2))
+                return 'Select the required number of distinct enemies for Soul Chain.';
+            return null;
+        },
+        apply(ctx) {
+            const e = ctx.engine;
+            const previous = e.combat.enemies.filter(t =>
+                t.statusEffects.some(s => s.type === 'soul_link' && s.appliedBy === ctx.caster.id));
+            for (const t of previous) {
+                t.statusEffects = t.statusEffects.filter(s =>
+                    !(s.type === 'soul_link' && s.appliedBy === ctx.caster.id));
+            }
+            const group = ++e.combat.nextSoulLinkId;
+            const duration = 2 + (ctx.caster.isPlayer && e.hasTrait('Binding Will') ? 1 : 0);
+            for (const t of ctx.targets) e.applyStatus(ctx.caster, t, {
+                name: 'Soul Chain', type: 'soul_link', duration, linkGroup: group
+            });
+            e.say(`Soul Chain binds ${ctx.targets.map(t => t.name).join(' and ')}!`);
+        }
+    });
+
+    register('drain_hp_from_linked', {
+        requires(ctx) {
+            return ctx.engine.activeSoulLinks(ctx.caster).length
+                ? null : 'Soul Feast requires living linked enemies.';
+        },
+        apply(ctx) {
+            const e = ctx.engine;
+            const links = e.activeSoulLinks(ctx.caster);
+            for (const t of e.combat.enemies) {
+                t.statusEffects = t.statusEffects.filter(s =>
+                    !(s.type === 'soul_feast' && s.appliedBy === ctx.caster.id));
+            }
+            for (const t of links) {
+                const link = t.statusEffects.find(s =>
+                    s.type === 'soul_link' && s.appliedBy === ctx.caster.id);
+                e.applyStatus(ctx.caster, t, {
+                    name: 'Soul Feast', type: 'soul_feast', category: 'dot',
+                    duration: ctx.effect.duration, value: ctx.effect.value,
+                    linkGroup: link.linkGroup
+                });
+            }
+            e.say(`Soul Feast begins draining ${links.length} linked enemies.`);
+        }
+    });
+
     register('dot', {
         apply(ctx) {
             const type = ctx.effect.dot_type || 'damage';
