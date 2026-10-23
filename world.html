@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enso's Last Stand — The Forgotten Homestead</title>
+    <link rel="stylesheet" href="world.css">
+</head>
+<body>
+    <main class="world-shell">
+        <div class="world-stage" id="world-stage">
+            <canvas id="world-canvas" width="640" height="448" aria-label="Game world"></canvas>
+            <div id="hud" class="hud" hidden></div>
+            <div id="banner" class="banner" hidden></div>
+            <div id="dialog" class="dialog" role="dialog" aria-live="polite" hidden></div>
+            <div id="pause" class="panel" role="dialog" aria-label="Pause menu" hidden></div>
+            <div id="title" class="title-screen"></div>
+            <pre id="problems" class="problems" hidden></pre>
+        </div>
+        <p class="world-help">Arrow keys or WASD to walk · E / Enter to interact · Esc for the menu · <a href="index.html">classic text version</a></p>
+    </main>
+    <!-- Engine (no DOM) -->
+    <script src="src/data.js"></script>
+    <script src="src/effects.js"></script>
+    <script src="src/statuses.js"></script>
+    <script src="src/engine/util.js"></script>
+    <script src="src/engine/exploration.js"></script>
+    <script src="src/engine/combat.js"></script>
+    <script src="src/engine/combat-input.js"></script>
+    <script src="src/engine/skills.js"></script>
+    <script src="src/engine/progression.js"></script>
+    <script src="src/engine.js"></script>
+    <!-- World (no DOM) -->
+    <script src="src/world/world.js"></script>
+    <script src="src/world/zone1.js"></script>
+    <!-- Front end -->
+    <script src="ui/world-render.js"></script>
+    <script src="ui/world-ui.js"></script>
+</body>
+</html>

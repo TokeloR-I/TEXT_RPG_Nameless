@@ -1,0 +1,101 @@
+/* Enso's Last Stand — graphical world front end (world.html) */
+:root {
+    --ink: #e8e1cf;
+    --ink-dim: #a49c8a;
+    --panel: rgba(14, 13, 18, 0.92);
+    --edge: #6d6250;
+    --accent: #9fe8cf;        /* the glow in your hands */
+    --hp: #b9483a;
+    --res: #4f7fb8;
+    --bg: #07070a;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+body {
+    font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'Liberation Mono', monospace;
+    display: flex; align-items: center; justify-content: center;
+}
+.world-shell { width: min(100vw - 32px, 1120px); }
+.world-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 640 / 448;
+    container-type: inline-size;
+    border: 2px solid #2a2620;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    background: #000;
+}
+#world-canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.world-help { color: var(--ink-dim); font-size: 13px; text-align: center; margin: 10px 0 0; }
+.world-help a { color: var(--accent); }
+
+/* ---------- HUD ---------- */
+.hud {
+    position: absolute; top: 2cqw; left: 2cqw;
+    background: var(--panel); border: 1px solid var(--edge); padding: 1cqw 1.4cqw;
+    font-size: clamp(10px, 1.7cqw, 16px); min-width: 26cqw;
+}
+.hud-name { font-weight: bold; margin-bottom: 0.4em; }
+.hud-name span { color: var(--ink-dim); font-weight: normal; margin-left: 0.5em; }
+.hud-row { display: flex; align-items: center; gap: 0.6em; white-space: nowrap; }
+.hud-row + .hud-row { margin-top: 0.25em; }
+.bar { flex: 1; height: 0.6em; background: #26232b; border: 1px solid #3a3540; min-width: 6em; }
+.bar > span { display: block; height: 100%; }
+.bar.hp > span { background: var(--hp); }
+.bar.res > span { background: var(--res); }
+.bar.enemy > span { background: #8f6a3a; }
+
+/* ---------- map name banner ---------- */
+.banner {
+    position: absolute; top: 4cqw; left: 50%; transform: translateX(-50%);
+    font-size: clamp(14px, 2.8cqw, 26px); letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink); text-shadow: 0 2px 8px #000; pointer-events: none; opacity: 0;
+}
+.banner.show { animation: banner 2.6s ease forwards; }
+@keyframes banner { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---------- dialog box ---------- */
+.dialog {
+    position: absolute; left: 3cqw; right: 3cqw; bottom: 3cqw;
+    background: var(--panel); border: 2px solid var(--edge); padding: 1.8cqw 2.2cqw 2.4cqw;
+    font-size: clamp(12px, 2.1cqw, 20px); line-height: 1.5;
+}
+.dialog-title { color: var(--accent); font-weight: bold; margin-bottom: 0.3em; }
+.dialog-more { position: absolute; right: 1.6cqw; bottom: 0.8cqw; color: var(--ink-dim); animation: blink 1.1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- panels (pause) ---------- */
+.panel {
+    position: absolute; inset: 6cqw 14cqw; overflow: auto;
+    background: var(--panel); border: 2px solid var(--edge); padding: 2cqw 3cqw;
+    font-size: clamp(11px, 1.8cqw, 17px); line-height: 1.45;
+}
+.panel h2 { margin: 0 0 0.6em; letter-spacing: 0.15em; text-transform: uppercase; font-size: 1.3em; }
+.panel h3 { margin: 0.8em 0 0.2em; color: var(--accent); font-size: 1em; }
+.panel p { margin: 0.15em 0; }
+.keys { color: var(--ink-dim); margin-top: 1em !important; }
+
+/* ---------- title screen ---------- */
+.title-screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(8, 8, 12, 0.55), rgba(4, 4, 6, 0.92));
+    font-size: clamp(11px, 1.8cqw, 17px); text-align: center; padding: 2cqw;
+}
+.title-screen h1 { margin: 0; font-size: 3.2em; letter-spacing: 0.08em; font-weight: normal; text-shadow: 0 0 18px rgba(159, 232, 207, 0.35); }
+.subtitle { color: var(--accent); letter-spacing: 0.3em; text-transform: uppercase; margin: 0.4em 0 1.6em; }
+.prompt { color: var(--ink-dim); margin: 0 0 0.8em; }
+.class-list { list-style: none; margin: 0; padding: 0; width: min(100%, 62cqw); text-align: left; }
+.class-list li { padding: 0.55em 0.9em; border: 1px solid transparent; cursor: pointer; display: flex; flex-direction: column; }
+.class-list li.selected { border-color: var(--edge); background: rgba(159, 232, 207, 0.07); }
+.class-list li.selected .cls-name::before { content: '▶ '; color: var(--accent); }
+.cls-name { font-weight: bold; }
+.cls-desc { color: var(--ink-dim); font-size: 0.85em; }
+
+.problems { position: absolute; inset: 0; margin: 0; padding: 2cqw; background: #2a0d0d; color: #ffd0c8; font-size: 12px; overflow: auto; white-space: pre-wrap; }
+
+@media (prefers-reduced-motion: reduce) {
+    .banner.show { animation: none; opacity: 1; }
+    .dialog-more { animation: none; }
+}

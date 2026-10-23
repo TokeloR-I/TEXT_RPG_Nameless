@@ -24,4 +24,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: EnsosLastStand-playable
-          path: dist/EnsosLastStand.html
+          path: dist/*.html
