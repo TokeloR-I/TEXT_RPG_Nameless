@@ -295,7 +295,10 @@
             const p = this.player;
             if (target.isPlayer) return;
             this.say(`${target.name} has been defeated!`);
-            if (target.isMinion) return;
+            if (target.isMinion) {
+                target.fallenOrder = ++this.combat.nextFallenOrder;
+                return;
+            }
             // QA-6: credit each enemy once, even if it comes back after you flee (whether it should come
             // back is a pending design question; this only fixes the count).
             if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {
