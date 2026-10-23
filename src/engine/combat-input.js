@@ -82,7 +82,9 @@
             const targets = this.pickTargets(skill, targetNum);
             if (!targets) {
                 const living = this.alive(c.enemies);
-                this.combatError(`Invalid target selection. Select distinct enemies by number (e.g. 'soul chain 1,2' or 'soul chain 1,2,3').`, null);
+                this.combatError(skill.target === 'enemy_multiple'
+                    ? "Invalid target selection. Choose distinct enemies (e.g. 'soul chain 1,2' or 'soul chain 1,2,3')."
+                    : `Invalid target '${targetNum || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
                 return;
             }
             for (const effect of skill.effects || []) {
