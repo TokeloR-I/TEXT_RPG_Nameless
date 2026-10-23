@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENSO's Last Stand — UX Systems Preview</title>
+<script src="../src/data.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#08090d;--surface:#15151c;--surface2:#20202a;--line:#716b59;--ink:#eee4cf;--muted:#c1b69d;--accent:#9fe8cf;--danger:#e89d85}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -15%,#29302b,#08090d 65%);color:var(--ink);font:15px/1.5 ui-monospace,Consolas,monospace}
+button,input{font:inherit}button{cursor:pointer;color:inherit}button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.shell{max-width:1120px;margin:auto;padding:24px 16px 48px}.eyebrow{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--line);padding-bottom:14px}.top h1{font:normal clamp(22px,4vw,36px)/1.15 Georgia,serif;margin:5px 0}.tag{font-size:11px;border:1px solid #8c7255;padding:6px 10px;color:#eacb93;max-width:250px;text-align:center}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}nav button,.choice,.button{background:var(--surface);border:1px solid #615d56;padding:11px 14px;text-align:left}nav button[aria-current=page],.choice[aria-pressed=true],.button.primary{border-color:var(--accent);box-shadow:inset 3px 0 var(--accent);background:#20302c}nav button:hover,.choice:hover,.button:hover{border-color:var(--accent)}.button:disabled{cursor:not-allowed;opacity:.55}.panel{border:1px solid var(--line);background:linear-gradient(145deg,#1a1921,#0e1016);padding:clamp(16px,3vw,28px)}.screen{display:none}.screen.active{display:block}.screen h2{font:normal clamp(23px,4vw,31px) Georgia,serif;margin:0 0 8px}.intro{color:var(--muted);margin:0 0 22px;max-width:700px}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.85fr);gap:18px}.stack{display:grid;gap:10px}.subpanel{background:var(--surface);border:1px solid #45433e;padding:16px;min-width:0}.subpanel h3{margin:0 0 10px;font-size:16px}.small{font-size:12px;color:var(--muted)}.choice{width:100%;display:block}.choice strong{display:block;color:var(--ink);font-size:16px}.choice span{display:block;font-size:12px;color:var(--muted);margin-top:3px}.field{display:grid;gap:6px;margin-bottom:12px}.field input{background:#0c0d12;border:1px solid var(--line);padding:12px;color:var(--ink);width:100%}canvas{width:100%;max-width:260px;image-rendering:pixelated;background:#171a23;border:1px solid var(--line);display:block;margin:auto}.avatar-control{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}.button{display:inline-block}.button.primary{margin-top:14px}.displayline{padding:10px 0;border-bottom:1px solid #45433e;display:flex;justify-content:space-between;gap:12px}.displayline:last-child{border:0}.muted{color:var(--muted)}.quest{border-left:3px solid #645f53;padding:12px 14px;background:#171720}.quest.active{border-left-color:var(--accent)}.quest p{margin:4px 0 8px;font-size:13px}.quest button{border:0;background:none;color:var(--accent);padding:2px 0;text-decoration:underline}.steps{margin:9px 0 0;padding-left:19px;font-size:12px;color:var(--muted)}.equipment{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.slot{padding:10px;border:1px dashed #77705f;min-height:84px}.slot strong,.slot span{display:block}.slot strong{color:var(--accent);font-size:12px}.slot span{margin-top:7px}.stat{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #393841}.gain{color:var(--accent)}.loss{color:var(--danger)}.merchant{background:linear-gradient(130deg,#322b25,#17171e);padding:17px;border:1px solid #796954;margin-bottom:13px}.merchant strong{font-family:Georgia,serif;font-size:21px}.merchant p{margin:8px 0 0}.price{color:#eacb93}.board-card{border:1px solid #5b5449;padding:14px;background:#201d1d}.board-card h3{margin:0 0 6px}.board-card progress{width:100%;height:12px;accent-color:var(--accent)}.note{color:#d6bd90;border-top:1px dashed #675943;padding-top:14px;margin-top:24px;font-size:12px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(max-width:680px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.shell{padding:14px 10px}.equipment{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top"><div><div class="eyebrow">ENSO Studios · Player experience</div><h1>Interfaces of the Last Stand</h1></div><div class="tag">INTERACTIVE UX PREVIEW — NOT LIVE GAMEPLAY</div></header>
+<nav aria-label="Preview screens">
+<button data-tab="creator" aria-current="page">01 Character</button>
+<button data-tab="journal">02 Journal</button>
+<button data-tab="inventory">03 Equipment</button>
+<button data-tab="village">04 Village</button>
+</nav>
+<main>
+<section id="creator" class="screen active panel" aria-label="Character creator">
+<h2>Who wakes beneath the crows?</h2><p class="intro">Choose a calling and a face. The portrait uses simple pixel shapes, matching the current Canvas world rather than introducing unsupported character art.</p>
+<div class="grid"><div><label class="field">Character name<input id="hero-name" maxlength="24" value="The Wanderer"></label><h3>Starting class</h3><div id="class-options" class="stack"></div><p id="class-lore" class="small"></p></div>
+<div class="subpanel"><h3>Appearance preview</h3><canvas id="portrait" width="160" height="192" role="img" aria-label="Pixel-art character preview"></canvas><div class="avatar-control"><button class="button" id="prev-look">◀ Palette</button><button class="button" id="next-look">Palette ▶</button></div><div class="displayline"><span>Current look</span><span id="look-label">1 / 4</span></div><div class="displayline"><span>Calling</span><span id="class-label">Warrior</span></div><button class="button primary" id="confirm-hero">Preview this character</button><p id="hero-feedback" aria-live="polite" class="small">No character has been created in the game engine.</p></div></div>
+</section>
+<section id="journal" class="screen panel" aria-label="Objective journal"><h2>The Road Remembers</h2><p class="intro">A quest journal organized around immediate objectives, discovered clues, and completed tasks. These sample entries illustrate the interaction pattern; no quest system is wired yet.</p>
+<div class="grid"><div class="stack" id="quest-list"></div><aside class="subpanel"><h3 id="quest-title">Select an objective</h3><p id="quest-description" class="muted"></p><h4>Known steps</h4><ol class="steps" id="quest-steps"></ol><div class="displayline"><span>Tracking</span><span id="quest-track">None</span></div></aside></div></section>
+<section id="inventory" class="screen panel" aria-label="Equipment and inventory"><h2>What you carry</h2><p class="intro">Compare possible equipment and browse consumables without changing the actual player's stats. Items and values in this equipment preview are illustrative until approved item and slot data exist.</p>
+<div class="grid"><div><div class="subpanel"><h3>Equipped</h3><div class="equipment"><div class="slot"><strong>MAIN HAND</strong><span id="equip-main">Rusty Sword</span></div><div class="slot"><strong>OFF HAND</strong><span>Wooden Shield</span></div><div class="slot"><strong>ARMOUR</strong><span>Worn Tunic</span></div><div class="slot"><strong>TRINKET</strong><span>Empty</span></div></div></div><h3>Inventory</h3><div id="inventory-list" class="stack"></div></div><aside class="subpanel"><h3>Compare equipment</h3><div id="compare-title" class="displayline">Choose a weapon to compare</div><div id="compare-stats"></div><button id="equip-preview" class="button primary" disabled>Try equipment in preview</button><p class="small">Preview-only changes are reset when this page reloads.</p></aside></div></section>
+<section id="village" class="screen panel" aria-label="Village services"><h2>Life among the survivors</h2><p class="intro">Two distinct interaction patterns: conversations and prices in a merchant dialog; requirements, progress and blockers on the construction board. No purchases or construction are applied to game state.</p>
+<div class="grid"><div><div class="merchant"><strong>Mara · Village Trader</strong><p id="merchant-dialog">“Supplies are scarce. Look closely before you part with anything.”</p></div><h3>Trader's wares <span class="small">(sample stock)</span></h3><div id="wares" class="stack"></div><p class="small" id="shop-feedback" aria-live="polite">Preview wallet: 32 crowns (sample currency).</p></div>
+<aside><div class="subpanel"><h3>Construction board</h3><div id="projects" class="stack"></div><p class="small" id="board-feedback" aria-live="polite">Projects are read-only prototypes; no resources will be deducted.</p></div></aside></div></section>
+</main>
+<p class="note">Prototype boundary: sample quests, crowns, equipment ratings, and projects demonstrate UX only. No save data, transactions, combat values, or world flags are modified. Gameplay implementation requires approved systems and engine contracts.</p>
+</div>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const tabs=[...document.querySelectorAll('[data-tab]')];
+function tab(id){for(const b of tabs)b.setAttribute('aria-current',b.dataset.tab===id?'page':'false');for(const s of document.querySelectorAll('.screen'))s.classList.toggle('active',s.id===id);}
+tabs.forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
+const fallback={warrior:{name:'Warrior',description:'A resilient fighter'},mage:{name:'Mage',description:'A student of hidden arts'},rogue:{name:'Rogue',description:'A cunning survivor'},necromancer:{name:'Necromancer',description:'A seeker of forbidden power'}};
+const classes=(window.ENSO&&ENSO.data&&ENSO.data.basePlayerClasses)||fallback;
+const classKeys=Object.keys(classes);let chosen=classKeys[0],look=0;
+const colors=['#ac8068','#e0b99a','#75594e','#cc967d'];
+function portrait(){
+ const g=$('portrait').getContext('2d');g.clearRect(0,0,160,192);g.fillStyle='#181c26';g.fillRect(0,0,160,192);
+ const blocks=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+ blocks(48,153,64,32,'#313239');blocks(64,45,32,13,'#151419');
+ blocks(58,62,44,51,colors[look]);blocks(55,58,50,15,'#201c24');
+ blocks(64,78,8,5,'#11151b');blocks(88,78,8,5,'#11151b');
+ const cloth={warrior:'#934c3b',mage:'#3d6094',rogue:'#47764e',necromancer:'#6e4a87'}[chosen]||'#766252';
+ blocks(49,114,62,48,cloth);blocks(39,124,12,32,cloth);blocks(109,124,12,32,cloth);
+ blocks(72,115,16,42,'#241f29');blocks(69,157,22,6,'#a48b69');
+ if(chosen==='warrior'){blocks(22,114,6,60,'#9a9da3');blocks(18,115,14,7,'#9a9da3')}
+ if(chosen==='mage'){blocks(117,83,6,82,'#806c50');blocks(113,80,14,9,'#9fe8cf')}
+ if(chosen==='rogue'){blocks(116,131,5,39,'#d4d8ce')}
+ if(chosen==='necromancer'){blocks(72,117,16,12,'#9fe8cf')}
+}
+for(const key of classKeys){const d=classes[key];const b=document.createElement('button');b.className='choice';b.type='button';b.dataset.class=key;const h=document.createElement('strong');h.textContent=d.name||key;const sub=document.createElement('span');sub.textContent=d.description||'';b.append(h,sub);b.addEventListener('click',()=>{chosen=key;renderClass()});$('class-options').append(b)}
+function renderClass(){for(const b of document.querySelectorAll('[data-class]'))b.setAttribute('aria-pressed',String(b.dataset.class===chosen));$('class-label').textContent=classes[chosen].name||chosen;$('class-lore').textContent=classes[chosen].lore?.identity||'';portrait()}
+$('prev-look').onclick=()=>{look=(look+3)%4;$('look-label').textContent=(look+1)+' / 4';portrait()};
+$('next-look').onclick=()=>{look=(look+1)%4;$('look-label').textContent=(look+1)+' / 4';portrait()};
+$('confirm-hero').onclick=()=>{$('hero-feedback').textContent='Preview: '+($('hero-name').value.trim()||'Unnamed')+' · '+classes[chosen].name+' · appearance '+(look+1)+'. Game engine unchanged.'};renderClass();
+const quests=[{title:'A Voice in the Ruins',status:'Active',desc:'The cellar holds signs of someone who survived the night.',steps:['Investigate the marks on the wall','Find a way beyond the homestead']},{title:'The Road to the Village',status:'Untracked',desc:'The path may lead toward safety, or something worse.',steps:['Reach the old road','Discover who guards the crossing']},{title:'A Crow at the Window',status:'Completed (example)',desc:'A remembered omen from the first night.',steps:['Observe the crow','Record its warning']}];let tracked=0;
+function renderQuests(){const list=$('quest-list');list.replaceChildren();quests.forEach((q,i)=>{const el=document.createElement('div');el.className='quest '+(i===tracked?'active':'');const title=document.createElement('strong');title.textContent=q.title;const p=document.createElement('p');p.textContent=q.status;const b=document.createElement('button');b.textContent=i===tracked?'Currently tracked':'Track objective';b.onclick=()=>{tracked=i;renderQuests()};el.append(title,p,b);list.append(el)});const q=quests[tracked];$('quest-title').textContent=q.title;$('quest-description').textContent=q.desc;$('quest-track').textContent=q.title;$('quest-steps').replaceChildren(...q.steps.map(t=>{const li=document.createElement('li');li.textContent=t;return li}))}renderQuests();
+const weapons=[{name:'Rusty Sword',attack:3,defense:0},{name:'Iron Cleaver',attack:6,defense:-1},{name:'Ash Staff',attack:2,defense:2}];let equipped=weapons[0],candidate=null;
+function renderInventory(){const list=$('inventory-list');list.replaceChildren();for(const weapon of weapons){const b=document.createElement('button');b.className='choice';b.textContent=weapon.name;b.onclick=()=>{candidate=weapon;renderCompare()};list.append(b)}const label=document.createElement('p');label.className='small';label.textContent='Bandages ×2 · Healing Herb Bundle ×1 (consumable examples)';list.append(label)}
+function renderCompare(){if(!candidate)return;$('compare-title').textContent=candidate.name+' versus '+equipped.name;const stats=$('compare-stats');stats.replaceChildren();for(const key of ['attack','defense']){const div=document.createElement('div');div.className='stat';const delta=candidate[key]-equipped[key];const a=document.createElement('span');a.textContent=key.toUpperCase();const b=document.createElement('span');b.className=delta>0?'gain':delta<0?'loss':'';b.textContent=equipped[key]+' → '+candidate[key]+' ('+(delta>=0?'+':'')+delta+')';div.append(a,b);stats.append(div)}$('equip-preview').disabled=false}
+$('equip-preview').onclick=()=>{if(!candidate)return;equipped=candidate;$('equip-main').textContent=equipped.name;renderCompare()};renderInventory();
+const wares=[['Bandages',6],['Healing Herb Bundle',12],['Iron Cleaver',25]];const waresEl=$('wares');for(const [name,price] of wares){const b=document.createElement('button');b.className='choice';const strong=document.createElement('strong');strong.textContent=name;const span=document.createElement('span');span.textContent=price+' crowns · inspect';b.append(strong,span);b.onclick=()=>{$('merchant-dialog').textContent='“'+name+'? That will be '+price+' crowns. Trade is not yet connected to the game.”';$('shop-feedback').textContent='Preview only — no currency deducted, no item awarded.'};waresEl.append(b)}
+const projects=[{name:'Repair the Well',done:1,total:3,needs:'Timber ×4 · Stone ×6'},{name:'Rebuild the Watch Post',done:0,total:4,needs:'Timber ×8 · Iron ×3'}];for(const p of projects){const el=document.createElement('div');el.className='board-card';const h=document.createElement('h3');h.textContent=p.name;const progress=document.createElement('progress');progress.max=p.total;progress.value=p.done;progress.setAttribute('aria-label',p.name+' progress');const detail=document.createElement('p');detail.className='small';detail.textContent=p.done+' / '+p.total+' stages · Needs: '+p.needs;const b=document.createElement('button');b.className='button';b.textContent='View requirements';b.onclick=()=>{$('board-feedback').textContent=p.name+': '+p.needs+'. Construction actions are unavailable until a game system exists.'};el.append(h,progress,detail,b);$('projects').append(el)}
+})();
+</script>
+</body>
+</html>
