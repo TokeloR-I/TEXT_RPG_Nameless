@@ -84,23 +84,27 @@ check('f', 'Burst = current tick damage x multiplier (with Harbinger +2 in the t
     return { ok: hp - t.hp === 12, note: `burst ${hp - t.hp} (expected floor(8*1.5)=12)` };
 });
 
-check('g', 'CR off by default (20 stuns on the boss all land)', () => {
+// [g]-[j] verified the original CR model of STATUS_ENGINE_REPORT §6 (threshold/immunity/recovery, off by default).
+// Vaelis Package 2 (PR #80) replaced that model; on an engine that has it, these claims are retired and the new
+// model is checked by qa/scripts/cr_package2.js. On an older engine they still run as before.
+const retired = (fn) => () => { const probe = game(1); return typeof probe.crRules === 'function' ? { ok: true, note: 'RETIRED: Package 2 CR model present; see qa/scripts/cr_package2.js' } : fn(); };
+check('g', 'CR off by default (20 stuns on the boss all land)', retired(() => {
     const g = game(17).do('warrior'); g.currentRoom = 'wardens_roost'; g.do('engage');
     const b = g.combat.enemies[0]; let landed = 0;
     for (let i = 0; i < 20; i++) if (g.applyStatus(g.player, b, { name: 'Stun', type: 'skip_turn', duration: 1 })) landed++;
     return { ok: landed === 20 && !b.cr };
-});
+}));
 
-check('h', 'The control that reaches EXACTLY 100 still succeeds; the next is resisted', () => {
+check('h', 'The control that reaches EXACTLY 100 still succeeds; the next is resisted', retired(() => {
     const g = hallway(18, (d) => CR(d, { gain: 50 }), 'rogue', 'assassin');
     const t = g.combat.enemies[0];
     const s1 = !!g.applyStatus(g.player, t, { name: 'Silence', type: 'silence', duration: 1 });
     const s2 = !!g.applyStatus(g.player, t, { name: 'Stun', type: 'skip_turn', duration: 1 }); // 100 exactly, different hard control
     const s3 = !!g.applyStatus(g.player, t, { name: 'Silence', type: 'silence', duration: 1 });
     return { ok: s1 && s2 && !s3 && t.cr.value === 100, note: `results ${s1}/${s2}/${s3}, CR ${t.cr.value}; CR is shared across hard-control types` };
-});
+}));
 
-check('i', 'Gradual recovery; immunity ends only BELOW the release threshold (boundary value = still immune)', () => {
+check('i', 'Gradual recovery; immunity ends only BELOW the release threshold (boundary value = still immune)', retired(() => {
     const g = hallway(19, (d) => CR(d, { gain: 50, rec: 25, rel: 50 }));
     const t = g.combat.enemies[0];
     g.applyStatus(g.player, t, { name: 'Stun', type: 'skip_turn', duration: 1 });
@@ -108,15 +112,15 @@ check('i', 'Gradual recovery; immunity ends only BELOW the release threshold (bo
     const trace = [];
     for (let i = 0; i < 3; i++) { g.tickStatusesEndOfRound(); trace.push(`${t.cr.value}${t.cr.immune ? 'I' : ''}`); }
     return { ok: trace.join(',') === '75I,50I,25', note: `CR after each round: ${trace.join(', ')} (I = immune)` };
-});
+}));
 
-check('j', "Boss's first control lands even when one application alone exceeds 100", () => {
+check('j', "Boss's first control lands even when one application alone exceeds 100", retired(() => {
     const g = game(20, (d) => CR(d, { gain: 100, boss: 3 })).do('warrior'); g.currentRoom = 'wardens_roost'; g.do('engage');
     const b = g.combat.enemies[0];
     const first = !!g.applyStatus(g.player, b, { name: 'Stun', type: 'skip_turn', duration: 1 });
     const second = !!g.applyStatus(g.player, b, { name: 'Stun', type: 'skip_turn', duration: 1 });
     return { ok: first && !second && b.cr.value === 300, note: `first ${first}, second ${second}, CR ${b.cr.value}` };
-});
+}));
 
 check('k', 'Soft control and DoTs build no CR (Slow/Blind/Pin marked soft, Bleed/Poison/Infection)', () => {
     const g = hallway(21, (d) => { CR(d); for (const n of ['Slow', 'Blind', 'Pin']) d.statusDefinitions[n] = { ...d.statusDefinitions[n], control: 'soft', crGain: 80 }; });
