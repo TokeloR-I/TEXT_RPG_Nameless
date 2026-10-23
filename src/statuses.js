@@ -316,6 +316,7 @@
             const before = this.infectionOn(target);
             const spread = !!opts.spreadOnDeath || !!(before && before.spreadOnDeath);
             const inst = this.applyStatus(source, target, { name: 'Infection', type: 'dot', value: def.value, duration, stacks, spreadOnDeath: spread });
+            if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances')) inst.trueDamage = true;
             if (inst) this.say(`${target.name} is infected (${inst.stacks}/${this.maxStacks('Infection')} stacks, ${this.dotTickDamage(inst)} dmg/turn).`);
             return inst;
         };
