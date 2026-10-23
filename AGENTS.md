@@ -40,6 +40,10 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
   never at the call sites. A duration counted in turn opportunities is a `combat.timers` entry with a `kind`
   (plus an expiry rule in `TIMER_KINDS`), not a new counter. QA-1 windows count actionable turns only; timers say
   whether skipped turns count (`countSkipped`). Don't merge the two rules.
+- **Control Resistance is one central policy** (`src/statuses.js`, numbers in `statusRules.controlResistance`, classes in
+  `statusDefinitions[*].control`). Control effects just call `applyStatus()`; never special-case CR in a skill or effect.
+  Anything with `type: 'skip_turn'` is hard control automatically. A new control effect declares `applies: { name, type }`
+  in `src/effects.js` so availability can show the CR outcome.
 - The world (`src/world/`) owns space only: maps, collision, movement, transitions. Walking never calls the engine.
   The engine stays authoritative for rules, inventory, fights and run flags. Map data must pass `validateWorld` (tested).
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data

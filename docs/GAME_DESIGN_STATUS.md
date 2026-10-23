@@ -190,7 +190,11 @@ Death or Expose dies mid-fight, the mark keeps working until the end of that rou
 save it). Evasion, Riposte and Taunt are unchanged.
 One instance per status per target: stackable statuses gain intensity up to a cap (only Infection: 2 dmg/stack, cap 3,
 3 turns), and re-applying always refreshes the duration. DoTs deal damage at the start of the holder's turn and ignore armor.
-Control Resistance, overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.
+**Control Resistance** (Vaelis Package 2) is on: each fighter has a fight-local CR (0 for regular enemies, the player and
+summons, 25 elite, 60 boss). A landed hard control (stun, freeze, a confuse that skips) adds 35, soft control (silence, slow)
+adds 20, once per cast. At CR 50+ control lasts at most 1 turn; at 80+ hard control and silence are resisted and slow works at
+half strength. CR drops by 10 after each of the holder's turns with no new control. A boss can't lose two turns in a row.
+Overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.
 
 ### Other mechanics
 - **Dodge** (Evasion 50%, Mirror Image 100%): the next attack against you rolls to miss. Consumed either way.

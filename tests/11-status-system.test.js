@@ -1,5 +1,5 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: Status system (Approved Design Handoff)).
-const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
+const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
 test('stacking: intensity rises to the cap, never beyond, and duration refreshes', () => {
     const g = hallway('necromancer');
@@ -54,55 +54,14 @@ test('overflow: chance rises on failure, resets on burst; burst = tick dmg x mul
     assert.strictEqual(inf.duration, 3, 'duration always refreshes');
 });
 
-test('CR: OFF by default — repeated stuns all land', () => {
+// Control Resistance (Vaelis Package 2) has its own acceptance matrix: tests/25-control-resistance.test.js.
+test('CR: on by default with the approved Package 2 values; hard control builds it and is eventually resisted', () => {
     const g = hallway('warrior');
     const ghoul = g.combat.enemies[0];
-    for (let i = 0; i < 5; i++) assert.ok(stun(g, ghoul));
-    assert.strictEqual(ghoul.cr, undefined);
-});
-
-test('CR: the application reaching 100 still succeeds; immunity applies to the next one', () => {
-    const g = gameWith((d) => TEST_CR(d));
-    g.do('warrior', 'n', 'engage');
-    const ghoul = g.combat.enemies[0];
-    assert.ok(stun(g, ghoul), '1st: CR 60');
-    assert.ok(stun(g, ghoul), '2nd reaches 120 — still succeeds');
-    assert.ok(ghoul.cr.immune);
-    assert.strictEqual(stun(g, ghoul), null, '3rd is resisted');
-    assert.match(g.flush().map((e) => e.text).join('\n'), /resists Stun/);
-});
-
-test('CR: recovers gradually; immunity ends below the release threshold', () => {
-    const g = gameWith((d) => TEST_CR(d));
-    g.do('warrior', 'n', 'engage');
-    const ghoul = g.combat.enemies[0];
-    stun(g, ghoul); stun(g, ghoul); // CR 120, immune
-    g.tickStatusesEndOfRound(); assert.ok(ghoul.cr.immune && ghoul.cr.value === 100);
-    g.tickStatusesEndOfRound(); assert.ok(ghoul.cr.immune && ghoul.cr.value === 80);
-    g.tickStatusesEndOfRound(); assert.ok(ghoul.cr.immune && ghoul.cr.value === 60, 'still immune at 60');
-    g.tickStatusesEndOfRound(); assert.ok(!ghoul.cr.immune && ghoul.cr.value === 40, 'released once below 50');
-    assert.ok(stun(g, ghoul), 'can be controlled again');
-});
-
-test('CR: bosses build it faster but their first control still lands', () => {
-    const g = gameWith((d) => TEST_CR(d));
-    g.do('warrior');
-    g.currentRoom = 'wardens_roost';
-    g.do('engage');
-    const boss = g.combat.enemies[0];
-    assert.strictEqual(g.tierOf(boss), 'boss');
-    assert.ok(stun(g, boss), 'first control succeeds');
-    assert.strictEqual(boss.cr.value, 120, '60 x boss multiplier 2');
-    assert.strictEqual(stun(g, boss), null);
-});
-
-test('CR: soft control and DoTs never build CR', () => {
-    const g = gameWith((d) => { TEST_CR(d); d.statusDefinitions.Slow = { ...d.statusDefinitions.Slow, control: 'soft', crGain: 50 }; });
-    g.do('warrior', 'n', 'engage');
-    const ghoul = g.combat.enemies[0];
-    for (let i = 0; i < 4; i++) g.applyStatus(g.player, ghoul, { name: 'Slow', type: 'slow', value: 0.5, duration: 2 });
-    g.applyDot(g.player, ghoul, { name: 'Bleed', value: 1, duration: 2 });
-    assert.ok(!ghoul.cr);
+    assert.ok(stun(g, ghoul)); assert.ok(stun(g, ghoul)); assert.ok(stun(g, ghoul));
+    assert.strictEqual(ghoul.cr.value, 100);
+    assert.strictEqual(stun(g, ghoul), null, 'the fourth stun in a row is resisted');
+    assert.match(g.flush().map((e) => e.text).join('\n'), /resists Stun! \(Control Resistance 100\)/);
 });
 
 test('affinity: an immune enemy ignores that status', () => {

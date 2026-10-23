@@ -118,10 +118,6 @@ function gameWith(mutate, seed = 1) {
     g.text = () => g.log.filter((e) => e.type === 'text').map((e) => e.text).join('\n');
     return g;
 }
-const TEST_CR = (d, stunGain = 60) => {
-    d.statusDefinitions.Stun = { ...d.statusDefinitions.Stun, control: 'hard', crGain: stunGain };
-    d.statusRules.controlResistance = { threshold: 100, recoveryPerRound: 20, releaseThreshold: 50, tierMultipliers: { regular: 1, elite: 1.5, boss: 2, player: 1, summon: 1 } };
-};
 const stun = (g, target) => g.applyStatus(g.player, target, { name: 'Stun', type: 'skip_turn', duration: 1 });
 
 // QA-14: riders on a hit that never reached its target must not land.
@@ -174,4 +170,4 @@ const guardFight = (spd, ...skills) => {
 };
 const hitsFor = (g, n, dmg) => (since(g, n).match(new RegExp(`Test Hit on Warrior for ${dmg} damage`, 'g')) || []).length;
 
-module.exports = { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor };
+module.exports = { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor };

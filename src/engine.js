@@ -149,6 +149,7 @@
                     inventory: [...p.inventory],
                     traits: clone(p.traits),
                     statusEffects: clone(p.statusEffects),
+                    cr: c ? this.crValue(p) : 0,
                     isHollowKing: p.isHollowKing,
                     skills: p.skills.map((name) => this.describeSkill(name))
                 },
@@ -156,8 +157,8 @@
                     round: c.round,
                     corpses: c.corpses,
                     awaitingContinue: !!c.awaitingContinue,
-                    enemies: c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp, tier: this.tierOf(e), cr: e.cr ? { ...e.cr } : null, statusEffects: clone(e.statusEffects) })),
-                    minions: c.minions.filter((m) => m.hp > 0).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp }))
+                    enemies: c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp, tier: this.tierOf(e), cr: this.crValue(e), statusEffects: clone(e.statusEffects) })),
+                    minions: c.minions.filter((m) => m.hp > 0).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp, cr: this.crValue(m) }))
                 }
             };
         }

@@ -1,5 +1,5 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: QA report #1 regressions (stability)).
-const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
+const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
 test('QA-3: an error mid-action rolls back and keeps control (repro C)', () => {
     const g = gameWith((d) => { d.skillDefinitions['Bad Purge'] = { name: 'Bad Purge', cost: 0, effects: [{ type: 'cleanse' }], target: 'self' }; });
@@ -71,11 +71,18 @@ test('QA-5: a permanently stunned player gets bounded, recoverable turns (repro 
     g.do('engage'); // threw "Combat loop ran away" before
     assert.strictEqual(g.errors.length, 0);
     assert.ok(g.combat.awaitingContinue);
-    const r0 = g.combat.round;
-    for (let i = 0; i < 25; i++) g.do('continue');
+    // Each input while stunned runs exactly one round. Control Resistance (Package 2) now breaks the lock:
+    // the stuns at CR 0, 35 and 70 land (three turns lost), the one at 100 is resisted: a real turn.
+    let skipped = 0;
+    while (g.combat.awaitingContinue && skipped < 25) {
+        const r = g.combat.round;
+        g.do('continue');
+        skipped++;
+        assert.strictEqual(g.combat.round, r + 1, 'exactly one round per input: bounded work');
+    }
     assert.strictEqual(g.errors.length, 0);
-    assert.strictEqual(g.combat.round, r0 + 25, 'exactly one round per input: bounded work');
-    assert.strictEqual(g.mode, 'combat', 'no invented stun immunity: still locked (CR is pending)');
+    assert.strictEqual(skipped, 3, 'three continues (three lost turns), then Control Resistance frees the player');
+    assert.ok(g.combat.awaitingPlayer && !g.combat.awaitingContinue, 'a real turn');
     g.do('start', 'mage');
     assert.strictEqual(g.mode, 'explore', 'the game is recoverable');
 });

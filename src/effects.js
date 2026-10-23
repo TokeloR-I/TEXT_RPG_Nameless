@@ -139,6 +139,7 @@
     }
 
     register('stun', {
+        applies: { name: 'Stun', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             const gate = ctx.effect.condition;
             const live = ctx.targets.filter((t) => t.hp > 0);
@@ -161,10 +162,12 @@
     });
 
     register('skip_turn', {
+        applies: { name: 'Frozen in time', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             for (const t of ctx.targets.filter(t => t.hp > 0)) {
-                if (!ctx.engine.applyStatus(ctx.caster, t, { name: 'Frozen in time', type: 'skip_turn', duration: ctx.effect.duration })) continue;
-                ctx.engine.say(`${t.name} loses ${ctx.effect.duration > 1 ? ctx.effect.duration + ' turns' : 'its next turn'}!`);
+                const inst = ctx.engine.applyStatus(ctx.caster, t, { name: 'Frozen in time', type: 'skip_turn', duration: ctx.effect.duration });
+                if (!inst) continue;
+                ctx.engine.say(`${t.name} loses ${inst.duration > 1 ? inst.duration + ' turns' : 'its next turn'}!`); // after Control Resistance
             }
         }
     });
@@ -313,6 +316,7 @@
 
     // ---------- disables & debuffs (enemies) ----------
     register('silence', { // Garrote: enemy can only use a basic attack
+        applies: { name: 'Silence', type: 'silence' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             for (const t of living(ctx)) {
                 if (ctx.engine.applyStatus(ctx.caster, t, { name: 'Silence', type: 'silence', duration: ctx.effect.duration })) ctx.engine.say(`${t.name} is silenced!`);
@@ -321,12 +325,15 @@
     });
 
     function slow(ctx, t, value, duration) {
-        if (ctx.engine.applyStatus(ctx.caster, t, { name: 'Slow', type: 'slow', value, duration })) ctx.engine.say(`${t.name} is slowed (-${Math.round(value * 100)}% speed).`);
+        const inst = ctx.engine.applyStatus(ctx.caster, t, { name: 'Slow', type: 'slow', value, duration });
+        if (inst) ctx.engine.say(`${t.name} is slowed (-${Math.round(inst.value * 100)}% speed).`); // after Control Resistance
     }
     register('slow', { // Caltrops
+        applies: { name: 'Slow', type: 'slow' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) { for (const t of living(ctx)) slow(ctx, t, ctx.effect.value, ctx.effect.duration); }
     });
     register('slow_chance', { // Ice Lance: 30% chance to slow (by 50%)
+        applies: { name: 'Slow', type: 'slow' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             for (const t of living(ctx)) if (chance(ctx, ctx.effect.value)) slow(ctx, t, 0.5, ctx.effect.duration);
         }
@@ -343,6 +350,7 @@
         return !!ctx.engine.applyStatus(ctx.caster, t, { name: label, type: 'skip_turn', duration });
     }
     register('skip_turn_chance', { // Confuse: 50% chance the enemy skips its turn
+        applies: { name: 'Confused', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             for (const t of living(ctx)) {
                 if (chance(ctx, ctx.effect.value)) { if (skip(ctx, t, ctx.effect.duration, 'Confused')) ctx.engine.say(`${t.name} is confused and will lose its next turn!`); }
@@ -351,12 +359,14 @@
         }
     });
     register('skip_turn_aoe', { // Multi-target illusions: up to N enemies skip
+        applies: { name: 'Entranced', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             const hit = living(ctx).slice(0, ctx.effect.count || 3).filter((t) => skip(ctx, t, ctx.effect.duration, 'Entranced'));
             if (hit.length) ctx.engine.say(`${hit.map((t) => t.name).join(', ')} ${hit.length > 1 ? 'are' : 'is'} lost in illusions and will skip a turn!`);
         }
     });
     register('freeze_enemies', { // Freeze Time
+        applies: { name: 'Frozen in time', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
             for (const t of living(ctx)) skip(ctx, t, ctx.effect.duration, 'Frozen in time');
             ctx.engine.say('Time stops.');
