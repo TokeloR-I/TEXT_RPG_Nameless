@@ -513,7 +513,7 @@
                     name: ctx.skill.name, type: 'taunt_player', duration: ctx.effect.duration
                 });
             }
-            ctx.engine.say('Lockstep draws every enemy toward the Warden!');
+            ctx.engine.say(`${ctx.skill.name} draws enemy attacks toward ${ctx.caster.name}!`);
         }
     });
 
