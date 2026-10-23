@@ -178,7 +178,7 @@
                     const hit = this.newHit(t);
                     this.rollDamage(this.player, t, bomb.skill, hit);
                     this.say(`${t.name} takes ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}`);
-                    this.damage(t, hit.damage, this.player);
+                    this.damage(t, hit.damage, this.player, { alreadyScaled: true });
                 }
             }
         }
@@ -340,7 +340,7 @@
             this.rollDamage(holder, attacker, skill, hit);
             hit.damage = Math.floor(hit.damage * (1 + counter.value));
             this.say(`Riposte! ${holder.name} counters ${attacker.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}`, { important: true });
-            this.damage(attacker, hit.damage, holder);
+            this.damage(attacker, hit.damage, holder, { alreadyScaled: true });
         }
     }
 
