@@ -226,6 +226,22 @@
             if (this.mode === 'class_select') { this.perform({ type: 'choose_class', classId: lower }); return; }
             if (this.mode === 'branch_select') { this.perform({ type: 'choose_branch', branchId: lower }); return; }
 
+            // Chapter One equipment and commerce text commands share the same
+            // authoritative rules as UI act(), without requiring an NPC UI.
+            const trade = /^(equip|unequip|compare|buy|sell)\s+(.+)$/i.exec(text.trim());
+            if (trade) {
+                const command = trade[1].toLowerCase(), value = trade[2].trim();
+                if (command === 'equip') this.perform({ type: 'equip', item: value });
+                else if (command === 'unequip') this.perform({ type: 'unequip', slot: value });
+                else if (command === 'compare') this.perform({ type: 'compare_item', item: value });
+                else {
+                    const space = value.indexOf(' ');
+                    if (space === -1) this.refuse('INVALID_TRADE', 'Enter merchant ID and item name.');
+                    else this.perform({ type: command, shopId: value.slice(0, space), item: value.slice(space + 1) });
+                }
+                return;
+            }
+
             const parts = lower.split(/\s+/);
             let cmd = parts[0];
             let arg = parts.slice(1).join(' ');
