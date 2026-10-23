@@ -85,6 +85,11 @@
                 case 'move': this.move(DIRECTION_NAMES[a.direction] || a.direction || ''); return;
                 case 'take': this.takeItem(String(a.item || '')); return;
                 case 'use_item': this.useItem(String(a.item || '')); return;
+                case 'equip': this.equipItem(String(a.item || '')); return;
+                case 'unequip': this.unequipItem(String(a.slot || '')); return;
+                case 'buy': this.buyItem(String(a.shopId || ''), String(a.item || '')); return;
+                case 'sell': this.sellItem(String(a.shopId || ''), String(a.item || '')); return;
+                case 'compare_item': this.compareItem(String(a.item || '')); return;
                 case 'engage': this.engage(); return;
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
