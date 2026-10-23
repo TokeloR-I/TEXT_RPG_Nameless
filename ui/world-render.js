@@ -15,7 +15,7 @@
         h = Math.imul(h ^ (h >>> 13), 1274126177);
         return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
     };
-    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace']);
+    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope']);
     const WALLS = new Set(['stone_wall', 'wood_wall']);
     const EXTERIOR = new Set(['house_wall', 'house_window', 'roof', 'shed_wall', 'shed_roof', 'shed_door_shut']);
     const CLASS_COLOURS = { warrior: '#8a3b2e', mage: '#35548a', rogue: '#3d6640', necromancer: '#5a3b7a' };
@@ -66,9 +66,10 @@
     // What each tile stands on, for tiles drawn as an object on top of a floor.
     const BASE = {
         barrel: 'stone_floor', crate: 'stone_floor', rubble: 'stone_floor', shelf: 'stone_floor', stairs_up: 'stone_floor', bedroll: 'stone_floor',
-        counter: 'wood_floor', table: 'wood_floor', chair: 'wood_floor', armchair: 'wood_floor', bed: 'wood_floor', fireplace: 'wood_floor',
+        counter: 'wood_floor', table: 'wood_floor', workbench: 'wood_floor', chair: 'wood_floor', armchair: 'wood_floor', bed: 'wood_floor', fireplace: 'wood_floor',
         rug: 'wood_floor', doorway: 'wood_floor', stairs_down: 'wood_floor',
-        tall_weeds: 'grass', tree: 'grass', dead_tree: 'grass', fence: 'grass', rock: 'grass', well: 'grass', scarecrow: 'grass', water: 'grass'
+        tall_weeds: 'grass', tree: 'grass', dead_tree: 'grass', fence: 'grass', rock: 'grass', well: 'grass', scarecrow: 'grass', water: 'grass',
+        signpost: 'grass', rope: 'stone_floor'
     };
     const painters = {
         stone_wall(g, px, py, T, c) {
@@ -143,6 +144,12 @@
             rect(g, px + 2, py + 6, T - 4, T - 12, '#6b4f35');
             rect(g, px + 2, py + 6, T - 4, 2, '#7d5f42');
             circle(g, px + 11, py + 15, 4, '#a39b8a'); circle(g, px + 21, py + 15, 4, '#8f877a');
+        },
+        workbench(g, px, py, T) {
+            rect(g, px + 3, py + T - 6, 3, 5, '#3a2a1c'); rect(g, px + T - 6, py + T - 6, 3, 5, '#3a2a1c');
+            rect(g, px + 1, py + 7, T - 2, T - 13, '#5e4a35');
+            rect(g, px + 1, py + 7, T - 2, 2, '#73593f');
+            rect(g, px + 5, py + 12, 9, 2, '#7a7a80'); rect(g, px + 19, py + 11, 3, 6, '#5a5048');
         },
         chair(g, px, py, T) {
             rect(g, px + 9, py + 8, T - 18, T - 14, '#5a412b');
@@ -274,6 +281,19 @@
             rect(g, px + 3, py + 2, T - 6, 3, '#6b5238');
             rect(g, px + T / 2 - 1, py + 5, 1, T / 2 - 4, '#a08e70');
         },
+        signpost(g, px, py, T) {
+            rect(g, px + T / 2 - 2, py + 10, 4, T - 11, '#5a4430');
+            rect(g, px + 5, py + 6, T - 10, 9, '#6b5238');
+            g.fillStyle = '#6b5238'; g.beginPath(); g.moveTo(px + T - 5, py + 6); g.lineTo(px + T - 1, py + 10.5); g.lineTo(px + T - 5, py + 15); g.fill();
+            rect(g, px + 8, py + 10, T - 18, 1, '#4a3825');
+        },
+        rope(g, px, py, T, c) {
+            rect(g, px + T / 2 - 2, py, 4, T - 6, '#a08e70');
+            for (let i = 0; i < 5; i++) rect(g, px + T / 2 - 2, py + 3 + i * 5, 4, 1, '#7a6a50');
+            circle(g, px + T / 2, py + T - 6, 4, '#8a7a5c');
+            const a = 0.12 + 0.04 * Math.sin(c.time / 900);
+            g.fillStyle = `rgba(200, 210, 230, ${a})`; g.fillRect(px + 4, py, T - 8, T);
+        },
         scarecrow(g, px, py, T) {
             rect(g, px + T / 2 - 1, py + 8, 3, T - 8, '#5a4430');
             rect(g, px + 3, py + 11, T - 6, 3, '#5a4430');
@@ -284,8 +304,53 @@
         }
     };
 
+    // Creatures, drawn in a 32x32 box at (px, py); used on the map and on battle cards (scaled).
+    const creatures = {
+        rat(g, px, py, t, flip) {
+            const b = Math.sin(t / 160) * 0.8;
+            g.save(); if (flip) { g.translate(px * 2 + 32, 0); g.scale(-1, 1); }
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 25, 10, 3, 0, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = '#7a5a4a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px + 6, py + 21); g.quadraticCurveTo(px + 1, py + 18 + b, px + 3, py + 13); g.stroke();
+            g.fillStyle = '#8a4e32'; g.beginPath(); g.ellipse(px + 15, py + 19 + b, 9, 5.5, 0, 0, Math.PI * 2); g.fill();
+            circle(g, px + 23, py + 17 + b, 4.5, '#9a5a3a');
+            circle(g, px + 21, py + 13 + b, 2, '#b07a60');
+            rect(g, px + 25, py + 16 + b, 1.5, 1.5, '#e8c070');
+            g.restore();
+        },
+        wolf(g, px, py, t) {
+            const b = Math.sin(t / 220) * 0.8;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 28, 13, 3.5, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 7, py + 19, 3, 9, '#4a4a50'); rect(g, px + 22, py + 19, 3, 9, '#4a4a50');
+            g.fillStyle = '#5c5c64'; g.beginPath(); g.ellipse(px + 15, py + 17 + b, 11, 6, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#6a6a72'; g.beginPath(); g.moveTo(px + 22, py + 11 + b); g.lineTo(px + 31, py + 15 + b); g.lineTo(px + 22, py + 19 + b); g.fill();
+            g.fillStyle = '#5c5c64'; g.beginPath(); g.moveTo(px + 22, py + 11 + b); g.lineTo(px + 24, py + 6 + b); g.lineTo(px + 26, py + 12 + b); g.fill();
+            g.strokeStyle = '#5c5c64'; g.lineWidth = 3; g.beginPath(); g.moveTo(px + 5, py + 15 + b); g.lineTo(px + 1, py + 11 + b * 2); g.stroke();
+            rect(g, px + 25, py + 13 + b, 2, 1.5, '#e8d070');
+        },
+        shade(g, px, py, t) {
+            const b = Math.sin(t / 300) * 1.5;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 28, 8, 3, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#3e4a3c'; g.beginPath(); g.moveTo(px + 8, py + 27 + b); g.lineTo(px + 24, py + 27 + b); g.lineTo(px + 20, py + 10 + b); g.lineTo(px + 12, py + 10 + b); g.fill();
+            circle(g, px + 16, py + 9 + b, 5.5, '#8a9a80');
+            rect(g, px + 13, py + 8 + b, 2, 2, '#1a1a1a'); rect(g, px + 17, py + 8 + b, 2, 2, '#1a1a1a');
+        }
+    };
+    // Which creature to draw for an enemy key (battle cards) and for an encounter sprite (map).
+    const CREATURE_FOR = { rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf' };
+
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
     const sprites = {
+        bundle(g, px, py, T) {
+            rect(g, px + 9, py + 9, 14, 9, '#d8d2c2'); rect(g, px + 9, py + 12, 14, 2, '#b8b0a0');
+            rect(g, px + 15, py + 9, 2, 9, '#a03a30');
+        },
+        bottle(g, px, py, T) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 26, 6, 2, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 12, py + 12, 8, 14, '#2f4a32'); rect(g, px + 14, py + 6, 4, 7, '#2f4a32'); rect(g, px + 14, py + 5, 4, 2, '#8a6a4a');
+            rect(g, px + 13, py + 14, 2, 8, '#4f7a52');
+        },
+        rats(g, px, py, T, t) { creatures.rat(g, px - 6, py + 2, t, false); creatures.rat(g, px + 6, py - 6, t + 400, true); },
+        wolf(g, px, py, T, t) { creatures.wolf(g, px, py, t); },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {
@@ -386,8 +451,8 @@
             const x1 = Math.min(map.tiles[0].length - 1, Math.ceil((camX + W) / T)), y1 = Math.min(map.tiles.length - 1, Math.ceil((camY + H) / T));
             for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y))) paintTile(g, map, x, y, time);
             for (const o of objects) {
-                if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, o.x * T, o.y * T, T);
-                if (!o.seen) {                                  // a faint glint marks things worth a look
+                if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, o.x * T, o.y * T, T, time);
+                if (!o.seen && o.kind !== 'encounter') {                                  // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
                     g.fillStyle = `rgba(255, 244, 200, ${a})`;
                     g.fillRect(o.x * T + T - 9, o.y * T + 5, 2, 2); g.fillRect(o.x * T + T - 10, o.y * T + 6, 4, 1); g.fillRect(o.x * T + T - 9, o.y * T + 4, 1, 4);
@@ -414,6 +479,12 @@
                 for (const l of map.lights || []) hole(l.x * T + T / 2 + ox, l.y * T + T / 2 + oy, l.radius * T, 0.8);
                 g.drawImage(dark, 0, 0);
             }
+            if (amb.fog === 'bottom') {                      // the road fades into fog at the zone's edge
+                const fy = mh + oy;
+                const fg = g.createLinearGradient(0, fy - 4 * T, 0, fy);
+                fg.addColorStop(0, 'rgba(150, 155, 170, 0)'); fg.addColorStop(1, 'rgba(150, 155, 170, 0.75)');
+                g.fillStyle = fg; g.fillRect(0, fy - 4 * T, W, 4 * T);
+            }
             const vg = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
             vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
             g.fillStyle = vg; g.fillRect(0, 0, W, H);
@@ -423,5 +494,14 @@
         return { draw, tile: T };
     }
 
-    ENSO.worldRender = { create };
+    /** Draw an enemy (by enemy key) into a small canvas, for battle cards. */
+    function drawCreature(c, enemyKey, time) {
+        const g = c.getContext('2d');
+        g.clearRect(0, 0, c.width, c.height);
+        g.save(); g.scale(c.width / 32, c.height / 32);
+        (creatures[CREATURE_FOR[enemyKey]] || creatures.shade)(g, 0, 0, time || 0);
+        g.restore();
+    }
+
+    ENSO.worldRender = { create, drawCreature };
 })(typeof window !== 'undefined' ? window : globalThis);

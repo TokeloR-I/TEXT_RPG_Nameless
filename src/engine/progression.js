@@ -68,7 +68,7 @@
             this.mode = 'explore';
             this.say(`You walk the path of the ${tree.branches[match].name}.`, { important: true });
             this.applyStages();
-            this.say("Type 'look' to see where you are.");
+            if (!this.world) this.say("Type 'look' to see where you are.");
         }
 
         applyStages() {

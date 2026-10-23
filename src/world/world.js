@@ -10,9 +10,13 @@
  * flags. Walking never calls the engine, so exploration cannot advance
  * combat rounds, status durations or resource regeneration.
  *
- *   const s = new WorldSession(ENSO.world.zone1);
- *   s.move('up')   -> { type: 'moved' | 'blocked' | 'transition', ... }
- *   s.interact()   -> { type: 'message' | 'transition' | 'nothing', ... }
+ *   const s = new WorldSession(ENSO.world.zone1, { engine });
+ *   s.move('up')   -> { type: 'moved' | 'blocked' | 'transition' | 'encounter' | 'boundary', ... }
+ *   s.interact()   -> { type: 'message' | 'pickup' | 'transition' | 'nothing', ... }
+ *
+ * Encounters start on CONTACT: walking into a visible enemy starts the fight
+ * (E on it only describes it). After fleeing, that enemy ignores you until you
+ * step away from it, so a held key can't drag you straight back in.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -21,6 +25,7 @@
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const FACINGS = Object.keys(DIRS);
     const TRIGGERS = ['step', 'interact'];
+    const OBJECT_KINDS = ['inspect', 'pickup'];
 
     // ---------------------------------------------------------------------
     // Map geometry
@@ -36,8 +41,10 @@
     }
     const isSolidTile = (world, map, x, y) => { const t = tileAt(world, map, x, y); return !t || !!t.solid; };
     const neighbours = (x, y) => Object.values(DIRS).map(([dx, dy]) => [x + dx, y + dy]);
-    /** Every placed thing on a map that occupies a tile (interactables block movement while present). */
-    const placed = (map) => [...(map.interactables || [])];
+    /** Every placed thing on a map that occupies a tile (objects and enemies block movement while present). */
+    const placed = (map) => [...(map.interactables || []), ...(map.encounters || [])];
+    const isEncounter = (map, o) => (map.encounters || []).includes(o);
+    const inRect = (r, x, y) => x >= r.x && y >= r.y && x < r.x + (r.w || 1) && y < r.y + (r.h || 1);
 
     /** Tiles reachable on foot from (x, y), treating every placed object as an obstacle. */
     function reachable(world, map, x, y) {
@@ -95,8 +102,26 @@
                 if (!inBounds(map, o.x, o.y)) { err(`${where}: object ${o.id} out of bounds`); continue; }
                 if (objAt.has(`${o.x},${o.y}`)) err(`${where}: objects ${o.id} and ${objAt.get(`${o.x},${o.y}`)} share a tile`);
                 objAt.set(`${o.x},${o.y}`, o.id);
-                if (o.kind !== 'inspect') err(`${where}: object ${o.id} has unknown kind '${o.kind}'`);
+                if (isSolidTile(world, map, o.x, o.y) && isEncounter(map, o)) err(`${where}: encounter ${o.id} stands in a wall`);
+                if (isEncounter(map, o)) {
+                    if (o.trigger !== 'contact') err(`${where}: encounter ${o.id} needs trigger 'contact'`);
+                    if (!Array.isArray(o.enemies) || !o.enemies.length) err(`${where}: encounter ${o.id} has no enemies`);
+                    for (const key of o.enemies || []) {
+                        if (gameData && !gameData.enemies[key]) err(`${where}: encounter ${o.id} uses unknown enemy '${key}'`);
+                        if (key === 'James_Newton') err(`${where}: encounter ${o.id} uses the James Newton test dummy`);
+                    }
+                    for (const [sid, sp] of Object.entries(map.spawns || {})) {
+                        if (Math.max(Math.abs(sp.x - o.x), Math.abs(sp.y - o.y)) <= 1) err(`${where}: encounter ${o.id} is right next to spawn ${sid} (no unavoidable fights at an entrance)`);
+                    }
+                    continue;
+                }
+                if (!OBJECT_KINDS.includes(o.kind)) err(`${where}: object ${o.id} has unknown kind '${o.kind}'`);
                 if (!o.text) err(`${where}: object ${o.id} has no text`);
+                if (o.kind === 'pickup' && (!o.item || (gameData && !gameData.itemDefinitions[o.item]))) err(`${where}: pickup ${o.id} has unknown item '${o.item}'`);
+            }
+            for (const b of map.boundaries || []) {
+                claim(b.id, `${where} boundary`);
+                if (!b.text) err(`${where}: boundary ${b.id} has no text`);
             }
             const spawns = map.spawns || {};
             if (!Object.keys(spawns).length) err(`${where}: no spawns`);
@@ -127,6 +152,11 @@
                 const usable = (x, y, onTile) => (onTile && area.has(`${x},${y}`)) || neighbours(x, y).some(([nx, ny]) => area.has(`${nx},${ny}`));
                 for (const e of map.exits || []) if (!usable(e.x, e.y, e.trigger === 'step')) err(`${where}: exit ${e.id} can't be reached from spawn ${sid}`);
                 for (const o of placed(map)) if (!usable(o.x, o.y, false)) err(`${where}: object ${o.id} can't be reached from spawn ${sid}`);
+                for (const b of map.boundaries || []) {
+                    let ok = false;
+                    for (let y = b.y; y < b.y + (b.h || 1); y++) for (let x = b.x; x < b.x + (b.w || 1); x++) if (area.has(`${x},${y}`)) ok = true;
+                    if (!ok) err(`${where}: boundary ${b.id} can't be reached from spawn ${sid}`);
+                }
                 for (const [oid, other] of Object.entries(spawns)) if (!area.has(`${other.x},${other.y}`)) err(`${where}: spawn ${oid} can't be reached from spawn ${sid}`);
             }
         }
@@ -152,7 +182,6 @@
             while (queue.length) for (const e of world.maps[queue.shift()].exits || []) if (world.maps[e.toMap] && !seen.has(e.toMap)) { seen.add(e.toMap); queue.push(e.toMap); }
             for (const mid of Object.keys(world.maps)) if (!seen.has(mid)) err(`map ${mid} can't be reached from the start`);
         }
-        void gameData; // used by later object kinds (pickups, encounters)
         return errors;
     }
 
@@ -161,12 +190,24 @@
     // ---------------------------------------------------------------------
     class WorldSession {
         /** @param world  world data (see src/world/zone1.js)
-         *  @param opts   { map, spawn } to start somewhere other than world.start */
+         *  @param opts   { engine, map, spawn }. With an engine (after engine.enterWorld()), pickups and
+         *                fights go through it and it keeps the run flags. Without one (map tools, tests of
+         *                pure movement) the session keeps its own flags and fights are only reported. */
         constructor(world, opts = {}) {
             this.world = world;
+            this.engine = opts.engine || null;
+            this.local = { collected: [], defeated: [] };
+            this.cooldown = null;   // encounter id that ignores contact until you step away (after fleeing)
             this.steps = 0;
             this.place(opts.map || world.start.map, opts.spawn || world.start.spawn);
         }
+
+        isCollected(id) { return this.engine ? this.engine.isCollected(id) : this.local.collected.includes(id); }
+        isDefeated(id) { return this.engine ? this.engine.isDefeated(id) : this.local.defeated.includes(id); }
+        /** Is this placed thing still on the map? (collected pickups and beaten enemies are gone) */
+        present(o) { return isEncounter(this.map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id)); }
+        /** Objects and enemies still on the current map. */
+        visibleObjects() { return placed(this.map).filter((o) => this.present(o)).map((o) => ({ ...o, kind: isEncounter(this.map, o) ? 'encounter' : o.kind })); }
 
         get map() { return this.world.maps[this.mapId]; }
 
@@ -181,7 +222,8 @@
         }
 
         tile(x, y) { return tileAt(this.world, this.map, x, y); }
-        objectAt(x, y) { return placed(this.map).find((o) => o.x === x && o.y === y) || null; }
+        objectAt(x, y) { return placed(this.map).find((o) => o.x === x && o.y === y && this.present(o)) || null; }
+        boundaryAt(x, y) { return (this.map.boundaries || []).find((b) => inRect(b, x, y)) || null; }
         exitAt(x, y, trigger) { return (this.map.exits || []).find((e) => e.x === x && e.y === y && (!trigger || e.trigger === trigger)) || null; }
         isBlocked(x, y) { return isSolidTile(this.world, this.map, x, y) || !!this.objectAt(x, y); }
         facingTile() { const [dx, dy] = DIRS[this.facing]; return [this.x + dx, this.y + dy]; }
@@ -191,19 +233,55 @@
             if (!DIRS[dir]) throw new Error(`Unknown direction '${dir}'`);
             this.facing = dir;
             const [nx, ny] = this.facingTile();
+            const obj = this.objectAt(nx, ny);
+            if (obj && isEncounter(this.map, obj)) {
+                if (this.cooldown === obj.id) return { type: 'blocked', x: nx, y: ny, cooling: obj.id };
+                return this.engage(obj);
+            }
             if (this.isBlocked(nx, ny)) return { type: 'blocked', x: nx, y: ny };
+            const wasIn = this.boundaryAt(this.x, this.y);
             this.x = nx;
             this.y = ny;
             this.steps++;
+            if (this.cooldown) {
+                const e = (this.map.encounters || []).find((x) => x.id === this.cooldown);
+                if (!e || Math.max(Math.abs(e.x - nx), Math.abs(e.y - ny)) > 1) this.cooldown = null;
+            }
             const exit = this.exitAt(nx, ny, 'step');
             if (exit) return this.transition(exit);
+            const edge = this.boundaryAt(nx, ny);
+            if (edge && edge !== wasIn) return { type: 'boundary', id: edge.id, title: edge.title || null, text: edge.text, x: nx, y: ny };
             return { type: 'moved', x: nx, y: ny };
+        }
+
+        /** Contact with a visible enemy: the engine starts a normal fight. */
+        engage(enc) {
+            const events = this.engine ? this.engine.worldEncounter(enc.id, enc.enemies) : [];
+            const w = this.engine && this.engine.world;
+            // The fight may already be over when this returns (a faster enemy can finish a 1 HP player).
+            const started = !this.engine || (this.engine.mode === 'combat' && w.encounter === enc.id) || w.lastEncounter === enc.id;
+            if (!started) return { type: 'blocked', x: enc.x, y: enc.y, events };
+            return { type: 'encounter', id: enc.id, enemies: [...enc.enemies], events };
+        }
+
+        /** Tell the session how a fight it started ended ('victory' | 'fled' | 'defeat'). */
+        fightOver(id, result) {
+            if (result === 'fled') this.cooldown = id;
+            if (result === 'victory' && !this.engine && !this.local.defeated.includes(id)) this.local.defeated.push(id);
         }
 
         /** Act on whatever is in front of the player. */
         interact() {
             const [fx, fy] = this.facingTile();
             const obj = this.objectAt(fx, fy);
+            if (obj && isEncounter(this.map, obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text || 'It hasn\'t noticed you yet. Walk into it to fight.' };
+            if (obj && obj.kind === 'pickup') {
+                let events = [];
+                if (this.engine) events = this.engine.worldPickup(obj.id, obj.item);
+                else this.local.collected.push(obj.id);
+                if (!this.isCollected(obj.id)) return { type: 'nothing', events };
+                return { type: 'pickup', id: obj.id, item: obj.item, title: obj.name || null, text: obj.text, events };
+            }
             if (obj) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text };
             const exit = this.exitAt(fx, fy, 'interact');
             if (exit) return this.transition(exit);
@@ -216,7 +294,7 @@
             return { type: 'transition', exit: exit.id, from, to: this.mapId, text: exit.text || null };
         }
 
-        getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps }; }
+        getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
     }
 
     const api = { WorldSession, validateWorld, tileAt, reachable, DIRS };

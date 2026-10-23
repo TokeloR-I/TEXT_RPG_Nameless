@@ -8,6 +8,7 @@ engine can drive the text version now and a Phaser side-scroller later.
 
 ## Play
 - **Explore the world (new, Zone 1):** double-click `world.html`. Walk with the arrow keys or WASD, interact with E / Enter, Esc for the menu.
+  Walk into a visible enemy to fight it; battles are the same turn-based fights as the text game, chosen from a menu.
 - **Classic text version:** double-click `index.html`. Single self-contained builds of both (`EnsosLastStand.html`, `EnsosLastStand-World.html`) are attached to every CI run (Actions → latest run → Artifacts), or build them with `npm run build`.
 - Terminal: `npm run play` (add `-- --seed 42` to reproduce a run exactly).
 
@@ -23,10 +24,11 @@ src/engine/       the rest of the rules, one module per area:
   combat-input.js   player commands in a fight, menus, targeting
   skills.js         casting, damage pipeline, primitives the effect registry calls
   progression.js    XP, levels, evolution, skill trees
+  world.js          world intents: pickups, map encounters, run flags (graphical world only)
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
-  world.js          map model: collision, tile-step movement, transitions, interactions, validation
-  zone1.js          Zone 1 (the Forgotten Homestead) map data
+  world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation
+  zone1.js          Zone 1 (the Forgotten Homestead) map data: 6 maps
 ui/text-ui.js     text front end (index.html): typing effect, HUD
 ui/world-render.js  canvas painter for the world (no image files)
 ui/world-ui.js    world front end (world.html): title, movement, dialogs, menus
