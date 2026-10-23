@@ -510,7 +510,7 @@
         apply(ctx) {
             for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
                 ctx.engine.applyStatus(ctx.caster, target, {
-                    name: 'Lockstep', type: 'taunt_player', duration: ctx.effect.duration
+                    name: ctx.skill.name, type: 'taunt_player', duration: ctx.effect.duration
                 });
             }
             ctx.engine.say('Lockstep draws every enemy toward the Warden!');
