@@ -13,6 +13,7 @@ test('World: Zone 1 data validates (ids, destinations, spawns, reachability, sym
 });
 
 test('World: the validator catches broken map data', () => {
+    const w0 = ZONE1;
     const broken = (mutate, pattern) => {
         const w = copy(ZONE1); mutate(w);
         const errs = validateWorld(w, data);
@@ -30,6 +31,14 @@ test('World: the validator catches broken map data', () => {
     broken((w) => { w.maps.cellar.tiles[6] = '#.........x###'; w.maps.cellar.tiles[7] = '#rr........###'; w.maps.cellar.tiles[8] = '#xb.....b..###'; }, /exit cellar_stairs can't be reached|spawn from_house can't be reached/);
     broken((w) => { w.maps.cellar.interactables.push({ id: 'twin', kind: 'inspect', x: 8, y: 3, text: 'x' }); }, /share a tile/);
     broken((w) => { w.zones.forgotten_homestead.mapIds.push('attic'); }, /unknown map 'attic'/);
+    if (w0.maps.well) {
+        broken((w) => { delete w.maps.grounds.exits.find((e) => e.trigger === 'interact').prompt; }, /needs a prompt/);
+        broken((w) => { w.maps.road.encounters[0].enemies = ['James_Newton']; }, /test dummy/);
+        broken((w) => { w.maps.road.encounters[0].enemies = ['dragon']; }, /unknown enemy 'dragon'/);
+        broken((w) => { w.maps.road.encounters[0].x = 9; w.maps.road.encounters[0].y = 2; }, /right next to spawn from_grounds/);
+        broken((w) => { w.maps.shed.interactables[0].item = 'Golden Apple'; }, /unknown item 'Golden Apple'/);
+        broken((w) => { w.maps.road.boundaries[0].y = 0; w.maps.road.boundaries[0].x = 0; w.maps.road.boundaries[0].w = 1; }, /boundary road_zone_edge can't be reached/);
+    }
     broken((w) => { w.maps.loft = copy(w.maps.shed || w.maps.cellar); w.maps.loft.exits = []; w.maps.loft.interactables = []; w.zones.forgotten_homestead.mapIds.push('loft'); }, /map loft can't be reached from the start/);
 });
 

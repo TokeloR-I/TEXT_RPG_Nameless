@@ -47,6 +47,26 @@ body {
 .bar.res > span { background: var(--res); }
 .bar.enemy > span { background: #8f6a3a; }
 
+.hud-place { color: var(--accent); font-size: 0.8em; letter-spacing: 0.08em; margin-bottom: 0.2em; }
+
+/* ---------- "E: Inspect ..." hint ---------- */
+.prompt {
+    position: absolute; bottom: 2.4cqw; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--edge); padding: 0.45em 1em;
+    font-size: clamp(11px, 1.7cqw, 16px); white-space: nowrap; pointer-events: none;
+}
+.prompt kbd { border: 1px solid var(--ink-dim); padding: 0 0.35em; margin-right: 0.4em; font-family: inherit; color: var(--accent); }
+
+/* ---------- touch pad (coarse pointers only) ---------- */
+.touch-pad { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; user-select: none; touch-action: none; }
+.touch-pad button { width: 56px; height: 56px; font: inherit; font-size: 20px; color: var(--ink); background: #1a1820; border: 1px solid var(--edge); border-radius: 8px; }
+.dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 4px; }
+.dpad [data-key="ArrowUp"] { grid-column: 2; grid-row: 1; }
+.dpad [data-key="ArrowLeft"] { grid-column: 1; grid-row: 2; }
+.dpad [data-key="ArrowRight"] { grid-column: 3; grid-row: 2; }
+.dpad [data-key="ArrowDown"] { grid-column: 2; grid-row: 3; }
+.pad-actions { display: flex; gap: 12px; }
+
 /* ---------- map name banner ---------- */
 .banner {
     position: absolute; top: 4cqw; left: 50%; transform: translateX(-50%);
@@ -92,7 +112,7 @@ body {
 
 /* ---------- toast ---------- */
 .toast {
-    position: absolute; bottom: 4cqw; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 11cqw; left: 50%; transform: translateX(-50%);
     background: var(--panel); border: 1px solid var(--edge); padding: 0.6em 1.2em;
     font-size: clamp(11px, 1.8cqw, 16px); white-space: nowrap;
 }

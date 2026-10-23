@@ -19,8 +19,9 @@
     const { WorldSession, validateWorld, DIRS } = ENSO.worldModel;
     const WORLD = ENSO.world.zone1;
     const DATA = ENSO.data;
+    const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const STEP_MS = 150;     // one tile step
-    const FADE_MS = 220;     // each half of a map transition
+    const FADE_MS = REDUCED ? 60 : 220;     // each half of a map transition
     const BUMP_MS = 180;     // minimum gap between "blocked" bumps while a key is held
     const LOG_LINES = 80;    // battle log kept on screen
 
@@ -29,7 +30,7 @@
     const renderer = ENSO.worldRender.create(canvas, WORLD, { tile: 32 });
     const els = {
         title: $('title'), dialog: $('dialog'), pause: $('pause'), hud: $('hud'), banner: $('banner'),
-        problems: $('problems'), combat: $('combat'), toast: $('toast')
+        problems: $('problems'), combat: $('combat'), toast: $('toast'), prompt: $('prompt'), pad: $('touch-pad')
     };
     const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -100,7 +101,7 @@
     function showTitle() {
         screen = 'title';
         modal = null;
-        for (const el of [els.hud, els.dialog, els.pause, els.combat]) el.hidden = true;
+        for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
         menu = makeMenu(classes.map((key) => ({ label: DATA.basePlayerClasses[key].name, sub: DATA.basePlayerClasses[key].description, action: () => startGame(key) })), { render: renderTitle });
         renderTitle();
@@ -145,7 +146,9 @@
     }
     function updateHud() {
         const p = engine.getState().player;
+        const place = session ? WORLD.maps[session.mapId].name : '';
         els.hud.innerHTML = `
+            <div class="hud-place">${esc(place)}</div>
             <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
             <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${p.hp}/${p.maxHp}</span></div>
             <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>`;
@@ -454,7 +457,17 @@
     }
     function startFade(result) { fade = { t0: performance.now(), phase: 'out', result }; }
     let flash = null;
-    function flashThen(fn) { flash = { t0: performance.now(), fn }; }
+    function flashThen(fn) { if (REDUCED) { fn(); return; } flash = { t0: performance.now(), fn }; }
+
+    /** The "E: Inspect Scratched wall" hint for whatever you're facing (hidden while anything else is up). */
+    let lastPrompt = '';
+    function updatePrompt() {
+        const p = screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
+        const html = p ? `<kbd>E</kbd> ${esc(p.verb)}${p.name ? `: <b>${esc(p.name)}</b>` : ''}` : '';
+        if (p && p.kind === 'encounter') { if (html !== lastPrompt) { els.prompt.innerHTML = `${esc(p.name)} · ${esc(p.verb)}`; lastPrompt = html; } els.prompt.hidden = false; return; }
+        if (html !== lastPrompt) { els.prompt.innerHTML = html; lastPrompt = html; }
+        els.prompt.hidden = !p;
+    }
 
     function interact() {
         const r = session.interact();
@@ -512,6 +525,18 @@
     });
     window.addEventListener('blur', () => { held.length = 0; down.clear(); stale.clear(); });
 
+    // On-screen pad for touch screens (shown only for coarse pointers): it sends the same keys.
+    if (els.pad && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) {
+        els.pad.hidden = false;
+        const fire = (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
+        els.pad.querySelectorAll('button[data-key]').forEach((b) => {
+            const key = b.dataset.key;
+            b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); fire('keydown', key); });
+            const up = (e) => { e.preventDefault(); fire('keyup', key); };
+            b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+        });
+    }
+
     // ---------------------------------------------------------------------
     // Frame loop
     // ---------------------------------------------------------------------
@@ -536,6 +561,7 @@
                 syncView();
                 fade = { t0: now, phase: 'in', result: fade.result };
                 showBanner(WORLD.maps[session.mapId].name);
+                updateHud();
                 if (fade.result.text) openDialog([fade.result.text], null);
             } else if (k >= 1) { fade = null; view.fade = 0; }
         }
@@ -546,6 +572,7 @@
         }
         if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
         if (!anim) view.moving = false;
+        if (screen !== 'title') updatePrompt();
         const objects = session.visibleObjects().map((o) => ({ ...o, seen: seen.has(o.id) }));
         const dim = screen === 'combat' || screen === 'over' ? 0.6 : view.fade;
         renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
