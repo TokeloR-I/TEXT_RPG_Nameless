@@ -116,8 +116,14 @@
         bindMenuClicks(els.title, menu);
     }
 
+    /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
+    function seedFromUrl() {
+        const m = /[?&]seed=(\d+)/.exec(location.search || '');
+        return m ? parseInt(m[1], 10) : undefined;
+    }
+
     function startGame(cls) {
-        engine = new ENSO.GameEngine();
+        engine = new ENSO.GameEngine({ seed: seedFromUrl() });
         window.enso = engine;                 // handy from the browser console
         engine.start();
         engine.input(cls);
@@ -244,6 +250,8 @@
                         <p>HP ${p.hp}/${p.maxHp} · ${esc(p.resource.type)} ${p.resource.current}/${p.resource.max}</p>
                         <p>STR ${p.strength} · INT ${p.intelligence} · AGI ${p.agility} · DEF ${p.def}</p>
                         ${other.length ? `<p>Also carrying: ${esc(other.join(', '))}</p>` : ''}</section>
+                    <section><h3>Run seed</h3>
+                        <p>${engine.seed} · to replay this run, open <code>world.html?seed=${engine.seed}</code> and make the same moves</p></section>
                     <section><h3>Controls</h3>
                         <p>Arrows / WASD: walk · E, Enter, Space: inspect, pick up, climb · Esc: this menu · Walk into an enemy to fight it</p></section>
                 </div>
@@ -583,7 +591,7 @@
     window.ensoDebug = {
         goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); },
         start(cls) { startGame(cls || 'warrior'); advanceDialog(true); },
-        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode }; }
+        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
     };
 
     showTitle();

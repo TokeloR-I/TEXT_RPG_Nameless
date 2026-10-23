@@ -250,7 +250,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Base | Slash | 0 Momentum | Deal 8–12 damage to a single enemy. | ✅ works |
 | Base | Guard | 0 Momentum | Reduce incoming damage by 25% next turn. | ✅ works |
 | Base | Power Strike | 2 Momentum | Spend 2 Momentum to deal 14–20 damage. | ✅ works |
-| Vanguard L3 | Shield Bash | 0 Momentum | Deal 10–14 damage, stun 1 turn if Momentum ≥ 3. | ✅ works |
+| Vanguard L3 | Shield Bash | 0 Oath Points | Deal 10–14 damage; stun 1 turn if you have ≥ 3 Oath Points (not spent). The target then needs one unstunned turn before Shield Bash can stun it again (QA-2). The game says why when there's no stun. | ✅ works |
 | Vanguard L5 | Shield Charge | 1 Oath Points | Rush an ally, taunt enemies around them. Deals 8–12 dmg. | 🟡 partly (taunt_aoe missing) |
 | Vanguard L8 | Holy Smite | all Oath Points | Spend all Oath Points to deal 15–25 radiant dmg (+5 vs Undead/Void). | ✅ works |
 | Vanguard L11 | Soul Rend | all Sin Marks | Consume all Sin Marks to deal 25–35 AOE dmg (ignores armor). | ✅ works |

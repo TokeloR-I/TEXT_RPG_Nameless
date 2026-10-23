@@ -34,7 +34,10 @@
         constructor(options = {}) {
             this.data = options.data || DATA;
             this.effects = options.effects || EFFECTS.registry;
-            this.rng = options.seed != null ? mulberry32(options.seed) : Math.random;
+            // Always seeded (spec R1, tech review F3): without a seed, pick one once and keep it, so any
+            // run (including a browser playtest) can be replayed from its reported seed.
+            this.seed = options.seed != null ? options.seed >>> 0 : Math.floor(Math.random() * 4294967296);
+            this.rng = mulberry32(this.seed);
             this.debug = !!options.debug; // print internal errors to the console
             this.out = [];
             this.errors = [];
