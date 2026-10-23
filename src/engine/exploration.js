@@ -171,8 +171,12 @@
                 this.refuse('NOT_FOR_SALE','This merchant cannot sell that item.'); return false;
             }
             if (this.player.gold < entry.buyPrice) { this.refuse('NOT_ENOUGH_GOLD','Not enough Gold.'); return false; }
+            if (!this.player.shopStock) this.player.shopStock = {};
+            const key = `${shopId}:${item}`;
+            const remaining = this.player.shopStock[key] ?? entry.quantity;
+            if (remaining < 1) { this.refuse('OUT_OF_STOCK','That item is sold out.'); return false; }
             this.player.gold -= entry.buyPrice;
-            entry.quantity--;
+            this.player.shopStock[key] = remaining - 1;
             this.player.inventory.push(item);
             this.say(`Purchased ${item} for ${entry.buyPrice} Gold.`);
             return true;
