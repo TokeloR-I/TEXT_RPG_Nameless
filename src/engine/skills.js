@@ -115,7 +115,7 @@
                         for (const x of active) if (x.handler.afterCalc) x.handler.afterCalc({ ...ctx, effect: x.effect }, hit);
                         const hpNote = target.isPlayer ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
                         this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer });
-                        this.damage(target, hit.damage, caster);
+                        this.damage(target, hit.damage, caster, { alreadyScaled: true });
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
                     }
@@ -167,7 +167,7 @@
             for (const status of target.statusEffects) {
                 if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
             }
-            return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true });
+            return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true, alreadyScaled: true });
         }
 
         tickSoulFeast(actor) {
@@ -194,7 +194,12 @@
         // ---------- primitives the effect registry uses ----------
         damage(target, amount, source, options = {}) {
             if (amount <= 0 || target.hp <= 0) return 0;
-            const actual = Math.min(target.hp, amount);
+            // Attack hits were already multiplied in rollDamage; direct magical,
+            // DoT and environmental damage must still receive Wound Transfer once.
+            const adjusted = options.alreadyScaled ? amount :
+                Math.floor(amount * this.linkedDamageMultiplier(target));
+            if (adjusted <= 0) return 0;
+            const actual = Math.min(target.hp, adjusted);
             // Capture eligible partners before the primary can die and shrink its group.
             const propagation = !options.secondaryLink && this.combat &&
                 !target.isPlayer && !target.isMinion
