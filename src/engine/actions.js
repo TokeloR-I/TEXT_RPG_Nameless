@@ -90,6 +90,10 @@
                 case 'buy': this.buyItem(String(a.shopId || ''), String(a.item || '')); return;
                 case 'sell': this.sellItem(String(a.shopId || ''), String(a.item || '')); return;
                 case 'compare_item': this.compareItem(String(a.item || '')); return;
+                case 'build': this.buildUpgrade(String(a.upgradeId || '')); return;
+                case 'plant': this.plantCrop(String(a.plotId || ''), String(a.seed || '')); return;
+                case 'harvest': this.harvestPlot(String(a.plotId || '')); return;
+                case 'craft': this.craftRecipe(String(a.recipeId || '')); return;
                 case 'engage': this.engage(); return;
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
