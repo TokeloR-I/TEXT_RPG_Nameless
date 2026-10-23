@@ -71,6 +71,7 @@
                 }
             }
             final *= this.markModifiers(attacker, target, hit);
+            final *= this.linkedDamageMultiplier(target);
             // Temporary, flag-scoped damage modifiers use the same round-based
             // status lifecycle as other combat buffs.
             for (const status of attacker.statusEffects) {
@@ -128,14 +129,91 @@
             if (missing.length && caster.isPlayer) this.say(`(Not implemented yet: ${missing.join(', ')})`);
         }
 
+        // Soulbinder: memberships and drain snapshots live entirely in combat statuses.
+        // Recomputing from IDs makes save/restore and enemy deaths deterministic.
+        activeSoulLinks(caster) {
+            if (!this.combat || !caster || caster.hp <= 0) return [];
+            const members = this.alive(this.combat.enemies).filter(t =>
+                t.statusEffects.some(s => s.type === 'soul_link' && s.appliedBy === caster.id));
+            const groups = new Map();
+            for (const t of members) for (const s of t.statusEffects) {
+                if (s.type !== 'soul_link' || s.appliedBy !== caster.id) continue;
+                if (!groups.has(s.linkGroup)) groups.set(s.linkGroup, []);
+                groups.get(s.linkGroup).push(t);
+            }
+            const valid = [...groups.values()].find(items => items.length >= 2) || [];
+            if (!valid.length) {
+                for (const t of this.combat.enemies) t.statusEffects = t.statusEffects.filter(s =>
+                    !(s.appliedBy === caster.id && (s.type === 'soul_link' || s.type === 'soul_feast')));
+            }
+            return valid;
+        }
+
+        linkedDamageMultiplier(target) {
+            const link = target.statusEffects.find(s => s.type === 'soul_link');
+            if (!link) return 1;
+            const owner = this.findCombatant(link.appliedBy);
+            if (!owner || !this.activeSoulLinks(owner).includes(target)) return 1;
+            return owner.isPlayer && this.hasTrait('Wound Transfer') ? 1.1 : 1;
+        }
+
+        // Link damage is not a new attack: flat DEF, crit, attack riders and
+        // stat scaling do not apply. The recipient still gets its own reductions.
+        secondarySoulDamage(target, raw, owner) {
+            if (!target || target.hp <= 0 || raw <= 0) return 0;
+            const immunity = (target.statusAffinities || {})['Soul Chain'] === 'immune';
+            if (immunity) return 0;
+            let adjusted = raw * this.linkedDamageMultiplier(target);
+            for (const status of target.statusEffects) {
+                if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
+            }
+            return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true });
+        }
+
+        tickSoulFeast(actor) {
+            const drains = actor.statusEffects.filter(s => s.type === 'soul_feast');
+            for (const drain of drains) {
+                if (actor.hp <= 0) break;
+                const owner = this.findCombatant(drain.appliedBy);
+                const members = this.activeSoulLinks(owner);
+                const matching = actor.statusEffects.some(s => s.type === 'soul_link' &&
+                    s.appliedBy === drain.appliedBy && s.linkGroup === drain.linkGroup);
+                if (!owner || !matching || !members.includes(actor)) {
+                    this.removeStatus(actor, drain);
+                    continue;
+                }
+                // Only one normal-turn tick; secondaryLink suppresses chain propagation.
+                const loss = this.secondarySoulDamage(actor, drain.value, owner);
+                this.say(`${actor.name} suffers ${loss} Soul Feast damage.`);
+                if (loss > 0 && owner.isPlayer && this.hasTrait('You heal for 100% of Soul Feast dmg')) {
+                    this.heal(owner, loss);
+                }
+            }
+        }
+
         // ---------- primitives the effect registry uses ----------
-        damage(target, amount, source) {
-            if (amount <= 0 || target.hp <= 0) return;
-            target.hp -= amount;
+        damage(target, amount, source, options = {}) {
+            if (amount <= 0 || target.hp <= 0) return 0;
+            const actual = Math.min(target.hp, amount);
+            target.hp -= actual;
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
             if (source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
             if (this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
             if (target.hp <= 0 && !target.dead) this.onDeath(target, source);
+            if (!options.secondaryLink && this.combat && !target.isPlayer && !target.isMinion) {
+                const memberships = target.statusEffects.filter(s => s.type === 'soul_link');
+                for (const membership of memberships) {
+                    const owner = this.findCombatant(membership.appliedBy);
+                    if (!owner || owner.hp <= 0) continue;
+                    const partners = this.activeSoulLinks(owner).filter(t =>
+                        t !== target && t.statusEffects.some(s => s.type === 'soul_link' &&
+                            s.linkGroup === membership.linkGroup));
+                    for (const partner of partners) {
+                        this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
+                    }
+                }
+            }
+            return actual;
         }
 
         heal(target, amount) {
