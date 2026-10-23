@@ -115,11 +115,19 @@
         for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0 };
-        creatorStep('name');
+        creatorStep(readSave() ? 'start' : 'name');
     }
     function creatorStep(step) {
         creator.step = step;
         menu = null;
+        if (step === 'start') {            // a saved game in this browser: continue it, or start a new one
+            const save = readSave();
+            const when = save && save.meta && save.meta.createdAt ? new Date(save.meta.createdAt).toLocaleString() : '';
+            menu = makeMenu([
+                { label: 'Continue', sub: `${(save && save.meta && save.meta.label) || 'Saved game'}${when ? ` · ${when}` : ''}`, action: () => continueGame(save) },
+                { label: 'New game', sub: 'The saved game stays until you save over it.', action: () => creatorStep('name') }
+            ], { render: renderTitle });
+        }
         if (step === 'class') {
             menu = makeMenu(classes.map((key) => ({ label: DATA.basePlayerClasses[key].name, sub: DATA.basePlayerClasses[key].description,
                 action: () => { creator.cls = key; creatorStep('look'); } })), { back: () => creatorStep('name'), render: renderTitle });
@@ -151,6 +159,11 @@
             setTimeout(() => input.focus(), 0);
             return;
         }
+        if (creator.step === 'start') {
+            els.title.innerHTML = `<h1>Enso's Last Stand</h1><p class="subtitle">${sub}</p>${menuHtml(menu, 'class-list')}<p class="keys">↑ ↓ choose · Enter</p>`;
+            bindMenuClicks(els.title, menu);
+            return;
+        }
         const who = creator.name.trim() || (STORY && STORY.defaultName) || 'The Wanderer';
         els.title.innerHTML = `
             <h1>Enso's Last Stand</h1>
@@ -167,20 +180,35 @@
         return m ? parseInt(m[1], 10) : undefined;
     }
 
-    function startGame(cls, name, look) {
-        engine = new ENSO.GameEngine({ seed: seedFromUrl() });
-        window.enso = engine;                 // handy from the browser console
-        engine.start();
-        engine.act({ type: 'choose_class', classId: cls });
-        if (STORY) engine.act({ type: 'set_identity', name: name || '', appearance: look || 0 });
-        view.appearance = look || 0;
-        engine.act({ type: 'enter_world' });
+    // Save / continue: the engine makes and checks the save (Phase 1 spec §5); this page keeps one slot in the
+    // browser. Your place on the map travels in the save's attachments (the world owns space).
+    const SAVE_KEY = 'enso.world.save.v1';
+    function readSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } }
+    function saveGame() {
+        const p = engine.getState().player;
+        const save = engine.serialize({ label: `${p.name} · Lv ${p.level} · ${WORLD.maps[session.mapId].name}`, createdAt: new Date().toISOString(),
+            attachments: { world: session.getState(), seen: [...seen] } });
+        try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); return 'Saved. Continue from the title screen next time.'; } catch (e) { return `Couldn't save in this browser (${e.message}).`; }
+    }
+    function continueGame(save) {
+        let loaded;
+        try { loaded = ENSO.GameEngine.fromSave(save); } catch (e) { toast("That save couldn't be loaded."); creatorStep('name'); return; }
+        engine = loaded;
+        window.enso = engine;
         session = new WorldSession(WORLD, { engine });
+        session.restorePosition(((engine.lastLoad.attachments || {}).world) || null);
         window.ensoWorld = session;
         seen.clear();
+        for (const id of ((engine.lastLoad.attachments || {}).seen) || []) seen.add(id);
+        enterExplore(engine.player.className, engine.player.appearance || 0);
+        const warn = engine.lastLoad.warnings.length ? ['(The game has been updated since this save. It loaded anyway.)'] : [];
+        openDialog([`Welcome back, ${engine.player.name}.`, ...warn], null, afterStory);
+    }
+    function enterExplore(cls, look) {
         battle = null;
         syncView();
         view.className = cls;
+        view.appearance = look;
         screen = 'explore';
         modal = null;
         menu = null;
@@ -188,6 +216,19 @@
         els.hud.hidden = false;
         updateHud();
         showBanner(WORLD.maps[session.mapId].name);
+    }
+
+    function startGame(cls, name, look) {
+        engine = new ENSO.GameEngine({ seed: seedFromUrl() });
+        window.enso = engine;                 // handy from the browser console
+        engine.start();
+        engine.act({ type: 'choose_class', classId: cls });
+        if (STORY) engine.act({ type: 'set_identity', name: name || '', appearance: look || 0 });
+        engine.act({ type: 'enter_world' });
+        session = new WorldSession(WORLD, { engine });
+        window.ensoWorld = session;
+        seen.clear();
+        enterExplore(cls, look || 0);
         openDialog(WORLD.intro, null);
     }
 
@@ -334,7 +375,8 @@
             const def = DATA.itemDefinitions[item];
             items.push({ label: `Use ${item}${n > 1 ? ` (x${n})` : ''}`, sub: `${def.description} Heals ${def.value}.`, action: () => useItem(item) });
         }
-        items.push({ label: 'Quit to title', sub: 'This run is not saved.', action: showTitle });
+        items.push({ label: 'Save game', sub: 'Keeps your place in this browser (one save slot).', action: () => openPause(saveGame()) });
+        items.push({ label: 'Quit to title', sub: 'Anything since your last save is lost.', action: showTitle });
         menu = makeMenu(items, { back: closePause, render: () => renderPause(note) });
         renderPause(note);
     }

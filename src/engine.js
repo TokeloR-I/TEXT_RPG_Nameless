@@ -23,6 +23,7 @@
  *   control.js        Player-controlled enemy turns (Possession, N-5)
  *   turn-order.js     Player-set turn order (Eternal Architect, D-09)
  *   story.js          Chapter story: quests, flags, journal, NPC dialogue, identity (CH1-01)
+ *   save.js           Save/load: serialize(), load(), GameEngine.fromSave() (Phase 1 spec §5)
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -278,7 +279,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);
@@ -286,6 +287,15 @@
 
     const installStatusSystem = isNode ? require('./statuses.js') : ENSO.installStatusSystem;
     installStatusSystem(GameEngine);
+
+    /** A new engine with `save` loaded (spec §5.1). Throws if the save can't be loaded; use load() to inspect why. */
+    GameEngine.fromSave = function (save, options = {}) {
+        const g = new GameEngine({ ...options, seed: save && save.rng ? save.rng.seed : options.seed });
+        const r = g.load(save, options);
+        if (!r.ok) throw new Error(`Can't load save: ${r.error.code}: ${r.error.message}`);
+        g.lastLoad = r;
+        return g;
+    };
 
     ENSO.GameEngine = GameEngine;
     if (isNode) module.exports = { GameEngine, mulberry32 };

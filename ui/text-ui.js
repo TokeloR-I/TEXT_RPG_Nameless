@@ -58,11 +58,32 @@
         setBusy(false);
     }
 
+    // Save / load (Phase 1 spec §5): the engine makes and checks the save; this page keeps one slot in the browser.
+    const SAVE_KEY = 'enso.text.save.v1';
+    const note = (text) => [{ type: 'text', text, important: true }];
+    function saveCommand() {
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(engine.serialize({ label: engine.player ? engine.player.name : 'New game', createdAt: new Date().toISOString() })));
+            return note("Game saved in this browser. Type 'load' to come back to this moment.");
+        } catch (e) { return note(`Couldn't save here (${e.message}).`); }
+    }
+    function loadCommand() {
+        let save = null;
+        try { save = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return note(`Couldn't read the save (${e.message}).`); }
+        if (!save) return note('There is no saved game in this browser yet.');
+        const r = engine.load(save);
+        if (!r.ok) return note(`Couldn't load: ${r.error.message}`);
+        return [...r.events, ...r.warnings.map((w) => ({ type: 'text', text: `(${w.message})` }))];
+    }
+
     async function submit() {
         if (busy) return;
         const text = input.value;
         input.value = '';
         if (!text.trim()) return;
+        const cmd = text.trim().toLowerCase();
+        if (cmd === 'save') { await play(saveCommand()); return; }
+        if (cmd === 'load') { await play(loadCommand()); return; }
         await play(engine.input(text));
     }
 

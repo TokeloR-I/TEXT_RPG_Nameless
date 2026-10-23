@@ -333,6 +333,20 @@
         }
 
         getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
+
+        /** Put the player back where a save says (getState() shape). Anything that doesn't fit the map
+         *  (unknown map, out of bounds, in a wall, on an exit) falls back to the world's start. */
+        restorePosition(st) {
+            const map = st && this.world.maps[st.map];
+            const ok = map && Number.isInteger(st.x) && Number.isInteger(st.y) && inBounds(map, st.x, st.y)
+                && !isSolidTile(this.world, map, st.x, st.y) && !(map.exits || []).some((e) => e.x === st.x && e.y === st.y);
+            if (!ok) { this.place(this.world.start.map, this.world.start.spawn); return false; }
+            this.mapId = st.map; this.x = st.x; this.y = st.y;
+            this.facing = FACINGS.includes(st.facing) ? st.facing : 'down';
+            this.steps = Number.isInteger(st.steps) ? st.steps : 0;
+            this.cooldown = typeof st.cooldown === 'string' ? st.cooldown : null;
+            return true;
+        }
     }
 
     const api = { WorldSession, validateWorld, tileAt, reachable, DIRS };

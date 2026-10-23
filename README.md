@@ -9,6 +9,7 @@ engine can drive the text version now and a Phaser side-scroller later.
 ## Play
 - **Explore the world (Chapter One):** double-click `world.html`. Name your character, pick a class and a look, then walk with the arrow keys or WASD, interact or talk with E / Enter, Esc for the menu and journal.
   The road leads from the homestead to the village of Shamefield and up to the Crow-Touched Warden. Walk into a visible enemy to fight it; battles are the same turn-based fights as the text game, chosen from a menu.
+  **Save** from the Esc menu; **Continue** appears on the title screen. In the text version, type `save` and `load`.
 - **Classic text version:** double-click `index.html`. Single self-contained builds of both (`EnsosLastStand.html`, `EnsosLastStand-World.html`) are attached to every CI run (Actions → latest run → Artifacts), or build them with `npm run build`.
 - Terminal: `npm run play` (add `-- --seed 42` to reproduce a run exactly).
 
@@ -30,6 +31,7 @@ src/engine/       the rest of the rules, one module per area:
   control.js        player-controlled enemy turns (Possession): awaiting 'control'
   turn-order.js     player-set turn order (Eternal Architect): awaiting 'turn_order'
   story.js          chapter story: quests, flags, journal, NPC dialogue (awaiting 'dialogue'), name/appearance
+  save.js           save/load: serialize(), load(), GameEngine.fromSave() (SaveGame v1)
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
   world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation
