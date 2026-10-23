@@ -92,6 +92,7 @@
                 case 'compare_item': this.compareItem(String(a.item || '')); return;
                 case 'build': this.buildUpgrade(String(a.upgradeId || '')); return;
                 case 'plant': this.plantCrop(String(a.plotId || ''), String(a.seed || '')); return;
+                case 'tend': this.tendPlot(String(a.plotId || '')); return;
                 case 'harvest': this.harvestPlot(String(a.plotId || '')); return;
                 case 'craft': this.craftRecipe(String(a.recipeId || '')); return;
                 case 'engage': this.engage(); return;
