@@ -129,6 +129,18 @@
             if (missing.length && caster.isPlayer) this.say(`(Not implemented yet: ${missing.join(', ')})`);
         }
 
+        advanceSoulLinkClock(actor) {
+            const clocks = this.combat && this.combat.soulLinkClocks;
+            const clock = clocks && clocks[actor.id];
+            if (!clock) return;
+            // A cast during the current normal turn does not consume its own clock.
+            if ((actor.normalTurns || 0) <= clock.castTurn) return;
+            if (--clock.remaining > 0) return;
+            for (const t of this.combat.enemies) t.statusEffects = t.statusEffects.filter(s =>
+                !(s.appliedBy === actor.id && (s.type === 'soul_link' || s.type === 'soul_feast')));
+            delete clocks[actor.id];
+        }
+
         // Soulbinder: memberships and drain snapshots live entirely in combat statuses.
         // Recomputing from IDs makes save/restore and enemy deaths deterministic.
         activeSoulLinks(caster) {
@@ -219,14 +231,14 @@
                 }) : [];
             target.hp -= actual;
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
-            if (source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
-            if (this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
+            if (!options.secondaryLink && source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
+            if (!options.secondaryLink && this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
+            if (target.hp <= 0 && !target.dead) this.onDeath(target, source, options);
             for (const { owner, partners } of propagation) {
                 for (const partner of partners) {
-                    this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
+                    if (partner.hp > 0 && !partner.erased) this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
                 }
             }
-            if (target.hp <= 0 && !target.dead) this.onDeath(target, source);
             return actual;
         }
 
@@ -264,7 +276,7 @@
             this.orphanStatusesOf(target);
         }
 
-        onDeath(target, source) {
+        onDeath(target, source, options = {}) {
             target.dead = true;
             this.orphanStatusesOf(target);
             // A dead owner cannot retain links or Feast subscriptions. Removing a
@@ -295,15 +307,15 @@
             }
             const inf = this.infectionOn(target);
             if (inf) {
-                if (source && source.isPlayer && this.hasTrait('Plague Reservoir') && this.gainResource(p, 1) > 0) this.say('Plague Reservoir: +1 Soul Energy.');
+                if (!options.secondaryLink && source && source.isPlayer && this.hasTrait('Plague Reservoir') && this.gainResource(p, 1) > 0) this.say('Plague Reservoir: +1 Soul Energy.');
                 if (inf.spreadOnDeath) {
                     const others = this.alive(this.combat.enemies).filter((e) => e !== target);
                     if (others.length) this.say(`The contagion bursts from ${target.name}'s body!`);
                     for (const e of others) this.infect(this.findCombatant(inf.appliedBy) || p, e, 1, { spreadOnDeath: true });
                 }
             }
-            if (source && source.isPlayer) this.resourceEvent('onKill', 1, 'kill');
-            if (p.className === 'necromancer' && !p.isHollowKing && source) {
+            if (!options.secondaryLink && source && source.isPlayer) this.resourceEvent('onKill', 1, 'kill');
+            if (!options.secondaryLink && p.className === 'necromancer' && !p.isHollowKing && source) {
                 const amount = source.isPlayer ? 2 : source.isMinion ? 1 : 0;
                 if (amount && this.gainResource(p, amount) > 0) this.say(`You gained ${amount} Soul Energy from ${target.name}'s demise!`);
             }
