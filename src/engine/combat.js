@@ -288,7 +288,7 @@
         enemyTurn(enemy) {
             const c = this.combat;
             const taunter = this.alive(c.minions).find((m) => m.statusEffects.some((s) => s.type === 'taunt'));
-            const target = taunter || this.player;
+            const target = this.statusOfType(enemy, 'taunt_player') ? this.player : (taunter || this.player);
             let skill = enemy.skills.length
                 ? enemy.skills[Math.floor(this.rng() * enemy.skills.length)]
                 : this.data.skillDefinitions['Basic Attack'];
