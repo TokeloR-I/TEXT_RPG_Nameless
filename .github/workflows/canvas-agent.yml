@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install google-genai
+          pip install google-generativeai
 
       - name: Run Canvas Agent Script
         env:
