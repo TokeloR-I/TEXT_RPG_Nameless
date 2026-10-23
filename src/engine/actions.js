@@ -361,7 +361,7 @@
             if (kind === 'enemy_multiple') {
                 const n = this.multiTargetCount ? this.multiTargetCount() : 2;
                 opt.pick = { min: n, max: n };
-                opt.targets = living.map((e) => ({ id: e.id, enabled: true }));
+                opt.targets = this.notedTargets(skill, living);
                 if (living.length < n) return fail('INVALID_TARGET', this.invalidTargetMessage(skill, name, { ids: [] }));
                 const problem = this.requirementProblem(skill, living.slice(0, n));
                 if (problem) return fail('REQUIREMENT_FAILED', problem);
@@ -370,7 +370,7 @@
             }
             if (NO_CHOICE.has(kind) || (kind === 'ally_single' && !skill.base_damage)) {
                 const affected = this.pickTargets(skill, null) || [];
-                opt.targets = affected.map((t) => ({ id: t.id, enabled: true }));
+                opt.targets = this.notedTargets(skill, affected);
                 const problem = this.requirementProblem(skill, affected);
                 if (problem) return fail('REQUIREMENT_FAILED', problem);
                 opt.enabled = true;
@@ -407,7 +407,24 @@
             if ((skill.effects || []).some((e) => e.shieldBashRecovery) && target.shieldBashRecovery) {
                 return [{ code: 'STUN_NOT_ELIGIBLE', message: `No stun: ${target.name} is still recovering from the last one.` }];
             }
-            return [];
+            // Package 2: what Control Resistance will do on a hit. An outcome, never a refusal (matrix 11).
+            const notes = [];
+            for (const e of skill.effects || []) {
+                const applies = this.effects[e.type] && this.effects[e.type].applies;
+                const note = applies && this.controlPreview(target, applies.name, applies.type, e.duration);
+                if (note && !notes.some((n) => n.message === note.message)) notes.push(note);
+            }
+            return notes;
+        }
+
+        /** Target entries with their non-blocking notes. */
+        notedTargets(skill, list) {
+            return list.map((t) => {
+                const entry = { id: t.id, enabled: true };
+                const tn = t.isPlayer || t.isMinion ? [] : this.targetNotes(skill, t);
+                if (tn.length) entry.notes = tn;
+                return entry;
+            });
         }
 
         // =====================================================================

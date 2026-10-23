@@ -1,7 +1,7 @@
 // QA-2: Shield Bash acceptance matrix (docs/design/QA_2_SHIELD_BASH_PROPOSAL.md, criteria 1–11).
 // The basic gate/no-payment/lockout-state test is Rook's, in 03-combat; these drive the rest through
 // real turn order.
-const { test, assert, data, gameWith, TEST_CR, stun, since, assertHealthy } = require('./helpers.js');
+const { test, assert, data, gameWith, stun, since, assertHealthy } = require('./helpers.js');
 
 /** Level-3 Vanguard in the hallway (ghoul, ghoul, Rust Rat). Enemies have 999 HP and a fixed 5-damage hit. */
 const vanguard = (spd, mutate) => {
@@ -91,39 +91,43 @@ test('QA-2 #6: spamming Shield Bash on the boss at full Oath never denies two tu
     }
 });
 
-test('QA-2 #7–9: with test CR values, bash stuns build CR; nothing else does; a boss\'s first stun lands', () => {
-    const g = vanguard(40, (d) => TEST_CR(d));
+test('QA-2 #7–9 with Package 2 CR: bash stuns build CR; lockout and threshold failures don\'t; a boss\'s first stun lands', () => {
+    const g = vanguard(40);
     const t = rat(g);
     bash(g, t, 3);
-    assert.ok(g.findStatus(t, 'Stun')); assert.strictEqual(t.cr.value, 60, 'successful stun: +60 (regular)');
+    assert.ok(g.findStatus(t, 'Stun')); assert.strictEqual(t.cr.value, 35, 'successful stun: +35 (hard)');
     bash(g, t, 3);                                   // lockout: damage only
-    assert.strictEqual(t.cr.value, 60, 'lockout adds no CR');
+    assert.strictEqual(t.cr.value, 35, 'lockout adds no CR');
     t.shieldBashRecovery = null; t.statusEffects = [];
     bash(g, t, 2);
-    assert.strictEqual(t.cr.value, 60, 'threshold failure adds no CR');
+    assert.strictEqual(t.cr.value, 35, 'threshold failure adds no CR');
     bash(g, t, 3);
-    assert.ok(g.findStatus(t, 'Stun'), 'the application reaching 100 still lands');
-    assert.ok(t.cr.immune);
+    assert.strictEqual(t.cr.value, 70);
     t.shieldBashRecovery = null; t.statusEffects = [];
     bash(g, t, 3);
-    assert.ok(!g.findStatus(t, 'Stun'), 'immune: resisted');
+    assert.ok(g.findStatus(t, 'Stun'), 'at 70 the stun still lands (capped at one turn)');
+    assert.strictEqual(t.cr.value, 100);
+    t.shieldBashRecovery = null; t.statusEffects = [];
+    bash(g, t, 3);
+    assert.ok(!g.findStatus(t, 'Stun'), 'at 100: resisted');
     assert.ok(!t.shieldBashRecovery, 'a resisted bash starts no lockout');
-    // boss: first control is not pre-blocked
-    const b = gameWith((d) => TEST_CR(d));
+    // boss: starts at 60, so its first stun lands, capped at one turn
+    const b = gameWith(() => {});
     b.do('warrior', 'add_xp 250', 'vanguard');
     b.currentRoom = 'wardens_roost';
     b.do('engage');
     const boss = b.combat.enemies[0];
+    const before = b.crValue(boss);                  // 60 at the start of the fight, minus any decay so far
     bash(b, boss, 3);
     assert.ok(b.findStatus(boss, 'Stun'), "boss's first stun lands");
-    assert.strictEqual(boss.cr.value, 120, '60 x boss multiplier 2');
+    assert.strictEqual(boss.cr.value, before + 35);
 });
 
 test('QA-2 #8: a resisted bash on a target already stunned by something else uses up no eligibility', () => {
-    const g = vanguard(40, (d) => TEST_CR(d));
+    const g = vanguard(40);
     const t = rat(g);
-    stun(g, t); stun(g, t);                          // another source: CR 120 -> immune, still stunned
-    assert.ok(t.cr.immune && g.findStatus(t, 'Stun'));
+    stun(g, t); stun(g, t); stun(g, t);             // another source: CR 100, still stunned
+    assert.ok(t.cr.value === 100 && g.findStatus(t, 'Stun'));
     bash(g, t, 3);
     assert.ok(!t.shieldBashRecovery, 'Shield Bash did not stun, so no lockout');
 });

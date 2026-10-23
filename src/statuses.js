@@ -6,7 +6,7 @@
  * all apply statuses through engine.applyStatus(source, target, spec).
  *
  *   applyStatus ─► affinity (immune / resist / vulnerable)       rule 6
- *               ─► Control Resistance gate for hard control      rules 3–5
+ *               ─► Control Resistance gate (Package 2)          cap / halve / resist
  *               ─► stack (intensity, cap) + refresh duration     rule 2
  *               ─► Overflow Burst roll when re-applied at cap    rules 7–9
  *               ─► cross-status reaction rolls                   rules 13–15
@@ -116,11 +116,14 @@
                 if (mod && isNum(mod.durationMult) && isNum(duration)) duration = Math.max(1, Math.round(duration * mod.durationMult));
             }
 
-            // --- rules 3–5: Control Resistance gate (hard control only, only when configured)
-            const hard = this.isHardControl(name);
-            if (hard && target.cr && target.cr.immune) {
-                this.say(`${target.name} resists ${name}! (Control Resistance ${Math.round(target.cr.value)})`);
-                return null;
+            // --- Control Resistance gate (Package 2): cap, halve or resist from the pre-application CR
+            const control = this.controlClass(name, spec.type || def.type);
+            if (control) {
+                const gate = this.controlGate(target, name, control, duration, spec.value);
+                if (gate.blocked) { this.say(gate.message); return null; }
+                if (gate.value !== spec.value) spec = { ...spec, value: gate.value };
+                duration = gate.duration;
+                if (gate.message) this.say(gate.message);
             }
 
             // --- rule 2: one instance per status per target; stack intensity up to cap, refresh duration
@@ -152,8 +155,8 @@
             // --- rules 7–9: Overflow Burst when re-applied while already capped
             if (wasAtCap) this.rollOverflow(source, target, inst);
 
-            // --- rule 3: build CR after the control has succeeded
-            if (hard) this.addControlResistance(target, name);
+            // --- CR-01: build CR after the control has succeeded
+            if (control) this.gainControlResistance(target, name, control);
 
             // --- rules 13–15: reactions with statuses that were already there
             this.rollReactions(source, target, name, existingNames);
@@ -198,7 +201,6 @@
                     if (s.type !== 'dodge' && s.type !== 'counter') this.say(`[${s.name}] wears off ${x.name}.`);
                     return false;
                 });
-                this.recoverControlResistance(x);
             }
             // A link whose members expired on different initiative turns never
             // survives as an orphaned, one-member group.
@@ -343,39 +345,132 @@
         };
 
         // ---------------------------------------------------------------
-        // Control Resistance (rules 3–5)
+        // Control Resistance: Vaelis Package 2 (CR-01..03), one central policy.
+        // Numbers live in data.statusRules.controlResistance; classes in statusDefinitions[*].control.
+        //   x.cr = { value, controlled, protectNext, cast }   fight-local, plain JSON (saves/rolls back)
+        //     value        0..max; starts by tier (created lazily, so crValue() is the reader)
+        //     controlled   a control effect landed since the holder's last opportunity (blocks decay)
+        //     protectNext  boss only: the last opportunity was a hard skip, so the next can't be
+        //     cast         { id, before, gained }: one cast = one CR snapshot and one (largest) gain
+        // Timing runs through the T-0 hooks (src/engine/timers.js): crBeginOpportunity / crEndOpportunity.
         // ---------------------------------------------------------------
-        P.crConfig = function () {
-            const cr = this.statusRules().controlResistance || {};
-            const tiers = cr.tierMultipliers || {};
-            const ok = isNum(cr.threshold) && isNum(cr.recoveryPerRound) && isNum(cr.releaseThreshold)
-                && ['regular', 'elite', 'boss', 'player', 'summon'].every((t) => isNum(tiers[t]));
-            return ok ? cr : null;
+        /** The Package 2 numbers, or null (CR off) if any is missing, so a partial or old-style config can't half-run. */
+        P.crRules = function () {
+            const r = this.statusRules().controlResistance;
+            if (!r || !r.start || !r.gain) return null;
+            const nums = [r.max, r.capAt, r.resistAt, r.capTurns, r.softStrength, r.decayPerOpportunity, r.gain.hard, r.gain.soft];
+            return nums.every(isNum) ? r : null;
         };
 
-        P.isHardControl = function (name) {
-            const def = this.statusDef(name);
-            return def.control === 'hard' && isNum(def.crGain) && !!this.crConfig();
+        /** 'hard' | 'soft' | null. Anything that skips a turn is hard whatever its name (CR-03). */
+        P.controlClass = function (name, type) {
+            if (!this.crRules() || !this.combat) return null;
+            if (type === 'skip_turn') return 'hard';
+            const c = this.statusDef(name).control;
+            return c === 'hard' || c === 'soft' ? c : null;
         };
 
-        P.addControlResistance = function (target, name) {
-            const cr = this.crConfig();
-            target.cr = target.cr || { value: 0, immune: false };
-            target.cr.value += this.statusDef(name).crGain * cr.tierMultipliers[this.tierOf(target)];
-            if (!target.cr.immune && target.cr.value >= cr.threshold) {
-                target.cr.immune = true; // this application already succeeded; immunity starts with the next one
-                this.say(`${target.name} has built up Control Resistance — immune to further hard control for now.`);
+        P.crStart = function (x) { return (this.crRules().start || {})[this.tierOf(x)] || 0; };
+        P.crValue = function (x) {
+            if (!this.crRules()) return 0;
+            return x.cr ? x.cr.value : this.crStart(x);
+        };
+        P.crState = function (x) {
+            if (!x.cr) x.cr = { value: this.crStart(x), controlled: false, protectNext: false, cast: null };
+            return x.cr;
+        };
+        P.crProtects = function (x) { return (this.crRules().noConsecutiveHardSkip || []).includes(this.tierOf(x)); };
+
+        /** Halve a soft-control strength, rounded toward zero (fractions such as Slow's 0.5 at 1% steps). */
+        P.crWeaken = function (value) {
+            const k = this.crRules().softStrength;
+            return Number.isInteger(value) ? Math.trunc(value * k) : Math.trunc(Math.round(value * k * 1e6) / 1e4) / 100;
+        };
+
+        /**
+         * CR-02 step 2: what the target's CR does to this application. Pure apart from the cast snapshot.
+         * Returns { blocked, reason, message, duration, value, before }.
+         */
+        P.controlGate = function (target, name, control, duration, value) {
+            const r = this.crRules();
+            const st = this.crState(target);
+            const castId = this.combat.currentCastId || null;
+            if (castId && (!st.cast || st.cast.id !== castId)) st.cast = { id: castId, before: st.value, gained: 0 };
+            const before = castId ? st.cast.before : st.value;
+            const binary = !!this.statusDef(name).binary || typeof value !== 'number';
+            const capped = typeof duration === 'number' ? Math.min(duration, r.capTurns) : r.capTurns;
+            const out = { blocked: false, reason: null, message: null, duration, value, before };
+            if (control === 'hard' && st.protectNext) {
+                return { ...out, blocked: true, reason: 'protected', message: `${target.name} resists ${name}! (It can't lose two turns in a row.)` };
             }
+            if (before >= r.resistAt) {
+                if (control === 'hard' || binary) return { ...out, blocked: true, reason: 'control_resistance', message: `${target.name} resists ${name}! (Control Resistance ${before})` };
+                return { ...out, duration: capped, value: this.crWeaken(value), message: `(Control Resistance ${before}: ${name} at half strength for ${capped} turn.)` };
+            }
+            if (before >= r.capAt) {
+                const shortened = capped !== duration;
+                return { ...out, duration: capped, message: shortened ? `(Control Resistance ${before}: ${name} lasts ${capped} turn.)` : null };
+            }
+            return out;
         };
 
-        P.recoverControlResistance = function (x) {
-            const cr = this.crConfig();
-            if (!cr || !x.cr) return;
-            x.cr.value = Math.max(0, x.cr.value - cr.recoveryPerRound);
-            if (x.cr.immune && x.cr.value < cr.releaseThreshold) {
-                x.cr.immune = false;
-                this.say(`${x.name}'s Control Resistance fades.`);
+        /** CR-01: after a successful control application. One cast gives each target its largest gain once. */
+        P.gainControlResistance = function (target, name, control) {
+            const r = this.crRules();
+            const st = this.crState(target);
+            const amount = r.gain[control] || 0;
+            const castId = this.combat.currentCastId || null;
+            let add = amount;
+            if (castId && st.cast && st.cast.id === castId) {
+                add = Math.max(0, amount - st.cast.gained);
+                st.cast.gained = Math.max(st.cast.gained, amount);
             }
+            st.controlled = true;
+            const before = st.value;
+            st.value = Math.min(r.max, st.value + add);
+            if (st.value !== before) this.say(`(${target.name}: Control Resistance ${before} → ${st.value}.)`);
+        };
+
+        /** The holder's turn would be skipped. A protected boss keeps it (CR-01: no two hard skips in a row). */
+        P.turnSkipped = function (actor) {
+            if (!actor.statusEffects.some((s) => s.type === 'skip_turn')) return false;
+            if (actor.cr && actor.cr.protectNext && this.crRules()) {
+                this.say(`${actor.name} shakes it off: it can't lose two turns in a row.`);
+                return false;
+            }
+            return true;
+        };
+
+        /** T-0 hook: an opportunity begins. A hard skip of a protected tier protects the next one. */
+        P.crBeginOpportunity = function (actor, skipped) {
+            if (skipped && this.crRules() && this.crProtects(actor)) this.crState(actor).protectNext = true;
+        };
+
+        /** T-0 hook: an opportunity ends (skipped ones too, never Haste bonus actions). CR-02 step 5. */
+        P.crEndOpportunity = function (actor, skipped) {
+            const r = this.crRules();
+            if (!r) return;
+            const st = actor.cr;
+            if (st && !skipped) st.protectNext = false;
+            if (st && st.controlled) { st.controlled = false; return; }
+            const v = this.crValue(actor);
+            const floor = r.decayFloor || 0;
+            if (v > floor) this.crState(actor).value = Math.max(floor, v - r.decayPerOpportunity);
+        };
+
+        /** Availability hint for a control effect on a target: an on-hit outcome, never a refusal (matrix 11). */
+        P.controlPreview = function (target, name, type, duration) {
+            const control = this.controlClass(name, type);
+            if (!control) return null;
+            const r = this.crRules();
+            const v = this.crValue(target);
+            if (control === 'hard' && target.cr && target.cr.protectNext) return { code: 'CONTROL_RESISTED', message: `${target.name} can't lose two turns in a row: ${name} will be resisted.` };
+            if (v >= r.resistAt) {
+                if (control === 'hard' || this.statusDef(name).binary) return { code: 'CONTROL_RESISTED', message: `Control Resistance ${v}: ${name} will be resisted.` };
+                return { code: 'CONTROL_WEAKENED', message: `Control Resistance ${v}: ${name} at half strength for ${r.capTurns} turn.` };
+            }
+            if (v >= r.capAt && typeof duration === 'number' && duration > r.capTurns) return { code: 'CONTROL_CAPPED', message: `Control Resistance ${v}: ${name} lasts ${r.capTurns} turn.` };
+            return null;
         };
 
         // ---------------------------------------------------------------

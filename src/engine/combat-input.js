@@ -171,8 +171,10 @@
         }
 
         statusTag(c) {
-            return c.statusEffects.length
-                ? ` [${c.statusEffects.map((s) => `${s.name}${s.stacks > 1 ? ` x${s.stacks}` : ''}${typeof s.duration === 'number' ? ` ${s.duration}` : ''}`).join(', ')}]` + (c.cr && c.cr.value > 0 ? ` (CR ${Math.round(c.cr.value)}${c.cr.immune ? ' IMMUNE' : ''})` : '') : '';
+            const statuses = c.statusEffects.length
+                ? ` [${c.statusEffects.map((s) => `${s.name}${s.stacks > 1 ? ` x${s.stacks}` : ''}${typeof s.duration === 'number' ? ` ${s.duration}` : ''}`).join(', ')}]` : '';
+            const cr = this.crValue(c);
+            return statuses + (cr > 0 ? ` (CR ${cr})` : '');
         }
     }
 

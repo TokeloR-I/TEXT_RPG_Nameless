@@ -9,19 +9,19 @@ const rules = data.statusRules;
 const out = [];
 const section = (title, lines) => { if (lines.length) out.push(`\n${title}`, ...lines.map((l) => `  - ${l}`)); };
 
-// 1. hard vs soft control + CR gain
+// 1. hard vs soft control (Vaelis Package 2: 'hard' | 'soft' | false; anything that skips a turn is hard anyway)
 const control = Object.entries(defs).filter(([, d]) => ['control', 'debuff', 'mark'].includes(d.category) && 'control' in d);
-section('Hard vs soft control, and CR gain per application', control
-    .filter(([, d]) => d.control == null || (d.control === 'hard' && !isNum(d.crGain)))
-    .map(([n, d]) => `${n}: control=${d.control ?? 'PENDING'}, crGain=${d.crGain ?? 'PENDING'}`));
+section('Control Resistance class (hard / soft / not control)', control
+    .filter(([, d]) => d.control == null)
+    .map(([n]) => `${n}: control PENDING`));
 
-// 2. CR parameters
-const cr = rules.controlResistance;
+// 2. CR parameters (Package 2)
+const cr = rules.controlResistance || {};
 const crLines = [];
-if (!isNum(cr.recoveryPerRound)) crLines.push('recoveryPerRound: PENDING');
-if (!isNum(cr.releaseThreshold)) crLines.push('releaseThreshold: PENDING');
-for (const [t, v] of Object.entries(cr.tierMultipliers)) if (!isNum(v)) crLines.push(`tierMultipliers.${t}: PENDING`);
-section(`Control Resistance (threshold ${cr.threshold} is approved) — CR stays OFF until all of these are set`, crLines);
+for (const k of ['max', 'capAt', 'resistAt', 'capTurns', 'softStrength', 'decayPerOpportunity']) if (!isNum(cr[k])) crLines.push(`${k}: PENDING`);
+for (const t of ['regular', 'elite', 'boss', 'player', 'summon']) if (!isNum((cr.start || {})[t])) crLines.push(`start.${t}: PENDING`);
+for (const c of ['hard', 'soft']) if (!isNum((cr.gain || {})[c])) crLines.push(`gain.${c}: PENDING`);
+section('Control Resistance parameters', crLines);
 
 // 3. stacking caps
 section('Stacking caps (only Infection is approved; others refresh-only until set)', Object.entries(defs)
