@@ -196,6 +196,8 @@
             const live = ctx.targets.filter(t => t && t.hp > 0 && !t.erased);
             if (live.length < 2 || new Set(live.map(t => t.id)).size !== live.length)
                 return 'Soul Chain needs at least two different living enemies.';
+            if (live.some(t => (t.statusAffinities || {})['Soul Chain'] === 'immune'))
+                return 'Soul Chain cannot link an immune enemy.';
             if (live.length !== count && !(count === 3 && live.length === 2 &&
                 ctx.engine.alive(ctx.engine.combat.enemies).length === 2))
                 return 'Select the required number of distinct enemies for Soul Chain.';
