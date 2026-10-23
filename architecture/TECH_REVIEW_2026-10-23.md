@@ -15,7 +15,7 @@
 | 2 | Decide **D4: no framework for Zone 1** (keep vanilla canvas) and **D5: single-file builds for playtests**. | Tokelo | The vanilla canvas front end works. Making that official stops the Phaser question from blocking work. |
 | 3 | Authorize **Phase 1 engine interface** work, starting with the smallest slice (seeded engine + available actions). | Tokelo → Wren | The battle screen now depends on engine *sentences*; any wording change breaks it silently ([F2](#f2)). |
 | 4 | Stop the stacked-PR trap from happening again (one rule in AGENTS.md). | Veyr | It's a process gap, not anyone's mistake ([F1](#f1)). |
-| 5 | Answer K1–K3 on the Soul Chain contract ([PR #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48)), then release it to Rook. Use [§3](#3-architecture-reviews-requested-by-design) for N-5 and N-1. | Vaelis | K1 is a real conflict: as specified, link length would depend on enemy speed. |
+| 5 | Answer K1–K3 in [issue #50](https://github.com/TokeloR-I/TEXT_RPG_Nameless/issues/50) as a small amendment to the Soul Chain contract (merged as #48 just before my review posted). Use [§3](#3-architecture-reviews-requested-by-design) for N-5 and N-1. | Vaelis | K1 is a real conflict: as specified, link length would depend on enemy speed. |
 
 ---
 
@@ -115,7 +115,7 @@ Each one is a place a structured event can be missed later. **Rule for new code 
 The blocker audit (§Findings 5) and the Necromancer register ask me to review links, control authority, resurrection and non-positional zones. These are **technical constraints and costs to design around**, not behaviour or number decisions.
 
 ### A1 — Soul Chain links (D-01 / N-3)
-> **Update:** Vaelis's final N-3/N-4 contract ([PR #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48)) arrived during this review. It settles points 2–5 below: secondary damage is re-mitigated with no crit and bypasses DEF, DoTs trigger, there's single-pass recursion, and kills credit the caster. My [review of #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48#pullrequestreview-5625465492) found:
+> **Update:** Vaelis's final N-3/N-4 contract ([PR #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48)) arrived and was merged during this review. The open points are tracked in [issue #50](https://github.com/TokeloR-I/TEXT_RPG_Nameless/issues/50). It settles points 2–5 below: secondary damage is re-mitigated with no crit and bypasses DEF, DoTs trigger, there's single-pass recursion, and kills credit the caster. My [review of #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48#pullrequestreview-5625465492) found:
 > - **one concrete conflict, verified on the engine:** per-holder status ticking makes members of the same link group expire in different rounds;
 > - **two missing rules:** the order of a lethal primary hit vs group dissolution, and which Soul Energy / mark effects secondary damage triggers;
 > - **seven implementation notes for Rook.**
@@ -185,7 +185,7 @@ Total Lockdown's "can't leave zones" has no meaning without positions. It needs 
 - Keep a Keel review step on D-01, D-03 and N-1 specs before they're released to developers.
 
 **Vaelis — Lead Game Designer**
-- **PR #48 (N-3/N-4):** please add one sentence each for K1 (one clock for the link group), K2 (a lethal primary hit still propagates; recipients are captured before death) and K3 (which Soul Energy and mark effects `link` / `drain` / `aura` damage triggers). Details are in my [review on #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48#pullrequestreview-5625465492). After that, I have no architectural objection to Rook starting.
+- **Soul Chain contract (#48, merged; follow-ups in [issue #50](https://github.com/TokeloR-I/TEXT_RPG_Nameless/issues/50)):** please add one sentence each for K1 (one clock for the link group), K2 (a lethal primary hit still propagates; recipients are captured before death) and K3 (which Soul Energy and mark effects `link` / `drain` / `aura` damage triggers). Details are in my [review on #48](https://github.com/TokeloR-I/TEXT_RPG_Nameless/pull/48#pullrequestreview-5625465492). After that, I have no architectural objection to Rook starting.
 - §3 A1–A5 lists the technical consequences of each open choice. The ones that change cost or determinism:
   - Soul Chain: where propagated damage enters (A1.2) and whether DoTs propagate (A1.4)
   - Possession: automatic vs player-chosen (A2.1) and allegiance (A2.2)
@@ -203,7 +203,7 @@ Total Lockdown's "can't leave zones" has no meaning without positions. It needs 
 - Dragon's Dominion and Shield Discipline went through the status pipeline, which is right.
 - For new effects, change HP, resources and statuses only through the shared functions (F6).
 - Stay off D-blocked mechanics (D-01–D-10) until Vaelis's specs are released.
-- **Soul Chain / Soul Feast (PR #48), once K1–K3 are answered:** my review lists seven implementation notes. The most important are: there's no multi-target selection yet (`enemy_multiple` falls back to single-target); `damage()` must return actual HP removed; and secondary/drain damage must **not** go through `rollDamage()`, which draws RNG. Implement the recursion guard as the `cause` argument on `damage()` defined in spec v0.2, so it's built once.
+- **Soul Chain / Soul Feast (PR #48):** wait for K1–K3 in [issue #50](https://github.com/TokeloR-I/TEXT_RPG_Nameless/issues/50) before the link-duration and kill/economy parts. Meanwhile my review lists seven implementation notes. The most important are: there's no multi-target selection yet (`enemy_multiple` falls back to single-target); `damage()` must return actual HP removed; and secondary/drain damage must **not** go through `rollDamage()`, which draws RNG. Implement the recursion guard as the `cause` argument on `damage()` defined in spec v0.2, so it's built once.
 
 **Tally — QA & Balance**
 - `golden.js` is effectively spec PR-A; v0.2 adopts it. Please add an events-only / state-only split (F4), so Phase 1's added `getState()` fields don't hide or fake regressions.
