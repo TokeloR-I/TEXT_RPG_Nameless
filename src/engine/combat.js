@@ -224,7 +224,7 @@
             const p = this.player;
 
             if (p.hp <= 0) {
-                if (this.tryCrownOfTheUndying()) return false;
+                if (this.tryUndyingWill() || this.tryCrownOfTheUndying()) return false;
                 this.say('--- DEFEAT! ---', { important: true });
                 this.say("You have been defeated! Game Over. Type 'start' to play again.");
                 this.mode = 'game_over';
