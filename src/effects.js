@@ -223,10 +223,8 @@
             }
             const group = ++e.combat.nextSoulLinkId;
             const duration = 2 + (ctx.caster.isPlayer && e.hasTrait('Binding Will') ? 1 : 0);
-            e.combat.soulLinkClocks = e.combat.soulLinkClocks || {};
-            e.combat.soulLinkClocks[ctx.caster.id] = {
-                group, remaining: duration, castTurn: ctx.caster.normalTurns || 0
-            };
+            // K1: one caster-owned clock (a combat timer; a recast replaces it).
+            e.addTimer(ctx.caster, 'soul_link', duration, { replace: true, countSkipped: true, group });
             for (const t of ctx.targets) e.applyStatus(ctx.caster, t, {
                 name: 'Soul Chain', type: 'soul_link', duration: 'permanent', linkGroup: group
             });
@@ -485,6 +483,35 @@
     register('apply_mark', {
         apply(ctx) {
             for (const t of ctx.targets.filter((t) => t.hp > 0)) ctx.engine.applyMark(ctx.caster, t, ctx.effect);
+        }
+    });
+
+    register('teleport_to_enemy', {
+        requires(ctx) {
+            return ctx.targets.some(t => t && t.hp > 0 && !t.erased)
+                ? null : 'Shadowstep requires a living enemy anchor.';
+        },
+        apply(ctx) {
+            const anchor = ctx.targets.find(t => t && t.hp > 0 && !t.erased);
+            if (!anchor) return;
+            ctx.engine.out.push({ type: 'combat.presentation', kind: 'dash',
+                actorId: ctx.caster.id, anchorId: anchor.id });
+            ctx.engine.say(`${ctx.caster.name} vanishes and reappears beside ${anchor.name}!`);
+        }
+    });
+
+    register('taunt_aoe', {
+        requires(ctx) {
+            return ctx.engine.alive(ctx.engine.combat.enemies).length
+                ? null : 'Lockstep requires living enemies.';
+        },
+        apply(ctx) {
+            for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
+                ctx.engine.applyStatus(ctx.caster, target, {
+                    name: ctx.skill.name, type: 'taunt_player', duration: ctx.effect.duration
+                });
+            }
+            ctx.engine.say(`${ctx.skill.name} draws enemy attacks toward ${ctx.caster.name}!`);
         }
     });
 

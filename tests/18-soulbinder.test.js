@@ -12,6 +12,8 @@ const soulFight = (seed = 13) => {
 const chain = (g, targets) => g.castSkill(g.player, g.playerSkill('Soul Chain'), targets);
 const feast = (g) => g.castSkill(g.player, g.playerSkill('Soul Feast'), g.activeSoulLinks(g.player));
 const hit = (g, t, damage) => g.damage(t, damage, g.player);
+// T-0 moved the caster clock from combat.soulLinkClocks into combat.timers (same counting rule).
+const soulClock = (g, id) => g.combat.timers.find((t) => t.kind === 'soul_link' && t.ownerId === id);
 
 test('Soul Chain: distinct enemies link, one status per target, 3 rounds with Binding Will', () => {
     const g = soulFight();
@@ -20,7 +22,7 @@ test('Soul Chain: distinct enemies link, one status per target, 3 rounds with Bi
     assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
     assert.strictEqual(g.findStatus(a, 'Soul Chain').duration, 'permanent');
     assert.strictEqual(g.findStatus(b, 'Soul Chain').duration, 'permanent');
-    assert.strictEqual(g.combat.soulLinkClocks[g.player.id].remaining, 3);
+    assert.strictEqual(soulClock(g, g.player.id).remaining, 3);
     const oldId = g.findStatus(a, 'Soul Chain').linkGroup;
     chain(g, [a, b]);
     assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
@@ -221,13 +223,13 @@ test('QA-19: one caster-owned link clock ignores enemy speed and counts skipped 
         g.player.normalTurns = 1;
         chain(g, [a, b]);
         const id = g.player.id;
-        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 3);
+        assert.strictEqual(soulClock(g, id).remaining, 3);
         g.tickStatusesEndOfRound();
         assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
         g.player.normalTurns = 2; g.advanceSoulLinkClock(g.player);
-        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 2);
+        assert.strictEqual(soulClock(g, id).remaining, 2);
         g.player.normalTurns = 3; g.advanceSoulLinkClock(g.player);
-        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 1);
+        assert.strictEqual(soulClock(g, id).remaining, 1);
         g.advanceSoulLinkClock(g.player, true);
         assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
     }

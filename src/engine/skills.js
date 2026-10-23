@@ -97,6 +97,13 @@
             const reached = new Set();
             let attacked = false;
 
+            // Grave Command tracks the owner's last attempted damaging attack,
+            // including misses, without redirecting minions on defensive casts.
+            if (caster.isPlayer && this.combat && this.hasTrait('Grave Command') && skill.base_damage) {
+                const selected = targets.filter(t => t && !t.isPlayer && !t.isMinion && t.hp > 0 && !t.erased);
+                if (selected.length) this.combat.graveCommandTargetId = selected[selected.length - 1].id;
+            }
+
             if (skill.base_damage && !active.some((x) => x.handler.replacesDamage)) {
                 attacked = true;
                 let hits = 1;
@@ -135,17 +142,10 @@
             if (missing.length && caster.isPlayer) this.say(`(Not implemented yet: ${missing.join(', ')})`);
         }
 
+        /** Soul Chain's caster clock is a combat timer now (T-0, src/engine/timers.js); kept for callers and tests.
+         *  The cast turn doesn't count; a later skipped opportunity does. */
         advanceSoulLinkClock(actor, skipped = false) {
-            const clocks = this.combat && this.combat.soulLinkClocks;
-            const clock = clocks && clocks[actor.id];
-            if (!clock) return;
-            // A cast during the current normal turn does not consume its own clock;
-            // a later skipped normal opportunity still consumes one.
-            if (!skipped && (actor.normalTurns || 0) <= clock.castTurn) return;
-            if (--clock.remaining > 0) return;
-            for (const t of this.combat.enemies) t.statusEffects = t.statusEffects.filter(s =>
-                !(s.appliedBy === actor.id && (s.type === 'soul_link' || s.type === 'soul_feast')));
-            delete clocks[actor.id];
+            this.tickTimers(actor, { skipped, kinds: ['soul_link'] });
         }
 
         // Soulbinder: memberships and drain snapshots live entirely in combat statuses.
