@@ -2,10 +2,13 @@
 
 **Author:** Keel — Technical Director & Game Systems Architect
 **Date:** 2026-10-22 (v0.1) · 2026-10-23 (v0.2)
-**Version:** 0.2 — **draft for review**
-**Status:** For Developer review and QA test planning. **Not approved for implementation.** No code was changed.
+**Version:** 0.2.1 — **canonical reference** (Phase 1 approved in #64; slices land incrementally)
+**Status:** **Approved for implementation in slices** (Creative Director decision, #64). Seeded engine (#63) and slice 2, available actions + `act()` (#65), have landed. This document is the canonical technical reference for the remaining slices: structured events, then save/load.
 **Baseline:** `main` @ `0a6d760` (147/147 tests) plus the Zone 1 Phase B/C world work on `claude/world-c-polish` @ `45e34e6` (162/162), which is being landed on `main`. Code references name the **module and function**, not line numbers, so they survive edits.
 **Builds on:** [`TECHNICAL_FEASIBILITY.md`](TECHNICAL_FEASIBILITY.md) §3 gaps G1 (prose-only output), G2 (text-only input), G3 (spatial world), G7 (save/load) and §10 Phase 1. Approved direction: D1–D3 in [`docs/design/ISSUE_9_D1_D3_DECISION_REGISTER.md`](../docs/design/ISSUE_9_D1_D3_DECISION_REGISTER.md).
+
+### Changes in v0.2.1
+- Added for Design Packages 1–3: the `combat.presentation` event, the waiting states `control` (Possession) and `turn_order` (Eternal Architect) with their actions, and the matching `getState()` fields. Rationale in [`REVIEW_DESIGN_PACKAGES_1-3.md`](REVIEW_DESIGN_PACKAGES_1-3.md).
 
 ### Changes in v0.2
 - Re-based on the engine split into `src/engine/*.js`. Every line reference is now a `module` + `function()` reference.
@@ -152,6 +155,7 @@ Why this is required rather than nice-to-have: `tools/play-cli.js` prints `e.tex
 | `combat.bomb_set` | Clockwork Bomb | `castId, skillId, turns` |
 | `combat.bomb_exploded` | at the start of the player's turn | `castId` (new), `originCastId, skillId` |
 | `combat.corpses_changed` | a kill, or Corpse Bloom consuming one | `count, delta, cause: 'death' \| 'consumed'` |
+| `combat.presentation` | flavour with no rule effect, e.g. Shadowstep's dash (Package 3 D-10) | `kind: 'dash', actorId, anchorId, castId`. Never changes state; front ends may ignore it |
 
 Notes on `combat.hit`:
 - `kind` is `'normal' | 'counter' | 'chain' | 'bomb'`.
@@ -349,7 +353,7 @@ engine.input(text)                    // unchanged signature; parses text -> act
 ```js
 {
   mode: 'combat',                         // class_select | explore | branch_select | combat | game_over | won
-  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | null
+  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | 'control' | 'turn_order' | null
   actions: [
     { type: 'attack', skillId: 'Basic Attack', targeting: 'enemy_single', enabled: true,
       targets: [{ id: 'enemy_1', enabled: true }, { id: 'enemy_2', enabled: true }] },
@@ -383,6 +387,8 @@ engine.input(text)                    // unchanged signature; parses text -> act
 | `{ type: 'skill', skillId, targetId? }` or `{ type: 'skill', skillId, targetIds }` for `enemy_multiple` | `combat` | `grave bolt 2`, `gb 2`, `soul chain 1 3` *(new)* |
 | `{ type: 'flee' }` | `combat` | `flee` |
 | `{ type: 'continue' }` | `combat`, awaiting `continue` | any input after a skipped turn |
+| `{ type: 'control', actorId, skillId, targetId }` | `combat`, awaiting `control` (N-5 Possession) | `<enemy skill> <n>` while controlling |
+| `{ type: 'turn_order', order: [ids] \| null }` | `combat`, awaiting `turn_order` (Eternal Architect) | `order 3 1 2 4`, or `order` to keep the default |
 | `{ type: 'describe', subject: 'room' \| 'inventory' \| 'help' \| 'class_tree' }` | any (text output only) | `look`, `i`, `help`, `cl` |
 | `{ type: 'restart' }` | any | `start` |
 | `{ type: 'quit' }` | `explore` | `quit` |
@@ -489,7 +495,8 @@ All additive. Existing fields keep their shape: `combat.enemies` and `combat.min
 | New field | Content |
 |---|---|
 | `seed`, `eventSeq` | as in §2.1 / §5.3 |
-| `awaiting` | `'action' \| 'continue' \| 'choice' \| null` |
+| `awaiting` | `'action' \| 'continue' \| 'choice' \| 'control' \| 'turn_order' \| null` |
+| `combat.controlledActorId`, `combat.turnOrder`, `combat.timers` | Possession, Eternal Architect and the shared opportunity timers ([`REVIEW_DESIGN_PACKAGES_1-3.md`](REVIEW_DESIGN_PACKAGES_1-3.md) §1, §3) |
 | `combat.encounterId` | `enc_<n>` |
 | `combat.units` | every unit in the encounter, **including dead and erased**, as UnitInfo plus `alive`, `erased`, `statusEffects` |
 | `combat.order` | ids in this round's order |
