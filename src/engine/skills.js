@@ -231,6 +231,10 @@
                             link.type === 'soul_link' && link.linkGroup === s.linkGroup)) : [] };
                 }) : [];
             target.hp -= actual;
+            // Intercept lethal damage before onDeath can strip Soulbinder links/marks.
+            if (target.isPlayer && target.hp <= 0 && !target.erased && this.tryUndyingWill()) {
+                // The damage event occurred, but the actor never entered the dead state.
+            }
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
             if (!options.secondaryLink && source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
             if (!options.secondaryLink && this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
