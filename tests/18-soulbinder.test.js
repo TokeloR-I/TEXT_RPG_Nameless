@@ -1,0 +1,109 @@
+/* Soulbinder N-3/N-4: deterministic link, propagation and Feast tests. */
+const { test, assert, newGame } = require('./helpers.js');
+
+const soulFight = (seed = 13) => {
+    const g = newGame(seed).do('necromancer', 'add_xp 250', 'soulbinder', 'n', 'engage');
+    g.player.hp = g.player.maxHp = 999;
+    g.player.resource.current = g.player.resource.max;
+    for (const t of g.combat.enemies) { t.hp = t.maxHp = 100; t.def = 0; t.critChance = 0; }
+    g.player.critChance = 0;
+    return g;
+};
+const chain = (g, targets) => g.castSkill(g.player, g.playerSkill('Soul Chain'), targets);
+const feast = (g) => g.castSkill(g.player, g.playerSkill('Soul Feast'), g.activeSoulLinks(g.player));
+const hit = (g, t, damage) => g.damage(t, damage, g.player);
+
+test('Soul Chain: distinct enemies link, one status per target, 3 rounds with Binding Will', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
+    assert.strictEqual(g.findStatus(a, 'Soul Chain').duration, 3);
+    assert.strictEqual(g.findStatus(b, 'Soul Chain').duration, 3);
+    const oldId = g.findStatus(a, 'Soul Chain').linkGroup;
+    chain(g, [a, b]);
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
+    assert.notStrictEqual(g.findStatus(a, 'Soul Chain').linkGroup, oldId);
+    assert.strictEqual(a.statusEffects.filter(s => s.type === 'soul_link').length, 1);
+});
+
+test('Soul Chain: exact HP loss propagates half once, bypassing flat DEF', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    b.def = 1000;
+    chain(g, [a, b]);
+    hit(g, a, 11);
+    assert.strictEqual(a.hp, 89);
+    assert.strictEqual(b.hp, 95, 'floor(11 / 2) propagated despite flat DEF');
+    assert.strictEqual(a.hp, 89, 'no recursive propagation');
+    a.hp = 3;
+    hit(g, a, 20);
+    assert.strictEqual(b.hp, 94, 'overkill 20 with 3 HP propagates only floor(3/2)');
+});
+
+test('Soul Chain: prevention, magical damage reduction, and cleanup', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    g.applyStatus(g.player, b, { name: 'Guard Test', type: 'damage_reduction', value: 0.2, duration: 2 });
+    hit(g, a, 10);
+    assert.strictEqual(b.hp, 96, '5 secondary reduced to 4');
+    hit(g, a, 0);
+    assert.strictEqual(b.hp, 96, 'zero HP damage does not share');
+    g.cleanse(b, { statuses: ['Soul Chain'] });
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
+    assert.ok(!g.findStatus(a, 'Soul Chain'), 'orphan group removed');
+});
+
+test('Soul Feast: three linked target turns, no immediate tick and no base healing', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    g.player.hp = 500;
+    feast(g);
+    assert.strictEqual(a.hp, 100);
+    assert.strictEqual(b.hp, 100);
+    for (let i = 0; i < 3; i++) {
+        g.tickSoulFeast(a);
+        g.tickSoulFeast(b);
+        g.armStatuses(a); g.armStatuses(b);
+        g.tickStatusesEndOfRound();
+    }
+    assert.strictEqual(a.hp, 94);
+    assert.strictEqual(b.hp, 94);
+    assert.strictEqual(g.player.hp, 500);
+    assert.strictEqual(g.findStatus(a, 'Soul Feast'), null);
+    g.tickSoulFeast(a);
+    assert.strictEqual(a.hp, 94, 'no fourth tick');
+});
+
+test('Soul Feast: refresh without extra instance; re-link cannot transfer old drain', () => {
+    const g = soulFight();
+    const [a, b, c] = g.combat.enemies;
+    chain(g, [a, b]);
+    feast(g);
+    feast(g);
+    assert.strictEqual(a.statusEffects.filter(s => s.type === 'soul_feast').length, 1);
+    chain(g, [b, c]);
+    g.tickSoulFeast(b);
+    assert.strictEqual(b.hp, 100, 'old Feast group does not transfer after re-link');
+    assert.strictEqual(g.findStatus(c, 'Soul Feast'), null);
+    feast(g);
+    g.tickSoulFeast(c);
+    assert.strictEqual(c.hp, 98, 'new Feast applies on recast');
+});
+
+test('Soul Chain: owner death and encounter cleanup prevent propagation', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    g.player.hp = 0;
+    hit(g, a, 10);
+    assert.strictEqual(b.hp, 100, 'dead owner cannot propagate');
+    g.mode = 'explore';
+    g.combat = null;
+    g.player.statusEffects = [];
+    g.player.hp = 999;
+    g.do('engage');
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
+});
