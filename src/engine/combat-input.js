@@ -39,6 +39,7 @@
                 if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
                 c.playerActedThisRound = true;
                 this.endNormalTurn(p);
+                this.advanceSoulLinkClock(p);
                 if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
                 c.idx++;
                 this.advance();
@@ -120,6 +121,7 @@
             }
             c.extraTurn = false;
             this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
+            this.advanceSoulLinkClock(p);
             if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
             c.idx++;
             this.advance();
