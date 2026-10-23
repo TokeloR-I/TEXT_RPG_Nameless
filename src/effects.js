@@ -213,8 +213,12 @@
             }
             const group = ++e.combat.nextSoulLinkId;
             const duration = 2 + (ctx.caster.isPlayer && e.hasTrait('Binding Will') ? 1 : 0);
+            e.combat.soulLinkClocks = e.combat.soulLinkClocks || {};
+            e.combat.soulLinkClocks[ctx.caster.id] = {
+                group, remaining: duration, castTurn: ctx.caster.normalTurns || 0
+            };
             for (const t of ctx.targets) e.applyStatus(ctx.caster, t, {
-                name: 'Soul Chain', type: 'soul_link', duration, linkGroup: group
+                name: 'Soul Chain', type: 'soul_link', duration: 'permanent', linkGroup: group
             });
             e.say(`Soul Chain binds ${ctx.targets.map(t => t.name).join(' and ')}!`);
         }
