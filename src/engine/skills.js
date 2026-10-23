@@ -97,6 +97,13 @@
             const reached = new Set();
             let attacked = false;
 
+            // Grave Command follows the most recent enemy the Bone Warden
+            // deliberately attacked; minion hits and non-damaging casts do not redirect it.
+            if (caster.isPlayer && this.combat && this.hasTrait('Grave Command') && skill.base_damage) {
+                const selected = targets.filter(t => t && !t.isPlayer && !t.isMinion && t.hp > 0 && !t.erased);
+                if (selected.length) this.combat.graveCommandTargetId = selected[selected.length - 1].id;
+            }
+
             if (skill.base_damage && !active.some((x) => x.handler.replacesDamage)) {
                 attacked = true;
                 let hits = 1;
