@@ -227,8 +227,8 @@
             for (const name of this.player.skills) {
                 const info = this.describeSkill(name);
                 let line = `> ${name}`;
-                if (def && def.target === 'enemy_multiple') line += ' (targets: 1,2 or 1 2; at L5: 1,2,3)';
                 const def = this.data.skillDefinitions[name];
+                if (def && def.target === 'enemy_multiple') line += ' (targets: 1,2 or 1 2; at L5: 1,2,3)';
                 const cost = def ? this.skillCost(def) : 0;
                 if (def && def.cost === 'all') line += ` [Cost: all ${this.player.resource.type}]`;
                 else if (cost) line += ` [Cost: ${cost} ${this.player.resource.type}]`;
