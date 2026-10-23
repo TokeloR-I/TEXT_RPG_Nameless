@@ -4,51 +4,7 @@ const { WorldSession, validateWorld, DIRS } = require('../src/world/world.js');
 const ZONE1 = require('../src/world/zone1.js');
 
 const copy = (o) => JSON.parse(JSON.stringify(o));
-/** Shortest walk to (x, y) on the current map, never stepping on an exit tile on the way. Returns directions. */
-function pathTo(s, x, y) {
-    const key = (a, b) => `${a},${b}`;
-    const prev = new Map([[key(s.x, s.y), null]]);
-    const queue = [[s.x, s.y]];
-    while (queue.length) {
-        const [cx, cy] = queue.shift();
-        if (cx === x && cy === y) break;
-        for (const [dir, [dx, dy]] of Object.entries(DIRS)) {
-            const nx = cx + dx, ny = cy + dy;
-            if (prev.has(key(nx, ny)) || s.isBlocked(nx, ny)) continue;
-            if (s.exitAt(nx, ny, 'step') && !(nx === x && ny === y)) continue;
-            prev.set(key(nx, ny), [cx, cy, dir]);
-            queue.push([nx, ny]);
-        }
-    }
-    if (!prev.has(key(x, y))) throw new Error(`no path on ${s.mapId} to ${x},${y}`);
-    const dirs = [];
-    for (let k = key(x, y); prev.get(k); ) { const [px, py, dir] = prev.get(k); dirs.unshift(dir); k = key(px, py); }
-    return dirs;
-}
-/** Walk to (x, y); returns the result of the last step. */
-function walkTo(s, x, y) {
-    let r = null;
-    for (const dir of pathTo(s, x, y)) r = s.move(dir);
-    return r;
-}
-/** Walk through the named exit on the current map and return the transition. */
-function takeExit(s, exitId) {
-    const e = s.map.exits.find((x) => x.id === exitId);
-    if (e.trigger === 'step') return walkTo(s, e.x, e.y);
-    const [ax, ay] = [[e.x, e.y + 1], [e.x, e.y - 1], [e.x - 1, e.y], [e.x + 1, e.y]].find(([nx, ny]) => !s.isBlocked(nx, ny));
-    walkTo(s, ax, ay);
-    s.move(Object.keys(DIRS).find((d) => ax + DIRS[d][0] === e.x && ay + DIRS[d][1] === e.y));
-    return s.interact();
-}
-/** Face an object (standing next to it) and interact. */
-function inspect(s, id) {
-    const o = s.map.interactables.find((x) => x.id === id);
-    const spot = [[o.x, o.y + 1, 'up'], [o.x, o.y - 1, 'down'], [o.x - 1, o.y, 'right'], [o.x + 1, o.y, 'left']]
-        .find(([x, y]) => !s.isBlocked(x, y) && !s.exitAt(x, y, 'step'));
-    walkTo(s, spot[0], spot[1]);
-    s.move(spot[2]); // turn to face it (blocked by the object, so no step)
-    return s.interact();
-}
+const { walkTo, takeExit, inspect } = require('./world-helpers.js');
 
 test('World: Zone 1 data validates (ids, destinations, spawns, reachability, symmetric transitions)', () => {
     assert.deepStrictEqual(validateWorld(ZONE1, data), []);

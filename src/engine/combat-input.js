@@ -50,6 +50,7 @@
                 this.combat = null;
                 p.statusEffects = [];
                 this.say('You fled!');
+                if (this.world && this.world.encounter) { this.worldFightEnded('fled'); return; }
                 this.describeRoom(false);
                 return;
             }
