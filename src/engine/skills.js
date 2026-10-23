@@ -129,12 +129,13 @@
             if (missing.length && caster.isPlayer) this.say(`(Not implemented yet: ${missing.join(', ')})`);
         }
 
-        advanceSoulLinkClock(actor) {
+        advanceSoulLinkClock(actor, skipped = false) {
             const clocks = this.combat && this.combat.soulLinkClocks;
             const clock = clocks && clocks[actor.id];
             if (!clock) return;
-            // A cast during the current normal turn does not consume its own clock.
-            if ((actor.normalTurns || 0) <= clock.castTurn) return;
+            // A cast during the current normal turn does not consume its own clock;
+            // a later skipped normal opportunity still consumes one.
+            if (!skipped && (actor.normalTurns || 0) <= clock.castTurn) return;
             if (--clock.remaining > 0) return;
             for (const t of this.combat.enemies) t.statusEffects = t.statusEffects.filter(s =>
                 !(s.appliedBy === actor.id && (s.type === 'soul_link' || s.type === 'soul_feast')));
