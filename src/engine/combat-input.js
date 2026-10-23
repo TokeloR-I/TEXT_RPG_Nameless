@@ -138,8 +138,8 @@
 
         parseCombatInput(raw) {
             const cleaned = raw.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/\s+/g, ' ');
-            const multi = cleaned.match(/^(.+?)\s+(\d+(?:\s*,\s*\d+)+)$/);
-            if (multi) return { command: multi[1].trim(), targetNum: multi[2].split(',').map(Number) };
+            const multi = cleaned.match(/^(soul chain)\s+(\d+(?:\s*[, ]\s*\d+)+)$/);
+            if (multi) return { command: multi[1].trim(), targetNum: multi[2].split(/[\s,]+/).map(Number) };
             const m = cleaned.match(/^(.+?)\s*[#@]?(\d+)$/);
             return m ? { command: m[1].trim(), targetNum: parseInt(m[2], 10) } : { command: cleaned, targetNum: null };
         }
@@ -227,6 +227,7 @@
             for (const name of this.player.skills) {
                 const info = this.describeSkill(name);
                 let line = `> ${name}`;
+                if (def && def.target === 'enemy_multiple') line += ' (targets: 1,2 or 1 2; at L5: 1,2,3)';
                 const def = this.data.skillDefinitions[name];
                 const cost = def ? this.skillCost(def) : 0;
                 if (def && def.cost === 'all') line += ` [Cost: all ${this.player.resource.type}]`;
