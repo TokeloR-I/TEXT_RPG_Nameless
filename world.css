@@ -210,3 +210,23 @@ body {
     .banner.show { animation: none; opacity: 1; }
     .dialog-more, .foe.hit { animation: none; }
 }
+
+/* ---------- Chapter One: name entry, objective, conversations, journal ---------- */
+.title-screen .name-field { display: flex; flex-direction: column; gap: 0.4em; color: var(--ink-dim); width: min(100%, 420px); text-align: left; }
+.title-screen .name-field input {
+    font: inherit; font-size: 1.25em; color: var(--ink); background: rgba(14, 13, 18, 0.85);
+    border: 2px solid var(--edge); padding: 0.45em 0.6em;
+}
+.title-screen .name-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 12px rgba(159, 232, 207, 0.25); }
+.hud-obj { margin-top: 0.5em; max-width: 34cqw; white-space: normal; color: #e8c860; font-size: 0.92em; line-height: 1.35; }
+.hud-quest { display: block; color: var(--ink-dim); font-size: 0.85em; letter-spacing: 0.04em; }
+.hud-where { color: var(--ink-dim); }
+.dialog-role { color: var(--ink-dim); font-weight: normal; font-size: 0.85em; margin-left: 0.4em; }
+.talk-text { max-height: 19cqw; overflow-y: auto; margin-bottom: 0.6em; white-space: normal; }
+.talk-text p { margin: 0.15em 0; }
+.talk-text p.imp { color: var(--accent); }
+.talk-choices li { padding: 0.15em 0.6em; }
+.dialog-keys { color: var(--ink-dim); font-size: 0.8em; margin-top: 0.4em; }
+.journal .j-quest { margin: 0.35em 0; }
+.journal .j-kind { color: var(--ink-dim); font-size: 0.85em; border: 1px solid var(--edge); padding: 0 0.3em; }
+.journal .j-done { color: var(--ink-dim); font-size: 0.9em; margin-top: 0.5em !important; }

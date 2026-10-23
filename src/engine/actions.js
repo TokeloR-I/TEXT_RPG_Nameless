@@ -61,6 +61,7 @@
             const a = action && typeof action === 'object' ? action : {};
             const type = a.type;
             if (type === 'restart') { this.out.push(...this.start()); return; }
+            if (this.performStory(a)) return;   // Chapter One: talk, dialogue, identity, story events (src/engine/story.js)
             if (WORLD_ACTIONS.has(type)) { this.performWorld(a); return; }
             if (this.mode === 'game_over' || this.mode === 'won') {
                 this.refuse('WRONG_MODE', "The game is over. Type 'start' to play again.", { important: true });
@@ -78,6 +79,8 @@
             }
             if (this.mode === 'combat') { this.performCombat(a); return; }
             this.performExplore(a);
+            // Chapter One: a homestead construction that succeeded is a story event (Q07's first repair).
+            if (a.type === 'build' && !this.rejection) this.storyEvent({ type: 'build', id: String(a.upgradeId || '') });
         }
 
         performExplore(a) {
@@ -101,6 +104,7 @@
                 case 'inventory': this.showInventory(); return;
                 case 'help': this.showHelp(); return;
                 case 'class_tree': this.showClassTree(); return;
+                case 'journal': this.showJournal(); return;
                 default: this.refuse('UNKNOWN_ACTION', `Nothing to describe called '${subject}'.`);
             }
         }
@@ -298,6 +302,9 @@
                 out.awaiting = 'choice';
                 const tree = this.data.evolutionPaths[this.player.className];
                 out.actions = Object.keys(tree.branches).map((branchId) => ({ type: 'choose_branch', branchId, name: tree.branches[branchId].name, enabled: true }));
+            } else if (mode === 'explore' && this.story && this.story.dialogue) {
+                out.awaiting = 'dialogue';                    // Chapter One conversation (src/engine/story.js)
+                Object.assign(out, this.dialogueAvailability());
             } else if (mode === 'explore') {
                 out.awaiting = 'action';
                 out.actions = this.exploreAvailability();
@@ -444,6 +451,7 @@
         performWorld(a) {
             if (a.type === 'enter_world') {
                 this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null };
+                this.storyBegin();                 // the chapter runs in the world (src/engine/story.js)
                 return;
             }
             if (!this.world) throw new Error(`${a.type} before enter_world`);
@@ -453,6 +461,7 @@
                 this.world.collected.push(a.pickupId);
                 const received = this.grantItem(a.item);
                 this.say(`You pick up the ${received}.`, { important: true });
+                this.storyEvent({ type: 'pickup', id: a.pickupId });
                 return;
             }
             if (this.isDefeated(a.encounterId)) { this.refuse('ALREADY_DEFEATED', 'Nothing stirs here any more.'); return; }

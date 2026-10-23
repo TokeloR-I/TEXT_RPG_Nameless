@@ -15,7 +15,7 @@
         h = Math.imul(h ^ (h >>> 13), 1274126177);
         return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
     };
-    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope']);
+    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope', 'seal_door']);
     const WALLS = new Set(['stone_wall', 'wood_wall']);
     const EXTERIOR = new Set(['house_wall', 'house_window', 'roof', 'shed_wall', 'shed_roof', 'shed_door_shut']);
     const CLASS_COLOURS = { warrior: '#8a3b2e', mage: '#35548a', rogue: '#3d6640', necromancer: '#5a3b7a' };
@@ -61,7 +61,23 @@
             rect(g, px, py, T, T, '#56483a');
             speckle(g, px, py, T, c.tx, c.ty, ['#4a3d30', '#655644', '#5d4f3e'], 7);
         },
-        void(g, px, py, T) { rect(g, px, py, T, T, '#09090c'); }
+        void(g, px, py, T) { rect(g, px, py, T, T, '#09090c'); },
+        // Chapter One
+        cobble(g, px, py, T, c) {
+            rect(g, px, py, T, T, '#4a4744');
+            for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) {
+                const off = r % 2 ? 4 : 0;
+                const x = px + k * 8 + off, y = py + r * 8;
+                rect(g, x + 1, y + 1, 6, 6, hash(c.tx * 4 + k, c.ty * 4 + r, 5) < 0.5 ? '#5a5652' : '#524e4a');
+            }
+        },
+        bridge(g, px, py, T, c) {
+            rect(g, px, py, T, T, '#1b3140');
+            rect(g, px + 3, py, T - 6, T, '#5c4630');
+            for (let i = 0; i < 4; i++) rect(g, px + 3, py + i * 8 + 7, T - 6, 1, '#3e2e1f');
+            rect(g, px + 1, py, 2, T, '#3e2e1f'); rect(g, px + T - 3, py, 2, T, '#3e2e1f');
+            if (hash(c.tx, c.ty, 2) < 0.5) rect(g, px + 8, py + 9, 6, 2, '#1b3140');   // a missing plank
+        }
     };
     // What each tile stands on, for tiles drawn as an object on top of a floor.
     const BASE = {
@@ -69,9 +85,61 @@
         counter: 'wood_floor', table: 'wood_floor', workbench: 'wood_floor', chair: 'wood_floor', armchair: 'wood_floor', bed: 'wood_floor', fireplace: 'wood_floor',
         rug: 'wood_floor', doorway: 'wood_floor', stairs_down: 'wood_floor',
         tall_weeds: 'grass', tree: 'grass', dead_tree: 'grass', fence: 'grass', rock: 'grass', well: 'grass', scarecrow: 'grass', water: 'grass',
-        signpost: 'grass', rope: 'stone_floor'
+        signpost: 'grass', rope: 'stone_floor',
+        // Chapter One
+        stall: 'cobble', notice_board: 'cobble', fruit_tree: 'grass', seal_door: 'stone_floor', cage: 'stone_floor',
+        memorial: 'grass', wagon: 'grass', cart: 'grass'
     };
     const painters = {
+        // Chapter One tiles
+        stall(g, px, py, T, c) {
+            rect(g, px + 2, py + 12, T - 4, 14, '#5c4630'); rect(g, px + 2, py + 12, T - 4, 2, '#7a6044');
+            const awn = c.tx % 2 ? '#7a2f2a' : '#8a7a3a';
+            rect(g, px, py + 2, T, 7, awn); for (let i = 0; i < 4; i++) rect(g, px + i * 8, py + 2, 4, 7, '#d8cfb6');
+            rect(g, px + 6, py + 15, 5, 4, '#9a8a5a'); rect(g, px + 14, py + 15, 4, 4, '#5a7a4a'); rect(g, px + 21, py + 14, 5, 5, '#7a5a6a');
+        },
+        notice_board(g, px, py, T) {
+            rect(g, px + 5, py + 18, 3, 12, '#3b2b1f'); rect(g, px + T - 8, py + 18, 3, 12, '#3b2b1f');
+            rect(g, px + 3, py + 4, T - 6, 16, '#6a5440'); rect(g, px + 3, py + 4, T - 6, 2, '#7a6450');
+            rect(g, px + 6, py + 8, 8, 9, '#d8cfb6'); rect(g, px + 17, py + 7, 9, 6, '#e8d8a0'); rect(g, px + 17, py + 14, 7, 4, '#c8bfa6');
+            rect(g, px + 7, py + 10, 6, 1, '#6a6460'); rect(g, px + 7, py + 12, 5, 1, '#6a6460');
+        },
+        fruit_tree(g, px, py, T, c) {
+            rect(g, px + T / 2 - 3, py + T - 10, 6, 9, '#4a3424');
+            circle(g, px + T / 2, py + T / 2 - 1, T * 0.42, '#24402a');
+            circle(g, px + T / 2 - 4, py + T / 2 - 5, T * 0.2, '#30553a');
+            for (let i = 0; i < 4; i++) circle(g, px + 7 + Math.floor(hash(c.tx, c.ty, i) * 18), py + 6 + Math.floor(hash(c.tx, c.ty, i + 9) * 14), 1.8, '#b0402e');
+        },
+        seal_door(g, px, py, T, c) {
+            rect(g, px, py, T, T, '#141218'); rect(g, px, py, T, 2, '#24212a');
+            const glow = 0.25 + 0.15 * Math.sin((c.time || 0) / 600);
+            g.strokeStyle = `rgba(190, 60, 60, ${glow + 0.3})`; g.lineWidth = 2;
+            const cx = c.left === 'seal_door' ? px : px + T;          // one circle across the two door tiles
+            g.beginPath(); g.arc(cx, py + T / 2 + 2, 11, -Math.PI / 2 + 0.5, Math.PI * 1.5 - 0.5); g.stroke();
+        },
+        cage(g, px, py, T) {
+            rect(g, px + 4, py + T - 6, T - 8, 3, '#3a3a40'); rect(g, px + 4, py + 4, T - 8, 3, '#3a3a40');
+            for (let i = 0; i < 5; i++) rect(g, px + 5 + i * 5, py + 6, 1.5, T - 11, '#5a5a62');
+            rect(g, px + 12, py + 16, 6, 4, '#0e0e12'); circle(g, px + 15, py + 15, 2.5, '#0e0e12');   // a crow
+        },
+        memorial(g, px, py, T) {
+            rect(g, px + 8, py + 6, T - 16, T - 9, '#6a6870'); rect(g, px + 8, py + 6, T - 16, 2, '#85838c');
+            circle(g, px + T / 2, py + 7, 8, '#6a6870');
+            rect(g, px + 11, py + 14, 10, 1, '#4a4850'); rect(g, px + 11, py + 17, 8, 1, '#4a4850');
+            circle(g, px + 9, py + T - 3, 2, '#c8a0c8'); circle(g, px + 13, py + T - 2, 2, '#e0d070');      // flowers
+        },
+        wagon(g, px, py, T, c) {
+            rect(g, px + 1, py + 8, T - 2, 14, '#5c4630'); rect(g, px + 1, py + 8, T - 2, 2, '#7a6044');
+            circle(g, px + 8, py + 24, 5, '#2e241a'); circle(g, px + T - 8, py + 24, 5, '#2e241a');
+            rect(g, px + 6, py + 4, 8, 5, '#8a7a5a'); rect(g, px + 16, py + 3, 6, 6, '#6a5a7a');
+            if (c.right !== 'wagon') rect(g, px + 18, py + 1, 8, 3, '#c8bfa6');                     // the ledger on top
+        },
+        cart(g, px, py, T, c) {
+            g.save(); g.translate(px + T / 2, py + T / 2); g.rotate((hash(c.tx, c.ty, 4) - 0.5) * 0.9);
+            rect(g, -13, -7, 26, 12, '#4e3c2a'); rect(g, -13, -7, 26, 2, '#644e38');
+            g.strokeStyle = '#2e241a'; g.lineWidth = 2; g.beginPath(); g.arc(-7, 7, 5, 0, Math.PI * 2); g.stroke();
+            g.restore();
+        },
         stone_wall(g, px, py, T, c) {
             const face = !WALLS.has(c.below);
             rect(g, px, py, T, T, '#1c1b21');
@@ -335,8 +403,88 @@
             rect(g, px + 13, py + 8 + b, 2, 2, '#1a1a1a'); rect(g, px + 17, py + 8 + b, 2, 2, '#1a1a1a');
         }
     };
+    // Chapter One people and foes. person() draws a small standing figure in the player's style.
+    function person(g, px, py, t, o) {
+        const cx = px + 16, base = py + 28, bob = Math.sin(t / 500 + px) * 0.6;
+        g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(cx, base, 8, 3, 0, 0, Math.PI * 2); g.fill();
+        rect(g, cx - 4, base - 6, 3, 6, '#2a2420'); rect(g, cx + 1, base - 6, 3, 6, '#2a2420');
+        g.fillStyle = o.cloak; g.beginPath(); g.moveTo(cx - 7, base - 5 + bob); g.lineTo(cx + 7, base - 5 + bob); g.lineTo(cx + 5, base - 18 + bob); g.lineTo(cx - 5, base - 18 + bob); g.closePath(); g.fill();
+        if (o.belt) rect(g, cx - 6, base - 10 + bob, 12, 2, o.belt);
+        circle(g, cx, base - 22 + bob, 5.5, o.skin || '#d9c3a5');
+        if (o.hair) { g.fillStyle = o.hair; g.beginPath(); g.arc(cx, base - 23 + bob, 5.5, Math.PI, Math.PI * 2); g.fill(); }
+        if (o.hat) { rect(g, cx - 8, base - 26 + bob, 16, 2, o.hat); rect(g, cx - 5, base - 31 + bob, 10, 5, o.hat); }
+        if (o.helm) { g.fillStyle = o.helm; g.beginPath(); g.arc(cx, base - 23 + bob, 6, Math.PI, Math.PI * 2); g.fill(); rect(g, cx - 1, base - 30 + bob, 2, 3, o.helm); }
+        if (o.hood) { g.fillStyle = o.hood; g.beginPath(); g.arc(cx, base - 22 + bob, 7, Math.PI * 0.9, Math.PI * 2.1); g.fill(); }
+        rect(g, cx - 3, base - 23 + bob, 2, 2, '#1a1412'); rect(g, cx + 1, base - 23 + bob, 2, 2, '#1a1412');
+        if (o.scarf) rect(g, cx - 5, base - 18 + bob, 10, 3, o.scarf);
+        if (o.prop === 'staff') rect(g, cx + 8, base - 28, 2, 26, '#7a6044');
+        if (o.prop === 'pack') rect(g, cx - 10, base - 17 + bob, 5, 8, '#6a5440');
+        if (o.prop === 'hammer') { rect(g, cx + 8, base - 16, 2, 12, '#7a6044'); rect(g, cx + 6, base - 18, 6, 3, '#8a8a90'); }
+        if (o.prop === 'basket') { rect(g, cx + 6, base - 9, 7, 5, '#8a6a3a'); rect(g, cx + 7, base - 11, 5, 2, '#5a8a4a'); }
+        if (o.prop === 'halberd') { rect(g, cx + 9, base - 32, 2, 30, '#5a4a3a'); rect(g, cx + 7, base - 33, 7, 5, '#9a9aa2'); }
+        if (o.crows) for (const [dx, dy] of [[-8, -20], [8, -24]]) { circle(g, cx + dx, base + dy + bob, 2.6, '#0a0a0e'); rect(g, cx + dx + 2, base + dy - 1 + bob, 2, 1, '#0a0a0e'); }
+    }
+    const PEOPLE = {
+        traveller: { cloak: '#5a5a48', hat: '#4a3a2a', prop: 'pack' },
+        elder: { cloak: '#5a4a6a', hair: '#c8c8c8', prop: 'staff' },
+        trader: { cloak: '#7a5a3a', hair: '#3a2a20', belt: '#c8a050' },
+        smith: { cloak: '#4a3a30', hair: '#2a2420', belt: '#1a1612', prop: 'hammer', skin: '#c8a080' },
+        herbalist: { cloak: '#3d6640', hood: '#2e4e30', prop: 'basket' },
+        captain: { cloak: '#2e3e5a', helm: '#8a8a92', belt: '#c8a050' },
+        shane: { cloak: '#7a6a2a', hair: '#8a4a2a', scarf: '#c83a5a', prop: 'pack' },
+        warden_npc: { cloak: '#2a2a32', helm: '#3a3a42', prop: 'halberd', crows: true },
+        mason: { cloak: '#6a6a5a', hair: '#5a4a3a', belt: '#4a3a2a', prop: 'hammer' }
+    };
+    const SKINS = ['#d9c3a5', '#c69072', '#8a5a40', '#efd9c4'];   // player appearance presets (cosmetic)
+    Object.assign(creatures, {
+        goblin(g, px, py, t, flip) {
+            const b = Math.sin(t / 180) * 0.8;
+            g.save(); if (flip) { g.translate(px * 2 + 32, 0); g.scale(-1, 1); }
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 27, 7, 2.5, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 12, py + 21, 3, 6, '#3a4a2a'); rect(g, px + 17, py + 21, 3, 6, '#3a4a2a');
+            rect(g, px + 10, py + 13 + b, 12, 9, '#5a4a3a');
+            circle(g, px + 16, py + 10 + b, 5, '#6a8a4a');
+            g.fillStyle = '#6a8a4a'; g.beginPath(); g.moveTo(px + 11, py + 9 + b); g.lineTo(px + 5, py + 6 + b); g.lineTo(px + 12, py + 12 + b); g.fill();
+            g.beginPath(); g.moveTo(px + 21, py + 9 + b); g.lineTo(px + 27, py + 6 + b); g.lineTo(px + 20, py + 12 + b); g.fill();
+            rect(g, px + 14, py + 9 + b, 1.5, 1.5, '#e8d070'); rect(g, px + 17, py + 9 + b, 1.5, 1.5, '#e8d070');
+            g.restore();
+        },
+        gnawer(g, px, py, t) {
+            const b = Math.sin(t / 140) * 1;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 26, 10, 3, 0, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = '#d8d0c0'; g.lineWidth = 2;
+            for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(px + 9 + i * 4, py + 16 + b); g.lineTo(px + 7 + i * 4, py + 25); g.stroke(); }
+            g.fillStyle = '#c8c0b0'; g.beginPath(); g.ellipse(px + 15, py + 15 + b, 9, 4, 0, 0, Math.PI * 2); g.fill();
+            circle(g, px + 24, py + 13 + b, 4, '#e0d8c8');
+            rect(g, px + 25, py + 12 + b, 1.5, 1.5, '#c03030');
+        },
+        cultist(g, px, py, t) {
+            const b = Math.sin(t / 400) * 0.8;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 28, 8, 3, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#5a5a60'; g.beginPath(); g.moveTo(px + 8, py + 28); g.lineTo(px + 24, py + 28); g.lineTo(px + 19, py + 8 + b); g.lineTo(px + 13, py + 8 + b); g.fill();
+            circle(g, px + 16, py + 9 + b, 5, '#4a4a50');
+            rect(g, px + 13, py + 9 + b, 6, 3, '#141418');
+            g.strokeStyle = '#b84040'; g.lineWidth = 1; g.beginPath(); g.arc(px + 16, py + 19 + b, 3, -1.2, 4.3); g.stroke();
+        },
+        ghoul(g, px, py, t) {
+            const b = Math.sin(t / 200) * 1.2;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 28, 9, 3, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 11, py + 21, 3, 7, '#6a7a6a'); rect(g, px + 18, py + 21, 3, 7, '#6a7a6a');
+            g.fillStyle = '#7a8a78'; g.beginPath(); g.ellipse(px + 16, py + 16 + b, 7, 7, 0, 0, Math.PI * 2); g.fill();
+            circle(g, px + 16, py + 7 + b, 5, '#8a9a88');
+            rect(g, px + 13, py + 6 + b, 2, 2, '#e04040'); rect(g, px + 17, py + 6 + b, 2, 2, '#e04040');
+            g.strokeStyle = '#4a2020'; g.lineWidth = 1; for (const y of [13, 16, 19]) { g.beginPath(); g.moveTo(px + 11, py + y + b); g.lineTo(px + 21, py + y + 2 + b); g.stroke(); }
+            g.strokeStyle = '#6a6a72'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 22, py + 18 + b); g.lineTo(px + 29, py + 25); g.stroke();
+        },
+        constable(g, px, py, t) { person(g, px, py, t, { cloak: '#2e3e5a', helm: '#8a8a92', belt: '#c8a050' }); rect(g, px + 25, py + 11, 2, 12, '#6a5440'); },
+        warden(g, px, py, t) { person(g, px, py, t, { cloak: '#2a2a32', helm: '#3a3a42', prop: 'halberd', crows: true }); rect(g, px + 13, py + 5, 2, 2, '#e03030'); rect(g, px + 17, py + 5, 2, 2, '#e03030'); }
+    });
     // Which creature to draw for an enemy key (battle cards) and for an encounter sprite (map).
-    const CREATURE_FOR = { rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf' };
+    const CREATURE_FOR = {
+        rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf',
+        weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
+        watch_constable: 'constable', crow_touched_warden: 'warden'
+    };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
     const sprites = {
@@ -350,6 +498,16 @@
             rect(g, px + 13, py + 14, 2, 8, '#4f7a52');
         },
         rats(g, px, py, T, t) { creatures.rat(g, px - 6, py + 2, t, false); creatures.rat(g, px + 6, py - 6, t + 400, true); },
+        goblins(g, px, py, T, t) { creatures.goblin(g, px - 6, py, t, false); creatures.goblin(g, px + 6, py - 4, t + 300, true); },
+        gnawer(g, px, py, T, t) { creatures.rat(g, px + 7, py + 3, t + 200, true); creatures.gnawer(g, px - 4, py - 2, t); },
+        cultists(g, px, py, T, t) { creatures.cultist(g, px - 6, py, t); creatures.cultist(g, px + 6, py - 3, t + 500); },
+        ghoul(g, px, py, T, t) { creatures.ghoul(g, px, py, t); },
+        constables(g, px, py, T, t) { creatures.constable(g, px - 6, py, t); creatures.constable(g, px + 6, py - 3, t + 400); },
+        warden(g, px, py, T, t) { creatures.warden(g, px, py, t); },
+        strongbox(g, px, py, T) {
+            rect(g, px + 8, py + 14, 16, 11, '#4a3a2a'); rect(g, px + 8, py + 14, 16, 3, '#6a5440');
+            rect(g, px + 14, py + 18, 4, 4, '#8a8a90'); rect(g, px + 10, py + 9, 12, 5, '#d8cfb6');
+        },
         wolf(g, px, py, T, t) { creatures.wolf(g, px, py, t); },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
@@ -358,6 +516,13 @@
             }
             g.lineCap = 'butt';
         }
+    };
+
+    for (const [key, o] of Object.entries(PEOPLE)) sprites[key] = (g, px, py, T, t) => person(g, px, py, t, o);
+    sprites.crowd = (g, px, py, T, t) => {
+        person(g, px - 8, py + 2, t, { cloak: '#5a4a3a', hair: '#3a2a20' });
+        person(g, px + 8, py + 1, t + 300, { cloak: '#4a5a4a', hair: '#8a6a40' });
+        person(g, px, py - 3, t + 600, { cloak: '#6a4a4a', hat: '#4a3a2a' });
     };
 
     function create(canvas, world, opts = {}) {
@@ -376,7 +541,7 @@
             return def ? def.name : null;
         };
         // Objects stand on whatever floor surrounds them (a crate in the house sits on boards, not stone).
-        const FLOOR_OF = { stone_floor: 'stone_floor', wood_floor: 'wood_floor', rug: 'wood_floor', doorway: 'wood_floor', grass: 'grass', tall_weeds: 'grass', dirt_path: 'dirt_path' };
+        const FLOOR_OF = { stone_floor: 'stone_floor', wood_floor: 'wood_floor', rug: 'wood_floor', doorway: 'wood_floor', grass: 'grass', tall_weeds: 'grass', dirt_path: 'dirt_path', cobble: 'cobble' };
         function floorUnder(map, x, y, fallback) {
             const counts = {};
             for (const [nx, ny] of [[x, y + 1], [x, y - 1], [x - 1, y], [x + 1, y]]) {
@@ -419,7 +584,7 @@
             rect(g, cx + 1, base - 7 + Math.max(0, -step), 4, 6, '#2a2420');
             g.fillStyle = body;                                                   // cloak
             g.beginPath(); g.moveTo(cx - 8, base - 6 + bob); g.lineTo(cx + 8, base - 6 + bob); g.lineTo(cx + 6, base - 19 + bob); g.lineTo(cx - 6, base - 19 + bob); g.closePath(); g.fill();
-            circle(g, cx, base - 23 + bob, 6, '#d9c3a5');                         // head
+            circle(g, cx, base - 23 + bob, 6, SKINS[view.appearance] || SKINS[0]);   // head (appearance preset)
             g.fillStyle = '#2b2320';                                              // hair, by facing
             if (view.facing === 'up') { g.beginPath(); g.arc(cx, base - 23 + bob, 6, 0, Math.PI * 2); g.fill(); }
             else { g.beginPath(); g.arc(cx, base - 24 + bob, 6, Math.PI, Math.PI * 2); g.fill(); }
@@ -435,7 +600,7 @@
             }
         }
 
-        /** view = { mapId, x, y (tile units, may be fractional), facing, moving, className, fade, highlight } */
+        /** view = { mapId, x, y (tile units, may be fractional), facing, moving, className, appearance, marker, fade } */
         function draw(view, objects, time) {
             const map = world.maps[view.mapId];
             const mw = map.tiles[0].length * T, mh = map.tiles.length * T;
@@ -452,11 +617,16 @@
             for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y))) paintTile(g, map, x, y, time);
             for (const o of objects) {
                 if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, o.x * T, o.y * T, T, time);
-                if (!o.seen && o.kind !== 'encounter') {                                  // a faint glint marks things worth a look
+                if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
                     g.fillStyle = `rgba(255, 244, 200, ${a})`;
                     g.fillRect(o.x * T + T - 9, o.y * T + 5, 2, 2); g.fillRect(o.x * T + T - 10, o.y * T + 6, 4, 1); g.fillRect(o.x * T + T - 9, o.y * T + 4, 1, 4);
                 }
+            }
+            if (view.marker) {                                                       // the tracked objective, when it's on this map
+                const mx = view.marker.x * T + T / 2, my = view.marker.y * T - 6 + Math.sin(time / 260) * 3;
+                g.fillStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.moveTo(mx, my + 1); g.lineTo(mx + 6, my - 6); g.lineTo(mx, my - 13); g.lineTo(mx - 6, my - 6); g.fill();
+                g.fillStyle = '#e8c860'; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + 5, my - 6); g.lineTo(mx, my - 12); g.lineTo(mx - 5, my - 6); g.fill();
             }
             drawPlayer(view.x * T, view.y * T, view, time);
             g.restore();

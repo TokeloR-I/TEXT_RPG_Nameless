@@ -7,8 +7,8 @@ Turn-based dungeon RPG. The game rules live in a UI-free engine, so the same
 engine can drive the text version now and a Phaser side-scroller later.
 
 ## Play
-- **Explore the world (new, Zone 1):** double-click `world.html`. Walk with the arrow keys or WASD, interact with E / Enter, Esc for the menu.
-  Walk into a visible enemy to fight it; battles are the same turn-based fights as the text game, chosen from a menu.
+- **Explore the world (Chapter One):** double-click `world.html`. Name your character, pick a class and a look, then walk with the arrow keys or WASD, interact or talk with E / Enter, Esc for the menu and journal.
+  The road leads from the homestead to the village of Shamefield and up to the Crow-Touched Warden. Walk into a visible enemy to fight it; battles are the same turn-based fights as the text game, chosen from a menu.
 - **Classic text version:** double-click `index.html`. Single self-contained builds of both (`EnsosLastStand.html`, `EnsosLastStand-World.html`) are attached to every CI run (Actions → latest run → Artifacts), or build them with `npm run build`.
 - Terminal: `npm run play` (add `-- --seed 42` to reproduce a run exactly).
 
@@ -29,10 +29,13 @@ src/engine/       the rest of the rules, one module per area:
   timers.js         turn-opportunity hooks and combat timers (durations counted in turns)
   control.js        player-controlled enemy turns (Possession): awaiting 'control'
   turn-order.js     player-set turn order (Eternal Architect): awaiting 'turn_order'
+  story.js          chapter story: quests, flags, journal, NPC dialogue (awaiting 'dialogue'), name/appearance
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
   world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation
-  zone1.js          Zone 1 (the Forgotten Homestead) map data: 6 maps
+  zone1.js          Zone 1 (the Forgotten Homestead) map data: 6 maps, merged with Chapter One's
+  chapter1-maps.js  Chapter One maps: tollway, Shamefield, allotment, orchard, Featherwatch, sanctuary, seal chamber
+src/story/chapter1.js  Chapter One content: quests, NPCs and dialogue, triggers (pure data; docs/CHAPTER_ONE.md)
 ui/text-ui.js     text front end (index.html): typing effect, HUD
 ui/world-render.js  canvas painter for the world (no image files)
 ui/world-ui.js    world front end (world.html): title, movement, dialogs, menus

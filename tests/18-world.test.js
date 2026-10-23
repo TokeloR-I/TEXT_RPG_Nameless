@@ -37,7 +37,15 @@ test('World: the validator catches broken map data', () => {
         broken((w) => { w.maps.road.encounters[0].enemies = ['dragon']; }, /unknown enemy 'dragon'/);
         broken((w) => { w.maps.road.encounters[0].x = 9; w.maps.road.encounters[0].y = 2; }, /right next to spawn from_grounds/);
         broken((w) => { w.maps.shed.interactables[0].item = 'Golden Apple'; }, /unknown item 'Golden Apple'/);
-        broken((w) => { w.maps.road.boundaries[0].y = 0; w.maps.road.boundaries[0].x = 0; w.maps.road.boundaries[0].w = 1; }, /boundary road_zone_edge can't be reached/);
+        broken((w) => { w.maps.road.boundaries = [{ id: 'edge', x: 0, y: 0, w: 1, h: 1, text: 'x' }]; }, /boundary edge can't be reached/);
+        // Chapter One additions: locked exits say why; npcs name their story npc; only a `gate` fight may hold the only way on
+        broken((w) => { delete w.maps.shamefield.exits.find((e) => e.requires).lockedText; }, /locked exit shamefield_north_gate needs lockedText/);
+        broken((w) => { delete w.maps.shamefield.interactables.find((o) => o.kind === 'npc').npc; }, /needs an npc id/);
+        broken((w) => { delete w.maps.tollway.encounters[0].gate; }, /tollway_south can't be reached|spawn from_village can't be reached/);
+        const story = require('../src/story/chapter1.js');
+        assert.deepStrictEqual(validateWorld(ZONE1, data, story), [], 'every npc on a map has a story entry');
+        const bad = copy(ZONE1); bad.maps.shamefield.interactables.find((o) => o.kind === 'npc').npc = 'nobody';
+        assert.ok(validateWorld(bad, data, story).some((e) => /unknown story npc 'nobody'/.test(e)));
     }
     broken((w) => { w.maps.loft = copy(w.maps.shed || w.maps.cellar); w.maps.loft.exits = []; w.maps.loft.interactables = []; w.zones.forgotten_homestead.mapIds.push('loft'); }, /map loft can't be reached from the start/);
 });

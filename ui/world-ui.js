@@ -2,8 +2,10 @@
  * Enso's Last Stand — WORLD UI (keyboard exploration front end)
  * Zone 1 design: docs/design/ZONE_1_FORGOTTEN_HOMESTEAD.md §3–§4.
  *
- * Screens: title (class choice) -> explore <-> combat, plus game over.
- * Over exploration: dialog, pause menu and the evolution (branch) menu.
+ * Screens: title (name -> class -> appearance) -> explore <-> combat, plus game over.
+ * Over exploration: dialog, conversation (talk), pause menu with the journal, and the evolution
+ * (branch) menu. Chapter One's story is the engine's (src/engine/story.js): this file shows its
+ * dialogue, journal and tracked objective, and sends back choices; it never decides quest state.
  *
  * Movement is tile-step: hold a direction to keep walking. The world model
  * (src/world/world.js) decides where you can go; the engine (src/engine.js)
@@ -43,7 +45,8 @@
     let engine = null;
     let session = null;
     let screen = 'title';                 // title | explore | combat | over
-    let modal = null;                     // null | 'dialog' | 'pause' | 'branch'
+    let modal = null;                     // null | 'creator' | 'dialog' | 'talk' | 'pause' | 'branch'
+    let creator = null;                   // title screen: { step: 'name'|'class'|'look', name, cls, look }
     let menu = null;                      // the keyboard menu that currently has focus
     let dialog = null;                    // { pages, title, onClose }
     let battle = null;                    // { id, log, stack, ended, lastHp }
@@ -51,12 +54,13 @@
     const down = new Set();               // physical keys currently down
     const stale = new Set();              // keys held across a focus change: ignored until released
     const seen = new Set();               // inspected objects (presentation only: stops the glint)
-    const view = { mapId: WORLD.start.map, x: 0, y: 0, facing: 'down', moving: false, className: null, fade: 0 };
+    const view = { mapId: WORLD.start.map, x: 0, y: 0, facing: 'down', moving: false, className: null, appearance: 0, marker: null, fade: 0 };
+    const STORY = ENSO.story && ENSO.story.chapter1;
     let anim = null;                      // tile-step tween { fx, fy, tx, ty, t0, then }
     let fade = null;                      // { t0, phase: 'out'|'in', result }
     let lastBump = 0;
 
-    const problems = validateWorld(WORLD, DATA);
+    const problems = validateWorld(WORLD, DATA, STORY);
     if (problems.length) {
         els.problems.hidden = false;
         els.problems.textContent = `World data has ${problems.length} problem(s):\n${problems.join('\n')}`;
@@ -100,22 +104,60 @@
     // ---------------------------------------------------------------------
     // Title / class choice
     // ---------------------------------------------------------------------
+    // Character creation (CH1-02): Name -> Class -> Appearance -> begin. Cosmetic only; the engine
+    // validates the name (1–24 characters; blank = the chapter's default) and stores both.
     const classes = Object.keys(DATA.basePlayerClasses);
+    const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
+    const NAME_MAX = 24;
     function showTitle() {
         screen = 'title';
-        modal = null;
+        modal = 'creator';                    // the creation steps (Enter, Enter, Enter starts with the defaults)
         for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
-        menu = makeMenu(classes.map((key) => ({ label: DATA.basePlayerClasses[key].name, sub: DATA.basePlayerClasses[key].description, action: () => startGame(key) })), { render: renderTitle });
+        creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0 };
+        creatorStep('name');
+    }
+    function creatorStep(step) {
+        creator.step = step;
+        menu = null;
+        if (step === 'class') {
+            menu = makeMenu(classes.map((key) => ({ label: DATA.basePlayerClasses[key].name, sub: DATA.basePlayerClasses[key].description,
+                action: () => { creator.cls = key; creatorStep('look'); } })), { back: () => creatorStep('name'), render: renderTitle });
+            menu.index = Math.max(0, classes.indexOf(creator.cls));
+        }
+        if (step === 'look') {
+            menu = makeMenu(looks.map((l, i) => ({ label: l.label, sub: 'Appearance (no effect on stats)', action: () => { creator.look = i; startGame(creator.cls, creator.name, i); } })),
+                { back: () => creatorStep('class'), render: renderTitle });
+            menu.index = creator.look;
+        }
         renderTitle();
     }
     function renderTitle() {
+        const sub = esc(WORLD.zones[WORLD.maps[WORLD.start.map].zoneId].name);
+        if (creator.step === 'name') {
+            const fallback = (STORY && STORY.defaultName) || 'The Wanderer';
+            els.title.innerHTML = `
+                <h1>Enso's Last Stand</h1>
+                <p class="subtitle">${sub}</p>
+                <p class="prompt">Who wakes in the cellar?</p>
+                <label class="name-field">Name<input id="hero-name" maxlength="${NAME_MAX}" autocomplete="off" spellcheck="false" placeholder="${esc(fallback)}" value="${esc(creator.name)}"></label>
+                <p class="keys">Type a name (or leave it blank) · Enter continue</p>`;
+            const input = els.title.querySelector('#hero-name');
+            input.addEventListener('input', () => { creator.name = input.value; });
+            input.addEventListener('keydown', (ev) => {
+                ev.stopPropagation();                     // typing never walks, opens menus, or picks things
+                if (ev.key === 'Enter') { ev.preventDefault(); creator.name = input.value; creatorStep('class'); }
+            });
+            setTimeout(() => input.focus(), 0);
+            return;
+        }
+        const who = creator.name.trim() || (STORY && STORY.defaultName) || 'The Wanderer';
         els.title.innerHTML = `
             <h1>Enso's Last Stand</h1>
-            <p class="subtitle">${esc(WORLD.zones[WORLD.maps[WORLD.start.map].zoneId].name)}</p>
-            <p class="prompt">Choose who wakes in the cellar</p>
+            <p class="subtitle">${sub}</p>
+            <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `How does ${esc(who)} look?`}</p>
             ${menuHtml(menu, 'class-list')}
-            <p class="keys">↑ ↓ choose · Enter begin</p>`;
+            <p class="keys">↑ ↓ choose · Enter ${creator.step === 'look' ? 'begin' : 'continue'} · Esc back</p>`;
         bindMenuClicks(els.title, menu);
     }
 
@@ -125,11 +167,13 @@
         return m ? parseInt(m[1], 10) : undefined;
     }
 
-    function startGame(cls) {
+    function startGame(cls, name, look) {
         engine = new ENSO.GameEngine({ seed: seedFromUrl() });
         window.enso = engine;                 // handy from the browser console
         engine.start();
         engine.act({ type: 'choose_class', classId: cls });
+        if (STORY) engine.act({ type: 'set_identity', name: name || '', appearance: look || 0 });
+        view.appearance = look || 0;
         engine.act({ type: 'enter_world' });
         session = new WorldSession(WORLD, { engine });
         window.ensoWorld = session;
@@ -138,6 +182,7 @@
         syncView();
         view.className = cls;
         screen = 'explore';
+        modal = null;
         menu = null;
         els.title.hidden = true;
         els.hud.hidden = false;
@@ -160,7 +205,17 @@
             <div class="hud-place">${esc(place)}</div>
             <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
             <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${p.hp}/${p.maxHp}</span></div>
-            <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>`;
+            <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>
+            ${objectiveHtml()}`;
+        const obj = engine.story ? engine.trackedObjective() : null;
+        view.marker = obj && obj.marker && session && obj.marker.map === session.mapId ? { x: obj.marker.x, y: obj.marker.y } : null;
+    }
+    /** The tracked objective (the engine's choice) and where it is. */
+    function objectiveHtml() {
+        const obj = engine.story ? engine.trackedObjective() : null;
+        if (!obj) return '';
+        const there = obj.marker && session && obj.marker.map !== session.mapId ? ` <span class="hud-where">→ ${esc(WORLD.maps[obj.marker.map].name)}</span>` : '';
+        return `<div class="hud-obj"><span class="hud-quest">${esc(obj.title)}</span>◆ ${esc(obj.text)}${there}</div>`;
     }
 
     let bannerTimer = null;
@@ -213,6 +268,7 @@
             if (menuBlock) { if (/^Type (a command|a move|'order')/.test(t)) menuBlock = false; continue; }
             if (!t.trim() || /^> /.test(t) || t === '(Type anything to continue.)' || t === '--- Your Turn! ---' || /^--- COMBAT INITIATED/.test(t) || /appears! \(HP: \d+\)$/.test(t)) continue;
             if (/^Type the name of a path/.test(t) || /^- [a-z_ ]+: /.test(t) || t === 'Choose your path:') continue;  // evolution prompt: shown as a menu
+            if (/^ {2}\d+\. /.test(t)) continue;                                     // the text game's numbered dialogue choices: shown as a menu
             t = t.replace(/ Type 'start' to play again\.?/, '').replace(/ Type 'look'.*$/, '');
             out.push({ text: ev.html ? t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : t, important: ev.important });
         }
@@ -220,7 +276,51 @@
     }
 
     // ---------------------------------------------------------------------
-    // Pause menu: character, inventory (use healing items), controls
+    // Conversations (Chapter One). The engine holds the dialogue; this shows it and sends choices back.
+    // Esc is a normal goodbye (so Shane still says his line); the engine decides what that means.
+    // ---------------------------------------------------------------------
+    function openTalk(events) {
+        modal = 'talk';
+        muteHeldKeys();
+        els.prompt.hidden = true;
+        renderTalk(events);
+    }
+    function renderTalk(events) {
+        const avail = engine.getAvailableActions();
+        if (avail.awaiting !== 'dialogue') { closeTalk(events); return; }
+        const said = readable(events);
+        const choices = avail.actions.filter((a) => a.type === 'dialogue_choice');
+        const leave = () => renderTalk(engine.act({ type: 'dialogue_leave' }).events);
+        menu = makeMenu(choices.map((c) => ({ label: c.text, action: () => renderTalk(engine.act({ type: 'dialogue_choice', choiceId: c.choiceId }).events) })),
+            { back: leave, render: () => drawTalk(avail, said) });
+        drawTalk(avail, said);
+    }
+    function drawTalk(avail, said) {
+        const d = avail.dialogue;
+        els.dialog.hidden = false;
+        els.dialog.innerHTML = `<div class="dialog-title">${esc(d.name)}${d.title ? ` <span class="dialog-role">${esc(d.title)}</span>` : ''}</div>
+            <div class="dialog-text talk-text">${said.map((l) => `<p class="${l.important ? 'imp' : ''}">${esc(l.text)}</p>`).join('')}</div>
+            ${menuHtml(menu, 'talk-choices')}
+            <div class="dialog-keys">↑ ↓ choose · Enter say · Esc goodbye</div>`;
+        bindMenuClicks(els.dialog, menu);
+        const box = els.dialog.querySelector('.talk-text'); if (box) box.scrollTop = 0;   // read from the top
+    }
+    function closeTalk(events) {
+        els.dialog.hidden = true;
+        modal = null;
+        menu = null;
+        updateHud();
+        const lines = readable(events).map((l) => l.text);
+        if (lines.length) openDialog([lines.join('\n')], null, afterStory); else afterStory();
+    }
+    /** After anything that can complete a quest: the HUD, and the evolution choice if one is due. */
+    function afterStory() {
+        updateHud();
+        if (engine.mode === 'branch_select' && modal === null) openBranchMenu();
+    }
+
+    // ---------------------------------------------------------------------
+    // Pause menu: character, journal, inventory (use healing items), controls
     // ---------------------------------------------------------------------
     function openPause(note) {
         modal = 'pause';
@@ -253,6 +353,7 @@
                         <p>HP ${p.hp}/${p.maxHp} · ${esc(p.resource.type)} ${p.resource.current}/${p.resource.max}</p>
                         <p>STR ${p.strength} · INT ${p.intelligence} · AGI ${p.agility} · DEF ${p.def}</p>
                         ${other.length ? `<p>Also carrying: ${esc(other.join(', '))}</p>` : ''}</section>
+                    ${journalHtml()}
                     <section><h3>Run seed</h3>
                         <p>${engine.seed} · to replay this run, open <code>world.html?seed=${engine.seed}</code> and make the same moves</p></section>
                     <section><h3>Controls</h3>
@@ -262,6 +363,17 @@
             </div>`;
         els.pause.hidden = false;
         bindMenuClicks(els.pause, menu);
+    }
+    /** The engine's journal: active quests with their current objective, then what's done. */
+    function journalHtml() {
+        const j = engine.story ? engine.getJournal() : null;
+        if (!j) return '';
+        const active = j.quests.filter((q) => q.state !== 'complete');
+        const done = j.quests.filter((q) => q.state === 'complete');
+        const kind = (q) => (q.kind === 'main' ? '' : q.kind === 'job' ? ' <span class="j-kind">job</span>' : ' <span class="j-kind">side</span>');
+        return `<section class="journal"><h3>Journal · ${esc(j.chapter)}</h3>
+            ${active.map((q) => `<p class="j-quest"><b>${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>'}
+            ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
     }
     function useItem(item) {
         const lines = readable(engine.act({ type: 'use_item', item }).events).map((l) => l.text);
@@ -450,6 +562,7 @@
             return;
         }
         if (r.type === 'encounter') { muteHeldKeys(); flashThen(() => beginBattle(r)); return; }
+        if (r.type === 'locked') { lastBump = now; openDialog([r.text], null); return; }
         if (r.type === 'moved' || r.type === 'boundary') {
             anim = { fx, fy, tx: r.x, ty: r.y, t0: now, then: r.type === 'boundary' ? () => { syncView(); openDialog([r.text], r.title); } : null };
             return;
@@ -475,11 +588,17 @@
 
     function interact() {
         const r = session.interact();
-        if (r.type === 'message') { seen.add(r.id); openDialog([r.text], r.title); return; }
+        if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else openDialog(readable(r.events).map((l) => l.text).join('\n') || '…', r.title, afterStory); return; }
+        if (r.type === 'message') {
+            seen.add(r.id);
+            const story = readable(r.events || []).map((l) => l.text);
+            openDialog([story.length ? `${r.text}\n\n${story.join('\n')}` : r.text], r.title, afterStory);
+            return;
+        }
         if (r.type === 'pickup') {
-            const got = readable(r.events).map((l) => l.text).join(' ');
+            const got = readable(r.events).map((l) => l.text).join('\n');
             updateHud();
-            openDialog([`${r.text}\n\n${got}`], r.title);
+            openDialog([`${r.text}\n\n${got}`], r.title, afterStory);
             return;
         }
         if (r.type === 'transition') startFade(r);
@@ -501,7 +620,7 @@
         if (dir || isAct(ev) || ev.key === 'Escape') ev.preventDefault();
         if (stale.has(ev.key)) return;
         down.add(ev.key);
-        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch') {
+        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
             if (menu) menuKey(menu, ev, dir);
             return;
         }
@@ -547,7 +666,9 @@
     function frame(now) {
         if (screen === 'title') {
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
-            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: classes[menu ? menu.index : 0], fade: 0.35 }, [], now);
+            const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
+            const look = creator && creator.step === 'look' && menu ? menu.index : (creator ? creator.look : 0);
+            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: cls, appearance: look, marker: null, fade: 0.35 }, [], now);
             requestAnimationFrame(frame);
             return;
         }
@@ -566,7 +687,9 @@
                 fade = { t0: now, phase: 'in', result: fade.result };
                 showBanner(WORLD.maps[session.mapId].name);
                 updateHud();
-                if (fade.result.text) openDialog([fade.result.text], null);
+                const story = readable(fade.result.events || []).map((l) => l.text);
+                const pages = [fade.result.text, story.length ? story.join('\n') : null].filter(Boolean);
+                if (pages.length) openDialog(pages, null, afterStory); else afterStory();
             } else if (k >= 1) { fade = null; view.fade = 0; }
         }
         if (flash) {
@@ -585,8 +708,8 @@
 
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')
     window.ensoDebug = {
-        goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); },
-        start(cls) { startGame(cls || 'warrior'); advanceDialog(true); },
+        goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
+        start(cls, name, look) { startGame(cls || 'warrior', name, look); advanceDialog(true); },
         state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
     };
 

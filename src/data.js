@@ -144,6 +144,14 @@
                 specialFlags: ['undead'],
                 skills: [{ name: 'Frenzied Bite', base_damage: [9, 14] }]
             },
+            // Chapter One S01 (Shane's pursuers). CANDIDATE kit so the quest is playable: Rook owns the final enemy kit (CH1-06),
+            // Tally tunes it. Defensive, predictable town watch; honest guards, not villains.
+            'watch_constable': {
+                name: 'Watch Constable',
+                hp: 28, maxHp: 28, xp: 15, atk: 6, def: 3, spd: 9,
+                critChance: 0.05, critMultiplier: 1.5,
+                skills: [{ name: 'Truncheon', base_damage: [4, 7] }, { name: 'Shield Shove', base_damage: [2, 4] }]
+            },
             'crow_touched_warden': {
                 name: 'The Crow-Touched Warden',
                 id: 'crow_touched_warden',

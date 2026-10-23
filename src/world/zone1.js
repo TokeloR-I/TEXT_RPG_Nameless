@@ -16,6 +16,8 @@
  *                 visible enemies: walking into one starts a normal fight; E on it shows `text`
  *   boundaries    { id, x, y, w, h, title, text } walkable area that shows a notice when you enter it
  *   lights        { x, y, radius } for dark maps (presentation only)
+ * Chapter One adds (src/world/chapter1-maps.js): npc objects, `when` story conditions, locked exits
+ * (`requires` + `lockedText`) and `gate: true` on a required fight that holds the only way on.
  * Validate after any change: `npm test` (tests/18-world.test.js).
  * ========================================================================= */
 (function (global) {
@@ -325,6 +327,20 @@
             'Somewhere above you, a crow calls once, then goes quiet.'
         ]
     };
+
+    // Chapter One beyond the fog (src/world/chapter1-maps.js, loaded before this file in the browser):
+    // new tiles, zones and maps, the road's fog edge opened into a way on, and story objects at home.
+    const ch1 = isNode ? require('./chapter1-maps.js') : (ENSO.world && ENSO.world.chapter1Maps);
+    if (ch1) {
+        Object.assign(tileset, ch1.tiles);
+        Object.assign(zone1.zones, ch1.zones);
+        Object.assign(maps, ch1.maps);
+        const road = maps.road;
+        road.boundaries = (road.boundaries || []).filter((b) => b.id !== 'road_zone_edge');
+        road.exits.push(ch1.homestead.roadExit);
+        Object.assign(road.spawns, ch1.homestead.roadSpawn);
+        for (const [mid, list] of Object.entries(ch1.homestead.interactables)) maps[mid].interactables.push(...list);
+    }
 
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;
     if (isNode) module.exports = zone1;

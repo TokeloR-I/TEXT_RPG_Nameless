@@ -122,32 +122,30 @@ test('Zone 1: a world fight uses exactly the current battle rules (same log as t
     assert.strictEqual(a, b);
 });
 
-test('Zone 1: the road ends at a boundary notice, and you can turn back', () => {
+test('Zone 1: the road goes on through the fog to the Broken Tollway (Chapter One), and you can turn back', () => {
     const { s } = worldRun();
     travel(s, 'road');
     walkTo(s, 12, 20);
     const r = s.move('down');
-    assert.deepStrictEqual([r.type, r.id, r.title], ['boundary', 'road_zone_edge', 'Beyond the Homestead']);
-    assert.match(r.text, /Coming later/i);
-    assert.strictEqual(s.move('left').type, 'moved', 'walking along the edge does not repeat the notice');
-    assert.strictEqual(s.move('down').type, 'blocked', 'the edge of the map');
+    assert.deepStrictEqual([r.type, r.to], ['transition', 'tollway']);
+    assert.match(r.text, /fog/);
     travel(s, 'grounds');
     assert.strictEqual(s.mapId, 'grounds');
 });
 
 test('Zone 1: no boss, no forced fights, no test dummy; every optional area has something to find', () => {
-    const maps = Object.values(ZONE1.maps);
+    const maps = ZONE1.zones.forgotten_homestead.mapIds.map((id) => ZONE1.maps[id]);
     const encounters = maps.flatMap((m) => m.encounters || []);
     assert.ok(encounters.length >= 1);
     for (const e of encounters) for (const k of e.enemies) {
         assert.ok(!(data.enemies[k].specialFlags || []).includes('boss'), `${e.id}: no boss in Zone 1`);
         assert.notStrictEqual(k, 'James_Newton');
     }
-    // you can cross the whole zone to the boundary without touching an enemy
+    // you can cross the whole zone to its far edge without touching an enemy
     const { g, s } = worldRun();
     travel(s, 'road');
     walkTo(s, 12, 20);
-    assert.strictEqual(s.move('down').type, 'boundary');
+    assert.strictEqual(s.move('down').type, 'transition');
     assert.strictEqual(g.stats.fights, 0, 'no fight was needed');
     for (const id of ['shed', 'well']) {
         const objs = ZONE1.maps[id].interactables;

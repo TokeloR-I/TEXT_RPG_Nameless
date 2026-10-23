@@ -83,6 +83,25 @@ All of them occupy one tile and block movement while they're there.
 { id: 'road_zone_edge', x: 5, y: 21, w: 10, h: 1, title: 'Beyond the Homestead', text: '... (Coming later.)' }
 ```
 
+## Chapter One additions
+
+People, story gates and required fights (Chapter One, `src/world/chapter1-maps.js`; story in `src/story/chapter1.js`, guide in [CHAPTER_ONE.md](CHAPTER_ONE.md)):
+
+```js
+// someone to talk to: E opens their conversation (the dialogue is in the story data, by npc id)
+{ id: 'village_tamsin', kind: 'npc', npc: 'tamsin', x: 9, y: 8, name: 'Tamsin', sprite: 'elder' }
+// anything placed can depend on the story: present only while the condition holds
+{ id: 'village_shane', kind: 'npc', npc: 'shane', x: 13, y: 10, name: 'Shane', sprite: 'shane', when: { notFlags: ['shane_recruited'] } }
+// a way on that stays shut until the story opens it, with the reason shown when you try it
+{ id: 'shamefield_north_gate', x: 15, y: 0, trigger: 'step', toMap: 'orchard', toSpawn: 'from_village',
+  requires: { flags: ['north_gate_open'] }, lockedText: 'The orchard gate is chained shut...' }
+// a required fight that holds the only way on: mark it `gate: true` (the validator then lets it block)
+{ id: 'tollway_ragpickers', gate: true, x: 9, y: 9, enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', ... }
+```
+Conditions: `{ flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' }, items: [...], any: [...] }`.
+Arriving on a map, inspecting, talking, picking up and winning a map fight are story events the quests listen for.
+New tiles: `_` bridge, `+` cobble, `m` stall, `N` notice board, `A` fruit tree, `Z` seal door, `k` cage, `M` memorial, `w` wagon, `C` cart.
+
 ## What the validator checks
 
 `validateWorld(world, data)` in `src/world/world.js` covers:
@@ -93,7 +112,8 @@ All of them occupy one tile and block movement while they're there.
 - From every spawn you can reach every other spawn, every exit and every object.
 - Exits point at real maps and spawns, `step` exits are walkable, and `interact` exits have a prompt.
 - Transitions are reversible and symmetrical.
-- Objects have known kinds and text, and pickup items exist.
+- Objects have known kinds and text, and pickup items exist. NPCs name a story npc that exists (when story data is passed).
+- Locked exits (`requires`) say why (`lockedText`). Only an encounter marked `gate: true` may block the way to anything.
 - Encounters use real enemies with `trigger: 'contact'`, aren't the test dummy and aren't next to a spawn.
 - Boundaries are reachable.
 
@@ -120,4 +140,4 @@ All of them occupy one tile and block movement while they're there.
 
 - **Battle text.** The battle overlay shows the engine's prose and strips the text game's own menu lines. Typed events (gap G1 in `architecture/TECHNICAL_FEASIBILITY.md`) would replace that filter.
 - **Commands (done, Phase 1 slice 2).** The battle, evolution and item menus come from `engine.getAvailableActions()` through `ui/battle-menu.js`, and choices go back as `engine.act()` actions with combatant ids. The overlay never decides what is usable and never derives rules from map coordinates.
-- **Not built yet.** No saving, NPC dialogue or random encounters (design §10). Legacy rooms (`src/data.js` `rooms`) still drive the text game and aren't placed in the world yet; re-homing them is a later content pass.
+- **Built for Chapter One:** NPC dialogue, quests and the journal (CH1-01..03). **Not built yet:** random encounters and roaming patrols (Rook, CH1-06). Legacy rooms (`src/data.js` `rooms`) still drive the text game; the world has its own route to the Warden.

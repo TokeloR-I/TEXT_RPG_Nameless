@@ -15,9 +15,14 @@ const near = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
 
 test('Integration: every exit in the zone round-trips to where you left, facing away from the door', () => {
     let checked = 0;
+    let total = 0;
     for (const [mid, map] of Object.entries(ZONE1.maps)) {
         for (const exit of map.exits) {
-            const s = new WorldSession(ZONE1, { map: mid, spawn: Object.keys(map.spawns)[0] });
+            total++;
+            // Chapter One gate fights hold some ways on, so start from a spawn on the exit's side of them.
+            const reaches = (sp) => { try { takeExit(new WorldSession(ZONE1, { map: mid, spawn: sp }), exit.id); return true; } catch (e) { return false; } };
+            const spawn = Object.keys(map.spawns).find(reaches) || Object.keys(map.spawns)[0];
+            const s = new WorldSession(ZONE1, { map: mid, spawn });
             const there = takeExit(s, exit.id);
             assert.deepStrictEqual([there.type, there.to], ['transition', exit.toMap], exit.id);
             assert.strictEqual(s.exitAt(s.x, s.y), null, `${exit.id}: never land on an exit`);
@@ -31,7 +36,8 @@ test('Integration: every exit in the zone round-trips to where you left, facing 
             checked++;
         }
     }
-    assert.strictEqual(checked, 10, 'five two-way connections');
+    assert.strictEqual(checked, total, 'every exit, both ways');
+    assert.ok(total >= 24, 'Zone 1 and Chapter One together');
 });
 
 test('Integration: beaten and fled enemies, and taken items, persist across the whole zone for the run', () => {
