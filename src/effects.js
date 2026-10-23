@@ -372,7 +372,7 @@
                 const h = ctx.engine.newHit(t);
                 ctx.engine.rollDamage(ctx.caster, t, ctx.skill, h);
                 ctx.engine.say(`  ...lightning arcs to ${t.name} for ${h.damage} damage!${h.isCrit ? ' (CRITICAL HIT!)' : ''}`);
-                ctx.engine.damage(t, h.damage, ctx.caster);
+                ctx.engine.damage(t, h.damage, ctx.caster, { alreadyScaled: true });
             }
         }
     });
