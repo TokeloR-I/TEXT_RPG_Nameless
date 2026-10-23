@@ -302,6 +302,7 @@
         P.applyDot = function (source, target, { name, value, duration }) {
             if (source && source.isPlayer && this.hasTrait('DoTs last +1 turn')) duration += 1;
             const inst = this.applyStatus(source, target, { name, type: 'dot', value, duration });
+            if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances')) inst.trueDamage = true;
             if (inst) this.say(`${target.name} is afflicted with ${name} (${this.dotTickDamage(inst)} dmg/turn for ${inst.duration} turns).`);
             return inst;
         };
