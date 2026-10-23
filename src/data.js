@@ -665,6 +665,8 @@
             'Infection':        { category: 'dot', type: 'dot', value: 2, maxStacks: 3, duration: 3, overflow: null }, // values preserved from v1 (approved to keep)
             'Bleed':            { category: 'dot', type: 'dot', maxStacks: null, overflow: null },
             'Poison':           { category: 'dot', type: 'dot', maxStacks: null, overflow: null },
+            'Soul Feast':       { category: 'dot' },
+            'Soul Chain':       { category: 'debuff' },
             // --- turn denial / control
             'Stun':             { category: 'control', control: null, crGain: null },
             'Frozen in time':   { category: 'control', control: null, crGain: null },
