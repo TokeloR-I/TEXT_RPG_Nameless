@@ -104,7 +104,7 @@
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }
 
                 if (this.startTurn(actor)) {
-                    this.advanceSoulLinkClock(actor);
+                    this.advanceSoulLinkClock(actor, true);
                     if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = 'await_recovery';
                     if (actor.hp > 0 && actor.isPlayer) {
                         // QA-5: pause on the player's skipped turn instead of simulating on by itself.
