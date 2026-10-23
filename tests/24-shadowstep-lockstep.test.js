@@ -35,3 +35,13 @@ test('Lockstep: taunts player even when a summoned ally is taunting',()=>{
  g.enemyTurn(target);
  assert.deepStrictEqual(chosen,[g.player.id,minion.id]);
 });
+
+
+test('QA-28: Shield Charge taunt uses the casting skill label, not Lockstep',()=>{
+  const g=newGame(109).do('warrior','n','engage');
+  const skill={name:'Shield Charge',effects:[{type:'taunt_aoe',duration:1}],target:'enemy_aoe'};
+  g.castSkill(g.player,skill,g.combat.enemies);
+  assert.ok(g.combat.enemies.every(e=>g.findStatus(e,'Shield Charge')));
+  assert.ok(!g.combat.enemies.some(e=>g.findStatus(e,'Lockstep')));
+  assert.match(g.out.filter(e=>e.type==='text').map(e=>e.text).join('\n'),/Shield Charge draws enemy attacks/);
+});
