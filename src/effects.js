@@ -451,6 +451,27 @@
         }
     });
 
+    register('apply_max_infection_aoe', {
+        requires(ctx) {
+            return ctx.engine.alive(ctx.engine.combat.enemies).length
+                ? null : 'Plague of Ages requires living enemies.';
+        },
+        apply(ctx) {
+            for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
+                const before = ctx.engine.infectionOn(target);
+                const missing = Math.max(0, 3 - (before ? before.stacks : 0));
+                const inst = ctx.engine.infect(ctx.caster, target, Math.max(1, missing));
+                if (inst) inst.trueDamage = true;
+            }
+            ctx.engine.say('Plague of Ages infects all eligible enemies!');
+        }
+    });
+    register('infections_true_damage', {
+        apply(ctx) {
+            // Empowerment is attached to the Infection instance by the preceding effect.
+        }
+    });
+
     register('spread_all_infections', { // Plague Wind: every enemy gets the worst infection on the field
         requires(ctx) {
             return ctx.engine.alive(ctx.engine.combat.enemies).some((e) => ctx.engine.infectionOn(e)) ? null : 'No enemy is infected — there is nothing to spread.';
