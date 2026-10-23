@@ -26,6 +26,7 @@
             if (c.awaitingContinue) { this.doContinue(); return; }
 
             const { command, targetNum } = this.parseCombatInput(raw);
+            if (c.controlledActorId) { this.controlCommand(command, targetNum); return; }   // N-5 (control.js)
 
             if (command === 'use' || command.startsWith('use ')) {
                 const name = command.slice(3).trim();
@@ -135,6 +136,7 @@
 
         showCombatState() {
             const c = this.combat;
+            if (c.controlledActorId) { this.showControlState(); return; }
             this.say('--- Enemies ---', { important: true });
             this.alive(c.enemies).forEach((e, i) => this.say(`${i + 1}. ${e.name} (${e.hp}/${e.maxHp} HP)${this.statusTag(e)}`));
             const minions = this.alive(c.minions);

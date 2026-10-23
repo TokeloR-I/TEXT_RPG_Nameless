@@ -59,6 +59,7 @@
             this.tickTimers(actor, { skipped });
             if (!skipped && actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
             this.crEndOpportunity(actor, skipped);   // Package 2: CR decay, protection ends
+            this.possessionEndOpportunity(actor, skipped); // N-5: Possession lasts one holder opportunity
         }
 
         // =====================================================================

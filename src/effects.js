@@ -365,6 +365,17 @@
             if (hit.length) ctx.engine.say(`${hit.map((t) => t.name).join(', ')} ${hit.length > 1 ? 'are' : 'is'} lost in illusions and will skip a turn!`);
         }
     });
+    register('control_enemy', { // Possession (N-5): you choose the target's next move (src/engine/control.js)
+        applies: { name: 'Possessed', type: 'possessed' }, // control status (Control Resistance hints in getAvailableActions)
+        requires(ctx) {
+            for (const t of ctx.targets || []) {
+                const problem = t && ctx.engine.possessionProblem(t);
+                if (problem) return problem;
+            }
+            return null;
+        },
+        apply(ctx) { for (const t of living(ctx)) ctx.engine.possess(ctx.caster, t, ctx.effect); }
+    });
     register('freeze_enemies', { // Freeze Time
         applies: { name: 'Frozen in time', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {

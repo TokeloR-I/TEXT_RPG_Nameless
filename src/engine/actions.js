@@ -123,6 +123,7 @@
                 else this.refuse('WRONG_MODE', "You can't act this turn. Continue first.");
                 return;
             }
+            if (c.controlledActorId) { this.performControl(a); return; }   // N-5 (src/engine/control.js)
             const ids = Array.isArray(a.targetIds) ? a.targetIds : a.targetId != null ? [a.targetId] : null;
             switch (a.type) {
                 case 'attack':
@@ -141,6 +142,7 @@
                     return;
                 case 'flee': this.doFlee(); return;
                 case 'continue': this.refuseCombat('WRONG_MODE', 'There is nothing to continue; it is your turn.'); return;
+                case 'control': this.refuseCombat('WRONG_MODE', "You aren't controlling anyone right now."); return;
                 default: this.refuseCombat('WRONG_MODE', `You can't do '${a.type}' in a fight.`);
             }
         }
@@ -299,7 +301,11 @@
                 out.actions = this.exploreAvailability();
             } else if (mode === 'combat') {
                 const c = this.combat;
-                if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
+                if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer && c.controlledActorId) {
+                    out.awaiting = 'control';                     // N-5: the controlled actor's own moves
+                    out.controlledActorId = c.controlledActorId;
+                    out.actions = this.controlOptions(this.controlledActor());
+                } else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
             } else {
                 out.actions = [{ type: 'restart', enabled: true }];
             }

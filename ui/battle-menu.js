@@ -30,12 +30,18 @@
             return only ? { type: 'skill', skillId: option.skillId, targetId: only } : { type: 'skill', skillId: option.skillId };
         }
         if (option.type === 'use_item') return { type: 'use_item', item: option.item };
+        if (option.type === 'control') {   // N-5 Possession: the controlled actor's move
+            const only = option.targets && option.targets.length === 1 ? option.targets[0].id : null;
+            const targetId = targetIds && targetIds.length ? targetIds[0] : only;
+            return { type: 'control', actorId: option.actorId, skillId: option.skillId, targetId };
+        }
         return { type: option.type };
     }
 
     /**
      * Menu entries for the current availability.
-     *   root   : Attack / Skills / Items / Flee (or just Continue on a skipped turn)
+     *   root   : Attack / Skills / Items / Flee (or just Continue on a skipped turn,
+     *            or the possessed enemy's moves while awaiting 'control')
      *   skills : every known skill, enabled or with the engine's reason
      *   items  : usable items
      * Each entry: { kind, label, sub, disabled, option }.
@@ -43,6 +49,9 @@
     function entries(avail, view, skillInfo) {
         const acts = avail.actions || [];
         if (view === 'root') {
+            if (avail.awaiting === 'control') {   // N-5: one entry per move of the possessed enemy
+                return acts.map((o) => ({ kind: 'control', label: o.skillId, sub: o.enabled ? `Its move · turn it on its allies${noteText(o.notes)}` : o.reason.message, disabled: !o.enabled, option: o }));
+            }
             if (avail.awaiting === 'continue') return [{ kind: 'continue', label: 'Continue', sub: "You can't act this turn.", disabled: false, option: acts[0] }];
             const attack = acts.find((o) => o.type === 'attack');
             const skills = acts.filter((o) => o.type === 'skill');
