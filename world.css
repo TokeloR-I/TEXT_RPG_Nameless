@@ -143,6 +143,20 @@ body {
 .battle-foot .tags { justify-content: flex-start; }
 .battle-menu .keys { margin-top: 0.4em !important; font-size: 0.85em; }
 
+/* Disabled actions remain inspectable: preserve readable refusal explanations.
+   Selection keeps a border and cursor marker, rather than relying on color. */
+.combat .menu li.disabled { opacity: 1; cursor: default; }
+.combat .menu li.disabled .m-label { color: #bcb6a8; }
+.combat .menu li.disabled .m-label::after {
+    content: ' (unavailable)'; font-size: 0.8em; font-weight: normal;
+}
+.combat .menu li.disabled .m-sub { color: var(--ink); }
+.combat .menu li.selected { border-color: var(--accent); background: rgba(159, 232, 207, 0.12); }
+.combat .menu li.selected .m-label::before { content: '▶ '; color: var(--accent); }
+.combat .menu li.disabled.selected { border-style: dashed; }
+.combat .menu li { overflow-wrap: anywhere; }
+
+
 /* ---------- title / class selection (scoped to avoid changing battle menus) ---------- */
 .title-screen {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
