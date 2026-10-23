@@ -173,9 +173,7 @@
             c.awaitingPlayer = false;
             if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
             c.playerActedThisRound = true;
-            this.endNormalTurn(p);
-            if (this.advanceSoulLinkClock) this.advanceSoulLinkClock(p);
-            if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
+            this.endOpportunity(p);
             c.idx++;
             this.advance();
         }
@@ -240,9 +238,7 @@
                 return;
             }
             c.extraTurn = false;
-            this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
-            if (this.advanceSoulLinkClock) this.advanceSoulLinkClock(p);
-            if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
+            this.endOpportunity(p); // the normal turn ends here, after any Haste bonus actions
             c.idx++;
             this.advance();
         }

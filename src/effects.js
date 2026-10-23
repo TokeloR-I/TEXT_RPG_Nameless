@@ -223,10 +223,8 @@
             }
             const group = ++e.combat.nextSoulLinkId;
             const duration = 2 + (ctx.caster.isPlayer && e.hasTrait('Binding Will') ? 1 : 0);
-            e.combat.soulLinkClocks = e.combat.soulLinkClocks || {};
-            e.combat.soulLinkClocks[ctx.caster.id] = {
-                group, remaining: duration, castTurn: ctx.caster.normalTurns || 0
-            };
+            // K1: one caster-owned clock (a combat timer; a recast replaces it).
+            e.addTimer(ctx.caster, 'soul_link', duration, { replace: true, countSkipped: true, group });
             for (const t of ctx.targets) e.applyStatus(ctx.caster, t, {
                 name: 'Soul Chain', type: 'soul_link', duration: 'permanent', linkGroup: group
             });
