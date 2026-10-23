@@ -46,3 +46,33 @@ test('N-6: free Soul Feast cost consumed once and save-state durable',()=>{
  g.restore(snapshot);
  assert.strictEqual(g.skillCost(g.data.skillDefinitions['Soul Feast']),0);
 });
+
+test('QA-29 Undying Will preserves caster Soul Chain and Feast on lethal hit',()=>{
+ const g=lich();const [a,b]=g.combat.enemies;
+ g.castSkill(g.player,g.data.skillDefinitions['Soul Chain'],[a,b]);
+ g.castSkill(g.player,g.data.skillDefinitions['Soul Feast'],[a,b]);
+ const links=()=>g.combat.enemies.reduce((n,e)=>n+e.statusEffects.filter(s=>s.type==='soul_link').length,0);
+ const drains=()=>g.combat.enemies.reduce((n,e)=>n+e.statusEffects.filter(s=>s.type==='soul_feast').length,0);
+ assert.strictEqual(links(),2); assert.strictEqual(drains(),2);
+ g.player.hp=1;
+ g.damage(g.player,10,a);
+ assert.strictEqual(g.player.hp,Math.ceil(g.player.maxHp/2));
+ assert.strictEqual(g.player.dead,false);
+ assert.strictEqual(links(),2,'lethal interception must not clear owned links');
+ assert.strictEqual(drains(),2,'lethal interception must not clear active Feast');
+});
+test('QA-30 lethal one-round Poison revives before turn-skip and expires after the opportunity',()=>{
+ const g=lich();const enemy=g.combat.enemies[0];
+ g.player.hp=1;g.player.maxHp=10;
+ g.applyStatus(enemy,g.player,{name:'Poison',type:'dot',value:50,duration:1});
+ assert.strictEqual(g.startTurn(g.player),false,'revived player retains normal turn');
+ assert.strictEqual(g.player.hp,5);
+ g.tickStatusesEndOfRound();
+ assert.strictEqual(g.findStatus(g.player,'Poison'),null,'the killing 1-round DoT expires');
+ assert.strictEqual(g.combat.undyingWillUsed,true);
+});
+test('QA-31 unmake command resolves to Lich variant without changing Hollow King definition',()=>{
+ const g=lich();
+ assert.strictEqual(g.resolveSkillName('unmake'),'Eternal Lich Unmake');
+ assert.strictEqual(g.data.skillDefinitions.Unmake.resource,'Hollow Will');
+});
