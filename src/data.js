@@ -686,6 +686,7 @@
             'Riposte':          { category: 'buff' },
             'Guaranteed Crit':  { category: 'buff' },
             'Taunt':            { category: 'buff' },
+            'Dragon’s Dominion': { category: 'buff' },     // QA-15: so a buff cleanse sees it, like every other status
             // --- bookkeeping statuses from apply_status (no gameplay effect yet)
             'Channel Cooldown':     { category: 'cooldown' },
             'accuracy_buff_enemy':  { category: 'buff' },

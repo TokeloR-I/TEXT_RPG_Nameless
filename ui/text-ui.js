@@ -13,7 +13,9 @@
     const skipButton = document.getElementById('skip-button');
     const hud = document.getElementById('player-hud');
 
-    const engine = new ENSO.GameEngine();
+    // ?seed=123 in the address replays a session; otherwise the engine picks one (shown under the HUD).
+    const seedParam = /[?&]seed=(\d+)/.exec(location.search || '');
+    const engine = new ENSO.GameEngine({ seed: seedParam ? parseInt(seedParam[1], 10) : undefined });
     window.enso = engine; // handy for poking at state from the browser console
 
     let busy = false;
@@ -120,7 +122,8 @@
                     <li class="hud-action-item"><span class="hud-icon">🌳</span><span>class_lore (cl)</span></li>
                     <li class="hud-action-item"><span class="hud-icon">❓</span><span>help</span></li>
                 </ul>
-            </div>`;
+            </div>
+            <div class="hud-section"><small title="Open index.html?seed=${engine.seed} to replay this session">Seed ${engine.seed}</small></div>`;
     }
 
     // ---------- events ----------
