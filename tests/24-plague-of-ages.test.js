@@ -50,3 +50,15 @@ test('N-2: all-resource cast refuses at zero without spending a turn',()=>{
   assert.match(refusal,/at least 1 Soul Energy/);
   assert.ok(g.combat.enemies.every(e=>!g.infectionOn(e)));
 });
+
+
+test('QA-27: Plague of Ages refuses when all living enemies are Infection-immune',()=>{
+  const g=plague();for(const e of g.combat.enemies)e.statusAffinities={Infection:'immune'};
+  const skill=g.data.skillDefinitions['Plague of Ages'];
+  const before=g.player.resource.current;
+  const targets=g.combat.enemies;
+  const refusal=g.effects.apply_max_infection_aoe.requires({engine:g,caster:g.player,targets,skill,effect:skill.effects[0]});
+  assert.match(refusal,/susceptible to Infection/);
+  assert.strictEqual(g.player.resource.current,before);
+  assert.ok(targets.every(e=>!g.infectionOn(e)));
+});
