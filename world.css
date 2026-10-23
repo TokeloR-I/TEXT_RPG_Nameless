@@ -143,17 +143,52 @@ body {
 .battle-foot .tags { justify-content: flex-start; }
 .battle-menu .keys { margin-top: 0.4em !important; font-size: 0.85em; }
 
-/* ---------- title screen ---------- */
+/* ---------- title / class selection (scoped to avoid changing battle menus) ---------- */
 .title-screen {
-    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: safe center; overflow-x: hidden; overflow-y: auto;
     background: radial-gradient(ellipse at center, rgba(8, 8, 12, 0.55), rgba(4, 4, 6, 0.92));
-    font-size: clamp(11px, 1.8cqw, 17px); text-align: center; padding: 2cqw;
+    font-size: clamp(11px, 1.8cqw, 17px); text-align: center;
+    padding: clamp(10px, 2.5cqw, 28px);
+    scrollbar-gutter: stable;
 }
-.title-screen h1 { margin: 0; font-size: 3.2em; letter-spacing: 0.08em; font-weight: normal; text-shadow: 0 0 18px rgba(159, 232, 207, 0.35); }
-.subtitle { color: var(--accent); letter-spacing: 0.3em; text-transform: uppercase; margin: 0.4em 0 1.6em; }
-.prompt { color: var(--ink-dim); margin: 0 0 0.8em; }
-.class-list { list-style: none; margin: 0; padding: 0; width: min(100%, 62cqw); text-align: left; }
-.class-list li { padding: 0.55em 0.9em; }
+.title-screen h1 {
+    margin: 0; font-size: clamp(1.6em, 4.5cqw, 3.2em); line-height: 1.16;
+    letter-spacing: 0.05em; font-weight: normal;
+    text-shadow: 0 0 18px rgba(159, 232, 207, 0.35);
+}
+.title-screen .subtitle {
+    color: var(--accent); letter-spacing: 0.16em; text-transform: uppercase;
+    margin: 0.5em 0 1em;
+}
+.title-screen .prompt { color: var(--ink-dim); margin: 0 0 0.8em; }
+.title-screen .class-list {
+    list-style: none; margin: 0; padding: 0; width: min(100%, 620px);
+    text-align: left;
+}
+.title-screen .class-list li {
+    padding: 0.6em 0.85em 0.7em 1.4em; position: relative;
+    gap: 0.2em; min-width: 0; overflow-wrap: anywhere;
+}
+.title-screen .class-list .m-label { font-size: 1.12em; line-height: 1.35; }
+.title-screen .class-list .m-sub { font-size: 0.9em; line-height: 1.45; }
+.title-screen .class-list li.selected {
+    border-color: var(--accent); background: rgba(159, 232, 207, 0.12);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.title-screen .class-list li.selected .m-label::before {
+    content: '▶'; position: absolute; left: 0.4em; top: 0.66em;
+}
+.title-screen .class-list li:hover:not(.disabled) { background-color: rgba(159, 232, 207, 0.09); }
+.title-screen .keys { margin: 0.85em 0 0 !important; line-height: 1.4; }
+
+@media (max-width: 600px) {
+    .title-screen { font-size: clamp(10px, 2.6cqw, 14px); padding: 8px; }
+    .title-screen h1 { font-size: clamp(1.35em, 5cqw, 2em); }
+    .title-screen .subtitle { letter-spacing: 0.08em; margin-bottom: 0.4em; }
+    .title-screen .class-list li { padding-top: 0.35em; padding-bottom: 0.4em; }
+    .title-screen .class-list .m-sub { font-size: 0.87em; }
+}
 
 .problems { position: absolute; inset: 0; margin: 0; padding: 2cqw; background: #2a0d0d; color: #ffd0c8; font-size: 12px; overflow: auto; white-space: pre-wrap; }
 
