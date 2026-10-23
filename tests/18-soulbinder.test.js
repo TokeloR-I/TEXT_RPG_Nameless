@@ -130,7 +130,7 @@ test('Soul Chain: Chain of Woe gets three targets and one Wound Transfer multipl
     b.hp = 100;
     c.hp = 100;
     hit(g, a, 10);
-    assert.strictEqual(a.hp, 90, 'direct primitive already reflects actual primary loss');
+    assert.strictEqual(a.hp, 89, 'Wound Transfer applies 10% to original HP damage once');
     assert.strictEqual(b.hp, 95, 'floor(5 x 1.1) is 5 once');
     assert.strictEqual(c.hp, 95);
     g.cleanse(a, { statuses: ['Soul Chain'] });
