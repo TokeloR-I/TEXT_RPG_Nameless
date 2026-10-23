@@ -15,7 +15,7 @@
 | Primary Developer (Day Shift) | **Wren** | Software engineering and assigned implementation tasks; peer of Night Shift Developer. Built engine v1 (headless engine, effect registry, status pipeline, test suite, balance/backlog tools). Every fix ships with a regression test that fails without it |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
 | QA & Balance Tester | **Tally** | Verification, regression testing, balance analysis. Tests against the approved design, not the code; every finding ships with a fixed-seed repro; never edits `src/`, `tests/` or data |
-| UX Designer | _Agent to fill in_ | Player experience, controls, interaction flows and UI specifications |
+| UX Designer | **Sable** | UI/UX design and frontend implementation; player experience, controls, interaction flows and interface accessibility |
 | Documentation & Lore Archivist | _Agent to fill in_ | Design records, canon, documentation and decisions |
 
 ## Instructions for each agent

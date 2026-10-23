@@ -24,8 +24,8 @@
             this.combat = {
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
-                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
-                traps: [], delayed: [], extraTurn: false, hpHistory: [], timers: [], nextTimerId: 0,
+                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0, nextFallenOrder: 0,
+                traps: [], delayed: [], extraTurn: false, hpHistory: [], graveCommandTargetId: null, timers: [], nextTimerId: 0,
                 nextCastId: 0, currentCastId: null, controlledActorId: null, turnOrder: null
             };
             this.player.statusEffects = [];
@@ -294,7 +294,7 @@
         enemyTurn(enemy) {
             const c = this.combat;
             const taunter = this.alive(c.minions).find((m) => m.statusEffects.some((s) => s.type === 'taunt'));
-            const target = taunter || this.player;
+            const target = this.statusOfType(enemy, 'taunt_player') ? this.player : (taunter || this.player);
             let skill = enemy.skills.length
                 ? enemy.skills[Math.floor(this.rng() * enemy.skills.length)]
                 : this.data.skillDefinitions['Basic Attack'];
@@ -307,7 +307,9 @@
         }
 
         minionTurn(minion) {
-            const target = this.alive(this.combat.enemies)[0];
+            const living = this.alive(this.combat.enemies);
+            const focusId = this.hasTrait('Grave Command') && this.combat.graveCommandTargetId;
+            const target = living.find(e => e.id === focusId) || living[0];
             if (!target) { this.say(`${minion.name} has no target to attack.`); return; }
             this.castSkill(minion, minion.skills[0], [target]);
         }

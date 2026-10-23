@@ -106,6 +106,13 @@
             const reached = new Set();
             let attacked = false;
 
+            // Grave Command tracks the owner's last attempted damaging attack,
+            // including misses, without redirecting minions on defensive casts.
+            if (caster.isPlayer && this.combat && this.hasTrait('Grave Command') && skill.base_damage) {
+                const selected = targets.filter(t => t && !t.isPlayer && !t.isMinion && t.hp > 0 && !t.erased);
+                if (selected.length) this.combat.graveCommandTargetId = selected[selected.length - 1].id;
+            }
+
             if (skill.base_damage && !active.some((x) => x.handler.replacesDamage)) {
                 attacked = true;
                 let hits = 1;
@@ -124,7 +131,13 @@
                         for (const x of active) if (x.handler.afterCalc) x.handler.afterCalc({ ...ctx, effect: x.effect }, hit);
                         const hpNote = target.isPlayer ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
                         this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer });
-                        this.damage(target, hit.damage, caster, { alreadyScaled: true });
+                        const actual = this.damage(target, hit.damage, caster, { alreadyScaled: true });
+                        if (caster.isMinion && this.hasTrait('+3 max minions; all summons gain AOE attacks') && actual > 0) {
+                            for (const other of this.alive(this.combat.enemies).filter(enemy => enemy !== target)) {
+                                this.secondaryDamage(other, Math.floor(actual * 0.5), this.player,
+                                    { kind: 'Black Pharaoh Splash' });
+                            }
+                        }
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
                     }
@@ -191,6 +204,12 @@
                 if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
             }
             return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true, alreadyScaled: true });
+        }
+
+        // Shared mitigation, prevention and K3 side-effect suppression for secondary
+        // link, drain and splash damage. No new attack, proc, crit or recursion.
+        secondaryDamage(target, raw, owner, { kind = 'Soul Chain' } = {}) {
+            return this.secondarySoulDamage(target, raw, owner, kind);
         }
 
         tickSoulFeast(actor) {
@@ -267,7 +286,7 @@
             const tpl = this.data.minionDefinitions[type];
             if (!tpl) return null;
             const m = clone(tpl);
-            Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, isPlayer: false, isMinion: true, statusEffects: [] });
+            Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, summonType: type, ownerId: this.player.id, isPlayer: false, isMinion: true, statusEffects: [] });
             this.combat.minions.push(m);
             return m; // joins the turn order next round
         }
@@ -297,7 +316,10 @@
             const p = this.player;
             if (target.isPlayer) return;
             this.say(`${target.name} has been defeated!`);
-            if (target.isMinion) return;
+            if (target.isMinion) {
+                target.fallenOrder = ++this.combat.nextFallenOrder;
+                return;
+            }
             // QA-6: credit each enemy once, even if it comes back after you flee (whether it should come
             // back is a pending design question; this only fixes the count).
             if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {

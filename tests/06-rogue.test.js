@@ -50,7 +50,7 @@ test('Shadowstep: next hit is a guaranteed crit', () => {
     g.do('shadowstep 1', 'attack 1');
     assert.match(g.text(), /next hit will be a critical strike/);
     assert.match(g.text(), /Rogue uses Basic Attack on .* \(CRITICAL HIT!\)/);
-    assert.match(g.text(), /Not implemented yet: teleport_to_enemy/);
+    assert.match(g.text(), /vanishes and reappears beside/);
 });
 
 test('Garrote: silenced enemies fall back to a basic attack', () => {

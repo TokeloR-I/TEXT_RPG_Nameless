@@ -515,6 +515,70 @@
         }
     });
 
+    register('teleport_to_enemy', {
+        requires(ctx) {
+            return ctx.targets.some(t => t && t.hp > 0 && !t.erased)
+                ? null : 'Shadowstep requires a living enemy anchor.';
+        },
+        apply(ctx) {
+            const anchor = ctx.targets.find(t => t && t.hp > 0 && !t.erased);
+            if (!anchor) return;
+            ctx.engine.out.push({ type: 'combat.presentation', kind: 'dash',
+                actorId: ctx.caster.id, anchorId: anchor.id });
+            ctx.engine.say(`${ctx.caster.name} vanishes and reappears beside ${anchor.name}!`);
+        }
+    });
+
+    register('taunt_aoe', {
+        requires(ctx) {
+            return ctx.engine.alive(ctx.engine.combat.enemies).length
+                ? null : 'Lockstep requires living enemies.';
+        },
+        apply(ctx) {
+            for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
+                ctx.engine.applyStatus(ctx.caster, target, {
+                    name: ctx.skill.name, type: 'taunt_player', duration: ctx.effect.duration
+                });
+            }
+            ctx.engine.say(`${ctx.skill.name} draws enemy attacks toward ${ctx.caster.name}!`);
+        }
+    });
+
+    register('resurrect_all_minions', {
+        requires(ctx) {
+            const e = ctx.engine;
+            if (ctx.caster.resource.current < 1)
+                return 'March of Endless Bones requires at least 1 Soul Energy.';
+            const dead = e.combat.minions.some(m => m.hp <= 0 && !m.resurrectionConsumed && m.ownerId === ctx.caster.id);
+            const space = e.alive(e.combat.minions).length < e.minionCap();
+            return dead || space ? null : 'No fallen minions and no capacity for a free Ghoul.';
+        },
+        apply(ctx) {
+            const e = ctx.engine;
+            const fallen = e.combat.minions.filter(m => m.hp <= 0 &&
+                !m.resurrectionConsumed && m.ownerId === ctx.caster.id)
+                .sort((a, b) => (a.fallenOrder || 0) - (b.fallenOrder || 0));
+            for (const previous of fallen) {
+                if (e.alive(e.combat.minions).length >= e.minionCap()) break;
+                const type = previous.summonType ||
+                    Object.keys(e.data.minionDefinitions).find(k => e.data.minionDefinitions[k].name === previous.name);
+                if (!type) continue;
+                const restored = e.summon(type);
+                if (!restored) continue;
+                restored.hp = Math.ceil(previous.maxHp * 0.5);
+                restored.resurrectedFrom = previous.id;
+                previous.resurrectionConsumed = true;
+                e.say(`${restored.name} rises again from ${previous.id}!`);
+            }
+            if (e.alive(e.combat.minions).length < e.minionCap()) {
+                const ghoul = e.summon('ghoul');
+                if (ghoul) e.say('March of Endless Bones summons a free Ghoul!');
+            } else {
+                e.say('No capacity remains for the free Ghoul.');
+            }
+        }
+    });
+
     register('minion_taunt', {
         apply(ctx) {
             const minions = ctx.engine.combat.minions.filter(m => m.hp > 0 && ctx.engine.applyStatus(ctx.caster, m, { name: 'Taunt', type: 'taunt', duration: ctx.effect.duration }));
