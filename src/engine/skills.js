@@ -195,22 +195,23 @@
         damage(target, amount, source, options = {}) {
             if (amount <= 0 || target.hp <= 0) return 0;
             const actual = Math.min(target.hp, amount);
+            // Capture eligible partners before the primary can die and shrink its group.
+            const propagation = !options.secondaryLink && this.combat &&
+                !target.isPlayer && !target.isMinion
+                ? target.statusEffects.filter(s => s.type === 'soul_link').map(s => {
+                    const owner = this.findCombatant(s.appliedBy);
+                    return { owner, partners: owner ? this.activeSoulLinks(owner).filter(t =>
+                        t !== target && t.statusEffects.some(link =>
+                            link.type === 'soul_link' && link.linkGroup === s.linkGroup)) : [] };
+                }) : [];
             target.hp -= actual;
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
             if (source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
             if (this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
             if (target.hp <= 0 && !target.dead) this.onDeath(target, source);
-            if (!options.secondaryLink && this.combat && !target.isPlayer && !target.isMinion) {
-                const memberships = target.statusEffects.filter(s => s.type === 'soul_link');
-                for (const membership of memberships) {
-                    const owner = this.findCombatant(membership.appliedBy);
-                    if (!owner || owner.hp <= 0) continue;
-                    const partners = this.activeSoulLinks(owner).filter(t =>
-                        t !== target && t.statusEffects.some(s => s.type === 'soul_link' &&
-                            s.linkGroup === membership.linkGroup));
-                    for (const partner of partners) {
-                        this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
-                    }
+            for (const { owner, partners } of propagation) {
+                for (const partner of partners) {
+                    this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
                 }
             }
             return actual;
