@@ -212,3 +212,57 @@ test('Soul Feast: immunity and prevention yield zero damage and healing', () => 
     assert.strictEqual(g.player.hp, 700);
     assert.ok(!g.findStatus(b, 'Bone Wall'));
 });
+
+test('QA-19: one caster-owned link clock ignores enemy speed and counts skipped opportunities', () => {
+    for (const speeds of [[40, 40], [1, 1], [40, 1]]) {
+        const g = soulFight(23);
+        const [a, b] = g.combat.enemies;
+        a.spd = speeds[0]; b.spd = speeds[1];
+        g.player.normalTurns = 1;
+        chain(g, [a, b]);
+        const id = g.player.id;
+        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 3);
+        g.tickStatusesEndOfRound();
+        assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
+        g.player.normalTurns = 2; g.advanceSoulLinkClock(g.player);
+        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 2);
+        g.player.normalTurns = 3; g.advanceSoulLinkClock(g.player);
+        assert.strictEqual(g.combat.soulLinkClocks[id].remaining, 1);
+        g.advanceSoulLinkClock(g.player, true);
+        assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
+    }
+});
+
+test('QA-20: secondary damage and Feast never grant Soul Energy or marked-hit income', () => {
+    const g = soulFight(24);
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    g.player.resource.current = 0;
+    g.combat.dealtDamageThisRound = false;
+    g.combat.markedEnemyHitThisRound = false;
+    b.hp = 2;
+    g.secondarySoulDamage(b, 4, g.player);
+    assert.strictEqual(g.player.resource.current, 0, 'link kill has no resource payout');
+    assert.strictEqual(g.combat.dealtDamageThisRound, false);
+    g.player.resource.current = 0;
+    feast(g);
+    a.hp = 2;
+    g.tickSoulFeast(a);
+    assert.strictEqual(g.player.resource.current, 0, 'Feast kill has no payout');
+    assert.strictEqual(g.combat.dealtDamageThisRound, false);
+});
+
+test('QA-21: primary lethal death processes before snapshotted secondary damage', () => {
+    const g = soulFight(25);
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    const events = [];
+    const original = g.secondarySoulDamage.bind(g);
+    g.secondarySoulDamage = (...args) => { events.push('secondary'); return original(...args); };
+    const death = g.onDeath.bind(g);
+    g.onDeath = (...args) => { events.push('death'); return death(...args); };
+    a.hp = 3;
+    g.damage(a, 20, g.player);
+    assert.deepStrictEqual(events.slice(0, 2), ['death', 'secondary']);
+    assert.strictEqual(b.hp, 99, 'snapshot still propagates after link group dissolves');
+});
