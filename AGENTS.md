@@ -23,6 +23,7 @@ If your role isn't in the table, ask the owner before editing. **When in doubt, 
 4. Open a pull request into `main`. CI runs the tests on every PR. **A red PR is never merged.**
 5. PR description: what changed, why, which design doc it implements, and anything left undecided.
 6. The owner merges. Agents never push directly to `main`.
+7. **Stacked PRs:** Merge the top of a dependent stack first, or retarget each child PR to `main` before merging its parent. A PR is only complete once its intended changes are verified on `main`; a GitHub “merged” label alone is insufficient. After merging, check the final files and test results on `main`.
 
 Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa: report #3`.
 
@@ -71,7 +72,8 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 | `npm run backlog` | skill effects not built yet |
 | `npm run pending` | design values still awaiting approval |
 | `npm run play` | play in the terminal (`-- --seed 42` for a repeatable run) |
-| `npm run build` | single-file build in `dist/` (CI also produces it on every PR) |
+| `npm run build` | single-file builds in `dist/` (CI also produces them on every PR) |
+| `npm run world` | print and validate the world maps (`docs/WORLD_MAPS.md` explains the format) |
 
 ## 7. Don't
 - Don't remove the dev cheats (`add_xp`, `become_hollow_king`, `unlock_events`).

@@ -10,6 +10,7 @@
     "backlog": "node tools/missing-effects.js",
     "pending": "node tools/pending-decisions.js",
     "play": "node tools/play-cli.js",
-    "build": "node tools/build-single.js"
+    "build": "node tools/build-single.js",
+    "world": "node tools/world-check.js"
   }
 }

@@ -139,10 +139,18 @@
     register('stun', {
         apply(ctx) {
             const gate = ctx.effect.condition;
+            const live = ctx.targets.filter((t) => t.hp > 0);
             if (gate && (!ctx.caster.resource || ctx.caster.resource.type !== gate.stat ||
-                gate.operator !== '>=' || ctx.caster.resource.current < gate.value)) return;
+                gate.operator !== '>=' || ctx.caster.resource.current < gate.value)) {
+                // QA-16: say why there's no stun instead of withholding it silently
+                if (live.length && ctx.caster.isPlayer) ctx.engine.say(`(No stun: needs ${gate.value} ${gate.stat}.)`);
+                return;
+            }
             const eligible = ctx.effect.shieldBashRecovery
                 ? ctx.targets.filter((t) => !t.shieldBashRecovery) : ctx.targets;
+            if (ctx.effect.shieldBashRecovery) {
+                for (const t of live.filter((x) => x.shieldBashRecovery)) ctx.engine.say(`(No stun: ${t.name} is still recovering from the last one.)`);
+            }
             const stunned = skipTurns({ ...ctx, targets: eligible }, 'Stun');
             // QA-2 lockout starts only when THIS bash's stun landed (a resisted bash on a target that
             // is already stunned by something else doesn't use up the target's eligibility).

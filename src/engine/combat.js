@@ -14,11 +14,11 @@
         // =====================================================================
         // Combat flow
         // =====================================================================
-        startCombat(enemyKeys) {
+        startCombat(enemyKeys, scope = this.currentRoom) {
             this.say('--- COMBAT INITIATED! ---', { important: true });
             const enemies = enemyKeys.map((key, i) => {
                 const e = clone(this.data.enemies[key]);
-                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${this.currentRoom}#${i}`, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
+                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${scope}#${i}`, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
                 return e;
             });
             this.combat = {
@@ -229,6 +229,7 @@
                 this.say("You have been defeated! Game Over. Type 'start' to play again.");
                 this.mode = 'game_over';
                 this.combat = null;
+                this.worldFightEnded('defeat');
                 return true;
             }
             if (this.alive(c.enemies).length === 0) {
@@ -240,12 +241,14 @@
                 this.stats.fights++;
                 this.stats.rounds += c.round;
                 p.statusEffects = [];
-                const room = this.rooms[this.currentRoom];
-                room.enemies = [];
+                const worldFight = this.world && this.world.encounter;
+                const room = worldFight ? null : this.rooms[this.currentRoom];
+                if (room) room.enemies = [];
                 const healed = this.heal(p, Math.floor(p.maxHp * rules.postFightHealPct));
                 if (healed > 0) this.say(`You catch your breath. +${healed} HP (${p.hp}/${p.maxHp}).`);
                 this.say(`You defeated all enemies and gained ${xp} XP!`);
                 this.addExperience(xp, { quiet: true });
+                if (worldFight) { this.worldFightEnded('victory'); this.maybePromptBranch(); return true; }
                 if (room.onClear && room.onClear.type === 'win') { this.win(room.onClear); return true; }
                 this.say('');
                 this.describeRoom(false);

@@ -16,6 +16,10 @@ Hollow King) sit outside the trees.
 
 **Current state:** text-based, playable start to finish in a browser. The rules engine is separate from
 the screen, so a side-scrolling (Darkest Dungeon-style) version can reuse it unchanged.
+**New (Zone 1):** a graphical, top-down version of the opening, `world.html`. You wake in the cellar of an abandoned
+house and walk (arrow keys / WASD) through the house, the homestead grounds, an old shed, a well and an overgrown
+road that ends at the zone's edge. Visible enemies start the same turn-based fights when you walk into them.
+It doesn't reach the Warden yet; the dungeon below is still the text game. See section 3a and `docs/WORLD_MAPS.md`.
 
 ---
 
@@ -90,6 +94,25 @@ damage comes only from the attack's range. Flags like `weak_to_light` are also n
 The whole dungeon contains 85 HP of healing items.
 
 ---
+
+### 3a. The explorable world (Zone 1: the Forgotten Homestead)
+Design: `docs/design/ZONE_1_FORGOTTEN_HOMESTEAD.md`. Six connected maps, all free to backtrack:
+```
+   [Cellar] (start) -- stairs -- [House] -- front door -- [Homestead Grounds]
+                                                  /           |            \
+                                             [Old Shed]   [Old Well]   [Overgrown Road] -> zone edge ("coming later")
+```
+- **Controls:** arrows / WASD walk one tile per step · E / Enter / Space inspect, pick up, climb · Esc menu
+  (character, inventory with healing items, controls). A hint at the bottom says what E would do.
+- **Things to find:** 17 inspectable clues and objects, and 2 one-time pickups using existing items
+  (Bandages in the shed, a Half-full Wine Bottle at the bottom of the well).
+- **Fights:** two optional visible encounters, Rust Rats ×2 in the tall weeds and a Hungry Wolf on the road.
+  Walk into one to fight; the battle is the normal engine fight, picked from Attack / Skills / Items / Flee menus.
+  Win: the enemy is gone for the run and you keep your place. Flee: it stays, and ignores you until you step away.
+  Lose: game over. Level 3 still opens the evolution choice.
+- **No balance changes:** existing enemies and items only. Both encounters are beatable at level 1 by every class
+  (bot, 100 seeds each).
+- **Not there yet (deferred by design):** saving, NPCs, random encounters, the legacy dungeon re-homed into the world.
 
 ## 4. The player
 
@@ -227,7 +250,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Base | Slash | 0 Momentum | Deal 8–12 damage to a single enemy. | ✅ works |
 | Base | Guard | 0 Momentum | Reduce incoming damage by 25% next turn. | ✅ works |
 | Base | Power Strike | 2 Momentum | Spend 2 Momentum to deal 14–20 damage. | ✅ works |
-| Vanguard L3 | Shield Bash | 0 Momentum | Deal 10–14 damage, stun 1 turn if Momentum ≥ 3. | ✅ works |
+| Vanguard L3 | Shield Bash | 0 Oath Points | Deal 10–14 damage; stun 1 turn if you have ≥ 3 Oath Points (not spent). The target then needs one unstunned turn before Shield Bash can stun it again (QA-2). The game says why when there's no stun. | ✅ works |
 | Vanguard L5 | Shield Charge | 1 Oath Points | Rush an ally, taunt enemies around them. Deals 8–12 dmg. | 🟡 partly (taunt_aoe missing) |
 | Vanguard L8 | Holy Smite | all Oath Points | Spend all Oath Points to deal 15–25 radiant dmg (+5 vs Undead/Void). | ✅ works |
 | Vanguard L11 | Soul Rend | all Sin Marks | Consume all Sin Marks to deal 25–35 AOE dmg (ignores armor). | ✅ works |
@@ -429,5 +452,6 @@ Not applied yet. That's a design decision.
 | `node tools/missing-effects.js` | The current list of unbuilt skill effects |
 | `node tools/play-cli.js --seed 42` | Play in a terminal with a repeatable seed |
 | `node tests/run-tests.js` | Run all tests (add words to run only matching files, e.g. `rogue`) |
+| `npm run world` | Print every world map with what's on it, and check the map data |
 
 **Balance knobs** (bottom of `src/data.js`): `gameRules` (stat scaling, post-fight heal, minion cap), `resourceRules`, `itemDefinitions`, enemy stats and XP.

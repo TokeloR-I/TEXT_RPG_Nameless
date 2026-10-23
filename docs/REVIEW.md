@@ -136,7 +136,7 @@ All infections +2 dmg (Harbinger) · Traps +50% dmg (Smoke Phantom) · DoTs last
 | remove_enemy_skill_on_hit_permanent | Arcane Hollow | Illusionist ascended |
 
 ## 🟠 Partial (3)
-- **stun**: Shield Bash's "only if Momentum ≥ 3" condition isn't checked.
+- **stun**: Shield Bash's condition is now checked (QA-2, approved): stun only with ≥ 3 Oath Points, not spent, and one unstunned target turn between Shield Bash stuns.
 - **summon**: per-summon damage overrides are ignored (the templates already match the numbers).
 - **apply_status**: cooldowns (Channel the Grave) and War Cry's enemy accuracy buff are stored but do nothing.
 

@@ -17,6 +17,7 @@
  *   combat-input.js   Player combat input
  *   skills.js         Skills & damage
  *   progression.js    Progression
+ *   world.js          World intents (graphical Zone 1): pickups, encounters, run flags
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -33,7 +34,10 @@
         constructor(options = {}) {
             this.data = options.data || DATA;
             this.effects = options.effects || EFFECTS.registry;
-            this.rng = options.seed != null ? mulberry32(options.seed) : Math.random;
+            // Always seeded (spec R1, tech review F3): without a seed, pick one once and keep it, so any
+            // run (including a browser playtest) can be replayed from its reported seed.
+            this.seed = options.seed != null ? options.seed >>> 0 : Math.floor(Math.random() * 4294967296);
+            this.rng = mulberry32(this.seed);
             this.debug = !!options.debug; // print internal errors to the console
             this.out = [];
             this.errors = [];
@@ -63,9 +67,14 @@
         input(raw) {
             const text = String(raw || '').trim();
             if (!text) return this.flush();
+            return this.transact(() => this.handle(text));
+        }
+
+        /** Run one player action as a transaction and return its events (used by input() and the world intents). */
+        transact(action) {
             const snap = this.snapshot();
             try {
-                this.handle(text);
+                action();
             } catch (err) {
                 this.errors.push(err);
                 this.restore(snap);
@@ -82,7 +91,7 @@
             const state = {
                 rooms: this.rooms, currentRoom: this.currentRoom, mode: this.mode, player: this.player,
                 combat: this.combat, pendingBranchChoice: this.pendingBranchChoice, flags: this.flags,
-                stats: this.stats, progression: this.progression
+                stats: this.stats, progression: this.progression, world: this.world
             };
             return {
                 json: JSON.stringify(state),
@@ -108,6 +117,7 @@
                 mode: this.mode,
                 room: this.currentRoom,
                 progression: { ...this.progression },
+                world: this.world && clone(this.world),
                 player: p && {
                     name: p.name, className: p.className, level: p.level,
                     hp: p.hp, maxHp: p.maxHp, def: p.def, spd: p.spd,
@@ -123,6 +133,7 @@
                 combat: c && {
                     round: c.round,
                     corpses: c.corpses,
+                    awaitingContinue: !!c.awaitingContinue,
                     enemies: c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp, tier: this.tierOf(e), cr: e.cr ? { ...e.cr } : null, statusEffects: clone(e.statusEffects) })),
                     minions: c.minions.filter((m) => m.hp > 0).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp }))
                 }
@@ -151,6 +162,7 @@
             this.flags = { eventsUnlocked: false };
             this.stats = { fights: 0, kills: 0, rounds: 0, credited: [] };
             this.progression = { baseClass: null, branch: null, evolutionName: null, stageIndex: -1 };
+            this.world = null; // graphical world run flags (src/engine/world.js); null in the text game
         }
 
         createPlayer(className) {
@@ -233,7 +245,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);
