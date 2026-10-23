@@ -77,7 +77,7 @@
         skillCost(skill) {
             const p = this.player;
             if (skill.cost === 'all') return p.resource.current;
-            if (skill.name === 'Soul Feast' && this.combat && this.hasTrait('Undying Will') &&
+            if (skill === this.data.skillDefinitions['Soul Feast'] && this.combat && this.hasTrait('Undying Will') &&
                 !this.combat.freeSoulFeastUsed) return 0;
             const c = this.combat;
             if (c && this.isMarkSkill(skill) && this.hasTrait('Hunter\'s Instinct') && !c.freeMarkUsedThisRound) return 0;
