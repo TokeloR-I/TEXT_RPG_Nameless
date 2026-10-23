@@ -254,6 +254,18 @@
         onDeath(target, source) {
             target.dead = true;
             this.orphanStatusesOf(target);
+            // A dead owner cannot retain links or Feast subscriptions. Removing a
+            // member also immediately collapses any group with fewer than two survivors.
+            if (this.combat) {
+                for (const member of this.combat.enemies) {
+                    member.statusEffects = member.statusEffects.filter(s =>
+                        !(s.appliedBy === target.id &&
+                            (s.type === 'soul_link' || s.type === 'soul_feast')));
+                }
+                for (const candidate of [this.player, ...this.combat.enemies, ...this.combat.minions]) {
+                    if (candidate.hp > 0) this.activeSoulLinks(candidate);
+                }
+            }
             const p = this.player;
             if (target.isPlayer) return;
             this.say(`${target.name} has been defeated!`);
