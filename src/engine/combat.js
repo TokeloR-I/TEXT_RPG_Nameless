@@ -24,7 +24,7 @@
             this.combat = {
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
-                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1,
+                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
                 traps: [], delayed: [], extraTurn: false, hpHistory: []
             };
             this.player.statusEffects = [];
@@ -145,6 +145,7 @@
             this.expireAtTurnStart(actor); // QA-1: Guard ends as the next scheduled turn begins, even if skipped
             if (!actor.isPlayer && !actor.isMinion) this.springTrap(actor);
             this.tickDots(actor);
+            if (actor.hp > 0) this.tickSoulFeast(actor);
             if (actor.hp <= 0) return true;
             this.armStatuses(actor);
             return actor.statusEffects.some((s) => s.type === 'skip_turn');
