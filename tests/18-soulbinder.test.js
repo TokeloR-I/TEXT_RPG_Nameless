@@ -18,8 +18,9 @@ test('Soul Chain: distinct enemies link, one status per target, 3 rounds with Bi
     const [a, b] = g.combat.enemies;
     chain(g, [a, b]);
     assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
-    assert.strictEqual(g.findStatus(a, 'Soul Chain').duration, 3);
-    assert.strictEqual(g.findStatus(b, 'Soul Chain').duration, 3);
+    assert.strictEqual(g.findStatus(a, 'Soul Chain').duration, 'permanent');
+    assert.strictEqual(g.findStatus(b, 'Soul Chain').duration, 'permanent');
+    assert.strictEqual(g.combat.soulLinkClocks[g.player.id].remaining, 3);
     const oldId = g.findStatus(a, 'Soul Chain').linkGroup;
     chain(g, [a, b]);
     assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
