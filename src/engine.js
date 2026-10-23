@@ -200,6 +200,7 @@
                 level: 1, xp: 0, xpToNext: 100,
                 resource: { type: def.startingResource.type, current: def.startingResource.initial, max: def.startingResource.max, regen: def.startingResource.regen || 0 },
                 inventory: [...def.startingItems],
+                gold: 0, equipment: { mainHand: null, bodyArmor: null, accessory: null },
                 skills: [...def.startingSkills],
                 traits: clone(def.startingTraits),
                 statusEffects: [],
