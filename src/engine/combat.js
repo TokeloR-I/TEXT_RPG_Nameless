@@ -26,7 +26,7 @@
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
                 usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
                 traps: [], delayed: [], extraTurn: false, hpHistory: [], timers: [], nextTimerId: 0,
-                nextCastId: 0, currentCastId: null, controlledActorId: null
+                nextCastId: 0, currentCastId: null, controlledActorId: null, turnOrder: null
             };
             this.player.statusEffects = [];
             this.player.cr = null; // Control Resistance is fight-local (Package 2 CR-01)
@@ -100,7 +100,12 @@
             while (this.mode === 'combat') {
                 if (++safety > 2000) throw new Error('Combat loop ran away (no one can act?)');
                 if (this.checkBattleEnd()) return;
-                if (c.idx >= c.order.length) { this.endRound(); this.newRound(); continue; }
+                if (c.idx >= c.order.length) {
+                    this.endRound();
+                    this.newRound();
+                    if (this.beginTurnOrderChoice()) return;   // D-09: the player sets this round's order (turn-order.js)
+                    continue;
+                }
 
                 const actor = c.order[c.idx];
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }

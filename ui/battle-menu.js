@@ -30,6 +30,7 @@
             return only ? { type: 'skill', skillId: option.skillId, targetId: only } : { type: 'skill', skillId: option.skillId };
         }
         if (option.type === 'use_item') return { type: 'use_item', item: option.item };
+        if (option.type === 'turn_order') return { type: 'turn_order', order: option.mode === 'choose' ? (targetIds || []) : null }; // D-09
         if (option.type === 'control') {   // N-5 Possession: the controlled actor's move
             const only = option.targets && option.targets.length === 1 ? option.targets[0].id : null;
             const targetId = targetIds && targetIds.length ? targetIds[0] : only;
@@ -41,7 +42,8 @@
     /**
      * Menu entries for the current availability.
      *   root   : Attack / Skills / Items / Flee (or just Continue on a skipped turn,
-     *            or the possessed enemy's moves while awaiting 'control')
+     *            or the possessed enemy's moves while awaiting 'control',
+     *            or Set the turn order / Keep the speed order while awaiting 'turn_order')
      *   skills : every known skill, enabled or with the engine's reason
      *   items  : usable items
      * Each entry: { kind, label, sub, disabled, option }.
@@ -49,6 +51,11 @@
     function entries(avail, view, skillInfo) {
         const acts = avail.actions || [];
         if (view === 'root') {
+            if (avail.awaiting === 'turn_order') {   // D-09: pick everyone in the order they should act, or keep the speed order
+                return acts.map((o) => (o.mode === 'choose'
+                    ? { kind: 'turn_order', label: 'Set the turn order', sub: `Pick all ${o.targets.length}, first to act first`, disabled: !o.enabled, option: o }
+                    : { kind: 'turn_order', label: 'Keep the speed order', sub: 'Everyone acts by speed this round', disabled: !o.enabled, option: o }));
+            }
             if (avail.awaiting === 'control') {   // N-5: one entry per move of the possessed enemy
                 return acts.map((o) => ({ kind: 'control', label: o.skillId, sub: o.enabled ? `Its move · turn it on its allies${noteText(o.notes)}` : o.reason.message, disabled: !o.enabled, option: o }));
             }
@@ -80,7 +87,8 @@
 
     /** Target entries for an option (single or multi pick), using names/HP from getState(). */
     function targetEntries(option, state) {
-        const units = new Map(((state.combat && state.combat.enemies) || []).map((e) => [e.id, e]));
+        const units = new Map([...((state.combat && state.combat.enemies) || []), ...((state.combat && state.combat.minions) || [])].map((e) => [e.id, e]));
+        if (state.player) units.set('player', { ...state.player, name: `${state.player.name} (you)` });
         return (option.targets || []).map((t) => {
             const u = units.get(t.id) || { name: t.id, hp: '?', maxHp: '?' };
             const extra = t.enabled ? noteText(t.notes) : ` · ${t.reason.message}`;

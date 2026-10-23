@@ -291,7 +291,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Chronomancer L5 | slow | 2 Time Charges | Enemy loses next turn. | ✅ works |
 | Chronomancer L8 | revertHp | 3 Time Charges | Revert ally to HP they had 2 turns ago. | ✅ works |
 | Chronomancer L11 | freezeTime | 5 Time Charges | Enemies can’t act for 1 turn. | ✅ works |
-| Chronomancer L14 (Ascended) | rearrangeTurnOrder | all Time Charges | Rearrange entire turn order for 3 turns. | ❌ not implemented (rearrange_turn_order) |
+| Chronomancer L14 (Ascended) | rearrangeTurnOrder | all Time Charges | Rearrange entire turn order for 3 turns. | ✅ works (D-09): you set the order at the start of each of the next 3 rounds; everyone still acts once |
 
 #### Rogue
 

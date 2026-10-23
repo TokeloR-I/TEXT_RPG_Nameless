@@ -209,8 +209,8 @@
         for (const ev of events) {
             if (ev.type !== 'text') continue;
             let t = ev.text;
-            if (t === '--- Enemies ---' || /^Turn .+ on its allies:$/.test(t)) { menuBlock = true; continue; }   // the text game's menus (incl. Possession's)
-            if (menuBlock) { if (/^Type a (command|move)/.test(t)) menuBlock = false; continue; }
+            if (t === '--- Enemies ---' || /^Turn .+ on its allies:$/.test(t) || t === 'Speed order:') { menuBlock = true; continue; }   // the text game's menus (incl. Possession and turn order)
+            if (menuBlock) { if (/^Type (a command|a move|'order')/.test(t)) menuBlock = false; continue; }
             if (!t.trim() || /^> /.test(t) || t === '(Type anything to continue.)' || t === '--- Your Turn! ---' || /^--- COMBAT INITIATED/.test(t) || /appears! \(HP: \d+\)$/.test(t)) continue;
             if (/^Type the name of a path/.test(t) || /^- [a-z_ ]+: /.test(t) || t === 'Choose your path:') continue;  // evolution prompt: shown as a menu
             t = t.replace(/ Type 'start' to play again\.?/, '').replace(/ Type 'look'.*$/, '');
@@ -351,7 +351,9 @@
         const picked = [];
         const build = () => {
             const ents = BM.targetEntries(option, engine.getState()).map((t) => ({
-                ...t, label: how === 'multi' ? `${picked.includes(t.id) ? '☑' : '☐'} ${t.label}` : t.label
+                ...t, label: how !== 'multi' ? t.label
+                    : option.type === 'turn_order' ? `${picked.includes(t.id) ? `${picked.indexOf(t.id) + 1}.` : '·'} ${t.label}`  // D-09: show the position
+                        : `${picked.includes(t.id) ? '☑' : '☐'} ${t.label}`
             }));
             menu = makeMenu(toItems(ents, (t) => {
                 if (how === 'single') { send(BM.actionFor(option, [t.id])); return; }
@@ -402,7 +404,8 @@
         const avail = !battle.ended && engine.mode === 'combat' ? engine.getAvailableActions() : null;
         const controlled = avail && avail.awaiting === 'control' ? foes.find((e) => e.id === avail.controlledActorId) : null;
         const heading = battle.ended === 'victory' ? 'Victory' : battle.ended === 'defeat' ? 'Defeat'
-            : controlled ? `Round ${s.combat.round} · You control ${controlled.name}` : `Round ${s.combat ? s.combat.round : ''}`;
+            : controlled ? `Round ${s.combat.round} · You control ${controlled.name}`
+                : avail && avail.awaiting === 'turn_order' ? `Round ${s.combat.round} · Set the turn order` : `Round ${s.combat ? s.combat.round : ''}`;
         els.combat.hidden = false;
         els.combat.innerHTML = `
             <div class="battle-head">${esc(heading)}</div>

@@ -376,6 +376,14 @@
         },
         apply(ctx) { for (const t of living(ctx)) ctx.engine.possess(ctx.caster, t, ctx.effect); }
     });
+    register('rearrange_turn_order', { // Eternal Architect (D-09): you set the turn order for N rounds (src/engine/turn-order.js)
+        requires(ctx) {
+            const min = ctx.effect.minResource || 0;
+            const r = ctx.caster.resource;
+            return r && r.current < min ? `${ctx.skill.name} needs at least ${min} ${r.type}.` : null;
+        },
+        apply(ctx) { ctx.engine.openTurnOrderWindow(ctx.caster, ctx.effect.duration || 3); }
+    });
     register('freeze_enemies', { // Freeze Time
         applies: { name: 'Frozen in time', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {

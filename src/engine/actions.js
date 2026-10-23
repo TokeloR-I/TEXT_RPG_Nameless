@@ -118,6 +118,7 @@
             const c = this.combat;
             const p = this.player;
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
+            if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)
             if (c.awaitingContinue) {
                 if (a.type === 'continue') this.doContinue();
                 else this.refuse('WRONG_MODE', "You can't act this turn. Continue first.");
@@ -143,6 +144,7 @@
                 case 'flee': this.doFlee(); return;
                 case 'continue': this.refuseCombat('WRONG_MODE', 'There is nothing to continue; it is your turn.'); return;
                 case 'control': this.refuseCombat('WRONG_MODE', "You aren't controlling anyone right now."); return;
+                case 'turn_order': this.refuseCombat('WRONG_MODE', 'The turn order can only be set at the start of a round, while Eternal Architect is active.'); return;
                 default: this.refuseCombat('WRONG_MODE', `You can't do '${a.type}' in a fight.`);
             }
         }
@@ -301,7 +303,10 @@
                 out.actions = this.exploreAvailability();
             } else if (mode === 'combat') {
                 const c = this.combat;
-                if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer && c.controlledActorId) {
+                if (c.awaitingPlayer && this.turnOrderPending()) {
+                    out.awaiting = 'turn_order';                  // D-09: choose this round's order
+                    out.actions = this.turnOrderOptions();
+                } else if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer && c.controlledActorId) {
                     out.awaiting = 'control';                     // N-5: the controlled actor's own moves
                     out.controlledActorId = c.controlledActorId;
                     out.actions = this.controlOptions(this.controlledActor());
