@@ -167,3 +167,47 @@ test('Soul Feast: targeted cleanse stops drain but leaves Soul Chain intact', ()
     assert.strictEqual(a.hp, 100);
     assert.strictEqual(b.hp, 98);
 });
+
+test('Soul Chain: Bone Wall absorbs linked secondary damage without consuming other defense', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    g.applyStatus(g.player, b, { name: 'Bone Wall', type: 'absorb', duration: 1 });
+    hit(g, a, 12);
+    assert.strictEqual(b.hp, 100);
+    assert.ok(!g.findStatus(b, 'Bone Wall'), 'shield consumed by prevented soul hit');
+    hit(g, a, 12);
+    assert.strictEqual(b.hp, 94, 'second soul hit deals ordinary half damage');
+});
+
+test('Soul Chain: immune targets refuse cast without deleting an existing link', () => {
+    const g = soulFight();
+    const [a, b, c] = g.combat.enemies;
+    chain(g, [a, b]);
+    const id = g.findStatus(a, 'Soul Chain').linkGroup;
+    c.statusAffinities = { 'Soul Chain': 'immune' };
+    const effect = g.playerSkill('Soul Chain').effects[0];
+    const reason = g.effects.link_targets.requires({
+        engine: g, caster: g.player, targets: [a, c],
+        skill: g.playerSkill('Soul Chain'), effect
+    });
+    assert.match(reason, /immune/);
+    assert.strictEqual(g.findStatus(a, 'Soul Chain').linkGroup, id);
+});
+
+test('Soul Feast: immunity and prevention yield zero damage and healing', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    g.player.traits.push({ name: 'You heal for 100% of Soul Feast dmg' });
+    chain(g, [a, b]);
+    feast(g);
+    g.player.hp = 700;
+    a.statusAffinities = { 'Soul Feast': 'immune' };
+    g.applyStatus(g.player, b, { name: 'Bone Wall', type: 'absorb', duration: 1 });
+    g.tickSoulFeast(a);
+    g.tickSoulFeast(b);
+    assert.strictEqual(a.hp, 100);
+    assert.strictEqual(b.hp, 100);
+    assert.strictEqual(g.player.hp, 700);
+    assert.ok(!g.findStatus(b, 'Bone Wall'));
+});
