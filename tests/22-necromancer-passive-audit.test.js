@@ -7,18 +7,20 @@ function necro(branch = 'bone_warden') {
     g.player.hp = g.player.maxHp = 999;
     return g;
 }
-function damageFrom(g, points = 100) {
-    const target = g.player;
-    const attacker = g.combat.enemies[0];
-    attacker.critChance = 0;
-    const h = g.newHit(target);
-    g.rollDamage(attacker, target, { name: 'Audit Strike', base_damage: [points, points], damage_type: 'true' }, h);
-    return h.damage;
+/** A Necromancer of `branch` levelled for real (dev cheat XP, so traits come from the stages) to `level`, in a fight. */
+function necroAt(branch, level) {
+    const g = newGame(37).do('necromancer', 'add_xp 250', branch);
+    while (g.player.level < level) g.do('add_xp 10');
+    g.do('n', 'engage');
+    g.player.hp = g.player.maxHp = 999;
+    return g;
 }
 
 test('Necromancer audit: Bone Armor uses 2% per living minion up to 10%', () => {
     const g = necro();
     // True damage deliberately bypasses normal reductions; physical damage is used here.
+    // summon() skips the minion cap: 4+ minions only happen from L14 (Black Pharaoh +3), so the 10% cap
+    // can't bind in normal play before then (QA report #7 §3).
     const enemy = g.combat.enemies[0];
     enemy.critChance = 0;
     g.player.def = 0;
@@ -39,7 +41,10 @@ test('Necromancer audit: Bone Armor uses 2% per living minion up to 10%', () => 
     assert.strictEqual(hit(), 90, 'only live minions contribute; five still alive');
 });
 
-test('Necromancer audit: Bone Fortress raises total minion-reduction cap to 15%', () => {
+// Pins CURRENT behaviour only. The trait text reads "+1% dmg reduction per minion (max 15%)", but the engine only
+// raises the cap from 10% to 15%; which reading is approved is open (QA report #7, QA-25, for Vaelis). Six minions
+// are only reachable from L14 (Black Pharaoh +3 cap); before that the cap never binds, Fortress or not.
+test('Necromancer audit: Bone Fortress currently only raises the minion-reduction cap to 15% (pending QA-25 ruling)', () => {
     const g = necro();
     g.player.def = 0;
     for (let i = 0; i < 6; i++) g.summon('skeleton');
@@ -66,14 +71,22 @@ test('Necromancer audit: Pestilent Sage adds one duration, not extra stacks', ()
     assert.strictEqual(g.findStatus(enemy, 'Poison').duration, 4);
 });
 
-test('Necromancer audit: Plague Reservoir hook rewards player infected kills only', () => {
-    const g = necro('plaguecaller');
-    g.player.traits.push({ name: 'Plague Reservoir' });
-    const enemy = g.combat.enemies[0];
-    g.infect(g.player, enemy, 1);
-    g.player.resource.current = 0;
-    g.damage(enemy, enemy.hp, g.player);
-    assert.ok(g.player.resource.current >= 1, 'documented player-kill path grants Energy');
+test('Necromancer audit: Plague Reservoir pays exactly +1 for your own kill of an infected enemy, and only that', () => {
+    // Soul Energy gained by one kill, from 0, with a fresh fight each time.
+    const gain = (level, infected, byMinion) => {
+        const g = necroAt('plaguecaller', level);
+        const enemy = g.combat.enemies[0];
+        if (infected) g.infect(g.player, enemy, 1);
+        g.player.resource.current = 0;
+        g.damage(enemy, enemy.hp, byMinion ? g.summon('skeleton') : g.player);
+        return g.player.resource.current;
+    };
+    assert.ok(necroAt('plaguecaller', 8).hasTrait('Plague Reservoir'), 'earned at L8 through the stages');
+    assert.ok(!necroAt('plaguecaller', 7).hasTrait('Plague Reservoir'));
+    assert.strictEqual(gain(8, true) - gain(8, false), 1, 'infected vs uninfected kill: +1');
+    assert.strictEqual(gain(8, true) - gain(7, true), 1, 'with vs without the trait: +1');
+    assert.strictEqual(gain(7, true), gain(7, false), 'no bonus before the trait');
+    assert.strictEqual(gain(8, true, true), gain(8, false, true), "a minion's kill doesn't pay it (current rule; N-7 may change this)");
 });
 
 test('Necromancer audit: Harbinger bonus is additive to Infection tick', () => {
