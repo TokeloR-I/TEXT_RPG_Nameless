@@ -82,7 +82,7 @@
             const targets = this.pickTargets(skill, targetNum);
             if (!targets) {
                 const living = this.alive(c.enemies);
-                this.combatError(`Invalid target '${targetNum || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
+                this.combatError(`Invalid target selection. Select distinct enemies by number (e.g. 'soul chain 1,2' or 'soul chain 1,2,3').`, null);
                 return;
             }
             for (const effect of skill.effects || []) {
@@ -134,6 +134,8 @@
 
         parseCombatInput(raw) {
             const cleaned = raw.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/\s+/g, ' ');
+            const multi = cleaned.match(/^(.+?)\s+(\d+(?:\s*,\s*\d+)+)$/);
+            if (multi) return { command: multi[1].trim(), targetNum: multi[2].split(',').map(Number) };
             const m = cleaned.match(/^(.+?)\s*[#@]?(\d+)$/);
             return m ? { command: m[1].trim(), targetNum: parseInt(m[2], 10) } : { command: cleaned, targetNum: null };
         }
@@ -186,6 +188,14 @@
         pickTargets(skill, targetNum) {
             const living = this.alive(this.combat.enemies);
             const kind = skill.target || 'enemy_single';
+            if (kind === 'enemy_multiple') {
+                const count = this.hasTrait('Wound Transfer') ? Math.min(3, living.length) : 2;
+                if (!Array.isArray(targetNum) || targetNum.length !== count ||
+                    new Set(targetNum).size !== count ||
+                    targetNum.some(n => !Number.isInteger(n) || n < 1 || n > living.length)) return null;
+                return targetNum.map(n => living[n - 1]);
+            }
+            if (kind === 'linked_enemies') return this.activeSoulLinks(this.player);
             if (kind === 'self' || kind === 'minions' || kind === 'ground') return [this.player];
             if (kind === 'ally_single' && !skill.base_damage) return [this.player];
             if (kind === 'corpse') return living; // Corpse Bloom: the blast hits everyone
