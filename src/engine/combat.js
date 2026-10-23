@@ -271,6 +271,17 @@
             this.say("Thanks for playing! Type 'start' to play again.");
         }
 
+        tryUndyingWill() {
+            const c = this.combat;
+            const p = this.player;
+            if (!c || !this.hasTrait('Undying Will') || c.undyingWillUsed || p.erased) return false;
+            c.undyingWillUsed = true;
+            p.hp = Math.ceil(p.maxHp * 0.5);
+            p.dead = false;
+            this.say('Undying Will restores the Eternal Lich!', { important: true });
+            return true;
+        }
+
         tryCrownOfTheUndying() {
             const p = this.player;
             if (!p.isHollowKing || !p.traits.some((t) => t.name === 'Crown of the Undying')) return false;
