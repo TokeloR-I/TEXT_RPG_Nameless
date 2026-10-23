@@ -115,7 +115,13 @@
                         for (const x of active) if (x.handler.afterCalc) x.handler.afterCalc({ ...ctx, effect: x.effect }, hit);
                         const hpNote = target.isPlayer ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
                         this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer });
-                        this.damage(target, hit.damage, caster, { alreadyScaled: true });
+                        const actual = this.damage(target, hit.damage, caster, { alreadyScaled: true });
+                        if (caster.isMinion && this.hasTrait('+3 max minions; all summons gain AOE attacks') && actual > 0) {
+                            for (const other of this.alive(this.combat.enemies).filter(enemy => enemy !== target)) {
+                                this.secondaryDamage(other, Math.floor(actual * 0.5), this.player,
+                                    { kind: 'Black Pharaoh Splash' });
+                            }
+                        }
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
                     }
@@ -189,6 +195,12 @@
                 if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
             }
             return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true, alreadyScaled: true });
+        }
+
+        // Shared mitigation, prevention and K3 side-effect suppression for secondary
+        // link, drain and splash damage. No new attack, proc, crit or recursion.
+        secondaryDamage(target, raw, owner, { kind = 'Soul Chain' } = {}) {
+            return this.secondarySoulDamage(target, raw, owner, kind);
         }
 
         tickSoulFeast(actor) {
