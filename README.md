@@ -26,6 +26,7 @@ src/engine/       the rest of the rules, one module per area:
   progression.js    XP, levels, evolution, skill trees
   world.js          world intents: pickups, map encounters, run flags (graphical world only)
   actions.js        getAvailableActions() and act(): the structured action API both front ends use
+  timers.js         turn-opportunity hooks and combat timers (durations counted in turns)
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
   world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation

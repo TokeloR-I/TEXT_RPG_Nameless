@@ -36,6 +36,10 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 - **Player actions have one rules path** (`src/engine/actions.js`): `act()` and the text parser (`input()`) run the same
   functions. A new player-facing refusal must record a code (`refuse()` / `refuseCombat()`), and `getAvailableActions()`
   must report the same check with the same message (tests check they agree). Front ends never re-derive castability.
+- **Per-turn bookkeeping goes in the two opportunity hooks** (`beginOpportunity` / `endOpportunity`, `src/engine/timers.js`),
+  never at the call sites. A duration counted in turn opportunities is a `combat.timers` entry with a `kind`
+  (plus an expiry rule in `TIMER_KINDS`), not a new counter. QA-1 windows count actionable turns only; timers say
+  whether skipped turns count (`countSkipped`). Don't merge the two rules.
 - The world (`src/world/`) owns space only: maps, collision, movement, transitions. Walking never calls the engine.
   The engine stays authoritative for rules, inventory, fights and run flags. Map data must pass `validateWorld` (tested).
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data

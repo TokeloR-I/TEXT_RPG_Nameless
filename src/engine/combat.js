@@ -25,7 +25,7 @@
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
                 usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
-                traps: [], delayed: [], extraTurn: false, hpHistory: [], graveCommandTargetId: null
+                traps: [], delayed: [], extraTurn: false, hpHistory: [], graveCommandTargetId: null, timers: [], nextTimerId: 0
             };
             this.player.statusEffects = [];
             this.player.shieldBashRecovery = null; // QA-2 #11: lockout bookkeeping never leaks between fights
@@ -104,8 +104,9 @@
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }
 
                 if (this.startTurn(actor)) {
-                    this.advanceSoulLinkClock(actor, true);
-                    if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = 'await_recovery';
+                    // A skipped turn is an opportunity that begins and ends at once (T-0 hooks, src/engine/timers.js).
+                    this.beginOpportunity(actor, { skipped: true });
+                    this.endOpportunity(actor, { skipped: true });
                     if (actor.hp > 0 && actor.isPlayer) {
                         // QA-5: pause on the player's skipped turn instead of simulating on by itself.
                         // Each command now runs at most ~one round, so a stun-lock can't run away.
@@ -120,9 +121,7 @@
                     c.idx++;
                     continue;
                 }
-                // QA-2: a Shield Bash stun that never caused a skip (e.g. cleansed) doesn't start a lockout.
-                if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = null;
-                this.beginNormalTurn(actor);
+                this.beginOpportunity(actor);
                 if (actor.isPlayer) {
                     c.hpHistory.push(actor.hp);
                     this.detonateBombs();
@@ -134,9 +133,7 @@
                 }
                 this.say(`--- ${actor.name}'s Turn! ---`, { important: true });
                 if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
-                this.endNormalTurn(actor);
-                this.advanceSoulLinkClock(actor);
-                if (actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
+                this.endOpportunity(actor);
                 c.idx++;
             }
         }
