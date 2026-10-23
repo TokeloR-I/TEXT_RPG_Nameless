@@ -99,7 +99,7 @@
                 this.say(`New Skill: ${stage.skill}!${info.implemented ? '' : ' (not implemented yet)'}`, { important: true });
             }
             if (stage.trait) {
-                p.traits.push({ name: stage.trait, effect: stage.traitEffect });
+                p.traits.push({ name: stage.trait, effect: stage.traitEffect, ...(stage.damageReductionOverride != null ? { damageReductionOverride: stage.damageReductionOverride } : {}) });
                 this.say(`New Trait: ${stage.trait}!`, { important: true });
             }
             const resEvo = (branch.resourceEvolution || []).find((r) => r.level === stage.level);
