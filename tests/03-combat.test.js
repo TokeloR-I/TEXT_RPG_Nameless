@@ -1,6 +1,21 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: combat).
 const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
+test('QA-18: Shield Discipline\'s Guard value comes from data, not engine code', () => {
+    const stage = (d) => d.evolutionPaths.warrior.branches.vanguard.stages.find((s) => s.trait === 'Shield Discipline');
+    assert.strictEqual(stage(data).damageReductionOverride, 0.35, 'the approved 35% lives in progression data');
+    const g = gameWith((d) => { stage(d).damageReductionOverride = 0.5; });
+    g.do('warrior', 'add_xp 250', 'vanguard', 'n', 'engage');
+    g.castSkill(g.player, g.playerSkill('Guard'), [g.player]);
+    assert.strictEqual(g.findStatus(g.player, 'Guard').value, 0.5, 'changing the data changes the game');
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'effects.js'), 'utf8');
+    assert.doesNotMatch(src, /0\.35/, 'no hardcoded 35% left in effects.js');
+    const other = gameWith((d) => { stage(d).damageReductionOverride = 0.5; });
+    other.do('warrior', 'add_xp 250', 'berserker', 'n', 'engage');
+    other.castSkill(other.player, other.playerSkill('Guard'), [other.player]);
+    assert.strictEqual(other.findStatus(other.player, 'Guard').value, 0.25, 'other branches keep the base 25%');
+});
+
 test('Shield Discipline: Vanguard Guard replaces 25% reduction with 35%, without stacking', () => {
     const base = newGame(21).do('warrior', 'n', 'engage');
     const vanguard = newGame(21).do('warrior', 'add_xp 250', 'vanguard', 'n', 'engage');
