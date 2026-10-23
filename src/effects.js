@@ -120,8 +120,11 @@
 
     register('damage_reduction', {
         apply(ctx) {
+            // Shield Discipline replaces Guard's magnitude for Vanguard; it is not additive.
+            const value = ctx.caster.isPlayer && ctx.skill.name === 'Guard' &&
+                ctx.engine.hasTrait('Shield Discipline') ? 0.35 : ctx.effect.value;
             const ok = ctx.engine.applyStatus(ctx.caster, ctx.caster, {
-                name: ctx.skill.name, type: 'damage_reduction', value: ctx.effect.value, duration: ctx.effect.duration
+                name: ctx.skill.name, type: 'damage_reduction', value, duration: ctx.effect.duration
             });
             if (ok) ctx.engine.say(`${ctx.caster.name} braces for impact!`);
         }

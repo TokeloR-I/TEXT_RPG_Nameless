@@ -1,6 +1,35 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: combat).
 const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
+test('Shield Discipline: Vanguard Guard replaces 25% reduction with 35%, without stacking', () => {
+    const base = newGame(21).do('warrior', 'n', 'engage');
+    const vanguard = newGame(21).do('warrior', 'add_xp 250', 'vanguard', 'n', 'engage');
+    const guard = (g) => {
+        g.castSkill(g.player, g.playerSkill('Guard'), [g.player]);
+        return g.findStatus(g.player, 'Guard');
+    };
+    const warriorGuard = guard(base);
+    const vanguardGuard = guard(vanguard);
+    assert.strictEqual(warriorGuard.value, 0.25, 'base warrior retains 25%');
+    assert.strictEqual(vanguardGuard.value, 0.35, 'Vanguard trait upgrades Guard to 35%');
+    assert.strictEqual(guard(vanguard).value, 0.35, 'refresh does not compound');
+    assert.strictEqual(vanguard.player.statusEffects.filter(s => s.name === 'Guard').length, 1);
+    const strike = { name: 'Fixed Hit', base_damage: [20, 20], damage_type: 'physical' };
+    const damage = (g) => {
+        g.player.def = 0;
+        const attacker = g.combat.enemies[0];
+        attacker.critChance = 0;
+        const hit = g.newHit(g.player);
+        g.rollDamage(attacker, g.player, strike, hit);
+        return hit.damage;
+    };
+    assert.strictEqual(damage(base), 15, '25% reduction');
+    assert.strictEqual(damage(vanguard), 13, '35% reduction');
+    vanguard.expireAtTurnStart(vanguard.player);
+    assert.strictEqual(vanguard.findStatus(vanguard.player, 'Guard'), null, 'QA-1 next normal turn expiry unchanged');
+    assert.strictEqual(damage(vanguard), 20, 'no reduction after expiry');
+});
+
 test('fights end in victory, give XP and clear the room', () => {
     const g = newGame(3).do('warrior', 'add_xp 20000', 'vanguard', 'n', 'engage');
     fightOut(g);
