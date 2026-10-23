@@ -22,6 +22,7 @@
             this.say(`> ${raw}`);
 
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
+            if (this.turnOrderPending()) { const t = this.parseCombatInput(raw); this.turnOrderCommand(t.command, t.targetNum); return; } // D-09
             // The player's turn was skipped (stun etc.): any input just moves on.
             if (c.awaitingContinue) { this.doContinue(); return; }
 
@@ -136,6 +137,7 @@
 
         showCombatState() {
             const c = this.combat;
+            if (this.turnOrderPending()) { this.showTurnOrderState(); return; }
             if (c.controlledActorId) { this.showControlState(); return; }
             this.say('--- Enemies ---', { important: true });
             this.alive(c.enemies).forEach((e, i) => this.say(`${i + 1}. ${e.name} (${e.hp}/${e.maxHp} HP)${this.statusTag(e)}`));

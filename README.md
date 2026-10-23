@@ -28,6 +28,7 @@ src/engine/       the rest of the rules, one module per area:
   actions.js        getAvailableActions() and act(): the structured action API both front ends use
   timers.js         turn-opportunity hooks and combat timers (durations counted in turns)
   control.js        player-controlled enemy turns (Possession): awaiting 'control'
+  turn-order.js     player-set turn order (Eternal Architect): awaiting 'turn_order'
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
   world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation
