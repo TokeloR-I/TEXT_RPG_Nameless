@@ -8,7 +8,7 @@ This file, the code, the tests and the docs are the only shared memory. Read thi
 |---|---|---|---|
 | Owner / producer | Tokelo (human) | everything, merges PRs | — |
 | Game designer | human collaborator | `docs/design/` (approved design handoffs) | code |
-| Dev | Claude (dev chat) | `src/`, `ui/`, `tests/`, `tools/`, `index.html`, `style.css` | `docs/design/` |
+| Dev | Claude (dev chat) | `src/`, `ui/`, `tests/`, `tools/`, `index.html`, `style.css`, `world.html`, `world.css` | `docs/design/` |
 | QA & Balance | Claude (QA chat) | `qa/` reports | `src/`, `tests/`, data values |
 | *(to assign)* | ChatGPT | *(owner decides)* | |
 | *(to assign)* | Gemini | *(owner decides)* | |
@@ -31,7 +31,9 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
   front ends (`ui/`) play them.
 - `src/engine.js` is the core (API, output, state, routing). Other rules go in the matching `src/engine/` module as
   plain `GameEngine` methods; the core copies them onto the prototype and throws if two modules define the same name.
-  A new module must be added to `MODULES` in `src/engine.js` **and** as a `<script>` in `index.html` before engine.js.
+  A new module must be added to `MODULES` in `src/engine.js` **and** as a `<script>` in `index.html` and `world.html` before engine.js.
+- The world (`src/world/`) owns space only: maps, collision, movement, transitions. Walking never calls the engine.
+  The engine stays authoritative for rules, inventory, fights and run flags. Map data must pass `validateWorld` (tested).
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data
   field or effect entry can express it.
 - Every skill effect type is one entry in `src/effects.js` plus tests.

@@ -7,7 +7,8 @@ Turn-based dungeon RPG. The game rules live in a UI-free engine, so the same
 engine can drive the text version now and a Phaser side-scroller later.
 
 ## Play
-- Double-click `index.html`. A single self-contained `EnsosLastStand.html` is attached to every CI run (Actions → latest run → Artifacts), or build it with `npm run build`.
+- **Explore the world (new, Zone 1):** double-click `world.html`. Walk with the arrow keys or WASD, interact with E / Enter, Esc for the menu.
+- **Classic text version:** double-click `index.html`. Single self-contained builds of both (`EnsosLastStand.html`, `EnsosLastStand-World.html`) are attached to every CI run (Actions → latest run → Artifacts), or build them with `npm run build`.
 - Terminal: `npm run play` (add `-- --seed 42` to reproduce a run exactly).
 
 ## Project layout
@@ -23,7 +24,12 @@ src/engine/       the rest of the rules, one module per area:
   skills.js         casting, damage pipeline, primitives the effect registry calls
   progression.js    XP, levels, evolution, skill trees
   util.js           seeded RNG and small helpers
-ui/text-ui.js     the only file touching the DOM: typing effect, HUD
+src/world/        the explorable world (no DOM):
+  world.js          map model: collision, tile-step movement, transitions, interactions, validation
+  zone1.js          Zone 1 (the Forgotten Homestead) map data
+ui/text-ui.js     text front end (index.html): typing effect, HUD
+ui/world-render.js  canvas painter for the world (no image files)
+ui/world-ui.js    world front end (world.html): title, movement, dialogs, menus
 tests/            headless tests, one file per area (NN-area.test.js) + helpers.js
 tools/            balance bot, backlog, pending decisions, terminal player, single-file build
 docs/             design status, engine reports, approved design handoffs (docs/design/)
