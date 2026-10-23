@@ -265,7 +265,7 @@
             const tpl = this.data.minionDefinitions[type];
             if (!tpl) return null;
             const m = clone(tpl);
-            Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, isPlayer: false, isMinion: true, statusEffects: [] });
+            Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, summonType: type, ownerId: this.player.id, isPlayer: false, isMinion: true, statusEffects: [] });
             this.combat.minions.push(m);
             return m; // joins the turn order next round
         }
