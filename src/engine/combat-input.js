@@ -83,9 +83,15 @@
             const targets = this.pickTargets(skill, targetNum);
             if (!targets) {
                 const living = this.alive(c.enemies);
-                this.combatError(skill.target === 'enemy_multiple'
-                    ? "Invalid target selection. Choose distinct enemies (e.g. 'soul chain 1,2' or 'soul chain 1,2,3')."
-                    : `Invalid target '${targetNum || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
+                if (skill.target === 'enemy_multiple') {
+                    // QA-24b: say how many targets are needed right now
+                    const n = this.multiTargetCount();
+                    const eg = Array.from({ length: n }, (_, i) => i + 1).join(',');
+                    this.combatError(`${skillName} needs exactly ${n} different enemies right now (e.g. '${command} ${eg}').`, null);
+                } else {
+                    const shown = Array.isArray(targetNum) ? targetNum.join(',') : targetNum;
+                    this.combatError(`Invalid target '${shown || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
+                }
                 return;
             }
             for (const effect of skill.effects || []) {
@@ -138,7 +144,9 @@
 
         parseCombatInput(raw) {
             const cleaned = raw.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/\s+/g, ' ');
-            const multi = cleaned.match(/^(soul chain)\s+(\d+(?:\s*[, ]\s*\d+)+)$/);
+            // Several numbers ('soul chain 1,2' / '1 2'). Any command may be typed that way: single-target skills
+            // then get a clear "Invalid target '1,2'" instead of "Unknown combat command 'grave bolt 1,'" (QA-24a).
+            const multi = cleaned.match(/^(.+?)\s+(\d+(?:\s*[, ]\s*\d+)+)$/);
             if (multi) return { command: multi[1].trim(), targetNum: multi[2].split(/[\s,]+/).map(Number) };
             const m = cleaned.match(/^(.+?)\s*[#@]?(\d+)$/);
             return m ? { command: m[1].trim(), targetNum: parseInt(m[2], 10) } : { command: cleaned, targetNum: null };
@@ -189,11 +197,16 @@
             return [...starts, ...contains].slice(0, 3);
         }
 
+        /** How many distinct enemies an 'enemy_multiple' skill (Soul Chain) needs right now. */
+        multiTargetCount() {
+            return this.hasTrait('Wound Transfer') ? Math.min(3, this.alive(this.combat.enemies).length) : 2;
+        }
+
         pickTargets(skill, targetNum) {
             const living = this.alive(this.combat.enemies);
             const kind = skill.target || 'enemy_single';
             if (kind === 'enemy_multiple') {
-                const count = this.hasTrait('Wound Transfer') ? Math.min(3, living.length) : 2;
+                const count = this.multiTargetCount();
                 if (!Array.isArray(targetNum) || targetNum.length !== count ||
                     new Set(targetNum).size !== count ||
                     targetNum.some(n => !Number.isInteger(n) || n < 1 || n > living.length)) return null;

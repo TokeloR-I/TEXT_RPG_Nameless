@@ -270,3 +270,22 @@ test('QA-21: primary lethal death processes before snapshotted secondary damage'
     assert.deepStrictEqual(events.slice(0, 2), ['death', 'secondary']);
     assert.strictEqual(b.hp, 99, 'snapshot still propagates after link group dissolves');
 });
+
+test('QA-24: number lists on any command give clear, free errors', () => {
+    const g = soulFight();
+    g.player.resource.current = 5;
+    const said = (cmd) => { const n = g.log.length; g.do(cmd); return g.log.slice(n).filter((e) => e.type === 'text').map((e) => e.text).join('\n'); };
+    for (const cmd of ['grave bolt 1,2', 'attack 1,2', 'grave bolt 1 2']) {
+        const out = said(cmd);
+        assert.match(out, /Invalid target '1,2'/, `${cmd}: ${out}`);
+        assert.doesNotMatch(out, /Unknown combat command/);
+        assert.strictEqual(g.combat.awaitingPlayer, true, `${cmd}: still your turn`);
+    }
+    assert.strictEqual(g.player.resource.current, 5, 'nothing spent');
+    assert.match(said('soul chain 1,1'), /needs exactly 2 different enemies right now \(e\.g\. 'soul chain 1,2'\)/);
+    g.player.traits.push({ name: 'Wound Transfer' });       // Chain of Woe at L5: three if three are alive
+    const out = said('soul chain 1,2');
+    assert.match(out, /needs exactly 3 different enemies right now \(e\.g\. 'soul chain 1,2,3'\)/, 'QA-24b: names the count');
+    assert.strictEqual(g.player.resource.current, 5);
+    assert.match(said('soul chain 1 2 3'), /Soul Chain binds/, 'and the right count still works');
+});
