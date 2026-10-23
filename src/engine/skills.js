@@ -129,17 +129,10 @@
             if (missing.length && caster.isPlayer) this.say(`(Not implemented yet: ${missing.join(', ')})`);
         }
 
+        /** Soul Chain's caster clock is a combat timer now (T-0, src/engine/timers.js); kept for callers and tests.
+         *  The cast turn doesn't count; a later skipped opportunity does. */
         advanceSoulLinkClock(actor, skipped = false) {
-            const clocks = this.combat && this.combat.soulLinkClocks;
-            const clock = clocks && clocks[actor.id];
-            if (!clock) return;
-            // A cast during the current normal turn does not consume its own clock;
-            // a later skipped normal opportunity still consumes one.
-            if (!skipped && (actor.normalTurns || 0) <= clock.castTurn) return;
-            if (--clock.remaining > 0) return;
-            for (const t of this.combat.enemies) t.statusEffects = t.statusEffects.filter(s =>
-                !(s.appliedBy === actor.id && (s.type === 'soul_link' || s.type === 'soul_feast')));
-            delete clocks[actor.id];
+            this.tickTimers(actor, { skipped, kinds: ['soul_link'] });
         }
 
         // Soulbinder: memberships and drain snapshots live entirely in combat statuses.
