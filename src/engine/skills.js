@@ -208,12 +208,12 @@
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
             if (source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
             if (this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
-            if (target.hp <= 0 && !target.dead) this.onDeath(target, source);
             for (const { owner, partners } of propagation) {
                 for (const partner of partners) {
                     this.secondarySoulDamage(partner, Math.floor(actual * 0.5), owner);
                 }
             }
+            if (target.hp <= 0 && !target.dead) this.onDeath(target, source);
             return actual;
         }
 
