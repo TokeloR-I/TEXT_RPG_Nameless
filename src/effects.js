@@ -455,8 +455,9 @@
         requires(ctx) {
             if (ctx.caster.resource.current < 1)
                 return 'Plague of Ages requires at least 1 Soul Energy.';
-            return ctx.engine.alive(ctx.engine.combat.enemies).length
-                ? null : 'Plague of Ages requires living enemies.';
+            return ctx.engine.alive(ctx.engine.combat.enemies).some(t =>
+                (t.statusAffinities || {}).Infection !== 'immune')
+                ? null : 'Plague of Ages requires an enemy susceptible to Infection.';
         },
         apply(ctx) {
             for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
