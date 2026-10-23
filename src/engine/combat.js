@@ -26,7 +26,7 @@
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
                 usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
                 traps: [], delayed: [], extraTurn: false, hpHistory: [], timers: [], nextTimerId: 0,
-                nextCastId: 0, currentCastId: null
+                nextCastId: 0, currentCastId: null, controlledActorId: null
             };
             this.player.statusEffects = [];
             this.player.cr = null; // Control Resistance is fight-local (Package 2 CR-01)
@@ -134,7 +134,9 @@
                     return;
                 }
                 this.say(`--- ${actor.name}'s Turn! ---`, { important: true });
-                if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
+                if (this.isPossessed(actor)) {
+                    if (this.startControlledTurn(actor)) return;   // N-5: the player picks its move (control.js)
+                } else if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
                 this.endOpportunity(actor);
                 c.idx++;
             }

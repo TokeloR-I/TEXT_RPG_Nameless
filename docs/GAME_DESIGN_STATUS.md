@@ -335,7 +335,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Plaguecaller L14 (Ascended) | Plague of Ages | all Soul Energy | All enemies instantly gain max Infection stacks; infections deal true dmg. | ❌ not implemented (apply_max_infection_aoe, infections_true_damage) |
 | Soulbinder L3 | Soul Chain | 1 Soul Energy | Link 2 targets; dmg to one hits both. | ❌ not implemented (link_targets) |
 | Soulbinder L5 | Soul Chain | 1 Soul Energy | Link 2 targets; dmg to one hits both. | ❌ not implemented (link_targets) |
-| Soulbinder L8 | Possession | 3 Soul Energy | Control an enemy for 1 turn. | ❌ not implemented (control_enemy) |
+| Soulbinder L8 | Possession | 3 Soul Energy | Control an enemy for 1 turn. | ✅ works (N-5): you choose the enemy's next move against its allies; not bosses or 75+ CR |
 | Soulbinder L11 | Soul Feast | 2 Soul Energy | Drain 2 HP/turn from all linked enemies for 3 turns. | ❌ not implemented (drain_hp_from_linked) |
 | Soulbinder L14 (Ascended) | Unmake | 5 Hollow Will | Remove a target from the fight permanently. | ✅ works |
 

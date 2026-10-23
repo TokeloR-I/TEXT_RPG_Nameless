@@ -349,7 +349,7 @@ engine.input(text)                    // unchanged signature; parses text -> act
 ```js
 {
   mode: 'combat',                         // class_select | explore | branch_select | combat | game_over | won
-  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | null
+  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | 'control' (N-5, + controlledActorId) | null
   actions: [
     { type: 'attack', skillId: 'Basic Attack', targeting: 'enemy_single', enabled: true,
       targets: [{ id: 'enemy_1', enabled: true }, { id: 'enemy_2', enabled: true }] },
@@ -383,6 +383,7 @@ engine.input(text)                    // unchanged signature; parses text -> act
 | `{ type: 'skill', skillId, targetId? }` or `{ type: 'skill', skillId, targetIds }` for `enemy_multiple` | `combat` | `grave bolt 2`, `gb 2`, `soul chain 1 3` *(new)* |
 | `{ type: 'flee' }` | `combat` | `flee` |
 | `{ type: 'continue' }` | `combat`, awaiting `continue` | any input after a skipped turn |
+| `{ type: 'control', actorId, skillId, targetId? }` *(N-5, Keel review §3.1)* | `combat`, awaiting `control` (a possessed enemy's turn); anything else is `WRONG_MODE` | `test hit 2` (the controlled actor's move; numbers index the list printed for it) |
 | `{ type: 'describe', subject: 'room' \| 'inventory' \| 'help' \| 'class_tree' }` | any (text output only) | `look`, `i`, `help`, `cl` |
 | `{ type: 'restart' }` | any | `start` |
 | `{ type: 'quit' }` | `explore` | `quit` |
@@ -489,7 +490,7 @@ All additive. Existing fields keep their shape: `combat.enemies` and `combat.min
 | New field | Content |
 |---|---|
 | `seed`, `eventSeq` | as in §2.1 / §5.3 |
-| `awaiting` | `'action' \| 'continue' \| 'choice' \| null` |
+| `awaiting` | `'action' \| 'continue' \| 'choice' \| 'control' \| null` |
 | `combat.encounterId` | `enc_<n>` |
 | `combat.units` | every unit in the encounter, **including dead and erased**, as UnitInfo plus `alive`, `erased`, `statusEffects` |
 | `combat.order` | ids in this round's order |

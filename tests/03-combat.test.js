@@ -197,10 +197,10 @@ test('multi-hit skills hit the right number of times', () => {
 
 test('unimplemented skills are refused and do not waste the turn', () => {
     const g = newGame().do('necromancer', 'n', 'engage');
-    g.player.skills.push('Possession');
+    g.player.skills.push('Worldflame');
     const se = g.player.resource.current = 5;
     const round = g.combat.round;
-    g.do('possession 1');
+    g.do('worldflame 1');
     assert.match(g.text(), /isn't implemented yet/);
     assert.strictEqual(g.player.resource.current, se);
     assert.strictEqual(g.combat.round, round);

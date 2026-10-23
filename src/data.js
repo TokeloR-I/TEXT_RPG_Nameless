@@ -676,6 +676,7 @@
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
             'Slow':             { category: 'debuff',  control: 'soft' },   // speed only, never skips a turn (Keel §2)
             'Blind':            { category: 'debuff',  control: false },    // a hit-chance debuff, not control
+            'Possessed':        { category: 'control', control: 'hard', refuseTiers: ['boss'], refuseAtCr: 75 }, // N-5: refused before cost for bosses and at 75+ CR
             // --- marks
             'Pin':              { category: 'mark', control: false },       // an ordinary mark (CR-03)
             'Expose':           { category: 'mark', expiry: { type: 'applier_turns', onApplierDeath: 'end_of_round' } },             // QA-1 (approved Option A + applier-death ruling)
