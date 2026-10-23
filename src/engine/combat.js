@@ -25,7 +25,7 @@
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
                 usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
-                traps: [], delayed: [], extraTurn: false, hpHistory: []
+                traps: [], delayed: [], extraTurn: false, hpHistory: [], graveCommandTargetId: null
             };
             this.player.statusEffects = [];
             this.player.shieldBashRecovery = null; // QA-2 #11: lockout bookkeeping never leaks between fights
