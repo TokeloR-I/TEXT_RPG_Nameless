@@ -119,5 +119,5 @@ All of them occupy one tile and block movement while they're there.
 ## Known limits (deliberately deferred)
 
 - **Battle text.** The battle overlay shows the engine's prose and strips the text game's own menu lines. Typed events (gap G1 in `architecture/TECHNICAL_FEASIBILITY.md`) would replace that filter.
-- **Commands.** Battle actions are sent as the same text commands the text game uses (G2). The overlay never derives rules from map coordinates.
+- **Commands (done, Phase 1 slice 2).** The battle, evolution and item menus come from `engine.getAvailableActions()` through `ui/battle-menu.js`, and choices go back as `engine.act()` actions with combatant ids. The overlay never decides what is usable and never derives rules from map coordinates.
 - **Not built yet.** No saving, NPC dialogue or random encounters (design §10). Legacy rooms (`src/data.js` `rooms`) still drive the text game and aren't placed in the world yet; re-homing them is a later content pass.

@@ -25,6 +25,7 @@ src/engine/       the rest of the rules, one module per area:
   skills.js         casting, damage pipeline, primitives the effect registry calls
   progression.js    XP, levels, evolution, skill trees
   world.js          world intents: pickups, map encounters, run flags (graphical world only)
+  actions.js        getAvailableActions() and act(): the structured action API both front ends use
   util.js           seeded RNG and small helpers
 src/world/        the explorable world (no DOM):
   world.js          map model: collision, tile-step movement, transitions, pickups, encounters, validation
@@ -32,6 +33,7 @@ src/world/        the explorable world (no DOM):
 ui/text-ui.js     text front end (index.html): typing effect, HUD
 ui/world-render.js  canvas painter for the world (no image files)
 ui/world-ui.js    world front end (world.html): title, movement, dialogs, menus
+ui/battle-menu.js turns the engine's availability list into the battle menus (no DOM, tested)
 tests/            headless tests, one file per area (NN-area.test.js) + helpers.js
 tools/            balance bot, backlog, pending decisions, terminal player, single-file build
 docs/             design status, engine reports, approved design handoffs (docs/design/)
@@ -44,9 +46,14 @@ qa/               QA & balance reports
 ```js
 const engine = new ENSO.GameEngine({ seed: 1 });   // seed optional
 engine.start();             // -> [{type:'clear'}, {type:'text', text, important, html}, ...]
-engine.input('attack 1');   // -> events for whatever happened
+engine.input('attack 1');   // -> events for whatever happened (the text game)
 engine.getState();          // -> player, combat, enemies, minions (for HUD / sprites)
+
+// Structured interface (Phase 1, architecture/PHASE1_ENGINE_INTERFACE_SPEC.md §4)
+engine.getAvailableActions();  // -> { mode, awaiting, actions: [{ type, skillId, enabled, reason, targets, … }] } (pure)
+engine.act({ type: 'skill', skillId: 'Grave Bolt', targetId: 'enemy_1' });  // -> { ok, events, error? }
 ```
+`input()` is a text translator onto the same rules as `act()`; refusals carry a code (`NOT_ENOUGH_RESOURCE`, `INVALID_TARGET`, …).
 
 ## Commands
 `go <dir>` or `n/s/e/w`, `take <item>`, `use <item>`, `i`, `look`, `engage`, `cl`, `help`, `quit`, `start`

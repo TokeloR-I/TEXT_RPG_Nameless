@@ -42,7 +42,7 @@
 
         move(direction) {
             const next = this.rooms[this.currentRoom].exits[direction];
-            if (!next) { this.say("You can't go that way."); return; }
+            if (!next) { this.refuse('NO_EXIT', "You can't go that way."); return; }
             this.currentRoom = next;
             this.say(`You move to the ${direction}.`);
             this.describeRoom(false);
@@ -51,7 +51,7 @@
         takeItem(name) {
             const room = this.rooms[this.currentRoom];
             const idx = room.items.findIndex((i) => i.toLowerCase() === name.toLowerCase());
-            if (idx === -1) { this.say(`You don't see a '${name}' here.`); return; }
+            if (idx === -1) { this.refuse('ITEM_NOT_HERE', `You don't see a '${name}' here.`); return; }
             const received = this.grantItem(room.items.splice(idx, 1)[0]);
             this.say(`You pick up the ${received}.`);
         }
@@ -74,9 +74,9 @@
         applyItem(item) {
             const def = this.data.itemDefinitions[item];
             const p = this.player;
-            if (!def) { this.say(`You turn the ${item} over in your hands. There's nothing to use it for (yet).`); return false; }
+            if (!def) { this.refuse('ITEM_NO_USE', `You turn the ${item} over in your hands. There's nothing to use it for (yet).`); return false; }
             if (def.use === 'heal') {
-                if (p.hp >= p.maxHp) { this.say("You're already at full health."); return false; }
+                if (p.hp >= p.maxHp) { this.refuse('FULL_HEALTH', "You're already at full health."); return false; }
                 const healed = this.heal(p, def.value);
                 this.say(`You use the ${item}. +${healed} HP (${p.hp}/${p.maxHp}).`, { important: true });
             }
@@ -85,9 +85,9 @@
         }
 
         useItem(name) {
-            if (!name) { this.say('Use what? (e.g. use bandages)'); return; }
+            if (!name) { this.refuse('NO_ITEM', 'Use what? (e.g. use bandages)'); return; }
             const item = this.findInventoryItem(name);
-            if (!item) { this.say(`You don't have a '${name}'.`); return; }
+            if (!item) { this.refuse('NO_ITEM', `You don't have a '${name}'.`); return; }
             this.applyItem(item);
         }
 
@@ -103,7 +103,7 @@
 
         engage() {
             const keys = this.rooms[this.currentRoom].enemies;
-            if (!keys.length) { this.say('There are no enemies here.'); return; }
+            if (!keys.length) { this.refuse('NO_ENEMIES', 'There are no enemies here.'); return; }
             this.startCombat(keys);
         }
     }

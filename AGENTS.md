@@ -33,6 +33,9 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 - `src/engine.js` is the core (API, output, state, routing). Other rules go in the matching `src/engine/` module as
   plain `GameEngine` methods; the core copies them onto the prototype and throws if two modules define the same name.
   A new module must be added to `MODULES` in `src/engine.js` **and** as a `<script>` in `index.html` and `world.html` before engine.js.
+- **Player actions have one rules path** (`src/engine/actions.js`): `act()` and the text parser (`input()`) run the same
+  functions. A new player-facing refusal must record a code (`refuse()` / `refuseCombat()`), and `getAvailableActions()`
+  must report the same check with the same message (tests check they agree). Front ends never re-derive castability.
 - The world (`src/world/`) owns space only: maps, collision, movement, transitions. Walking never calls the engine.
   The engine stays authoritative for rules, inventory, fights and run flags. Map data must pass `validateWorld` (tested).
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data

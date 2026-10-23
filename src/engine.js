@@ -18,6 +18,7 @@
  *   skills.js         Skills & damage
  *   progression.js    Progression
  *   world.js          World intents (graphical Zone 1): pickups, encounters, run flags
+ *   actions.js        Structured actions: getAvailableActions(), act() (Phase 1 spec §4)
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -29,6 +30,22 @@
     const UTIL = isNode ? require('./engine/util.js') : ENSO.engineUtil;
     const { mulberry32, clone, cap, mixin } = UTIL;
     const DIRECTIONS = { n: 'north', s: 'south', e: 'east', w: 'west' };
+    // Text commands outside combat -> structured actions (Phase 1 spec §4.3). Combat text is parsed in combat-input.js.
+    const TEXT_COMMANDS = {
+        go: (arg) => ({ type: 'move', direction: DIRECTIONS[arg] || arg }),
+        take: (arg) => ({ type: 'take', item: arg }), get: (arg) => ({ type: 'take', item: arg }),
+        inventory: () => ({ type: 'describe', subject: 'inventory' }), i: () => ({ type: 'describe', subject: 'inventory' }),
+        use: (arg) => ({ type: 'use_item', item: arg }),
+        look: () => ({ type: 'describe', subject: 'room' }), l: () => ({ type: 'describe', subject: 'room' }),
+        help: () => ({ type: 'describe', subject: 'help' }),
+        quit: () => ({ type: 'quit' }),
+        engage: () => ({ type: 'engage' }), fight: () => ({ type: 'engage' }),
+        class_lore: () => ({ type: 'describe', subject: 'class_tree' }), cl: () => ({ type: 'describe', subject: 'class_tree' }),
+        // dev cheats
+        add_xp: (arg) => ({ type: 'cheat', cheat: 'add_xp', amount: arg }),
+        become_hollow_king: () => ({ type: 'cheat', cheat: 'become_hollow_king' }),
+        unlock_events: () => ({ type: 'cheat', cheat: 'unlock_events' })
+    };
 
     class GameEngine {
         constructor(options = {}) {
@@ -67,15 +84,19 @@
         input(raw) {
             const text = String(raw || '').trim();
             if (!text) return this.flush();
-            return this.transact(() => this.handle(text));
+            this.rejection = null;
+            const events = this.transact(() => this.handle(text));
+            this.rejection = null;
+            return events;
         }
 
-        /** Run one player action as a transaction and return its events (used by input() and the world intents). */
-        transact(action) {
+        /** Run one player action as a transaction and return its events (used by input() and act()). */
+        transact(action, onError) {
             const snap = this.snapshot();
             try {
                 action();
             } catch (err) {
+                if (onError) onError(err);
                 this.errors.push(err);
                 this.restore(snap);
                 this.out = [];
@@ -192,42 +213,30 @@
         handle(text) {
             const lower = text.toLowerCase();
 
-            if (lower === 'start') { this.out.push(...this.start()); return; }
+            // A text translator onto the action rules (src/engine/actions.js): parse, then perform().
+            if (lower === 'start') { this.perform({ type: 'restart' }); return; }
             if (this.mode === 'combat') { this.combatCommand(text); return; }
-            if (this.mode === 'game_over' || this.mode === 'won') { this.say("The game is over. Type 'start' to play again.", { important: true }); return; }
+            if (this.mode === 'game_over' || this.mode === 'won') { this.perform({ type: 'describe' }); return; }
 
             this.clear();
             this.say(`> ${text}`);
 
-            if (this.mode === 'class_select') { this.chooseClass(lower); return; }
-            if (this.mode === 'branch_select') { this.chooseBranch(lower); return; }
+            if (this.mode === 'class_select') { this.perform({ type: 'choose_class', classId: lower }); return; }
+            if (this.mode === 'branch_select') { this.perform({ type: 'choose_branch', branchId: lower }); return; }
 
             const parts = lower.split(/\s+/);
             let cmd = parts[0];
             let arg = parts.slice(1).join(' ');
             if (DIRECTIONS[cmd] || Object.values(DIRECTIONS).includes(cmd)) { arg = cmd; cmd = 'go'; }
 
-            switch (cmd) {
-                case 'go': this.move(DIRECTIONS[arg] || arg); break;
-                case 'take': case 'get': this.takeItem(arg); break;
-                case 'inventory': case 'i': this.showInventory(); break;
-                case 'use': this.useItem(arg); break;
-                case 'look': case 'l': this.describeRoom(); break;
-                case 'help': this.showHelp(); break;
-                case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); break;
-                case 'engage': case 'fight': this.engage(); break;
-                case 'class_lore': case 'cl': this.showClassTree(); break;
-                // --- dev cheats ---
-                case 'add_xp': this.addExperience(parseInt(arg, 10) || 50); this.maybePromptBranch(); break;
-                case 'become_hollow_king': this.becomeHollowKing(); break;
-                case 'unlock_events': this.flags.eventsUnlocked = true; this.say('[cheat] Story-event evolutions unlocked.'); this.applyStages(); break;
-                default: this.say("I don't understand that command. Type 'help' for a list."); break;
-            }
+            const build = Object.prototype.hasOwnProperty.call(TEXT_COMMANDS, cmd) ? TEXT_COMMANDS[cmd] : null;
+            if (!build) { this.say("I don't understand that command. Type 'help' for a list."); return; }
+            this.perform(build(arg));
         }
 
         chooseClass(name) {
             if (!this.data.basePlayerClasses[name]) {
-                this.say('That is not a valid class. Please choose again.');
+                this.refuse('INVALID_CLASS', 'That is not a valid class. Please choose again.');
                 return;
             }
             this.createPlayer(name);
@@ -245,7 +254,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

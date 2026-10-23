@@ -8,8 +8,11 @@
  * Movement is tile-step: hold a direction to keep walking. The world model
  * (src/world/world.js) decides where you can go; the engine (src/engine.js)
  * owns the character, pickups, fights and run flags. Walking never calls the
- * engine. Fights are the normal engine fights, driven through engine.input()
- * with the same commands the text game uses; this file only presents them.
+ * engine. Fights are the normal engine fights. Menus come from
+ * engine.getAvailableActions() (via ui/battle-menu.js) and choices go back as
+ * engine.act() actions with combatant ids; this file never decides what is
+ * usable (Phase 1 spec §6A W3). The battle log is still the engine's text
+ * until structured events land (Phase 1, slice 3).
  *
  * Keys: arrows / WASD move or choose · E / Enter / Space interact or confirm
  * · Esc menu or back. A held key never carries over a panel: closing one needs
@@ -84,10 +87,10 @@
     /** Returns true if the key was used by the menu. */
     function menuKey(m, ev, dir) {
         if (dir === 'up' || dir === 'down') {
+            // Greyed-out entries can be highlighted (their line says why they're unavailable); Enter ignores them.
             const n = m.items.length;
-            let i = m.index;
-            for (let k = 0; k < n; k++) { i = (i + (dir === 'up' ? n - 1 : 1)) % n; if (!m.items[i].disabled) break; }
-            m.index = i; m.render(); return true;
+            m.index = (m.index + (dir === 'up' ? n - 1 : 1)) % n;
+            m.render(); return true;
         }
         if (isAct(ev) && !ev.repeat) { const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { m.back(); return true; }
@@ -126,8 +129,8 @@
         engine = new ENSO.GameEngine({ seed: seedFromUrl() });
         window.enso = engine;                 // handy from the browser console
         engine.start();
-        engine.input(cls);
-        engine.enterWorld();
+        engine.act({ type: 'choose_class', classId: cls });
+        engine.act({ type: 'enter_world' });
         session = new WorldSession(WORLD, { engine });
         window.ensoWorld = session;
         seen.clear();
@@ -261,7 +264,7 @@
         bindMenuClicks(els.pause, menu);
     }
     function useItem(item) {
-        const lines = readable(engine.input(`use ${item}`)).map((l) => l.text);
+        const lines = readable(engine.act({ type: 'use_item', item }).events).map((l) => l.text);
         updateHud();
         openPause(lines.join(' '));
     }
@@ -274,11 +277,11 @@
         modal = 'branch';
         muteHeldKeys();
         els.hud.hidden = true;
-        const p = engine.getState().player;
-        const tree = DATA.evolutionPaths[p.className];
-        const items = Object.entries(tree.branches).map(([key, b]) => {
+        const tree = DATA.evolutionPaths[engine.getState().player.className];
+        const items = engine.getAvailableActions().actions.filter((o) => o.type === 'choose_branch').map((o) => {
+            const b = tree.branches[o.branchId];
             const res = ((b.resourceEvolution || [])[0] || {}).type;
-            return { label: b.name, sub: `${b.theme}${res ? ` · Resource: ${res}` : ''}`, action: () => chooseBranch(key) };
+            return { label: o.name, sub: `${b.theme}${res ? ` · Resource: ${res}` : ''}`, action: () => chooseBranch(o.branchId) };
         });
         menu = makeMenu(items, { render: renderBranch });
         renderBranch();
@@ -289,7 +292,7 @@
         bindMenuClicks(els.pause, menu);
     }
     function chooseBranch(key) {
-        const lines = readable(engine.input(key.replace(/_/g, ' '))).map((l) => l.text);
+        const lines = readable(engine.act({ type: 'choose_branch', branchId: key }).events).map((l) => l.text);
         els.pause.hidden = true;
         els.hud.hidden = false;
         menu = null;
@@ -300,17 +303,16 @@
     }
 
     // ---------------------------------------------------------------------
-    // Battle overlay. The fight itself is the engine's; this only shows it.
+    // Battle overlay. The fight is the engine's; menus come from its availability list.
     // ---------------------------------------------------------------------
-    const NO_TARGET = new Set(['self', 'minions', 'ground', 'corpse', 'enemy_aoe', 'all_enemies', 'all_combatants']);
-    const needsTarget = (skill) => !(NO_TARGET.has(skill.target) || (skill.target === 'ally_single' && !skill.base_damage));
+    const BM = ENSO.battleMenu;
 
     function beginBattle(result) {
         screen = 'combat';
         modal = null;
         muteHeldKeys();
         els.hud.hidden = true;
-        battle = { id: result.id, log: [], ended: null, lastHp: {}, targetIndex: null };
+        battle = { id: result.id, log: [], ended: null, lastHp: {}, targetIds: [] };
         addLog(result.events);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
@@ -318,64 +320,52 @@
         for (const l of readable(events)) battle.log.push(l);
         if (battle.log.length > LOG_LINES) battle.log.splice(0, battle.log.length - LOG_LINES);
     }
-    function send(cmd) {
-        addLog(engine.input(cmd));
+    function send(action) {
+        addLog(engine.act(action).events);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
-    function living() { return (engine.getState().combat || { enemies: [] }).enemies; }
+    /** Menu items from battle-menu entries; `go` runs when an enabled entry is chosen. */
+    const toItems = (list, go) => list.map((e) => ({ label: e.label, sub: e.sub, disabled: e.disabled, action: () => go(e) }));
 
     function battleRoot() {
-        const s = engine.getState();
-        battle.targetIndex = null;
-        if (s.combat.awaitingContinue) {
-            menu = makeMenu([{ label: 'Continue', sub: "You can't act this turn.", action: () => send('continue') }], { render: renderBattle });
-            renderBattle(); return;
-        }
-        const p = s.player;
-        const basic = engine.basicAttackName();
-        const usable = [...new Set(p.inventory.filter((i) => DATA.itemDefinitions[i]))];
-        menu = makeMenu([
-            { label: 'Attack', sub: basic, action: () => withTarget(DATA.skillDefinitions[basic] || {}, (n) => send(`attack ${n}`)) },
-            { label: 'Skills', sub: `${p.skills.length} known`, action: skillsMenu },
-            { label: 'Items', sub: usable.length ? `${usable.length} usable` : 'nothing usable', disabled: !usable.length, action: itemsMenu },
-            { label: 'Flee', sub: 'Back to the map. The enemy stays.', action: () => send('flee') }
-        ], { render: renderBattle });
+        battle.targetIds = [];
+        const avail = engine.getAvailableActions();
+        menu = makeMenu(toItems(BM.entries(avail, 'root'), (e) => {
+            if (e.kind === 'skills') return listMenu('skills');
+            if (e.kind === 'items') return listMenu('items');
+            choose(e.option);
+        }), { render: renderBattle });
         renderBattle();
     }
-    function skillsMenu() {
-        const p = engine.getState().player;
-        const items = p.skills.map((info) => {
-            const def = DATA.skillDefinitions[info.name] || {};
-            const cost = def.cost === 'all' ? p.resource.current : engine.skillCost(def);
-            const afford = def.cost === 'all' ? p.resource.current > 0 : cost <= p.resource.current;
-            const costText = def.cost === 'all' ? `all ${p.resource.type}` : cost ? `${cost} ${p.resource.type}` : 'free';
-            const why = !info.implemented ? ' · not in the game yet' : !afford ? ` · need ${costText}` : '';
-            return { label: info.name, sub: `${info.detail || ''}${info.detail ? ' · ' : ''}${costText}${why}`, disabled: !info.implemented || !afford,
-                action: () => withTarget(def, (n) => send(n ? `${info.name} ${n}` : info.name)) };
-        });
-        menu = makeMenu(items, { back: battleRoot, render: renderBattle });
+    function listMenu(view) {
+        const avail = engine.getAvailableActions();
+        const info = Object.fromEntries(engine.getState().player.skills.map((k) => [k.name, k.detail]));
+        menu = makeMenu(toItems(BM.entries(avail, view, info), (e) => choose(e.option)), { back: battleRoot, render: renderBattle });
         renderBattle();
     }
-    function itemsMenu() {
-        const p = engine.getState().player;
-        const usable = [...new Set(p.inventory.filter((i) => DATA.itemDefinitions[i]))];
-        menu = makeMenu(usable.map((item) => {
-            const n = p.inventory.filter((i) => i === item).length;
-            return { label: `${item}${n > 1 ? ` (x${n})` : ''}`, sub: `Heals ${DATA.itemDefinitions[item].value}`, action: () => send(`use ${item}`) };
-        }), { back: battleRoot, render: renderBattle });
-        renderBattle();
-    }
-    /** Ask for a target only when the skill needs one and there's a choice. */
-    function withTarget(skill, go) {
-        const foes = living();
-        if (!needsTarget(skill)) { go(null); return; }
-        if (foes.length === 1) { go(1); return; }
+    /** Pick targets if the option needs them, then act. */
+    function choose(option) {
+        const how = BM.targetMode(option);
+        if (!how) { send(BM.actionFor(option)); return; }
         const parent = menu;
-        menu = makeMenu(foes.map((e, i) => ({ label: e.name, sub: `${e.hp}/${e.maxHp} HP`, action: () => go(i + 1) })), {
-            back: () => { menu = parent; battle.targetIndex = null; renderBattle(); },
-            render: () => { battle.targetIndex = menu.index; renderBattle(); }
-        });
-        battle.targetIndex = 0;
+        const picked = [];
+        const build = () => {
+            const ents = BM.targetEntries(option, engine.getState()).map((t) => ({
+                ...t, label: how === 'multi' ? `${picked.includes(t.id) ? '☑' : '☐'} ${t.label}` : t.label
+            }));
+            menu = makeMenu(toItems(ents, (t) => {
+                if (how === 'single') { send(BM.actionFor(option, [t.id])); return; }
+                const i = picked.indexOf(t.id);
+                if (i === -1) picked.push(t.id); else picked.splice(i, 1);
+                if (picked.length >= option.pick.max) { send(BM.actionFor(option, picked)); return; }
+                const keep = menu.index; build(); menu.index = keep; renderBattle();
+            }), {
+                back: () => { menu = parent; battle.targetIds = []; renderBattle(); },
+                render: () => { battle.targetIds = [...picked, ents[menu.index] && ents[menu.index].id]; renderBattle(); }
+            });
+            battle.targetIds = [...picked, ents[menu.index] && ents[menu.index].id];
+        };
+        build();
         renderBattle();
     }
 
@@ -413,9 +403,9 @@
         els.combat.hidden = false;
         els.combat.innerHTML = `
             <div class="battle-head">${esc(heading)}</div>
-            <div class="foes">${foes.map((e, i) => {
+            <div class="foes">${foes.map((e) => {
                 const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
-                return `<div class="foe ${battle.targetIndex === i ? 'targeted' : ''} ${hit ? 'hit' : ''}">
+                return `<div class="foe ${battle.targetIds.includes(e.id) ? 'targeted' : ''} ${hit ? 'hit' : ''}">
                     <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
                     <div class="foe-name">${esc(e.name)}</div>
                     <div class="foe-hp">${bar(e.hp, e.maxHp, 'enemy')}<span>${e.hp}/${e.maxHp}</span></div>
