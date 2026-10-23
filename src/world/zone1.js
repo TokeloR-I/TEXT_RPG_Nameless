@@ -7,8 +7,14 @@
  * `legend` if it overrides one. Coordinates are tile columns/rows from 0,0
  * at the top left. Things placed on a map:
  *   spawns        named arrival points { x, y, facing }
- *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn }
- *   interactables { id, kind: 'inspect', x, y, name, text } (they block the tile)
+ *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn, prompt?, text? }
+ *                 'interact' exits need a `prompt` (the hint shown when you face them);
+ *                 `text` is shown on arrival
+ *   interactables { id, kind: 'inspect'|'pickup', x, y, name, text, item?, sprite? } (they block the tile;
+ *                 a pickup gives `item` once per run through the engine, using the normal loot rules)
+ *   encounters    { id, x, y, name, enemies: [enemy keys], trigger: 'contact', sprite, text? }
+ *                 visible enemies: walking into one starts a normal fight; E on it shows `text`
+ *   boundaries    { id, x, y, w, h, title, text } walkable area that shows a notice when you enter it
  *   lights        { x, y, radius } for dark maps (presentation only)
  * Validate after any change: `npm test` (tests/18-world.test.js).
  * ========================================================================= */
@@ -53,7 +59,9 @@
         'd': { name: 'shed_door_shut', solid: true },
         'p': { name: 'shed_roof', solid: true },
         'O': { name: 'well', solid: true },
-        'Q': { name: 'scarecrow', solid: true }
+        'Q': { name: 'scarecrow', solid: true },
+        'I': { name: 'signpost', solid: true },
+        'L': { name: 'rope', solid: true }
     };
 
     const maps = {
@@ -149,7 +157,7 @@
                 'T,,,,,,,,,,,,,:,,,,,,,,,o,,,,T',
                 'T,,,ppppp,,,,,:,,,,,,,,,,,,,,T',
                 'T,,,ppppp,,,,,:,,,,,,,,,,,,,,T',
-                'T,,,PPdPP,,,,,:,,,,,,,,O,,,,,T',
+                'T,,,PPDPP,,,,,:,,,,,,,,O,,,,,T',
                 'T,,,,,:,,,,,,,:,,,,,,,,:,,,,,T',
                 'T,,,,,::::::::::::::::::,,,,,T',
                 'T,,T,,,,,,,,,,:,,,,,,,,,,,T,,T',
@@ -163,32 +171,152 @@
                 'T,,,,,,,,,,,,,:,,,,,,,,,~~~~,T',
                 'T,,T,,,,,,,,,,::::::,,,,,~~,,T',
                 'T,,,,,,,,,,,,,,,,,,,:,,,,,,,,T',
-                'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT'
+                'TTTTTTTTTTTTTTTTTTTT:TTTTTTTTT'
             ],
             spawns: {
-                from_house: { x: 14, y: 4, facing: 'down' }
+                from_house: { x: 14, y: 4, facing: 'down' },
+                from_shed: { x: 6, y: 8, facing: 'down' },
+                from_well: { x: 23, y: 8, facing: 'down' },
+                from_road: { x: 20, y: 20, facing: 'up' }
             },
             exits: [
-                { id: 'grounds_house_door', x: 14, y: 3, trigger: 'step', toMap: 'house', toSpawn: 'from_grounds' }
+                { id: 'grounds_house_door', x: 14, y: 3, trigger: 'step', toMap: 'house', toSpawn: 'from_grounds' },
+                { id: 'grounds_shed_door', x: 6, y: 7, trigger: 'step', toMap: 'shed', toSpawn: 'from_grounds' },
+                { id: 'grounds_well', x: 23, y: 7, trigger: 'interact', toMap: 'well', toSpawn: 'from_top', prompt: 'Climb down the well',
+                    text: 'You test the rope, then climb down, hand over hand, into the cold.' },
+                { id: 'grounds_road', x: 20, y: 21, trigger: 'step', toMap: 'road', toSpawn: 'from_grounds' }
+            ],
+            encounters: [
+                { id: 'grounds_weed_rats', x: 5, y: 15, name: 'Rust Rats', enemies: ['rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
+                    text: 'Something rustles in the weeds: rats, two of them, with rust-coloured fur. They haven\'t seen you. Walk into them to fight.' }
             ],
             interactables: [
                 { id: 'grounds_scarecrow', kind: 'inspect', x: 16, y: 15, name: 'Scarecrow',
                     text: "A scarecrow in a farmer's coat, arms spread wide. Crows line its arms and don't stir as you come close. Its sack-cloth face is turned toward the road." },
                 { id: 'grounds_window', kind: 'inspect', x: 11, y: 3, name: 'Window',
                     text: 'Through the grime you can just make out the kitchen table, set for two.' },
-                { id: 'grounds_shed_door', kind: 'inspect', x: 6, y: 7, name: 'Shed door',
-                    text: 'The shed door is swollen tight in its frame.' },
-                { id: 'grounds_well', kind: 'inspect', x: 23, y: 7, name: 'Old well',
-                    text: 'A dark shaft. Cold air breathes up out of it. A rope is still tied to the crank.' }
+                { id: 'grounds_dead_tree', kind: 'inspect', x: 12, y: 17, name: 'Dead tree',
+                    text: 'Someone carved a mark into the bark: a single brushstroke of a circle, left open where it should close.' },
+                { id: 'grounds_pond', kind: 'inspect', x: 25, y: 19, name: 'Still pond',
+                    text: 'Black water, perfectly still. Your reflection looks back at you, and its hands are glowing too.' }
             ]
         }
     };
+
+    Object.assign(maps, {
+        // -----------------------------------------------------------------
+        shed: {
+            zoneId: 'forgotten_homestead',
+            name: 'The Old Shed',
+            ambient: { darkness: 0.55, lantern: 4.5 },
+            legend: { 't': { name: 'workbench', solid: true } },
+            tiles: [
+                'WWWWWWWWW',
+                'WSS==xx=W',
+                'W=======W',
+                'W=t===b=W',
+                'W=======W',
+                'W==x====W',
+                'WWWWDWWWW'
+            ],
+            lights: [{ x: 4, y: 5, radius: 2 }],
+            spawns: { from_grounds: { x: 4, y: 5, facing: 'up' } },
+            exits: [
+                { id: 'shed_door', x: 4, y: 6, trigger: 'step', toMap: 'grounds', toSpawn: 'from_shed' }
+            ],
+            interactables: [
+                { id: 'shed_bandages', kind: 'pickup', x: 2, y: 3, item: 'Bandages', name: 'Bandages', sprite: 'bundle',
+                    text: 'A roll of clean bandages under a tarp, as if someone meant to come back for them.' },
+                { id: 'shed_hooks', kind: 'inspect', x: 1, y: 1, name: 'Tool hooks',
+                    text: 'A row of tool hooks. Every tool is gone except a pair of shears, hung upside down.' },
+                { id: 'shed_crates', kind: 'inspect', x: 5, y: 1, name: 'Seed crates',
+                    text: 'Crates of seed packets, every one sorted and labelled. None of them were ever planted.' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        well: {
+            zoneId: 'forgotten_homestead',
+            name: 'Bottom of the Well',
+            ambient: { darkness: 0.78, lantern: 3.5 },
+            tiles: [
+                '#########',
+                '#rr.L..~#',
+                '#......~#',
+                '#.o...~~#',
+                '#.......#',
+                '#.......#',
+                '#########'
+            ],
+            lights: [{ x: 4, y: 1, radius: 2.2 }],
+            spawns: { from_top: { x: 4, y: 2, facing: 'down' } },
+            exits: [
+                { id: 'well_rope', x: 4, y: 1, trigger: 'interact', toMap: 'grounds', toSpawn: 'from_well', prompt: 'Climb the rope',
+                    text: 'You climb back up into the grey evening air.' }
+            ],
+            interactables: [
+                { id: 'well_carving', kind: 'inspect', x: 0, y: 4, name: 'Carved stone',
+                    text: 'A circle is cut into the stone, the stroke left open at the top. Beneath it, newer scratches: tallies, like the ones in the cellar.' },
+                { id: 'well_bottle', kind: 'pickup', x: 3, y: 5, item: 'Half-full Wine Bottle', name: 'Corked bottle', sprite: 'bottle',
+                    text: 'A bottle wedged between two stones, corked tight. Someone hid it down here.' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        road: {
+            zoneId: 'forgotten_homestead',
+            name: 'The Overgrown Road',
+            ambient: { darkness: 0.3, tint: 'rgba(58, 62, 80, 0.32)', fog: 'bottom' },
+            tiles: [
+                'TTTTTTTTT:TTTTTTTTTT',
+                'TTTTT,,,,:,,,T,TTTTT',
+                'TTTTT,T,,::,,,,TTTTT',
+                'TTTTT,,,,,:,,,,TTTTT',
+                'TTTTTT,,,,:,,,TTTTTT',
+                'TTTTT,,,,::,,o,TTTTT',
+                'TTTTT,,,,:,,,,,TTTTT',
+                'TTTTT,Y,,:,,,,,TTTTT',
+                'TTTTT,,,,::,,,,TTTTT',
+                'TTTTT,,,,,::,,,TTTTT',
+                'TTTTT,,,o,,:,,,TTTTT',
+                'TTTTT,,,,,,:,,TTTTTT',
+                'TTTTT,T,,,::,,,TTTTT',
+                'TTTTT,,,,,:,,,,TTTTT',
+                'TTTTT,,,,::,,,,TTTTT',
+                'TTTTT,,x,:,I,,,TTTTT',
+                'TTTTT,,,,:,,,,,TTTTT',
+                'TTTTTT,,,::,,,,TTTTT',
+                'TTTTT,,,,,::,,,TTTTT',
+                'TTTTT,,T,,,:,,,TTTTT',
+                'TTTTT,,,,,,::,,TTTTT',
+                'TTTTT,,,,,,,:,,TTTTT'
+            ],
+            spawns: { from_grounds: { x: 9, y: 1, facing: 'down' } },
+            exits: [
+                { id: 'road_back', x: 9, y: 0, trigger: 'step', toMap: 'grounds', toSpawn: 'from_road' }
+            ],
+            encounters: [
+                { id: 'road_wolf', x: 13, y: 10, name: 'Hungry Wolf', enemies: ['hungry_wolf'], trigger: 'contact', sprite: 'wolf',
+                    text: 'A gaunt wolf, nosing at the verge. It hasn\'t seen you. You could walk on by, or walk into it.' }
+            ],
+            interactables: [
+                { id: 'road_signpost', kind: 'inspect', x: 11, y: 15, name: 'Signpost',
+                    text: 'The letters have weathered away. One arrow is left, pointing on down the road.' },
+                { id: 'road_cart', kind: 'inspect', x: 7, y: 15, name: 'Overturned handcart',
+                    text: 'A handcart tipped on its side. Whatever it carried was taken, or walked off on its own.' }
+            ],
+            boundaries: [
+                { id: 'road_zone_edge', x: 5, y: 21, w: 10, h: 1, title: 'Beyond the Homestead',
+                    text: 'The road runs on into the fog, toward the wider world. The way beyond isn\'t open yet. (Coming later.)' }
+            ]
+        }
+    });
 
     const zone1 = {
         start: { map: 'cellar', spawn: 'start' },
         tileset,
         zones: {
-            forgotten_homestead: { name: 'The Forgotten Homestead', mapIds: ['cellar', 'house', 'grounds'] }
+            forgotten_homestead: { name: 'The Forgotten Homestead', mapIds: ['cellar', 'house', 'grounds', 'shed', 'well', 'road'] }
         },
         maps,
         intro: [

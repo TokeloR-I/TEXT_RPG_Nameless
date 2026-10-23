@@ -52,11 +52,16 @@
             const room = this.rooms[this.currentRoom];
             const idx = room.items.findIndex((i) => i.toLowerCase() === name.toLowerCase());
             if (idx === -1) { this.say(`You don't see a '${name}' here.`); return; }
-            const generic = room.items.splice(idx, 1)[0];
+            const received = this.grantItem(room.items.splice(idx, 1)[0]);
+            this.say(`You pick up the ${received}.`);
+        }
+
+        /** Put an item in the inventory, swapped per class if adaptiveLoot says so. Returns what you got. */
+        grantItem(generic) {
             const swap = this.data.adaptiveLoot[generic];
             const received = (swap && swap[this.player.className]) || generic;
             this.player.inventory.push(received);
-            this.say(`You pick up the ${received}.`);
+            return received;
         }
 
         findInventoryItem(name) {
