@@ -244,12 +244,16 @@ test('QA-20: secondary damage and Feast never grant Soul Energy or marked-hit in
     g.secondarySoulDamage(b, 4, g.player);
     assert.strictEqual(g.player.resource.current, 0, 'link kill has no resource payout');
     assert.strictEqual(g.combat.dealtDamageThisRound, false);
-    g.player.resource.current = 0;
-    feast(g);
-    a.hp = 2;
-    g.tickSoulFeast(a);
-    assert.strictEqual(g.player.resource.current, 0, 'Feast kill has no payout');
-    assert.strictEqual(g.combat.dealtDamageThisRound, false);
+    const g2 = soulFight(24);
+    const [x, y] = g2.combat.enemies;
+    chain(g2, [x, y]);
+    feast(g2);
+    g2.player.resource.current = 0;
+    g2.combat.dealtDamageThisRound = false;
+    x.hp = 2;
+    g2.tickSoulFeast(x);
+    assert.strictEqual(g2.player.resource.current, 0, 'Feast kill has no payout');
+    assert.strictEqual(g2.combat.dealtDamageThisRound, false);
 });
 
 test('QA-21: primary lethal death processes before snapshotted secondary damage', () => {
