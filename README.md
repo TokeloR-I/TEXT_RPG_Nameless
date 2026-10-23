@@ -58,6 +58,10 @@ Dev cheats: `add_xp <n>`, `become_hollow_king`, `unlock_events`
 Try changes without editing data: `node tools/balance.js --set gameRules.postFightHealPct=0.35`
 Balance knobs live in `gameRules`, `resourceRules` and `itemDefinitions` at the bottom of `src/data.js`.
 
+## Adding to the world
+Maps, exits, pickups and enemies are data in `src/world/zone1.js`. `npm run world` prints and checks them.
+Full guide: [docs/WORLD_MAPS.md](docs/WORLD_MAPS.md).
+
 ## Pending design decisions
 `node tools/pending-decisions.js` — every status-system value still awaiting approval (pending = feature off).
 

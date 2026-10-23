@@ -7,7 +7,9 @@
  * `legend` if it overrides one. Coordinates are tile columns/rows from 0,0
  * at the top left. Things placed on a map:
  *   spawns        named arrival points { x, y, facing }
- *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn }
+ *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn, prompt?, text? }
+ *                 'interact' exits need a `prompt` (the hint shown when you face them);
+ *                 `text` is shown on arrival
  *   interactables { id, kind: 'inspect'|'pickup', x, y, name, text, item?, sprite? } (they block the tile;
  *                 a pickup gives `item` once per run through the engine, using the normal loot rules)
  *   encounters    { id, x, y, name, enemies: [enemy keys], trigger: 'contact', sprite, text? }
@@ -180,7 +182,7 @@
             exits: [
                 { id: 'grounds_house_door', x: 14, y: 3, trigger: 'step', toMap: 'house', toSpawn: 'from_grounds' },
                 { id: 'grounds_shed_door', x: 6, y: 7, trigger: 'step', toMap: 'shed', toSpawn: 'from_grounds' },
-                { id: 'grounds_well', x: 23, y: 7, trigger: 'interact', toMap: 'well', toSpawn: 'from_top',
+                { id: 'grounds_well', x: 23, y: 7, trigger: 'interact', toMap: 'well', toSpawn: 'from_top', prompt: 'Climb down the well',
                     text: 'You test the rope, then climb down, hand over hand, into the cold.' },
                 { id: 'grounds_road', x: 20, y: 21, trigger: 'step', toMap: 'road', toSpawn: 'from_grounds' }
             ],
@@ -249,7 +251,7 @@
             lights: [{ x: 4, y: 1, radius: 2.2 }],
             spawns: { from_top: { x: 4, y: 2, facing: 'down' } },
             exits: [
-                { id: 'well_rope', x: 4, y: 1, trigger: 'interact', toMap: 'grounds', toSpawn: 'from_well',
+                { id: 'well_rope', x: 4, y: 1, trigger: 'interact', toMap: 'grounds', toSpawn: 'from_well', prompt: 'Climb the rope',
                     text: 'You climb back up into the grey evening air.' }
             ],
             interactables: [

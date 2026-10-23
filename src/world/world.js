@@ -133,6 +133,7 @@
                 exitAt.set(`${e.x},${e.y}`, e.id);
                 if (!TRIGGERS.includes(e.trigger)) err(`${where}: exit ${e.id} has unknown trigger '${e.trigger}'`);
                 if (e.trigger === 'step' && isSolidTile(world, map, e.x, e.y)) err(`${where}: step exit ${e.id} is on a solid tile`);
+                if (e.trigger === 'interact' && !e.prompt) err(`${where}: interact exit ${e.id} needs a prompt (what pressing E does)`);
                 const dest = world.maps[e.toMap];
                 if (!dest) err(`${where}: exit ${e.id} goes to unknown map '${e.toMap}'`);
                 else if (!(dest.spawns || {})[e.toSpawn]) err(`${where}: exit ${e.id} goes to unknown spawn '${e.toMap}.${e.toSpawn}'`);
@@ -286,6 +287,18 @@
             const exit = this.exitAt(fx, fy, 'interact');
             if (exit) return this.transition(exit);
             return { type: 'nothing' };
+        }
+
+        /** What pressing E would do right now, for the on-screen hint: { verb, name } or null. */
+        prompt() {
+            const [fx, fy] = this.facingTile();
+            const obj = this.objectAt(fx, fy);
+            if (obj && isEncounter(this.map, obj)) return { verb: this.cooldown === obj.id ? 'Step away first' : 'Walk into it to fight', name: obj.name || 'Enemy', kind: 'encounter' };
+            if (obj && obj.kind === 'pickup') return { verb: 'Pick up', name: obj.name || obj.item, kind: 'pickup' };
+            if (obj) return { verb: 'Inspect', name: obj.name || 'something', kind: 'inspect' };
+            const exit = this.exitAt(fx, fy, 'interact');
+            if (exit) return { verb: exit.prompt, name: null, kind: 'exit' };
+            return null;
         }
 
         transition(exit) {

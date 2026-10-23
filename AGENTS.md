@@ -71,7 +71,8 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 | `npm run backlog` | skill effects not built yet |
 | `npm run pending` | design values still awaiting approval |
 | `npm run play` | play in the terminal (`-- --seed 42` for a repeatable run) |
-| `npm run build` | single-file build in `dist/` (CI also produces it on every PR) |
+| `npm run build` | single-file builds in `dist/` (CI also produces them on every PR) |
+| `npm run world` | print and validate the world maps (`docs/WORLD_MAPS.md` explains the format) |
 
 ## 7. Don't
 - Don't remove the dev cheats (`add_xp`, `become_hollow_king`, `unlock_events`).
