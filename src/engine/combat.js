@@ -104,6 +104,7 @@
                 if (actor.hp <= 0 || actor.erased) { c.idx++; continue; }
 
                 if (this.startTurn(actor)) {
+                    this.advanceSoulLinkClock(actor);
                     if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = 'await_recovery';
                     if (actor.hp > 0 && actor.isPlayer) {
                         // QA-5: pause on the player's skipped turn instead of simulating on by itself.
@@ -134,6 +135,7 @@
                 this.say(`--- ${actor.name}'s Turn! ---`, { important: true });
                 if (actor.isMinion) this.minionTurn(actor); else this.enemyTurn(actor);
                 this.endNormalTurn(actor);
+                this.advanceSoulLinkClock(actor);
                 if (actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
                 c.idx++;
             }
