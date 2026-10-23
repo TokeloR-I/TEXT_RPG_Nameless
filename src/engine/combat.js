@@ -24,7 +24,7 @@
             this.combat = {
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
-                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
+                usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0, nextFallenOrder: 0,
                 traps: [], delayed: [], extraTurn: false, hpHistory: []
             };
             this.player.statusEffects = [];
