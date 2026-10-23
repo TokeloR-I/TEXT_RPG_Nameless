@@ -301,7 +301,9 @@
         }
 
         minionTurn(minion) {
-            const target = this.alive(this.combat.enemies)[0];
+            const living = this.alive(this.combat.enemies);
+            const focusId = this.hasTrait('Grave Command') && this.combat.graveCommandTargetId;
+            const target = living.find(e => e.id === focusId) || living[0];
             if (!target) { this.say(`${minion.name} has no target to attack.`); return; }
             this.castSkill(minion, minion.skills[0], [target]);
         }
