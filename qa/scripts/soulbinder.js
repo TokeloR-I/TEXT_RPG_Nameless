@@ -1,10 +1,11 @@
 // Soulbinder Soul Chain / Soul Feast (Rook, PR #52): independent checks against
 // docs/design/SOULBINDER_N3_N4_IMPLEMENTATION_CONTRACT.md (PR #48, cases 1-10) and the
-// K1-K3 amendment (PR #54, cases 11-16; open at the time of writing, marked "#54").
+// K1-K3 amendment (PR #54, cases 11-16, marked "#54"), plus caster-clock paths 17-22 (stun, Haste, item,
+// recast, caster death, restore into a fresh engine) added for the re-review of head 077633f.
 //   node qa/scripts/soulbinder.js                 (this repo)
 //   ENSO_ROOT=/path/to/checkout node qa/scripts/soulbinder.js
 const path = require('path');
-const ROOT = process.env.ENSO_ROOT || path.join(__dirname, '..', '..');
+const ROOT = path.resolve(process.env.ENSO_ROOT || path.join(__dirname, '..', '..'));
 const { GameEngine } = require(path.join(ROOT, 'src/engine.js'));
 const DATA = require(path.join(ROOT, 'src/data.js'));
 const T = (evs) => evs.filter((e) => e.type === 'text').map((e) => e.text).join('\n');
@@ -199,7 +200,7 @@ check('10b', 'Snapshot / restore mid-link: replaying the same commands gives the
     return { ok: a === b, note: `replay after restore identical: ${a === b}` };
 });
 
-// ===================================================================== #54 amendment (K1-K3), open PR
+// ===================================================================== #54 amendment (K1-K3)
 check('11 (#54 K1)', 'One group clock: link lasts the same number of caster turns whatever the members\' speed', () => {
     const lasts = (spdA, spdB) => {
         const g = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'], spd: 10, patch: { shackled_ghoul: { spd: spdA }, cellar_vermin: { spd: spdB } } });
@@ -274,6 +275,54 @@ check('16 (#54)', 'Primary direct hits keep ordinary rules: Expose applies, Mark
 });
 
 // ===================================================================== extra checks
+// ===================================================================== caster-side clock paths (Rook's re-review asks, head 077633f)
+/** Caster opportunities after the cast until the group is gone; `step(g, i)` plays opportunity i. */
+const clockRun = (setup, step, max = 8) => {
+    const g = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'], spd: 40 }); setup && setup(g);
+    g.do('soul chain 1,2'); let n = 0;
+    while (g.mode === 'combat' && n < max && g.activeSoulLinks(g.player).length) { step(g, n); n++; }
+    return { g, n };
+};
+check('17', 'Caster clock counts a stunned (skipped) caster turn exactly once', () => {
+    let skips = 0;
+    const { n } = clockRun(null, (g, i) => {
+        if (i === 0) g.applyStatus(E(g, 0), g.player, { name: 'Stun', type: 'skip_turn', duration: 1 });
+        if (g.combat.awaitingContinue) { skips++; g.do('ok', null); } else g.do('guard', 0);
+        if (g.combat && g.combat.awaitingContinue && g.activeSoulLinks(g.player).length === 0) skips++;
+    });
+    return { ok: n === 3 && skips >= 1, note: `skipped caster turns seen: ${skips}; inputs while linked: ${n} (guard, skipped turn, guard = 3 opportunities; if the skip did not count it would take 4)` };
+});
+check('18', 'Haste bonus actions do not consume the caster clock', () => {
+    const plain = clockRun(null, (g) => g.do('guard', 0)).n;
+    const hasted = clockRun((g) => g.player.skills.push('haste'), (g, i) => g.do(i === 0 ? 'haste' : 'guard', 9)).n;
+    return { ok: plain === 3 && hasted === 4, note: `plain: ${plain} inputs; with one Haste: ${hasted} (the bonus action adds an input but no opportunity; expect 3 / 4)` };
+});
+check('19', 'Using an item ends a normal turn and counts on the caster clock', () => {
+    const { n } = clockRun((g) => g.player.inventory.push('Bandages', 'Bandages', 'Bandages'), (g) => { g.player.hp = 100; g.do('use bandages', 0); });
+    return { ok: n === 3, note: `item turns while linked: ${n} (expect 3)` };
+});
+check('20', 'Recast replaces the group and restarts the clock; a refused recast keeps the old group', () => {
+    const g = sb(); g.do('soul chain 1,2'); g.do('guard', 0);
+    g.do('soul chain 1,7');                                       // refused
+    const kept = linked(E(g, 0)) && linked(E(g, 1));
+    g.do('soul chain 2,3'); const swapped = !linked(E(g, 0)) && linked(E(g, 1)) && linked(E(g, 2));
+    let n = 0; while (g.mode === 'combat' && n < 8 && g.activeSoulLinks(g.player).length) { g.do('guard', 0); n++; }
+    return { ok: kept && swapped && n === 3, note: `refused recast kept 1+2: ${kept}; recast moved to 2+3: ${swapped}; new group lasted ${n} (expect 3)` };
+});
+check('21', 'Caster death clears the group at once', () => {
+    const g = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'] }); g.do('soul chain 1,2');
+    g.damage(g.player, 99999, E(g, 0));
+    const left = g.combat ? g.combat.enemies.filter(linked).length : 0;
+    return { ok: left === 0 || g.mode !== 'combat', note: `mode ${g.mode}; enemies still carrying a soul_link marker: ${left}` };
+});
+check('22', 'Fresh engine restored from a snapshot taken right after the cast expires the group on the same turn', () => {
+    const a = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'] }); a.do('soul chain 1,2'); const snap = JSON.parse(JSON.stringify(a.snapshot()));
+    const b = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'] }); b.restore(snap);
+    const count = (g) => { let n = 0; while (g.mode === 'combat' && n < 8 && g.activeSoulLinks(g.player).length) { g.do('guard', 0); n++; } return n; };
+    const na = count(a), nb = count(b);
+    return { ok: na === 3 && nb === 3, note: `original ${na}, restored-into-new-engine ${nb} (expect 3 / 3)` };
+});
+
 check('X1', 'Bone Wall on a linked recipient absorbs (and is used up by) a secondary link hit / a Feast tick', () => {
     const g = sb(); g.player.skills.push('Soul Feast'); link(g, [E(g, 0), E(g, 1)]);
     g.applyStatus(E(g, 1), E(g, 1), { name: 'Bone Wall', type: 'absorb', duration: 5 });
@@ -285,7 +334,8 @@ check('X1', 'Bone Wall on a linked recipient absorbs (and is used up by) a secon
 });
 check('X2', "Comma input elsewhere doesn't break single-target skills ('grave bolt 1,2')", () => {
     const g = sb(); const r0 = g.combat.round; const txt = g.do('grave bolt 1,2', 5);
-    return { ok: g.combat.round === r0 && g.player.resource.current === 5 && /Invalid target/.test(txt) && g.errors.length === 0, note: txt.split('\n').find((l) => /Invalid/.test(l)) };
+    const free = g.combat.round === r0 && g.player.resource.current === 5 && g.errors.length === 0;
+    return { ok: free && /Invalid target/.test(txt), note: `free and turn kept: ${free}; message: ${txt.split('\n').find((l) => /Invalid|Unknown|understand/.test(l))}` };
 });
 check('X3', 'The combat menu tells the player how to pick several targets', () => {
     const g = sb(); const menu = g.do('help me');
