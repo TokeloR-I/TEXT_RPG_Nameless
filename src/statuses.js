@@ -165,7 +165,13 @@
             return this.applyStatus(source || this.currentActor(), target, status);
         };
 
-        P.removeStatus = function (c, inst) { c.statusEffects = c.statusEffects.filter((s) => s !== inst); };
+        P.removeStatus = function (c, inst) {
+            c.statusEffects = c.statusEffects.filter(s => s !== inst);
+            if (inst && inst.type === 'soul_link' && this.combat) {
+                const owner = this.findCombatant(inst.appliedBy);
+                if (owner) this.activeSoulLinks(owner);
+            }
+        };
 
         // ---------------------------------------------------------------
         // Round-based duration (rule 11)
@@ -193,6 +199,11 @@
                     return false;
                 });
                 this.recoverControlResistance(x);
+            }
+            // A link whose members expired on different initiative turns never
+            // survives as an orphaned, one-member group.
+            for (const actor of [this.player, ...c.enemies, ...c.minions]) {
+                if (actor.hp > 0) this.activeSoulLinks(actor);
             }
         };
 
@@ -377,6 +388,10 @@
             if (!cats.length && !names.length) throw new Error('cleanse needs `categories` or `statuses` — there is no default "remove everything"');
             const removed = target.statusEffects.filter((s) => cats.includes(s.category) || names.includes(s.name));
             target.statusEffects = target.statusEffects.filter((s) => !removed.includes(s));
+            for (const s of removed.filter(s => s.type === 'soul_link')) {
+                const owner = this.findCombatant(s.appliedBy);
+                if (owner) this.activeSoulLinks(owner);
+            }
             return removed;
         };
 

@@ -39,6 +39,7 @@
                 if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
                 c.playerActedThisRound = true;
                 this.endNormalTurn(p);
+                this.advanceSoulLinkClock(p);
                 if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
                 c.idx++;
                 this.advance();
@@ -83,7 +84,15 @@
             const targets = this.pickTargets(skill, targetNum);
             if (!targets) {
                 const living = this.alive(c.enemies);
-                this.combatError(`Invalid target '${targetNum || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
+                if (skill.target === 'enemy_multiple') {
+                    // QA-24b: say how many targets are needed right now
+                    const n = this.multiTargetCount();
+                    const eg = Array.from({ length: n }, (_, i) => i + 1).join(',');
+                    this.combatError(`${skillName} needs exactly ${n} different enemies right now (e.g. '${command} ${eg}').`, null);
+                } else {
+                    const shown = Array.isArray(targetNum) ? targetNum.join(',') : targetNum;
+                    this.combatError(`Invalid target '${shown || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
+                }
                 return;
             }
             for (const effect of skill.effects || []) {
@@ -119,6 +128,7 @@
             }
             c.extraTurn = false;
             this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
+            this.advanceSoulLinkClock(p);
             if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
             c.idx++;
             this.advance();
@@ -135,6 +145,10 @@
 
         parseCombatInput(raw) {
             const cleaned = raw.toLowerCase().replace(/[’‘]/g, "'").trim().replace(/\s+/g, ' ');
+            // Several numbers ('soul chain 1,2' / '1 2'). Any command may be typed that way: single-target skills
+            // then get a clear "Invalid target '1,2'" instead of "Unknown combat command 'grave bolt 1,'" (QA-24a).
+            const multi = cleaned.match(/^(.+?)\s+(\d+(?:\s*[, ]\s*\d+)+)$/);
+            if (multi) return { command: multi[1].trim(), targetNum: multi[2].split(/[\s,]+/).map(Number) };
             const m = cleaned.match(/^(.+?)\s*[#@]?(\d+)$/);
             return m ? { command: m[1].trim(), targetNum: parseInt(m[2], 10) } : { command: cleaned, targetNum: null };
         }
@@ -184,9 +198,22 @@
             return [...starts, ...contains].slice(0, 3);
         }
 
+        /** How many distinct enemies an 'enemy_multiple' skill (Soul Chain) needs right now. */
+        multiTargetCount() {
+            return this.hasTrait('Wound Transfer') ? Math.min(3, this.alive(this.combat.enemies).length) : 2;
+        }
+
         pickTargets(skill, targetNum) {
             const living = this.alive(this.combat.enemies);
             const kind = skill.target || 'enemy_single';
+            if (kind === 'enemy_multiple') {
+                const count = this.multiTargetCount();
+                if (!Array.isArray(targetNum) || targetNum.length !== count ||
+                    new Set(targetNum).size !== count ||
+                    targetNum.some(n => !Number.isInteger(n) || n < 1 || n > living.length)) return null;
+                return targetNum.map(n => living[n - 1]);
+            }
+            if (kind === 'linked_enemies') return this.activeSoulLinks(this.player);
             if (kind === 'self' || kind === 'minions' || kind === 'ground') return [this.player];
             if (kind === 'ally_single' && !skill.base_damage) return [this.player];
             if (kind === 'corpse') return living; // Corpse Bloom: the blast hits everyone
@@ -215,6 +242,7 @@
                 const info = this.describeSkill(name);
                 let line = `> ${name}`;
                 const def = this.data.skillDefinitions[name];
+                if (def && def.target === 'enemy_multiple') line += ' (targets: 1,2 or 1 2; at L5: 1,2,3)';
                 const cost = def ? this.skillCost(def) : 0;
                 if (def && def.cost === 'all') line += ` [Cost: all ${this.player.resource.type}]`;
                 else if (cost) line += ` [Cost: ${cost} ${this.player.resource.type}]`;
