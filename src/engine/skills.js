@@ -159,11 +159,19 @@
 
         // Link damage is not a new attack: flat DEF, crit, attack riders and
         // stat scaling do not apply. The recipient still gets its own reductions.
-        secondarySoulDamage(target, raw, owner) {
+        secondarySoulDamage(target, raw, owner, effectName = 'Soul Chain') {
             if (!target || target.hp <= 0 || raw <= 0) return 0;
-            const immunity = (target.statusAffinities || {})['Soul Chain'] === 'immune';
-            if (immunity) return 0;
-            let adjusted = raw * this.linkedDamageMultiplier(target);
+            const affinities = target.statusAffinities || {};
+            if (affinities[effectName] === 'immune' || affinities.magic === 'immune') return 0;
+            const shield = this.statusOfType(target, 'absorb');
+            if (shield) {
+                this.removeStatus(target, shield);
+                this.say(`${target.name}'s ${shield.name} absorbs the incoming soul damage!`);
+                return 0;
+            }
+            // The owner/recipients were validated before the primary hit. Capture
+            // Wound Transfer independently of later group cleanup or member deaths.
+            let adjusted = raw * (owner && owner.isPlayer && this.hasTrait('Wound Transfer') ? 1.1 : 1);
             for (const status of target.statusEffects) {
                 if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
             }
@@ -183,7 +191,7 @@
                     continue;
                 }
                 // Only one normal-turn tick; secondaryLink suppresses chain propagation.
-                const loss = this.secondarySoulDamage(actor, drain.value, owner);
+                const loss = this.secondarySoulDamage(actor, drain.value, owner, 'Soul Feast');
                 this.say(`${actor.name} suffers ${loss} Soul Feast damage.`);
                 if (loss > 0 && owner.isPlayer && this.hasTrait('You heal for 100% of Soul Feast dmg')) {
                     this.heal(owner, loss);
