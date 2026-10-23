@@ -25,7 +25,7 @@
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
                 usedOncePerFight: {}, awaitingPlayer: false, nextMinionId: 1, nextSoulLinkId: 0,
-                traps: [], delayed: [], extraTurn: false, hpHistory: [], timers: [], nextTimerId: 0
+                traps: [], delayed: [], extraTurn: false, hpHistory: [], graveCommandTargetId: null, timers: [], nextTimerId: 0
             };
             this.player.statusEffects = [];
             this.player.shieldBashRecovery = null; // QA-2 #11: lockout bookkeeping never leaks between fights
@@ -298,7 +298,9 @@
         }
 
         minionTurn(minion) {
-            const target = this.alive(this.combat.enemies)[0];
+            const living = this.alive(this.combat.enemies);
+            const focusId = this.hasTrait('Grave Command') && this.combat.graveCommandTargetId;
+            const target = living.find(e => e.id === focusId) || living[0];
             if (!target) { this.say(`${minion.name} has no target to attack.`); return; }
             this.castSkill(minion, minion.skills[0], [target]);
         }
