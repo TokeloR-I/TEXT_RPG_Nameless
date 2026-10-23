@@ -107,3 +107,63 @@ test('Soul Chain: owner death and encounter cleanup prevent propagation', () => 
     g.do('engage');
     assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
 });
+
+test('Soul Chain CLI: explicit distinct target selection and cost guard', () => {
+    const g = soulFight();
+    g.player.resource.current = 5;
+    const before = g.player.resource.current;
+    g.do('soul chain 1,1');
+    assert.strictEqual(g.player.resource.current, before, 'duplicate targets refused without spending');
+    assert.strictEqual(g.combat.awaitingPlayer, true, 'invalid cast does not consume action');
+    g.do('soul chain 1,2');
+    assert.match(g.text(), /Soul Chain binds/);
+    assert.match(g.text(), /Used 1 Soul Energy/);
+});
+
+test('Soul Chain: Chain of Woe gets three targets and one Wound Transfer multiplier', () => {
+    const g = soulFight();
+    g.player.traits.push({ name: 'Wound Transfer' });
+    const [a, b, c] = g.combat.enemies;
+    chain(g, [a, b, c]);
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 3);
+    a.hp = 100;
+    b.hp = 100;
+    c.hp = 100;
+    hit(g, a, 10);
+    assert.strictEqual(a.hp, 90, 'direct primitive already reflects actual primary loss');
+    assert.strictEqual(b.hp, 95, 'floor(5 x 1.1) is 5 once');
+    assert.strictEqual(c.hp, 95);
+    g.cleanse(a, { statuses: ['Soul Chain'] });
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 2);
+    g.cleanse(b, { statuses: ['Soul Chain'] });
+    assert.strictEqual(g.activeSoulLinks(g.player).length, 0);
+});
+
+test('Soul Feast: Eidolon King heals only actual drained HP and stops at max HP', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    g.player.traits.push({ name: 'You heal for 100% of Soul Feast dmg' });
+    chain(g, [a, b]);
+    feast(g);
+    g.player.hp = g.player.maxHp - 3;
+    g.tickSoulFeast(a);
+    g.tickSoulFeast(b);
+    assert.strictEqual(g.player.hp, g.player.maxHp, 'healing capped at missing three HP');
+    a.hp = 1;
+    g.player.hp = 100;
+    g.tickSoulFeast(a);
+    assert.strictEqual(g.player.hp, 101, 'drain heals by actual HP removed, not overkill');
+});
+
+test('Soul Feast: targeted cleanse stops drain but leaves Soul Chain intact', () => {
+    const g = soulFight();
+    const [a, b] = g.combat.enemies;
+    chain(g, [a, b]);
+    feast(g);
+    g.cleanse(a, { statuses: ['Soul Feast'] });
+    assert.ok(g.findStatus(a, 'Soul Chain'));
+    g.tickSoulFeast(a);
+    g.tickSoulFeast(b);
+    assert.strictEqual(a.hp, 100);
+    assert.strictEqual(b.hp, 98);
+});
