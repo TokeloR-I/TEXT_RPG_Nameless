@@ -42,3 +42,11 @@ test('N-2: Plague Sovereign passive empowers other owned DoTs without bypassing 
   g.applyDot(g.player,b,{name:'Poison',value:5,duration:3});
   assert.strictEqual(g.findStatus(b,'Poison'),null);
 });
+
+test('N-2: all-resource cast refuses at zero without spending a turn',()=>{
+  const g=plague();g.player.resource.current=0;
+  const skill=g.data.skillDefinitions['Plague of Ages'];
+  const refusal=g.effects.apply_max_infection_aoe.requires({engine:g,caster:g.player,targets:g.combat.enemies,skill,effect:skill.effects[0]});
+  assert.match(refusal,/at least 1 Soul Energy/);
+  assert.ok(g.combat.enemies.every(e=>!g.infectionOn(e)));
+});
