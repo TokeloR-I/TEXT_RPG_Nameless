@@ -13,125 +13,35 @@
         // =====================================================================
         // Player combat input
         // =====================================================================
+        /** Text translator for combat (Phase 1 spec §4.5): parse, resolve target numbers, then the shared rules
+         *  in src/engine/actions.js. "Did you mean…" suggestions stay here, in the parser. */
         combatCommand(raw) {
             const c = this.combat;
             const p = this.player;
             this.clear();
             this.say(`> ${raw}`);
 
-            if (!c.awaitingPlayer) { this.say('Not your turn!'); return; }
-            if (c.awaitingContinue) {
-                // The player's turn was skipped (stun etc.): any input just moves on.
-                c.awaitingContinue = false;
-                c.awaitingPlayer = false;
-                c.idx++;
-                this.advance();
-                return;
-            }
+            if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
+            // The player's turn was skipped (stun etc.): any input just moves on.
+            if (c.awaitingContinue) { this.doContinue(); return; }
 
             const { command, targetNum } = this.parseCombatInput(raw);
 
             if (command === 'use' || command.startsWith('use ')) {
                 const name = command.slice(3).trim();
                 const item = name && this.findInventoryItem(name);
-                if (!item) { this.combatError(name ? `You don't have a '${name}'.` : 'Use what? (e.g. use bandages)', null); return; }
-                c.awaitingPlayer = false;
-                if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
-                c.playerActedThisRound = true;
-                this.endNormalTurn(p);
-                this.advanceSoulLinkClock(p);
-                if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
-                c.idx++;
-                this.advance();
+                if (!item) { this.refuseCombat('NO_ITEM', name ? `You don't have a '${name}'.` : 'Use what? (e.g. use bandages)'); return; }
+                this.combatUseItem(item);
                 return;
             }
-
-            if (command === 'flee') {
-                this.mode = 'explore';
-                this.combat = null;
-                p.statusEffects = [];
-                this.say('You fled!');
-                if (this.world && this.world.encounter) { this.worldFightEnded('fled'); return; }
-                this.describeRoom(false);
-                return;
-            }
+            if (command === 'flee') { this.doFlee(); return; }
 
             const skillName = command === 'attack' ? this.basicAttackName() : this.resolveSkillName(command);
             if (!skillName || (!p.skills.includes(skillName) && skillName !== this.basicAttackName())) {
-                this.combatError(skillName ? `You don't know the skill '${skillName}'.` : `Unknown combat command '${command}'.`, command);
+                this.refuseCombat(skillName ? 'SKILL_NOT_KNOWN' : 'UNKNOWN_SKILL', skillName ? `You don't know the skill '${skillName}'.` : `Unknown combat command '${command}'.`, command);
                 return;
             }
-            const skill = this.playerSkill(skillName);
-
-            if (this.statusOfType(p, 'silence') && skillName !== this.basicAttackName()) {
-                this.combatError(`You are silenced — only your basic attack works this turn.`, null);
-                return;
-            }
-            if (!this.isCastable(skill)) {
-                this.combatError(`${skillName} isn't implemented yet (missing: ${this.missingEffects(skill).join(', ')}).`, null);
-                return;
-            }
-            if (skill.oncePerFight && c.usedOncePerFight[skillName]) {
-                this.combatError(`${skillName} can only be used once per fight!`, null);
-                return;
-            }
-            const cost = this.skillCost(skill);
-            if (p.resource.current < cost) {
-                this.combatError(`Not enough ${p.resource.type}! (${skillName} needs ${cost}, you have ${p.resource.current})`, null);
-                return;
-            }
-
-            const targets = this.pickTargets(skill, targetNum);
-            if (!targets) {
-                const living = this.alive(c.enemies);
-                if (skill.target === 'enemy_multiple') {
-                    // QA-24b: say how many targets are needed right now
-                    const n = this.multiTargetCount();
-                    const eg = Array.from({ length: n }, (_, i) => i + 1).join(',');
-                    this.combatError(`${skillName} needs exactly ${n} different enemies right now (e.g. '${command} ${eg}').`, null);
-                } else {
-                    const shown = Array.isArray(targetNum) ? targetNum.join(',') : targetNum;
-                    this.combatError(`Invalid target '${shown || 'none specified'}'. Valid targets: ${living.map((e, i) => i + 1).join(', ')}. Example: '${command} 1'`, null);
-                }
-                return;
-            }
-            for (const effect of skill.effects || []) {
-                const h = this.effects[effect.type];
-                const problem = h && h.requires && h.requires({ engine: this, caster: p, targets, skill, effect });
-                if (problem) { this.combatError(problem, null); return; }
-            }
-
-            if (cost > 0) {
-                p.resource.current -= cost;
-                this.say(`Used ${cost} ${p.resource.type}.`);
-            }
-            if (skill.oncePerFight) c.usedOncePerFight[skillName] = true;
-            if (this.isMarkSkill(skill) && this.hasTrait('Hunter\'s Instinct') && !c.freeMarkUsedThisRound && skill.cost !== 'all') {
-                c.freeMarkUsedThisRound = true;
-                if (skill.cost) this.say("Hunter's Instinct: your first mark this turn is free.");
-            }
-
-            c.awaitingPlayer = false;
-            const isBasic = command === 'attack' || skillName === this.basicAttackName();
-            this.castSkill(p, skill, targets);
-            if (isBasic) {
-                this.resourceEvent('onBasicAttack', 1, 'combo');
-                if (this.hasTrait('Virulent Touch')) for (const t of targets) if (t.hp > 0 && !t.isPlayer) this.infect(p, t, 1);
-            }
-            c.playerActedThisRound = true;
-            if (this.mode === 'combat' && c.extraTurn && !this.checkBattleEnd()) {
-                c.extraTurn = false;
-                c.awaitingPlayer = true;
-                this.say('--- You act again! ---', { important: true });
-                this.showCombatState();
-                return;
-            }
-            c.extraTurn = false;
-            this.endNormalTurn(p); // the normal turn ends here, after any Haste bonus actions
-            this.advanceSoulLinkClock(p);
-            if (p.shieldBashRecovery === 'await_recovery') p.shieldBashRecovery = null;
-            c.idx++;
-            this.advance();
+            this.useSkill(skillName, { num: targetNum, command }, { viaAttack: command === 'attack' });
         }
 
         combatError(message, attempted) {

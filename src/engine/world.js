@@ -14,39 +14,20 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     class WorldMethods {
+        // The intents are actions now (Phase 1 spec §6A.1, src/engine/actions.js performWorld()).
+        // These names stay as thin wrappers that return events, as before.
+
         /** Start keeping world run flags. Call once after choosing a class. */
-        enterWorld() {
-            this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null };
-            return this.flush();
-        }
+        enterWorld() { return this.act({ type: 'enter_world' }).events; }
 
         isCollected(id) { return !!this.world && this.world.collected.includes(id); }
         isDefeated(id) { return !!this.world && this.world.defeated.includes(id); }
 
         /** Pick up a world object once per run. Uses the same loot rules as `take`. */
-        worldPickup(id, item) {
-            return this.transact(() => {
-                if (!this.world) throw new Error('worldPickup before enterWorld');
-                if (this.mode !== 'explore') { this.say('Not now.'); return; }
-                if (this.isCollected(id)) { this.say('There is nothing left here.'); return; }
-                this.world.collected.push(id);
-                const received = this.grantItem(item);
-                this.say(`You pick up the ${received}.`, { important: true });
-            });
-        }
+        worldPickup(id, item) { return this.act({ type: 'world_pickup', pickupId: id, item }).events; }
 
         /** Start the fight for a visible map encounter. Normal combat rules from here on. */
-        worldEncounter(id, enemyKeys) {
-            return this.transact(() => {
-                if (!this.world) throw new Error('worldEncounter before enterWorld');
-                if (this.mode !== 'explore') { this.say('Not now.'); return; }
-                if (this.isDefeated(id)) { this.say('Nothing stirs here any more.'); return; }
-                this.world.encounter = id;
-                this.world.lastEncounter = null;
-                this.world.lastResult = null;
-                this.startCombat(enemyKeys, `world:${id}`);
-            });
-        }
+        worldEncounter(id, enemyKeys) { return this.act({ type: 'world_encounter', encounterId: id, enemies: enemyKeys }).events; }
 
         /** Called by the combat code when a world encounter ends: 'victory' | 'fled' | 'defeat'. */
         worldFightEnded(result) {

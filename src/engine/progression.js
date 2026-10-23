@@ -58,7 +58,7 @@
             const key = input.trim().replace(/\s+/g, '_');
             const match = Object.keys(tree.branches).find((k) => k === key || tree.branches[k].name.toLowerCase() === input.trim());
             if (!match) {
-                this.say('That is not one of your paths.');
+                this.refuse('INVALID_BRANCH', 'That is not one of your paths.');
                 this.pendingBranchChoice = true;
                 this.maybePromptBranch();
                 return;
