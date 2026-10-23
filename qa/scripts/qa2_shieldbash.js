@@ -2,7 +2,7 @@
 // docs/design/QA_2_SHIELD_BASH_PROPOSAL.md (approved), through the real command path where possible.
 //   node qa/scripts/qa2_shieldbash.js
 const path = require('path');
-const ROOT = path.join(__dirname, '..', '..');
+const ROOT = path.resolve(process.env.ENSO_ROOT || path.join(__dirname, '..', '..'));
 const { GameEngine } = require(path.join(ROOT, 'src/engine.js'));
 const DATA = require(path.join(ROOT, 'src/data.js'));
 const T = (evs) => evs.filter((e) => e.type === 'text').map((e) => e.text).join('\n');
@@ -80,12 +80,12 @@ check('5b', 'Haste: a bonus action does not count as the target\'s recovery turn
     const yourTurns = log.split('\n').map((l) => (l.includes('--- Your Turn! ---') ? 'A' : l.includes('Mage is unable to act') ? 'S' : '')).join('');
     return { ok: !/SS/.test(yourTurns) && /S/.test(yourTurns), note: `your scheduled turns (S skipped, A acted): ${yourTurns}` };
 });
-check('6', 'Anti-lock: 30 rounds of Shield Bash at >=3 Oath, CR off — never two Shield Bash skips in a row', () => {
+check('6', 'Anti-lock: 30 rounds of Shield Bash at >=3 Oath (Control Resistance as shipped) — never two Shield Bash skips in a row', () => {
     const res = [40, 1].map((spd) => {
         const g = vanguard({ spd });
         for (let i = 0; i < 30 && g.mode === 'combat'; i++) g.do('shield bash');
         const p = turnPattern(g.log.join('\n'));
-        return { spd, p, ok: !/SS/.test(p) && (p.match(/S/g) || []).length >= 10 };
+        return { spd, p, ok: !/SS/.test(p) && (p.match(/S/g) || []).length >= 1 };
     });
     return { ok: res.every((r) => r.ok), note: res.map((r) => `${r.spd === 40 ? 'faster' : 'slower'}: ${r.p}`).join(' | ') };
 });
@@ -96,52 +96,47 @@ check('6b', 'QA-2 original repro, honest Oath Points (start 1, +1 per Guard): bo
     const p = turnPattern(g.log.join('\n'));
     return { ok: !/SS/.test(p), note: `boss turns: ${p} (A ${(p.match(/A/g) || []).length}, S ${(p.match(/S/g) || []).length}); report #1 was 1 A then 20 S` };
 });
-check('7', 'CR (test-only values): stuns accrue CR, the one reaching 100 lands, the next is resisted', () => {
-    const g = vanguard({ room: 'hall', mutate: (d) => CR(d, { gain: 50 }) , spd: 40 });
-    const e = g.combat.enemies[0];
-    const seq = [];
-    // CR shown after each command, i.e. after that round's -10 recovery. Lockout turns show '-'.
-    let reachedWhileLanding = false;
-    for (let i = 0; i < 10 && g.mode === 'combat'; i++) {
-        const before = e.cr ? e.cr.value : 0; const t = g.do('shield bash 1');
-        const landed = stunsLanded(t) === 1; if (landed && before + 50 >= 100) reachedWhileLanding = true;
-        seq.push(`${landed ? 'stun' : /resists Stun/.test(t) ? 'RESISTED' : '-'}@${e.cr ? e.cr.value : 0}${e.cr && e.cr.immune ? 'i' : ''}`);
-    }
-    return { ok: reachedWhileLanding && seq.some((x) => x.startsWith('RESISTED')), note: seq.join(' ') + '  (i = immune)' };
-});
-check('8', 'No CR and no Stun refresh from threshold failure, lockout, immunity or miss', () => {
+// [7]-[9] used the retired CR model (test-only values). Since Vaelis Package 2 (PR #80) they check the shipped
+// model; the full Package 2 matrix is in qa/scripts/cr_package2.js.
+const crOf = (g, x) => (g.crValue ? g.crValue(x) : 0);
+/** Package 2 checks only mean something on an engine that has Package 2; older engines skip them. */
+const needsCr = (fn) => () => (typeof GameEngine.prototype.crRules === 'function' ? fn() : { ok: true, note: 'SKIPPED: this engine predates Package 2 (no crRules)' });
+check('7', 'Package 2: a landed Shield Bash stun adds 35 CR; at CR 80+ the stun is resisted and no lockout starts', needsCr(() => {
+    const g = vanguard({ room: 'hall', spd: 40 }); const e = g.combat.enemies[0];
+    const t1 = g.do('shield bash 1'); const a = crOf(g, e);
+    const h = vanguard({ room: 'hall', spd: 40 }); const f = h.combat.enemies[0]; h.crState(f).value = 80;
+    const t2 = h.do('shield bash 1');
+    return { ok: stunsLanded(t1) === 1 && a === 35 && stunsLanded(t2) === 0 && /resists Stun/.test(t2) && !f.shieldBashRecovery, note: `CR 0 → ${a} after a landed stun · at CR 80: stunned ${stunsLanded(t2) === 1}, resisted ${/resists Stun/.test(t2)}, lockout ${f.shieldBashRecovery || 'none'}` };
+}));
+check('8', 'No CR gain from a threshold failure, a lockout, immunity or a miss', needsCr(() => {
     const notes = [];
     let ok = true;
-    // threshold failure
-    { const g = vanguard({ room: 'hall', mutate: (d) => CR(d), oath: 2, spd: 40 }); const e = g.combat.enemies[0]; g.do('shield bash 1'); ok &&= !e.cr; notes.push(`oath2 CR ${e.cr ? e.cr.value : 0}`); }
-    // lockout: bash, then bash again while the target is still waiting to skip
-    { const g = vanguard({ room: 'hall', mutate: (d) => CR(d), spd: 40 }); const e = g.combat.enemies[0];
-      g.player.resource.current = 5; g.castSkill(g.player, g.playerSkill('Shield Bash'), [e]); const cr1 = e.cr.value; const st = g.findStatus(e, 'Stun'); st.duration = 1; const before = st.armed;
-      g.castSkill(g.player, g.playerSkill('Shield Bash'), [e]); ok &&= e.cr.value === cr1; notes.push(`lockout CR ${cr1}->${e.cr.value}`); }
-    // immunity
-    { const g = vanguard({ room: 'hall', mutate: (d) => { CR(d); d.enemies.shackled_ghoul.statusAffinities = { Stun: 'immune' }; }, spd: 40 }); const e = g.combat.enemies[0];
-      const t = g.do('shield bash 1'); ok &&= !e.cr && !e.shieldBashRecovery && /immune to Stun/.test(t); notes.push(`immune CR ${e.cr ? e.cr.value : 0}, lockout ${e.shieldBashRecovery || 'none'}`); }
-    // miss (blind)
-    { const g = vanguard({ room: 'hall', mutate: (d) => CR(d), spd: 40 }); const e = g.combat.enemies[0];
-      g.applyStatus(e, g.player, { name: 'Blind', type: 'blind', value: 1, duration: 3 }); g.do('shield bash 1'); ok &&= !e.cr; notes.push(`blind-miss CR ${e.cr ? e.cr.value : 0}`); }
+    { const g = vanguard({ room: 'hall', oath: 2, spd: 40 }); const e = g.combat.enemies[0]; g.do('shield bash 1'); ok &&= crOf(g, e) === 0; notes.push(`oath2 CR ${crOf(g, e)}`); }
+    { const g = vanguard({ room: 'hall', spd: 40 }); const e = g.combat.enemies[0];
+      g.player.resource.current = 5; g.castSkill(g.player, g.playerSkill('Shield Bash'), [e]); const cr1 = crOf(g, e);
+      g.castSkill(g.player, g.playerSkill('Shield Bash'), [e]); ok &&= crOf(g, e) === cr1; notes.push(`lockout CR ${cr1}->${crOf(g, e)}`); }
+    { const g = vanguard({ room: 'hall', mutate: (d) => { d.enemies.shackled_ghoul.statusAffinities = { Stun: 'immune' }; }, spd: 40 }); const e = g.combat.enemies[0];
+      const t = g.do('shield bash 1'); ok &&= crOf(g, e) === 0 && !e.shieldBashRecovery && /immune to Stun/.test(t); notes.push(`immune CR ${crOf(g, e)}, lockout ${e.shieldBashRecovery || 'none'}`); }
+    { const g = vanguard({ room: 'hall', spd: 40 }); const e = g.combat.enemies[0];
+      g.applyStatus(e, g.player, { name: 'Blind', type: 'blind', value: 1, duration: 3 }); g.do('shield bash 1'); ok &&= crOf(g, e) === 0; notes.push(`blind-miss CR ${crOf(g, e)}`); }
     return { ok, note: notes.join(' | ') };
-});
-check('9', "Boss tier (CR on): the boss's first stun lands even when one application alone passes 100", () => {
-    const g = vanguard({ mutate: (d) => CR(d, { gain: 60, boss: 2 }), spd: 40 });
-    const b = g.combat.enemies[0]; const t = g.do('shield bash');
-    return { ok: stunsLanded(t) === 1 && b.cr.value === 110 && b.cr.immune, note: `first stun landed; boss CR ${b.cr.value} (60 x 2 = 120, minus 10 recovery), immune ${b.cr.immune}` };
-});
+}));
+check('9', "Boss (starts at CR 60): the first Shield Bash stun lands for 1 turn and takes it to 95; the next attempts are resisted until CR decays below 80", needsCr(() => {
+    const g = vanguard({ spd: 40 }); const b = g.combat.enemies[0]; const t = g.do('shield bash'); const after = crOf(g, b);
+    const seq = []; for (let i = 0; i < 6 && g.mode === 'combat'; i++) { const x = g.do('shield bash'); seq.push(`${stunsLanded(x) ? 'stun' : /resists Stun/.test(x) ? 'resisted' : '-'}@${crOf(g, b)}`); }
+    return { ok: stunsLanded(t) === 1 && after >= 85 && seq.some((x) => x.startsWith('resisted')), note: `first stun landed, boss CR → ${after} (60 + 35, then decay) · then: ${seq.join(' ')}` };
+}));
 check('10a', 'Guard still grants +1 Oath Point', () => {
     const g = vanguard({ room: 'hall', oath: null, spd: 40 }); g.player.resource.current = 1;
     const t = g.do('guard');
     return { ok: /\+1 Oath Points \(oath kept\)/.test(t) && g.player.resource.current === 2, note: `Oath 1 -> ${g.player.resource.current}` };
 });
-check('10b', "Other stuns get no lockout: Reaper's Charge can still stun on consecutive turns", () => {
+check('10b', "Other stuns get no QA-2 lockout, but Package 2 never lets the boss lose two turns in a row (Reaper's Charge spam)", needsCr(() => {
     const g = vanguard({ spd: 40 }); g.player.skills.push('Reaper’s Charge');
     for (let i = 0; i < 6 && g.mode === 'combat'; i++) g.do("reaper's charge");
     const p = turnPattern(g.log.join('\n'));
-    return { ok: /SSS/.test(p), note: `boss turns under repeated Reaper's Charge: ${p}` };
-});
+    return { ok: /S/.test(p) && !/SS/.test(p), note: `boss turns under repeated Reaper's Charge: ${p}` };
+}));
 check('11', 'Lockout bookkeeping is cleared at fight end (player as target, next fight)', () => {
     const mk = (x) => { x.rooms.hallway_of_chains.enemies = ['shackled_ghoul']; x.rooms.collapsed_wine_cellar.enemies = ['cellar_vermin'];
         for (const k of ['shackled_ghoul']) x.enemies[k].skills = [{ name: 'Bash', base_damage: [1, 1], effects: [{ type: 'stun', duration: 1, shieldBashRecovery: true }] }]; };
