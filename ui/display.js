@@ -1,7 +1,7 @@
 /* =========================================================================
  * Enso's Last Stand — DISPLAY FIT (no DOM)
  * How big the game stage is drawn (Pixie, UI-2, docs/ui/STYLE_GUIDE.md "Resolution and scaling").
- * The world canvas is 640×448; one canvas pixel is the art's pixel, so only whole-number scales keep
+ * The world canvas is 480×270 (16:9, 30×17 tiles of 16 px; Keel's engine decision rev 2); one canvas pixel is the art's pixel, so only whole-number scales keep
  * every pixel the same width. Pure so it is tested headlessly (tests/39-display.test.js).
  *
  * Modes:
@@ -10,17 +10,17 @@
  *   auto  : pixel when the whole-number size is at least AUTO_MIN of the fill size, else fill.
  *           So big screens get crisp 2× or 3×, and a laptop doesn't drop to a tiny 1×.
  * On a portrait phone the stage takes the whole width and height, and the canvas becomes a
- * PORTRAIT_W-wide column of the map (12 tiles across, as many rows as fit): tiles stay a usable size
+ * PORTRAIT_W-wide column of the map (18 tiles of 16 px across, as many rows as fit): tiles stay a usable size
  * and the camera follows you as it does on desktop.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
 
-    const BASE = { w: 640, h: 448 };
+    const BASE = { w: 480, h: 270 };
     const MODES = ['auto', 'pixel', 'fill'];
     const AUTO_MIN = 0.85;
-    const PORTRAIT_W = 384;
+    const PORTRAIT_W = 288;
     const LABELS = { auto: 'Auto', pixel: 'Pixel-perfect', fill: 'Fill the window' };
     const HELP = {
         auto: 'Crisp whole-pixel scaling when it fits well, otherwise fills the window.',

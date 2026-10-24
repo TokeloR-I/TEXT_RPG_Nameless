@@ -779,7 +779,7 @@
         const play = () => {
             const stage = $('world-stage');
             const overlay = document.createElement('canvas');
-            overlay.width = 640; overlay.height = 448;
+            overlay.width = canvas.width; overlay.height = canvas.height;
             overlay.className = 'black-flight-vfx';
             overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:12;';
             overlay.setAttribute('aria-hidden', 'true');
