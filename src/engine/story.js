@@ -31,7 +31,8 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const ORDER = { unseen: 0, available: 1, active: 2, complete: 3, failed: 3 };
-    const STORY_ACTIONS = new Set(['talk', 'dialogue_choice', 'dialogue_leave', 'world_inspect', 'world_enter', 'set_identity']);
+    const STORY_ACTIONS = new Set(['talk', 'dialogue_choice', 'dialogue_leave', 'world_inspect', 'world_enter', 'set_identity', 'black_flight', 'talk_crow']);
+    const UNREACHABLE = 'The crow cannot reach that perch yet.';
     const NAME_MAX = 24;
 
     class StoryMethods {
@@ -319,6 +320,10 @@
         /** While a conversation is open, only dialogue actions are accepted. Returns true if handled. */
         performStory(a) {
             const s = this.story;
+            if (a.type === 'black_flight' && s) {                 // refused with its own reason in every state
+                const block = this.flightBlock();
+                if (block) { this.refuse(block.code, block.message); if (s.dialogue) this.showDialogueChoices(); return true; }
+            }
             if (s && s.dialogue) {
                 if (a.type === 'dialogue_choice') { this.chooseDialogue(String(a.choiceId)); return true; }
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
@@ -334,7 +339,9 @@
             switch (a.type) {
                 case 'talk': this.startTalk(String(a.npcId || '')); return true;
                 case 'world_inspect': this.storyEvent({ type: 'inspect', id: String(a.objectId || '') }); return true;
-                case 'world_enter': this.storyEvent({ type: 'enter', id: String(a.mapId || '') }); return true;
+                case 'world_enter': s.at = String(a.mapId || ''); this.storyEvent({ type: 'enter', id: s.at }); return true;
+                case 'black_flight': this.blackFlight(String(a.anchorId || '')); return true;
+                case 'talk_crow': this.startTalk('crow'); return true;
                 case 'dialogue_choice': case 'dialogue_leave': this.refuse('WRONG_MODE', "You aren't talking to anyone."); return true;
                 default: return false;
             }
@@ -398,6 +405,60 @@
                 const tag = q.state === 'complete' ? '✓' : q.state === 'available' ? '·' : '›';
                 this.say(`${tag} ${q.title}${q.kind === 'main' ? '' : ' (side)'}${q.objective ? `: ${q.objective.text}` : ''}`);
             }
+        }
+
+        // =====================================================================
+        // Black Flight (Nahemoth's first aspect; docs/design/ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md)
+        //   Anchors are story data (chapter.anchors: { id: { name, region, map, spawn, requires? } }).
+        //   An anchor is attuned by the flag 'anchor:<id>' (set by visiting its marked place, or by the seal for
+        //   the homestead). Travel needs the flag 'aspect_nahemoth'. The engine checks the rules and says where
+        //   to go with a { type: 'world.travel', map, spawn, anchorId } event; the world moves the player and
+        //   reports the arrival with world_enter, exactly like walking in.
+        // =====================================================================
+        hasAspect() { return this.hasStoryFlag('aspect_nahemoth'); }
+
+        /** Why Black Flight can't be used at all right now, or null (pure). */
+        flightBlock() {
+            if (!this.hasAspect()) return { code: 'NO_ASPECT', message: 'You have no way to travel like that.' };
+            if (this.mode === 'combat') return { code: 'IN_COMBAT', message: 'Not in the middle of a fight. The crow will not carry a coward, or a corpse.' };
+            if (this.story.dialogue) return { code: 'IN_DIALOGUE', message: 'Finish the conversation first.' };
+            if (this.mode !== 'explore') return { code: 'WRONG_MODE', message: 'Not now.' };
+            return null;
+        }
+
+        /** Black Flight options (pure): one per attuned anchor, none before the aspect. */
+        flightAvailability() {
+            const anchors = (this.storyContent() || {}).anchors || {};
+            if (!this.story || !this.hasAspect()) return [];
+            const block = this.flightBlock();
+            const out = [];
+            for (const [anchorId, an] of Object.entries(anchors)) {
+                if (!this.hasStoryFlag(`anchor:${anchorId}`)) continue;     // never list places the player hasn't attuned
+                const here = this.story.at === an.map;
+                const opt = { type: 'black_flight', anchorId, name: an.name, region: an.region || null, here, enabled: true };
+                const fail = block || (here ? { code: 'HERE', message: `You are already at ${an.name}.` } : null)
+                    || (!this.storyAllows(an.requires) ? { code: 'UNREACHABLE', message: UNREACHABLE } : null);
+                if (fail) { opt.enabled = false; opt.reason = fail; }
+                out.push(opt);
+            }
+            return out;
+        }
+
+        blackFlight(anchorId) {
+            const an = ((this.storyContent() || {}).anchors || {})[anchorId];
+            if (!an || !this.hasStoryFlag(`anchor:${anchorId}`)) { this.refuse('UNKNOWN_ANCHOR', "The crow doesn't know that place. You have to have been there."); return; }
+            const opt = this.flightAvailability().find((o) => o.anchorId === anchorId);
+            if (!opt.enabled) { this.refuse(opt.reason.code, opt.reason.message); return; }
+            this.say(`Black feathers close around you. When they scatter, you are at ${an.name}.`, { important: true });
+            this.out.push({ type: 'world.travel', anchorId, map: an.map, spawn: an.spawn });
+        }
+
+        /** The crow's own talk option (pure): only once the aspect is owned. */
+        crowAvailability() {
+            if (!this.story || !this.hasAspect()) return [];
+            const opt = { type: 'talk_crow', enabled: true };
+            if (this.mode !== 'explore') { opt.enabled = false; opt.reason = { code: 'WRONG_MODE', message: 'Not now.' }; }
+            return [opt];
         }
 
         /** getState().story (only when a chapter is running, so text-game state is unchanged). */
