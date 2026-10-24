@@ -42,6 +42,22 @@ const inHead = (x, y) => { const dx = (x + 0.5 - HEAD.cx) / HEAD.rx, dy = (y + 0
 // ---------------------------------------------------------------------------
 // Body: head, skin, eyes, arms, trousers, boots. Poses: stand, stepA, stepB.
 // ---------------------------------------------------------------------------
+/** Arms and legs seen from the front or back. Action poses (GFX-2) move the arms; 'kneel' folds the legs
+ *  (the death animation also lowers the whole body with its bob, so every layer stays aligned). */
+function frontArmsAndLegs(g, step, pose) {
+    const arms = {
+        // Action arms reach outside the sleeves and the hair so they read over every outfit and style.
+        windup: [[6, 16, 2, 7], [18, 8, 2, 9]],      // weapon arm raised beside the head
+        strike: [[6, 16, 2, 7], [18, 17, 2, 9]],     // ...and swung down and out
+        cast: [[4, 8, 2, 9], [18, 8, 2, 9]],         // both hands up
+        hit: [[3, 15, 2, 6], [19, 15, 2, 6]]         // thrown back
+    }[pose] || [[6, 16 - step, 2, 7], [16, 16 + step, 2, 7]];   // arms swing opposite the legs
+    for (const a of arms) box(g, ...a, 's');
+    if (pose === 'kneel') { box(g, 8, 24, 3, 2, 'p'); box(g, 13, 24, 3, 2, 'p'); box(g, 8, 26, 3, 2, 'b'); box(g, 13, 26, 3, 2, 'b'); return; }
+    box(g, 8, 24, 3, 5 - Math.max(0, step), 'p'); box(g, 13, 24, 3, 5 - Math.max(0, -step), 'p');
+    box(g, 8, 29 - Math.max(0, step), 3, 2, 'b'); box(g, 13, 29 - Math.max(0, -step), 3, 2, 'b');
+}
+
 function body(dir, pose) {
     const g = grid();
     const step = pose === 'stepA' ? 1 : pose === 'stepB' ? -1 : 0;
@@ -53,27 +69,25 @@ function body(dir, pose) {
         put(g, 11, 12, 'S'); put(g, 12, 12, 'S');
         box(g, 11, 15, 2, 1, 'S');                                     // neck
         box(g, 8, 16, 8, 8, 'p');                                      // undershirt / torso
-        // arms swing opposite the legs
-        box(g, 6, 16 - step, 2, 7, 's'); box(g, 16, 16 + step, 2, 7, 's');
-        // legs
-        box(g, 8, 24, 3, 5 - Math.max(0, step), 'p'); box(g, 13, 24, 3, 5 - Math.max(0, -step), 'p');
-        box(g, 8, 29 - Math.max(0, step), 3, 2, 'b'); box(g, 13, 29 - Math.max(0, -step), 3, 2, 'b');
+        frontArmsAndLegs(g, step, pose);
     } else if (dir === 'up') {
         box(g, 11, 15, 2, 1, 'S');
         box(g, 8, 16, 8, 8, 'p');
-        box(g, 6, 16 + step, 2, 7, 's'); box(g, 16, 16 - step, 2, 7, 's');
-        box(g, 8, 24, 3, 5 - Math.max(0, -step), 'p'); box(g, 13, 24, 3, 5 - Math.max(0, step), 'p');
-        box(g, 8, 29 - Math.max(0, -step), 3, 2, 'b'); box(g, 13, 29 - Math.max(0, step), 3, 2, 'b');
+        frontArmsAndLegs(g, -step, pose);
     } else { // left (right is mirrored)
         for (let y = 6; y <= 13; y++) put(g, 7, y, 's'); put(g, 6, 10, 's');   // nose bump
         put(g, 9, 10, 'e'); put(g, 9, 9, 'e');
         put(g, 8, 12, 'S');
         box(g, 11, 15, 3, 1, 'S');
         box(g, 9, 16, 6, 8, 'p');
-        box(g, 11 - step * 2, 17, 2, 6, 's');                           // near arm
-        // legs: one forward, one back when walking
-        box(g, 10 - step, 24, 2, 5, 'p'); box(g, 12 + step, 24, 2, 5, 'p');
-        box(g, 9 - step, 29, 3, 2, 'b'); box(g, 12 + step, 29, 2, 2, 'b');
+        const arm = { windup: [15, 8, 2, 9], strike: [3, 18, 8, 2], cast: [5, 9, 2, 8], hit: [15, 15, 3, 2] }[pose];
+        box(g, ...(arm || [11 - step * 2, 17, 2, 6]), 's');            // near arm
+        if (pose === 'kneel') { box(g, 9, 24, 5, 2, 'p'); box(g, 12, 26, 3, 2, 'b'); }
+        else {
+            // legs: one forward, one back when walking
+            box(g, 10 - step, 24, 2, 5, 'p'); box(g, 12 + step, 24, 2, 5, 'p');
+            box(g, 9 - step, 29, 3, 2, 'b'); box(g, 12 + step, 29, 2, 2, 'b');
+        }
     }
     return outline(g);
 }
@@ -202,7 +216,7 @@ const STYLES = [
 // Assemble the sheets
 // ---------------------------------------------------------------------------
 const DIRS = ['down', 'up', 'left'];
-const POSES = ['stand', 'stepA', 'stepB'];
+const POSES = ['stand', 'stepA', 'stepB', 'windup', 'strike', 'cast', 'hit', 'kneel'];
 const sheets = {};
 const mirrorFrames = (frames) => { for (const k of Object.keys(frames)) if (k.startsWith('left')) frames[k.replace('left', 'right')] = { mirror: k }; };
 

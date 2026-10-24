@@ -141,6 +141,7 @@ body {
 .battle-log p.sep { color: var(--ink-dim); font-size: 0.85em; }
 .battle-foot { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2cqw; align-items: start; }
 .battle-foot .tags { justify-content: flex-start; }
+.battle-foot .me-sprite { float: left; width: 56px; height: 72px; margin: 0 10px 4px 0; image-rendering: pixelated; }   /* GFX-2 battle sprite (layout: Sable) */
 .battle-menu .keys { margin-top: 0.4em !important; font-size: 0.85em; }
 
 /* Disabled actions remain inspectable: preserve readable refusal explanations.

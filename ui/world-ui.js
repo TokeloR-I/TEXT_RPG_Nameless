@@ -492,6 +492,7 @@
         muteHeldKeys();
         els.hud.hidden = true;
         battle = { id: result.id, log: [], ended: null, lastHp: {}, targetIds: [] };
+        playActor('idle');
         addLog(result.events);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
@@ -500,8 +501,33 @@
         if (battle.log.length > LOG_LINES) battle.log.splice(0, battle.log.length - LOG_LINES);
     }
     function send(action) {
-        addLog(engine.act(action).events);
+        const hpBefore = engine.player.hp;
+        const r = engine.act(action);
+        addLog(r.events);
+        if (r.ok) actorReacts(action, hpBefore);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
+    }
+
+    // The player's battle sprite (GFX-2, #106): which one-shot animation to play is a presentation
+    // choice made from the action and the HP change. The engine's rules never look at it.
+    const actor = { anim: 'idle', t0: 0, queue: [] };
+    function playActor(name, ...then) { actor.anim = name; actor.t0 = performance.now(); actor.queue = then; }
+    function actorReacts(action, hpBefore) {
+        const def = action.type === 'skill' && DATA.skillDefinitions[action.skillId];
+        const move = action.type === 'attack' || (def && def.damage_type === 'physical') ? 'attack'
+            : action.type === 'skill' || action.type === 'control' ? 'cast' : null;
+        const after = engine.mode === 'game_over' ? ['death'] : engine.player.hp < hpBefore ? ['hit'] : [];
+        if (move) playActor(move, ...after); else if (after.length) playActor(...after);
+    }
+    /** Draw the battle sprite; called every frame while the battle overlay is up. */
+    function drawActor(now) {
+        const c = els.combat.querySelector('canvas.me-sprite');
+        if (!c) return;
+        const S = ENSO.sprites, P = S.manifest.player;
+        if (actor.queue.length && S.animationDone(P, actor.anim, now - actor.t0)) playActor(...actor.queue);
+        const g = c.getContext('2d');
+        g.clearRect(0, 0, c.width, c.height);
+        S.drawCharacter(g, c.width / 2, c.height - 4, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'right', anim: actor.anim, scale: 2 }, now - actor.t0);
     }
     /** Menu items from battle-menu entries; `go` runs when an enabled entry is chosen. */
     const toItems = (list, go) => list.map((e) => ({ label: e.label, sub: e.sub, disabled: e.disabled, action: () => go(e) }));
@@ -599,6 +625,7 @@
             <div class="battle-log" aria-live="polite">${battle.log.map((l) => `<p class="${l.important ? 'imp' : ''} ${/^--- .* ---$/.test(l.text) ? 'sep' : ''}">${esc(l.text)}</p>`).join('')}</div>
             <div class="battle-foot">
                 <div class="me">
+                    <canvas class="me-sprite" width="56" height="72" aria-hidden="true"></canvas>
                     <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
                     <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${Math.max(0, p.hp)}/${p.maxHp}</span></div>
                     <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>
@@ -768,6 +795,7 @@
         if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
         if (!anim) view.moving = false;
         if (screen !== 'title') updatePrompt();
+        if (screen === 'combat' || screen === 'over') drawActor(now);
         const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
         const dim = screen === 'combat' || screen === 'over' ? 0.6 : view.fade;
         renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
@@ -778,6 +806,16 @@
     window.ensoDebug = {
         goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
         start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); },
+        actor(name) { playActor(name); return actor.anim; },
+        /** Stand next to a visible enemy on this map, facing it (then walk into it to fight). */
+        nextTo(id) {
+            const e = session.map.encounters.find((x) => x.id === id);
+            for (const [dx, dy, f] of [[0, 1, 'up'], [0, -1, 'down'], [1, 0, 'left'], [-1, 0, 'right']]) {
+                if (session.isBlocked(e.x + dx, e.y + dy)) continue;
+                session.x = e.x + dx; session.y = e.y + dy; session.facing = f; syncView(); return f;
+            }
+            return null;
+        },
         state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
     };
 

@@ -51,8 +51,13 @@
         // Each step: which pose frame to use, how long it shows (ms), and a vertical body offset (bob).
         animations: {
             idle: [{ pose: 'stand', ms: 520, oy: 0 }, { pose: 'stand', ms: 520, oy: 1 }],
-            walk: [{ pose: 'stepA', ms: 110, oy: 1 }, { pose: 'stand', ms: 110, oy: 0 }, { pose: 'stepB', ms: 110, oy: 1 }, { pose: 'stand', ms: 110, oy: 0 }]
-            // Later (GFX-2): attack, cast, hit, death. Same shape; the renderer only looks names up.
+            walk: [{ pose: 'stepA', ms: 110, oy: 1 }, { pose: 'stand', ms: 110, oy: 0 }, { pose: 'stepB', ms: 110, oy: 1 }, { pose: 'stand', ms: 110, oy: 0 }],
+            // One-shot actions (GFX-2). `once` plays through once and then rests on `then` (or holds its last
+            // step when `then` is absent: death). Front ends choose WHEN to play them; no rules live here.
+            attack: { once: true, then: 'idle', steps: [{ pose: 'windup', ms: 140, oy: 0 }, { pose: 'strike', ms: 120, oy: 1 }, { pose: 'strike', ms: 160, oy: 0 }, { pose: 'stand', ms: 80, oy: 0 }] },
+            cast: { once: true, then: 'idle', steps: [{ pose: 'cast', ms: 160, oy: 0 }, { pose: 'cast', ms: 220, oy: -1 }, { pose: 'cast', ms: 160, oy: 0 }, { pose: 'stand', ms: 80, oy: 0 }] },
+            hit: { once: true, then: 'idle', steps: [{ pose: 'hit', ms: 90, oy: -1 }, { pose: 'hit', ms: 140, oy: 0 }, { pose: 'stand', ms: 90, oy: 0 }] },
+            death: { once: true, steps: [{ pose: 'hit', ms: 160, oy: -1 }, { pose: 'kneel', ms: 220, oy: 2 }, { pose: 'kneel', ms: 1, oy: 3 }] }
         },
         // Bottom to top. Facing up, long hair falls over the back, so the rear hair goes above the clothing.
         layerOrder: {
@@ -77,13 +82,21 @@
     const warn = (id) => { if (missing.has(id)) return; missing.add(id); if (typeof console !== 'undefined') console.warn(`[sprites] missing sheet '${id}', using fallback`); };
     const fill = (tpl, c) => tpl.replace(/\{(\w+)\}/g, (_, k) => (Number.isInteger(c[k]) ? c[k] : 0));
 
-    /** Which animation step is showing at `time` (ms). Loops; every step lasts its own ms. */
+    /** An animation as { steps, once, then }. Plain arrays are looping animations. */
+    const animDef = (character, anim) => { const a = character.animations[anim] || character.animations.idle; return Array.isArray(a) ? { steps: a, once: false } : a; };
+    const duration = (steps) => steps.reduce((t, s) => t + s.ms, 0);
+    /** Has a one-shot animation finished after `elapsed` ms? (Looping ones never do.) */
+    function animationDone(character, anim, elapsed) { const a = animDef(character, anim); return !!a.once && elapsed >= duration(a.steps); }
+
+    /** Which animation step is showing at `time` (ms). Looping animations wrap; a one-shot one that has
+     *  finished shows its `then` animation (time counted from the end) or holds its last step. */
     function animationStep(character, anim, time) {
-        const steps = character.animations[anim] || character.animations.idle;
-        const total = steps.reduce((t, s) => t + s.ms, 0);
-        let t = ((time % total) + total) % total;
-        for (const s of steps) { if (t < s.ms) return s; t -= s.ms; }
-        return steps[0];
+        const a = animDef(character, anim);
+        const total = duration(a.steps);
+        if (a.once && time >= total) return a.then ? animationStep(character, a.then, time - total) : a.steps[a.steps.length - 1];
+        let t = a.once ? Math.max(0, time) : ((time % total) + total) % total;
+        for (const s of a.steps) { if (t < s.ms) return s; t -= s.ms; }
+        return a.steps[0];
     }
 
     /** The frame key a sheet has for (facing, pose): `${facing}.${pose}` first, then `${facing}`. */
@@ -256,12 +269,12 @@
         }
         for (const dir of FACINGS) for (const layer of ['body']) {
             const id = fill(typeof character.layers[layer] === 'string' ? character.layers[layer] : character.layers[layer].sheet, {});
-            for (const anim of Object.keys(character.animations)) for (const s of character.animations[anim]) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
+            for (const anim of Object.keys(character.animations)) for (const s of animDef(character, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
         }
         return errs;
     }
 
-    const api = { paletteFor, characterLayers, animationStep, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
+    const api = { paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
     ENSO.sprites = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
