@@ -101,6 +101,101 @@
             }
         }
 
+        /** Effective armor/weapon bonuses are reversible deltas, never permanent level stats. */
+        equipmentModifiers() {
+            const sum = {};
+            for (const name of Object.values(this.player.equipment || {})) {
+                const def = name && this.data.itemDefinitions[name];
+                for (const [stat, delta] of Object.entries((def && def.statModifiers) || {}))
+                    sum[stat] = (sum[stat] || 0) + delta;
+            }
+            return sum;
+        }
+
+        compareItem(name) {
+            const item = this.findInventoryItem(name);
+            const def = item && this.data.itemDefinitions[item];
+            if (!def || !['mainHand', 'bodyArmor', 'accessory'].includes(def.slot)) {
+                this.refuse('NOT_EQUIPMENT', 'Select a valid owned equipment item.'); return;
+            }
+            const current = this.player.equipment[def.slot];
+            const prev = this.data.itemDefinitions[current] || {};
+            const differences = {};
+            for (const stat of new Set([...Object.keys(prev.statModifiers || {}), ...Object.keys(def.statModifiers || {})]))
+                differences[stat] = (def.statModifiers?.[stat] || 0) - (prev.statModifiers?.[stat] || 0);
+            this.say(`${item} vs ${current || 'empty'}: ${JSON.stringify(differences)}`);
+            return differences;
+        }
+
+        equipItem(name) {
+            const item = this.findInventoryItem(name);
+            const def = item && this.data.itemDefinitions[item];
+            if (!def || !['mainHand','bodyArmor','accessory'].includes(def.slot)) {
+                this.refuse('NOT_EQUIPMENT','That item cannot be equipped.'); return false;
+            }
+            if (this.player.equipment[def.slot] === item) return true;
+            if (!Object.entries(def.requirements || {}).every(([stat, min]) => (this.player[stat] || 0) >= min)) {
+                this.refuse('EQUIP_REQUIREMENTS','You do not meet that item’s requirements.'); return false;
+            }
+            const current = this.player.equipment[def.slot];
+            const changes = this.compareItem(item);
+            this.player.inventory.splice(this.player.inventory.indexOf(item), 1);
+            if (current) this.player.inventory.push(current);
+            this.player.equipment[def.slot] = item;
+            for (const [stat, delta] of Object.entries(changes)) {
+                if (!['def','strength','intelligence','agility'].includes(stat)) continue;
+                this.player[stat] += delta;
+            }
+            this.say(`Equipped ${item}.`);
+            return true;
+        }
+
+        unequipItem(slot) {
+            const p = this.player;
+            if (!p.equipment || !p.equipment[slot]) { this.refuse('EMPTY_SLOT','Nothing equipped in that slot.'); return false; }
+            const item = p.equipment[slot], def = this.data.itemDefinitions[item];
+            for (const [stat, delta] of Object.entries((def && def.statModifiers) || {})) {
+                if (['def','strength','intelligence','agility'].includes(stat)) p[stat] -= delta;
+            }
+            p.equipment[slot] = null;
+            p.inventory.push(item);
+            this.say(`Unequipped ${item}.`);
+            return true;
+        }
+
+        /** Commerce is atomic: validations complete before either balance or inventory changes. */
+        buyItem(shopId, item) {
+            const shop = (this.data.shopDefinitions || {})[shopId], entry = shop && shop.stock && shop.stock[item];
+            const def = this.data.itemDefinitions[item];
+            if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1) {
+                this.refuse('NOT_FOR_SALE','This merchant cannot sell that item.'); return false;
+            }
+            if (this.player.gold < entry.buyPrice) { this.refuse('NOT_ENOUGH_GOLD','Not enough Gold.'); return false; }
+            if (!this.player.shopStock) this.player.shopStock = {};
+            const key = `${shopId}:${item}`;
+            const remaining = this.player.shopStock[key] ?? entry.quantity;
+            if (remaining < 1) { this.refuse('OUT_OF_STOCK','That item is sold out.'); return false; }
+            this.player.gold -= entry.buyPrice;
+            this.player.shopStock[key] = remaining - 1;
+            this.player.inventory.push(item);
+            this.say(`Purchased ${item} for ${entry.buyPrice} Gold.`);
+            return true;
+        }
+
+        sellItem(shopId, name) {
+            const shop = (this.data.shopDefinitions || {})[shopId], item = this.findInventoryItem(name);
+            const def = item && this.data.itemDefinitions[item];
+            if (!shop || !def || def.sellable !== true || def.type === 'quest' ||
+                !Number.isSafeInteger(def.sellPrice) || def.sellPrice < 0) {
+                this.refuse('NOT_SELLABLE','This item cannot be sold.'); return false;
+            }
+            if (!Number.isSafeInteger(this.player.gold + def.sellPrice)) { this.refuse('GOLD_OVERFLOW','Gold limit reached.'); return false; }
+            this.player.inventory.splice(this.player.inventory.indexOf(item), 1);
+            this.player.gold += def.sellPrice;
+            this.say(`Sold ${item} for ${def.sellPrice} Gold.`);
+            return true;
+        }
+
         engage() {
             const keys = this.rooms[this.currentRoom].enemies;
             if (!keys.length) { this.refuse('NO_ENEMIES', 'There are no enemies here.'); return; }
