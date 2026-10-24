@@ -7,6 +7,8 @@
  * ========================================================================= */
 (function (global) {
     const EQUIP_SLOTS = ['mainHand', 'bodyArmor', 'accessory'];
+    const USABLE = new Set(['gold', 'heal']);   // item `use` values applyItem() handles; anything else is not usable
+    const noUseMessage = (item) => `You turn the ${item} over in your hands. There's nothing to use it for (yet).`;
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
     const { cap, pretty } = isNode ? require('./util.js') : ENSO.engineUtil;
@@ -75,7 +77,7 @@
         applyItem(item) {
             const def = this.data.itemDefinitions[item];
             const p = this.player;
-            if (!def) { this.refuse('ITEM_NO_USE', `You turn the ${item} over in your hands. There's nothing to use it for (yet).`); return false; }
+            if (!def || !USABLE.has(def.use)) { this.refuse('ITEM_NO_USE', noUseMessage(item)); return false; }
             if (def.use === 'gold') {
                 if (!Number.isSafeInteger(def.value) || def.value <= 0 ||
                     !Number.isSafeInteger(p.gold + def.value)) {
