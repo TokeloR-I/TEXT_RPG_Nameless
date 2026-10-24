@@ -46,6 +46,7 @@ ui/battle-menu.js turns the engine's availability list into the battle menus (no
 ui/battle-view.js small battle-screen view rules: status chips, bar tones, log lines (no DOM, tested)
 ui/display.js     stage size: whole-pixel scaling modes and the portrait phone layout (no DOM, tested)
 ui/main-menu.js   main menu Items and Equipment tabs from the engine's answers (no DOM, tested)
+ui/crow-view.js   main menu Crow tab: Black Flight destinations and crow talk (no DOM, tested)
 tests/            headless tests, one file per area (NN-area.test.js) + helpers.js
 tools/            balance bot, backlog, pending decisions, terminal player, single-file build
 docs/             design status, engine reports, approved design handoffs (docs/design/)

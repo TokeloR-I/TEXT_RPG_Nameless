@@ -24,9 +24,12 @@
     const { WorldSession, validateWorld, DIRS } = ENSO.worldModel;
     const WORLD = ENSO.world.zone1;
     const DATA = ENSO.data;
-    const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const CV = ENSO.crowView;
+    const SYSTEM_REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let REDUCED = SYSTEM_REDUCED;   // Settings → Motion can override the system choice (applyMotion below)
     const STEP_MS = 150;     // one tile step
-    const FADE_MS = REDUCED ? 60 : 220;     // each half of a map transition
+    const fadeMs = () => (REDUCED ? 60 : 220);     // each half of a map transition
+    const FEATHER_MS = 700;  // Black Flight: feathers rise before the fade
     const BUMP_MS = 180;     // minimum gap between "blocked" bumps while a key is held
     const LOG_LINES = 80;    // battle log kept on screen
 
@@ -54,6 +57,23 @@
         if (canvas.width !== f.canvasW || canvas.height !== f.canvasH) { canvas.width = f.canvasW; canvas.height = f.canvasH; }   // the renderer follows (GFX-3 draw reads the size each frame)
         stage.dataset.scale = f.integer ? `${f.scale}x` : 'fill';
     }
+    // Motion: follow the system's reduced-motion setting, or always reduce, or always animate.
+    const MOTION_KEY = 'enso.ui.motion';
+    const MOTION_MODES = ['system', 'reduce', 'full'];
+    const MOTION_LABELS = { system: 'Follow system', reduce: 'Reduced', full: 'Full' };
+    const MOTION_HELP = { system: `Uses your device setting (now ${SYSTEM_REDUCED ? 'reduced' : 'full'}).`, reduce: 'No feathers, flashes or bobbing cursors; map changes are quick fades.', full: 'All animations, whatever the device says.' };
+    let motionMode = (() => { try { const m = localStorage.getItem(MOTION_KEY); return MOTION_MODES.includes(m) ? m : 'system'; } catch (e) { return 'system'; } })();
+    function applyMotion() {
+        REDUCED = motionMode === 'reduce' || (motionMode === 'system' && SYSTEM_REDUCED);
+        document.body.classList.toggle('reduce-motion', REDUCED);
+    }
+    function cycleMotion() {
+        motionMode = MOTION_MODES[(MOTION_MODES.indexOf(motionMode) + 1) % MOTION_MODES.length];
+        try { localStorage.setItem(MOTION_KEY, motionMode); } catch (e) { /* private window: this session only */ }
+        applyMotion();
+        return `Motion: ${MOTION_LABELS[motionMode]}.`;
+    }
+    applyMotion();
     function cycleDisplay() {
         displayMode = ENSO.display.nextMode(displayMode);
         try { localStorage.setItem(DISPLAY_KEY, displayMode); } catch (e) { /* private window: this session only */ }
@@ -447,12 +467,25 @@
     function drawTalk(avail, said) {
         const d = avail.dialogue;
         els.dialog.hidden = false;
-        els.dialog.innerHTML = `<div class="dialog-title">${esc(d.name)}${d.title ? ` <span class="dialog-role">${esc(d.title)}</span>` : ''}</div>
+        const title = `<div class="dialog-title">${esc(d.name)}${d.title ? ` <span class="dialog-role">${esc(d.title)}</span>` : ''}</div>`;
+        const portrait = PORTRAITS[d.npcId];
+        els.dialog.innerHTML = `${portrait ? `<div class="talk-head"><canvas class="portrait" width="16" height="16" aria-hidden="true"></canvas>${title}</div>` : title}
             <div class="dialog-text talk-text">${said.map((l) => `<p class="${l.important ? 'imp' : ''}">${esc(l.text)}</p>`).join('')}</div>
             ${menuHtml(menu, 'talk-choices')}
             <div class="dialog-keys">↑ ↓ choose · Enter say · Esc goodbye</div>`;
         bindMenuClicks(els.dialog, menu);
+        if (portrait) drawPixels(els.dialog.querySelector('canvas.portrait'), portrait.rows, portrait.colours());
         const box = els.dialog.querySelector('.talk-text'); if (box) box.scrollTop = 0;   // read from the top
+    }
+    /** Speaker portraits by npc id: pixel rows plus colours read from the palette tokens. */
+    const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const PORTRAITS = {
+        crow: { rows: CV.CROW_PORTRAIT, colours: () => ({ k: token('--c-crow'), s: token('--c-crow-sheen'), e: token('--c-gold'), b: token('--c-ink-mute'), p: token('--c-frame') }) }
+    };
+    function drawPixels(cv, rows, colours) {
+        const g = cv.getContext('2d');
+        g.clearRect(0, 0, cv.width, cv.height);
+        rows.forEach((row, y) => [...row].forEach((c, x) => { if (colours[c]) { g.fillStyle = colours[c]; g.fillRect(x, y, 1, 1); } }));
     }
     function closeTalk(events) {
         els.dialog.hidden = true;
@@ -475,26 +508,30 @@
     // its actions; this file never decides what can be used or worn.
     // ---------------------------------------------------------------------
     const MM = ENSO.mainMenu;
-    const MM_TABS = [
+    const MM_TABS_ALL = [
         { id: 'status', label: 'Status', sub: 'Your character, stats and gear.' },
         { id: 'items', label: 'Items', sub: 'Use what you carry.' },
         { id: 'equipment', label: 'Equipment', sub: 'Change your gear and compare stats.' },
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'settings', label: 'Settings', sub: 'Display, controls and this run.' },
         { id: 'save', label: 'Save game', sub: 'Keeps your place in this browser (one save slot).' },
         { id: 'quit', label: 'Quit to title', sub: 'Anything since your last save is lost.' }
     ];
-    let mm = { tab: 0, focus: 'tabs', slot: null, note: '' };
+    let mmTabs = MM_TABS_ALL;
+    let mm = { tab: 0, focus: 'tabs', slot: null, note: '', fly: null };
     function openPause(note) {
         modal = 'pause';
         muteHeldKeys();
         els.hud.hidden = true;
-        mm = { tab: mm.tab || 0, focus: 'tabs', slot: null, note: note || '' };
+        const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
+        mmTabs = MM_TABS_ALL.filter((t) => t.id !== 'crow' || crow);
+        mm = { tab: Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, note: note || '', fly: null };
         focusTabs();
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null;
-        menu = makeMenu(MM_TABS.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
+        mm.focus = 'tabs'; mm.slot = null; mm.fly = null;
+        menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
         renderMain();
@@ -524,11 +561,24 @@
             if (row.item) items.push({ label: `Take off ${row.item}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
         if (id === 'settings') {
-            items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) }];
+            items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
+                { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+        }
+        if (id === 'crow' && mm.fly) {
+            const f = mm.fly;
+            items = [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and return there.', action: () => blackFlight(f) },
+                { label: 'Stay', sub: 'Back to the list.', action: () => { mm.fly = null; enterList('crow', 0); } }];
+        }
+        if (id === 'crow' && !mm.fly) {
+            const v = CV.crowView(engine.getAvailableActions());
+            items = [];
+            if (v.talk) items.push({ label: 'Talk to the crow', sub: v.talk.enabled ? 'Ask about this place, your quest or where you have been.' : v.talk.reason, disabled: !v.talk.enabled, action: talkCrow });
+            for (const f of v.flights) items.push({ label: `${f.here ? '◆ ' : ''}${f.name}`, sub: f.why, disabled: !f.enabled, action: () => { mm.fly = f; enterList('crow', 0); } });
         }
         if (!items || !items.length) { renderMain(); return; }          // Status and Journal are pages, not lists
         mm.focus = 'list';
-        const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); } : null;
+        const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
+            : mm.fly ? () => { mm.fly = null; enterList('crow', 0); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
@@ -563,11 +613,11 @@
     }
     function renderMain() {
         const s = engine.getState(), p = s.player;
-        const tab = MM_TABS[mm.tab].id;
+        const tab = mmTabs[mm.tab].id;
         const inList = mm.focus === 'list';
-        const tabsHtml = `<ul class="menu mm-tabs" role="tablist" aria-label="Menu">${MM_TABS.map((t, i) => {
+        const tabsHtml = `<ul class="menu mm-tabs" role="tablist" aria-label="Menu">${mmTabs.map((t, i) => {
             const cls = !inList && i === menu.index ? 'selected' : i === mm.tab ? 'active' : '';
-            return `<li role="tab" data-tab="${i}" aria-selected="${i === mm.tab}" class="${cls}"><span class="m-label">${esc(t.label)}</span></li>`;
+            return `<li role="tab" data-tab="${i}" data-id="${t.id}" aria-selected="${i === mm.tab}" class="${cls}"><span class="m-label">${esc(t.label)}</span></li>`;
         }).join('')}</ul>`;
         const list = inList ? commandHtml(menu).replace('b-commands', 'mm-list') : '';
         let page = '';
@@ -585,20 +635,27 @@
         }
         if (tab === 'journal') page = journalHtml() || '<p class="mm-dim">No journal in this game.</p>';
         if (tab === 'settings') {
-            page = `<h3>Display</h3>${inList ? list : `<p>${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p>`}
+            page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
                 <h3>Controls</h3><ul class="mm-plain"><li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li></ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
-        if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(MM_TABS[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
+        if (tab === 'crow') {
+            const v = CV.crowView(engine.getAvailableActions());
+            page = mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
+                : inList ? `${list}<p class="mm-dim">Black Flight takes you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`
+                : `${v.talk ? `<p>Talk to the crow <span class="mm-dim">· ${esc(v.talk.enabled ? 'ask about this place, your quest or where you have been' : v.talk.reason)}</span></p>` : ''}<h3>Black Flight</h3>${v.flights.length ? `<ul class="mm-plain">${v.flights.map((f) => `<li>${f.here ? '◆ ' : ''}${esc(f.name)} <span class="mm-dim">· ${esc(f.why)}</span></li>`).join('')}</ul>` : '<p class="mm-dim">No perches yet.</p>'}
+                    <p class="mm-dim">The crow can take you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`;
+        }
+        if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
         const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'settings'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
         els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
             <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
-            <section class="mm-page" aria-live="polite"><h2>${esc(MM_TABS[mm.tab].label)}</h2>${page}</section>
-            <footer class="mm-foot">${mm.note ? `<p class="note">${esc(mm.note)}</p>` : inList ? '' : `<p class="b-help">${esc(MM_TABS[mm.tab].sub)}</p>`}<p class="keys">${keys}</p></footer>`;
+            <section class="mm-page" aria-live="polite"><h2>${esc(mmTabs[mm.tab].label)}</h2>${page}</section>
+            <footer class="mm-foot">${mm.note ? `<p class="note">${esc(mm.note)}</p>` : inList ? '' : `<p class="b-help">${esc(mmTabs[mm.tab].sub)}</p>`}<p class="keys">${keys}</p></footer>`;
         els.pause.hidden = false;
-        els.pause.querySelectorAll('.mm-tabs li').forEach((li) => li.addEventListener('click', () => { mm.tab = +li.dataset.tab; focusTabs(); runTab(MM_TABS[mm.tab].id); }));
+        els.pause.querySelectorAll('.mm-tabs li').forEach((li) => li.addEventListener('click', () => { mm.tab = +li.dataset.tab; focusTabs(); runTab(mmTabs[mm.tab].id); }));
         if (inList) bindMenuClicks(els.pause.querySelector('.mm-page'), menu);
         const sel = els.pause.querySelector('.mm-list li.selected'); if (sel) sel.scrollIntoView({ block: 'nearest' });
         const sprite = els.pause.querySelector('canvas.mm-sprite');
@@ -610,7 +667,7 @@
     /** ← leaves a list, → opens the highlighted tab (keyboard and pad). */
     function mainMenuSideways(dir) {
         if (dir === 'left' && mm.focus === 'list') { menu.back(); return true; }
-        if (dir === 'right' && mm.focus === 'tabs') { const t = MM_TABS[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
+        if (dir === 'right' && mm.focus === 'tabs') { const t = mmTabs[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
         return false;
     }
     /** The engine's journal: active quests with their current objective, then what's done. */
@@ -625,6 +682,39 @@
             ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
     }
     function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; menu = null; muteHeldKeys(); }
+
+    // ---------------------------------------------------------------------
+    // The crow (Nahemoth's first aspect, docs/design/ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md).
+    // The engine owns the anchors and every refusal; the world session moves you (as walking does).
+    // ---------------------------------------------------------------------
+    function talkCrow() {
+        const r = engine.act({ type: 'talk_crow' });
+        closePause();
+        if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events);
+        else openDialog(readable(r.events).map((l) => l.text).join('\n') || '…', 'Crow', afterStory);
+    }
+    function blackFlight(f) {
+        closePause();
+        const r = typeof session.blackFlight === 'function' ? session.blackFlight(f.anchorId) : { type: 'refused', events: [] };
+        if (r.type !== 'transition') { updateHud(); openDialog(readable(r.events || []).map((l) => l.text).join('\n') || CV.reasonText({ code: 'UNREACHABLE' }), 'Black Flight', afterStory); return; }
+        feathersThen(() => startFade(r));
+    }
+    /** Dark feathers rise around you, then the usual fade carries you there. Reduced motion: just the fade. */
+    let feathering = false;
+    function feathersThen(fn) {
+        if (REDUCED) { fn(); return; }
+        const box = document.createElement('div');
+        box.className = 'feathers';
+        box.setAttribute('aria-hidden', 'true');
+        const n = 18;
+        box.innerHTML = Array.from({ length: n }, (_, i) => {
+            const x = 50 + Math.cos(i * 2.4) * (8 + (i % 5) * 3), dx = Math.sin(i * 1.7) * 12;
+            return `<i style="left:${x.toFixed(1)}%;--r:${(i * 47) % 360}deg;--dx:${dx.toFixed(1)}cqw;--d:${FEATHER_MS - (i % 4) * 60}ms;--delay:${(i % 6) * 30}ms"></i>`;
+        }).join('');
+        $('world-stage').appendChild(box);
+        feathering = true;
+        setTimeout(() => { box.remove(); feathering = false; fn(); }, FEATHER_MS);
+    }
 
     // ---------------------------------------------------------------------
     // Evolution: the engine asks for a branch at level 3
@@ -942,7 +1032,7 @@
     /** The "E: Inspect Scratched wall" hint for whatever you're facing (hidden while anything else is up). */
     let lastPrompt = '';
     function updatePrompt() {
-        const p = screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
+        const p = screen === 'explore' && !modal && !fade && !flash && !feathering ? session.prompt() : null;
         const html = p ? `<kbd>E</kbd> ${esc(p.verb)}${p.name ? `: <b>${esc(p.name)}</b>` : ''}` : '';
         if (p && p.kind === 'encounter') { if (html !== lastPrompt) { els.prompt.innerHTML = `${esc(p.name)} · ${esc(p.verb)}`; lastPrompt = html; } els.prompt.hidden = false; return; }
         if (html !== lastPrompt) { els.prompt.innerHTML = html; lastPrompt = html; }
@@ -1000,7 +1090,7 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
-        if (ev.repeat || fade || anim || flash) return;
+        if (ev.repeat || fade || anim || flash || feathering) return;
         if (isAct(ev)) interact();
         else if (ev.key === 'Escape') openPause();
     });
@@ -1047,7 +1137,7 @@
             if (k >= 1) { const then = anim.then; anim = null; if (then) then(); else syncView(); }
         }
         if (fade) {
-            const k = Math.min(1, (now - fade.t0) / FADE_MS);
+            const k = Math.min(1, (now - fade.t0) / fadeMs());
             view.fade = fade.phase === 'out' ? k : 1 - k;
             if (k >= 1 && fade.phase === 'out') {
                 syncView();

@@ -90,3 +90,26 @@ One entry per change to an existing screen: what was kept, what was replaced, an
 - `getAvailableActions()` in exploration lists `use_item` as *enabled* for items without a `use` (gear,
   Wild Herbs), and `act()` then does nothing. The menu no longer offers them, but the engine probably should
   report them as disabled (e.g. `NOT_USABLE`) so every front end agrees.
+
+## Crow tab, Black Flight and the Motion setting (Vaelis's Nahemoth design)
+Source: `docs/design/ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md` (UI handoff: crow conversation portrait,
+Black Flight destination list, optional feather transition, reduced motion, keyboard focus). Engine side is Wren's
+#126 (anchors, refusals, `WorldSession.blackFlight`, `talk_crow`).
+
+**Changed**
+- *New Crow tab* in the main menu, shown only when the engine offers `talk_crow` or `black_flight` (so it does not
+  exist before the seal opens). It lists "Talk to the crow" and every attuned anchor in the engine's order, with the
+  one you are at first and marked ◆. Refused destinations stay in the list, disabled, with the engine's reason
+  ("The crow cannot reach that perch yet"). View model: `ui/crow-view.js`.
+- *Fly needs a confirm step* ("Fly to X (Region)?" → Fly / Stay), per the design's "confirm or cancel before moving".
+- *Feather transition:* dark feather shapes rise for 0.7 s, then the normal map fade. With reduced motion it is
+  just the fade. Input is held during it.
+- *Speaker portraits:* the dialogue window shows a 16×16 pixel portrait (3×, palette tokens) when the speaker has
+  one. The crow is the first; no overworld crow sprite, as the design asks.
+- *Settings → Motion* (Follow system / Reduced / Full), saved per browser. It drives `body.reduce-motion`, which
+  replaces the old `prefers-reduced-motion` media query, and the fades, flashes and feathers in `world-ui.js`.
+
+**Not yet**
+- Combat FX (screen shake, damage pop) do not follow the Motion setting yet.
+- No pursuit or forced-scene refusal codes exist in the engine yet; the UI already has words for `PURSUED` and
+  `STORY_SCENE` and shows the engine's own message first.

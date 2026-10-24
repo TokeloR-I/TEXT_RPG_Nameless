@@ -44,6 +44,7 @@ Each step is one small PR, run in the browser at desktop and phone sizes before 
 | **UI-4** | Exploration HUD: compact status plate, objective as its own small window, map name only in the banner | 13 | — |
 | **UI-5** | Dialogue window on the kit: name plate, frame, choices in a command window. **After Sable's #97 lands**, built on her reveal, not instead of it | 16 | Sable |
 | **UI-6** (in review) | Inventory and equipment with up/down stat comparison | 11 | ✓ Wren's `getEquipment()` (#118) |
+| **NAH-1** (in review) | Crow tab: Black Flight destinations with confirm, feather transition, crow portrait in dialogue, Settings → Motion (Vaelis's Nahemoth design, engine in #126) | 12 (reduced motion) | Wren #126 |
 | **UI-7** | Gamepad (Gamepad API mapped onto the same keys) and key remapping in Settings | 14, 12 | — |
 | **UI-8** ✓ #122 | Turn-order strip in battle, lettered twins | — | ✓ Wren's `getTurnOrder()` (#118) |
 | **P5** | A real pixel font, bundled locally | 9 | Owner: authored or open-licence font |

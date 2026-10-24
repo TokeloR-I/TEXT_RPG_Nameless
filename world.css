@@ -17,6 +17,7 @@
     --c-res: #4f7fb8;
     --c-foe: #a4783e;
     --c-bar-bg: #1b1820;
+    --c-crow: #0e0d12; --c-crow-sheen: #3a2f4a;   /* Nahemoth's feathers and the crow's portrait */
     /* status categories (same colours as ui/combat-fx.js STYLE.status) */
     --c-st-buff: #e8c860; --c-st-debuff: #c060e0; --c-st-control: #60c8ff; --c-st-dot: #90d060;
     --c-st-mark: #ff9a6a; --c-st-cooldown: #9aa0b4; --c-st-other: #c8c8c8;
@@ -359,10 +360,10 @@ body {
 
 .problems { position: absolute; inset: 0; margin: 0; padding: 2cqw; background: #2a0d0d; color: #ffd0c8; font-size: 12px; overflow: auto; white-space: pre-wrap; }
 
-@media (prefers-reduced-motion: reduce) {
-    .banner.show { animation: none; opacity: 1; }
-    .dialog-more, .foe.hit canvas, .b-cursor, .combat .bar > .trail, .combat .menu li.selected .m-label::before { animation: none; }
-}
+/* Reduced motion: world-ui.js sets body.reduce-motion from the device setting or Settings → Motion. */
+.reduce-motion .banner.show { animation: none; opacity: 1; }
+.reduce-motion .dialog-more, .reduce-motion .foe.hit canvas, .reduce-motion .b-cursor, .reduce-motion .combat .bar > .trail,
+.reduce-motion .combat .menu li.selected .m-label::before, .reduce-motion .mm .menu li.selected .m-label::before { animation: none; }
 
 /* ---------- Chapter One: name entry, objective, conversations, journal ---------- */
 .title-screen .name-field { display: flex; flex-direction: column; gap: 0.4em; color: var(--ink-dim); width: min(100%, 420px); text-align: left; }
@@ -504,7 +505,7 @@ body {
 .mm .menu li.disabled .m-label::after { content: ' ✕'; font-size: 0.8em; }
 .mm-tabs li.active { border-color: var(--c-frame); background: rgba(216, 198, 144, 0.08); }
 .mm-tabs li.active .m-label::before { content: '▸'; position: absolute; left: 0.35em; color: var(--c-frame-hi); }
-.mm-tabs li:nth-child(6) { margin-top: 0.6em; }                     /* Save and Quit sit apart from the pages */
+.mm-tabs li[data-id="save"] { margin-top: 0.6em; }                     /* Save and Quit sit apart from the pages */
 .mm-list { display: flex; flex-direction: column; gap: 0.1em; }
 .mm-page .b-help { margin: 0.35em 0 0; min-height: 2.6em; font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
 .mm-dim { color: var(--c-ink-dim); }
@@ -536,7 +537,23 @@ body {
     .mm-nav h2 { display: none; }
     .mm-tabs { display: flex; flex-wrap: wrap; gap: 0.2em; }
     .mm-tabs li { padding: 0.2em 0.5em 0.2em 1.1em; }
-    .mm-tabs li:nth-child(6) { margin-top: 0; }
+    .mm-tabs li[data-id="save"] { margin-top: 0; }
     .mm-cols { grid-template-columns: minmax(0, 1fr); }
     .mm-sprite { width: 16cqw; height: 18cqw; }
 }
+
+/* ---------- Crow (Nahemoth's first aspect): Black Flight feathers and the speaker portrait ---------- */
+.feathers { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 6; }
+.feathers i {
+    position: absolute; bottom: 30%; width: 1.4cqw; height: 0.5cqw; background: var(--c-crow);
+    box-shadow: 0.2cqw 0.2cqw 0 var(--c-crow-sheen); transform: rotate(var(--r));
+    animation: feather var(--d) steps(8) var(--delay) both;
+}
+@keyframes feather {
+    from { opacity: 0; translate: 0 0; }
+    20% { opacity: 1; }
+    to { opacity: 0; translate: var(--dx) -36cqw; rotate: calc(var(--r) + 220deg); }
+}
+.talk-head { display: flex; gap: 0.8em; align-items: flex-start; }
+.talk-head .dialog-title { margin-top: 0.2em; }
+.portrait { width: 48px; height: 48px; flex: none; image-rendering: pixelated; background: var(--c-win-hi); outline: 2px solid var(--c-frame); }

@@ -77,7 +77,9 @@ Status glyphs: buff `▲`, debuff `▼`, dot `✸`, control `◆`, mark `◎`, c
 - Frame-based (`steps()`) for anything pixel: cursor nudge and bob (0.6 s, 2 steps), hit shake (0.3 s, 4 steps),
   HP trail (420 ms, 6 steps, 180 ms delay so the hit number lands first).
 - UI never waits on an animation: input is live while effects play.
-- `prefers-reduced-motion`: every looping or decorative animation is off (see the media query in `world.css`).
+- Reduced motion (the device setting, or Settings → Motion): `body.reduce-motion` turns every looping or decorative
+  animation off (see `world.css`); map changes are quick fades and Black Flight skips its feathers.
+- Speaker portraits are 16×16 pixel grids drawn at 3× in palette tokens (the crow: `--c-crow`, `--c-crow-sheen`).
 
 ## Lighting
 Lighting belongs to the renderer (`ui/world-render.js`, GFX-3). UI windows never add glows of their own,
