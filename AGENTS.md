@@ -24,6 +24,7 @@ If your role isn't in the table, ask the owner before editing. **When in doubt, 
 5. PR description: what changed, why, which design doc it implements, and anything left undecided.
 6. The owner merges. Agents never push directly to `main`.
 7. **Stacked PRs:** Merge the top of a dependent stack first, or retarget each child PR to `main` before merging its parent. A PR is only complete once its intended changes are verified on `main`; a GitHub “merged” label alone is insufficient. After merging, check the final files and test results on `main`.
+   CI enforces this: the `pr-base` check is **red on any PR whose base isn't `main`** (so it falls under rule 4). Merge the parent, then retarget the child to `main` (Edit, next to the PR title). `node tools/stranded-check.js` lists merged PRs whose work never reached `main`.
 
 Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa: report #3`.
 

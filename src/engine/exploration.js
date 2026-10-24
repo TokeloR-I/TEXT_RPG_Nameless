@@ -196,6 +196,89 @@
             return true;
         }
 
+        /** Data-driven homestead: nothing is buildable or craftable until authored. */
+        buildUpgrade(id) {
+            const rule = (this.data.constructionDefinitions || {})[id];
+            const p = this.player;
+            p.homestead = p.homestead || { built: {}, plots: {} };
+            if (!rule || p.homestead.built[id]) {
+                this.refuse('BUILD_UNAVAILABLE', 'This construction is unavailable.'); return false;
+            }
+            if ((rule.requires || []).some(pre => !p.homestead.built[pre])) {
+                this.refuse('BUILD_LOCKED', 'A prerequisite has not been built.'); return false;
+            }
+            const cost = rule.goldCost;
+            if (!Number.isSafeInteger(cost) || cost < 0) {
+                this.refuse('BUILD_UNAVAILABLE', 'Construction cost is undefined.'); return false;
+            }
+            if (p.gold < cost) { this.refuse('NOT_ENOUGH_GOLD', 'Not enough Gold for construction.'); return false; }
+            const materials = rule.materials || {};
+            if (Object.entries(materials).some(([name, qty]) => !Number.isSafeInteger(qty) || qty < 0 ||
+                p.inventory.filter(x=>x===name).length < qty)) {
+                this.refuse('MISSING_MATERIALS', 'Construction materials are missing.'); return false;
+            }
+            p.gold -= cost;
+            for (const [name, qty] of Object.entries(materials))
+                for (let i = 0; i < qty; i++) p.inventory.splice(p.inventory.indexOf(name), 1);
+            p.homestead.built[id] = true;
+            this.say(`Built ${rule.name || id}.`);
+            return true;
+        }
+
+        plantCrop(plotId, seed) {
+            const p = this.player;
+            p.homestead = p.homestead || { built: {}, plots: {} };
+            const rule = (this.data.cropDefinitions || {})[seed];
+            if (!rule || !rule.produces || !Number.isSafeInteger(rule.actionsToGrow) || rule.actionsToGrow < 1 ||
+                !p.homestead.built[rule.requiresUpgrade || 'field_plot'] || p.homestead.plots[plotId] ||
+                !p.inventory.includes(seed)) {
+                this.refuse('CANNOT_PLANT', 'This seed or plot is unavailable.'); return false;
+            }
+            p.inventory.splice(p.inventory.indexOf(seed), 1);
+            p.homestead.plots[plotId] = { seed, remaining: rule.actionsToGrow };
+            this.say(`Planted ${seed} in ${plotId}.`);
+            return true;
+        }
+
+        /** An explicit tending action advances one plot, never wall-clock timers. */
+        tendPlot(plotId) {
+            const plot = this.player.homestead?.plots?.[plotId];
+            if (!plot) { this.refuse('EMPTY_PLOT', 'Nothing to tend.'); return false; }
+            if (plot.remaining > 0) plot.remaining--;
+            this.say(`${plotId}: ${plot.remaining} tending actions remain.`);
+            return true;
+        }
+
+        harvestPlot(plotId) {
+            const plot = this.player.homestead?.plots?.[plotId];
+            const rule = plot && (this.data.cropDefinitions || {})[plot.seed];
+            if (!rule || plot.remaining > 0) {
+                this.refuse('CROP_NOT_READY', 'The crop is not ready.'); return false;
+            }
+            this.player.inventory.push(rule.produces);
+            delete this.player.homestead.plots[plotId];
+            this.say(`Harvested ${rule.produces}.`);
+            return true;
+        }
+
+        craftRecipe(id) {
+            const recipe = (this.data.recipeDefinitions || {})[id], p = this.player;
+            if (!recipe || !recipe.output ||
+                (recipe.requiresUpgrade && !p.homestead?.built?.[recipe.requiresUpgrade])) {
+                this.refuse('RECIPE_LOCKED', 'This recipe or station is unavailable.'); return false;
+            }
+            const ingredients = recipe.ingredients || {};
+            if (Object.entries(ingredients).some(([name, qty]) => !Number.isSafeInteger(qty) || qty < 1 ||
+                p.inventory.filter(x=>x===name).length < qty)) {
+                this.refuse('MISSING_INGREDIENTS', 'You lack crafting ingredients.'); return false;
+            }
+            for (const [name, qty] of Object.entries(ingredients))
+                for (let i = 0; i < qty; i++) p.inventory.splice(p.inventory.indexOf(name), 1);
+            p.inventory.push(recipe.output);
+            this.say(`Crafted ${recipe.output}.`);
+            return true;
+        }
+
         engage() {
             const keys = this.rooms[this.currentRoom].enemies;
             if (!keys.length) { this.refuse('NO_ENEMIES', 'There are no enemies here.'); return; }

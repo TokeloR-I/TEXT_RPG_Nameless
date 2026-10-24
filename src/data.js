@@ -761,7 +761,7 @@
         for (const key of Object.keys(skillDefinitions)) skillDefinitions[key].name = key;
 
         const data = {
-            shopDefinitions: {},
+            shopDefinitions: {}, constructionDefinitions: {}, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
             statusDefinitions, statusRules, statusReactions
