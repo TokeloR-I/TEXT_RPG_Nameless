@@ -58,7 +58,24 @@ written as code. That is a pipeline problem, and we fix it here.
 P0 is engine work and starts now. P1 cannot reach the reference without art of that standard, so **the real
 decision is the art source**: licensed commercial pixel-art packs (fastest; must allow commercial use and
 editing), a commissioned human pixel artist (best fit, slowest, costs most), or AI agents drawing the art
-(cheapest, and in my judgement won't reach the reference). Tokelo decides this.
+(cheapest, and in my judgement won't reach the reference). Tokelo decided: see *Art source* below.
+
+### Art source: decided
+
+**Tokelo, 2026-10-24: licensed packs now, a human pixel artist later.** Packs carry the P1 slice and Chapter 1.
+An artist later replaces the key characters and places, one atlas at a time.
+
+A pack qualifies only if it has:
+- **Licence:** commercial use and modification allowed, no attribution conflicts, and no "not for AI-assisted
+  projects" clause. The licence file goes in `assets/src/<pack>/LICENSE`.
+- **Grid:** 16×16 tiles, with character frames near 24×32 (16×32 or 32×32 work after trimming).
+- **Coverage for the slice:** grass/dirt/cobble ground with transitions, cliffs or raised ground with stairs,
+  timber-and-plaster houses with separate roof pieces, market props, trees with separate canopies, water.
+- **Style:** one artist or one family of packs for the world, so palettes and outline rules match. Characters
+  may come from a separate pack if outline weight and shading direction (light from the upper left) match.
+- **Source files:** PNG at 1×. Aseprite or layered sources are a bonus.
+
+Tokelo buys the packs, since that's a purchase. Wren and Vesper check them against this list before P1.
 
 ### When to revisit the engine
 
