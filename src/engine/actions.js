@@ -355,7 +355,8 @@
             return items.map((item) => {
                 const def = this.data.itemDefinitions[item];
                 const opt = { type: 'use_item', item, count: p.inventory.filter((i) => i === item).length, enabled: true };
-                if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
+                if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
+                else if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
                 return opt;
             });
         }

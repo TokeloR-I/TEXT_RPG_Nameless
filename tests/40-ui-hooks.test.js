@@ -66,3 +66,17 @@ test('UI-6 getEquipment: an item the player cannot wear gives the same reason eq
     assert.strictEqual(r.error.message, c.reason.message);
     delete g.data.itemDefinitions['Test Greatsword'];
 });
+
+test('use_item: gear and materials with no use are reported unusable, refused with the same reason, and never consumed', () => {
+    const g = new GameEngine({ seed: 7 }); g.start();
+    g.act({ type: 'choose_class', classId: 'warrior' });
+    g.player.inventory.push('Roadworn Blade');
+    const opt = g.getAvailableActions().actions.find((a) => a.type === 'use_item' && a.item === 'Roadworn Blade');
+    assert.strictEqual(opt.enabled, false);
+    assert.strictEqual(opt.reason.code, 'ITEM_NO_USE');
+    const r = g.act({ type: 'use_item', item: 'Roadworn Blade' });
+    assert.ok(!r.ok);
+    assert.strictEqual(r.error.code, opt.reason.code);
+    assert.strictEqual(r.error.message, opt.reason.message);
+    assert.ok(g.player.inventory.includes('Roadworn Blade'), 'the blade is still in the pack');
+});
