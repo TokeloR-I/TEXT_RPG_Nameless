@@ -230,3 +230,36 @@ body {
 .journal .j-quest { margin: 0.35em 0; }
 .journal .j-kind { color: var(--ink-dim); font-size: 0.85em; border: 1px solid var(--edge); padding: 0 0.3em; }
 .journal .j-done { color: var(--ink-dim); font-size: 0.9em; margin-top: 0.5em !important; }
+
+/* Chapter One: keep long conversations readable and choices distinguishable. */
+.dialog:has(.talk-choices) {
+    max-height: 88%; display: flex; flex-direction: column; min-height: 0;
+}
+.dialog:has(.talk-choices) .talk-text {
+    max-height: none; flex: 1 1 auto; min-height: 2em; overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+.dialog:has(.talk-choices) .talk-choices {
+    flex: 0 1 auto; max-height: 32%; min-height: 0; overflow-y: auto;
+}
+.talk-choices li { position: relative; padding: 0.45em 0.65em 0.45em 1.6em; }
+.talk-choices li.selected {
+    border-color: var(--accent); box-shadow: inset 3px 0 var(--accent);
+}
+.talk-choices li.selected .m-label::before {
+    position: absolute; left: 0.4em; content: '▶ '; color: var(--accent);
+}
+.journal { border-top: 1px solid var(--edge); margin-top: 0.8em; padding-top: 0.5em; }
+.journal .j-quest {
+    border-left: 2px solid var(--edge); background: rgba(159,232,207,0.04);
+    padding: 0.45em 0.65em; line-height: 1.45; overflow-wrap: anywhere;
+}
+.journal .j-quest:first-of-type { border-left-color: var(--accent); }
+.hud-obj { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+    .panel { inset: 3cqw; padding: 3cqw; font-size: clamp(11px, 2.7cqw, 15px); }
+    .pause-cols { grid-template-columns: minmax(0,1fr); gap: 1.4em; }
+    .dialog:has(.talk-choices) { left: 2cqw; right: 2cqw; bottom: 2cqw; max-height: 94%; }
+    .dialog:has(.talk-choices) .talk-choices { max-height: 38%; }
+    .hud-obj { max-width: 50cqw; }
+}
