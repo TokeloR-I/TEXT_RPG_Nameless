@@ -486,6 +486,73 @@
             }
         },
 
+        // ------------------------------------------------------------- Shamefield expansion (Vaelis's DRAFT cast; working names)
+        // SHAMEFIELD_VILLAGE_LORE_AND_PRODUCTION.md. Talk only: no shops until Rook's bread/beer/pork items exist.
+        fenric: {
+            name: 'Brother Fenric', title: 'Cloister brewer',
+            talk: [{ node: 'hello' }],
+            nodes: {
+                hello: {
+                    lines: [['npc', "Mind the casks. Every one of them is younger than it thinks it is. Brother Fenric. I make the Briarwell Pale, and I argue with the baker."]],
+                    choices: [{ text: 'What do you argue about?', to: 'bread' }, { text: 'The hops look sick at the end of the row.', to: 'hops' }, { text: 'Goodbye.', end: true }]
+                },
+                bread: {
+                    lines: [['npc', 'Oda says I soak good grain in a bucket and call it holy. I say bread is only beer that gave up too soon. The village says: bread for the living, a barrel for the winter. We are both right, which is unbearable.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                hops: {
+                    lines: [['npc', "You noticed? Brown at the edges. It's the water, or the soil, or someone who wants me to fail. Sister Merrow says it's my temper. I'll find out."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        merrow: {
+            name: 'Sister Merrow', title: 'Granary steward',
+            talk: [{ node: 'hello' }],
+            nodes: {
+                hello: {
+                    lines: [['npc', 'Barley to the brewery, rye to the ovens, and the red-cord sacks to nobody. Sister Merrow. I keep the granary, which mostly means I keep saying no.']],
+                    choices: [{ text: 'Who are the red-cord sacks for?', to: 'reserve' }, { text: 'Goodbye.', end: true }]
+                },
+                reserve: {
+                    lines: [['npc', 'For the year the harvest fails. There is always such a year. Brother Fenric would brew them, Oda would bake them, and I would rather everyone were still alive in spring.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        oda: {
+            name: 'Oda of the Oven', title: 'Baker',
+            talk: [{ node: 'hello' }],
+            nodes: {
+                hello: {
+                    lines: [['npc', "Don't touch, it's hot. Everything here is hot. Oda. If you hear a loaf crack from the square, that's mine."]],
+                    choices: [{ text: 'It smells wonderful.', to: 'crust' }, { text: 'What about the brewer?', to: 'brewer' }, { text: 'Goodbye.', end: true }]
+                },
+                crust: {
+                    lines: [['npc', "Dark rye, sourdough, beech fire. The city bakes white bread so soft you could sleep on it. Here, a crust has to survive a week on the road. I'd sell you one, but the cloister hasn't milled this week's flour yet."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                brewer: {
+                    lines: [['npc', 'Fenric? He takes my barley, soaks it, and calls it a sacrament. Still. Tell him the last barrel was good. Don\'t tell him I said so.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        greta: {
+            name: 'Greta Rusk', title: 'Butcher',
+            talk: [{ node: 'hello' }],
+            nodes: {
+                hello: {
+                    lines: [['npc', "Greta Rusk. Hams, sausage, smoked shoulder. If it was a pig, I've an opinion on it."]],
+                    choices: [{ text: 'Business is good?', to: 'salt' }, { text: 'Goodbye.', end: true }]
+                },
+                salt: {
+                    lines: [['npc', "Good as the salt road. No salt, no smoking, no winter stores. The carts have come late all season. Bragg says it's the road. I say it's somebody on the road."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+
         // ------------------------------------------------------------- The crow: Nahemoth's first aspect
         // Talked to from a menu (talk_crow), not a map sprite. Lines are Vaelis's DRAFT; spoiler-safe.
         crow: {

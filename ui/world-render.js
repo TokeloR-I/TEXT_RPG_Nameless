@@ -87,9 +87,64 @@
         signpost: 'grass', rope: 'stone_floor',
         // Chapter One
         stall: 'cobble', notice_board: 'cobble', fruit_tree: 'grass', seal_door: 'stone_floor', cage: 'stone_floor',
-        memorial: 'grass', wagon: 'grass', cart: 'grass'
+        memorial: 'grass', wagon: 'grass', cart: 'grass',
+        // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md)
+        fountain: 'cobble', oven: 'cobble', hops: 'grass', sacks: 'cobble', pig: 'grass', cask: 'cobble', bell: 'cobble'
     };
     const painters = {
+        // Shamefield expansion: market fountain, bread oven, hop trellis, half-timber walls, grain sacks, pigs, casks, bell
+        fountain(g, px, py, T, c) {
+            circle(g, px + T / 2, py + T / 2 + 2, T * 0.47, '#3a3a40');
+            circle(g, px + T / 2, py + T / 2, T * 0.45, '#8a8890');
+            circle(g, px + T / 2, py + T / 2, T * 0.36, '#2f5566');
+            circle(g, px + T / 2, py + T / 2, T * 0.16, '#8a8890');
+            rect(g, px + T / 2 - 2, py + 6, 4, T / 2 - 4, '#9a98a0');
+            const k = Math.floor(c.time / 180) % 3;
+            for (let i = 0; i < 3; i++) rect(g, px + 9 + i * 6, py + 10 + ((i + k) % 3) * 3, 1, 2, '#a8d0e0');   // splashing
+        },
+        oven(g, px, py, T, c) {
+            circle(g, px + T / 2, py + 14, 13, '#8a6a52'); rect(g, px + 3, py + 14, T - 6, T - 16, '#8a6a52');
+            for (let i = 0; i < 3; i++) rect(g, px + 5 + i * 8, py + 20, 6, 1, '#6a4e3a');
+            circle(g, px + T / 2, py + 21, 6, '#1a0e08'); rect(g, px + T / 2 - 6, py + 21, 12, 7, '#1a0e08');
+            const f = 0.5 + 0.5 * Math.sin(c.time / 140 + c.tx);
+            rect(g, px + T / 2 - 4, py + 23, 8, 4, f > 0.5 ? '#e8902a' : '#c8601a');
+            rect(g, px + T - 9, py + 1, 5, 7, '#5a4a40');                                                  // chimney
+        },
+        hops(g, px, py, T, c) {
+            rect(g, px + 4, py, 2, T, '#5a4430'); rect(g, px + T - 6, py, 2, T, '#5a4430'); rect(g, px + 2, py + 2, T - 4, 2, '#5a4430');
+            for (let i = 0; i < 6; i++) {
+                const x = px + 7 + hash(c.tx, c.ty * 7 + i, 5) * (T - 14), y = py + 5 + i * 4;
+                circle(g, x, y, 2.5, '#4a7a3a'); circle(g, x + 1, y + 1, 1.5, '#9ac06a');
+            }
+        },
+        timber_wall(g, px, py, T, c) {
+            rect(g, px, py, T, T, '#d8cfb6');                                                                  // plaster
+            rect(g, px, py, T, 3, '#4a3426'); rect(g, px, py + T / 2 - 1, T, 3, '#4a3426'); rect(g, px, py + T - 3, T, 3, '#2a1e16');
+            rect(g, px, py, 3, T, '#4a3426');
+            g.strokeStyle = '#4a3426'; g.lineWidth = 2; g.beginPath();
+            if ((c.tx + c.ty) % 2) { g.moveTo(px + 3, py + T / 2); g.lineTo(px + T, py + 3); } else { g.moveTo(px + 3, py + 3); g.lineTo(px + T, py + T / 2); }
+            g.stroke();
+            if (hash(c.tx, c.ty, 9) < 0.35) { rect(g, px + 10, py + T / 2 + 4, 12, 9, '#2a2018'); rect(g, px + 12, py + T / 2 + 6, 8, 5, '#3a4a5a'); }
+        },
+        sacks(g, px, py, T) {
+            for (const [x, y] of [[8, 18], [20, 18], [14, 9]]) { circle(g, px + x, py + y, 7, '#b8a07a'); rect(g, px + x - 2, py + y - 8, 4, 3, '#8a744a'); }
+        },
+        pig(g, px, py, T, c) {
+            const b = Math.sin(c.time / 300 + c.tx) * 0.8;
+            g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(px + 16, py + 25, 9, 3, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 8, py + 13 + b, 16, 10, '#d89a9a'); circle(g, px + 24, py + 16 + b, 5, '#d89a9a');
+            rect(g, px + 27, py + 15 + b, 3, 3, '#b87a7a'); rect(g, px + 10, py + 22, 2, 4, '#b87a7a'); rect(g, px + 20, py + 22, 2, 4, '#b87a7a');
+        },
+        cask(g, px, py, T) {
+            rect(g, px + 3, py + 10, T - 6, 16, '#6a4a2e'); circle(g, px + 6, py + 18, 8, '#6a4a2e'); circle(g, px + T - 6, py + 18, 8, '#6a4a2e');
+            rect(g, px + 9, py + 10, 2, 16, '#3a3a40'); rect(g, px + T - 11, py + 10, 2, 16, '#3a3a40');
+            circle(g, px + T - 6, py + 18, 4, '#8a6a4a'); rect(g, px + 12, py + 14, 8, 6, '#d8cfb6');                 // chalked label
+        },
+        bell(g, px, py, T) {
+            rect(g, px + 4, py + 2, 3, T - 4, '#5a4430'); rect(g, px + T - 7, py + 2, 3, T - 4, '#5a4430'); rect(g, px + 2, py + 2, T - 4, 3, '#6b5238');
+            g.fillStyle = '#a08a40'; g.beginPath(); g.moveTo(px + 10, py + 18); g.lineTo(px + 12, py + 7); g.lineTo(px + 20, py + 7); g.lineTo(px + 22, py + 18); g.fill();
+            circle(g, px + 16, py + 19, 2, '#6a5a2a');
+        },
         // Chapter One tiles
         stall(g, px, py, T, c) {
             rect(g, px + 2, py + 12, T - 4, 14, '#5c4630'); rect(g, px + 2, py + 12, T - 4, 2, '#7a6044');
@@ -432,7 +487,11 @@
         captain: { cloak: '#2e3e5a', helm: '#8a8a92', belt: '#c8a050' },
         shane: { cloak: '#7a6a2a', hair: '#8a4a2a', scarf: '#c83a5a', prop: 'pack' },
         warden_npc: { cloak: '#2a2a32', helm: '#3a3a42', prop: 'halberd', crows: true },
-        mason: { cloak: '#6a6a5a', hair: '#5a4a3a', belt: '#4a3a2a', prop: 'hammer' }
+        mason: { cloak: '#6a6a5a', hair: '#5a4a3a', belt: '#4a3a2a', prop: 'hammer' },
+        monk: { cloak: '#5a4a38', hood: '#4a3c2c', belt: '#c8b890' },
+        steward: { cloak: '#3a3a44', hood: '#e0dccc', belt: '#5a4a38', prop: 'basket' },
+        baker: { cloak: '#d8d0c0', hair: '#6a4a2a', belt: '#8a6a3a' },
+        butcher: { cloak: '#7a3a34', hair: '#3a2a20', belt: '#e0dccc', prop: 'hammer', skin: '#d0a888' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -728,7 +787,7 @@
         }
     };
     /** Tiles that give off light wherever they are placed. */
-    const TILE_LIGHTS = { fireplace: { radius: 2.2, color: 'rgba(255, 140, 60, 0.30)' } };
+    const TILE_LIGHTS = { fireplace: { radius: 2.2, color: 'rgba(255, 140, 60, 0.30)' }, oven: { radius: 1.8, color: 'rgba(255, 150, 60, 0.28)' } };
     /** Front-to-back drawing order for the things standing on a map: lower on screen = drawn later (in
      *  front). Ties keep their input order, and the player goes after an object on the same row. */
     function drawOrder(objects, player) {
@@ -742,7 +801,8 @@
         dust: { colour: [220, 210, 190], size: 1, speed: 0.004, drift: 0.6, pulse: 0 },
         fireflies: { colour: [200, 255, 150], size: 2, speed: 0.012, drift: 1.6, pulse: 1 },
         embers: { colour: [255, 170, 90], size: 1, speed: 0.02, drift: 0.8, pulse: 0.6, rise: true },
-        feathers: { colour: [30, 30, 36], size: 2, speed: 0.01, drift: 1.2, pulse: 0, fall: true }
+        feathers: { colour: [30, 30, 36], size: 2, speed: 0.01, drift: 1.2, pulse: 0, fall: true },
+        smoke: { colour: [170, 165, 160], size: 2, speed: 0.008, drift: 1, pulse: 0.3, rise: true }   // chimneys and malt steam
     };
     function particlesAt(spec, w, h, time) {
         const k = PARTICLES[spec && spec.kind];

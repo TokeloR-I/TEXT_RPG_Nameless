@@ -16,7 +16,7 @@
  *                 visible enemies: walking into one starts a normal fight; E on it shows `text`
  *   boundaries    { id, x, y, w, h, title, text } walkable area that shows a notice when you enter it
  *   lights        { x, y, radius, color? } for dark maps; `color` adds a flickering glow (presentation only)
- *   ambient       { darkness?, lantern?, tint?, fog?, particles?: { kind: dust|fireflies|embers|feathers, count } }
+ *   ambient       { darkness?, lantern?, tint?, fog?, particles?: { kind: dust|fireflies|embers|feathers|smoke, count } }
  *                 Any placed object may also carry `light: { radius, color? }` (ui/world-render.js, GFX-3)
  * Chapter One adds (src/world/chapter1-maps.js): npc objects, `when` story conditions, locked exits
  * (`requires` + `lockedText`) and `gate: true` on a required fight that holds the only way on.
