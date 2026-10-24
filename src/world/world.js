@@ -44,6 +44,12 @@
     /** Every placed thing on a map that occupies a tile (objects and enemies block movement while present). */
     const placed = (map) => [...(map.interactables || []), ...(map.encounters || [])];
     const isEncounter = (map, o) => (map.encounters || []).includes(o);
+    /** Exits by doorway: exits sharing a `group` (one wide doorway) are checked as one. Map of name -> exits. */
+    function exitGroups(map) {
+        const out = new Map();
+        for (const e of map.exits || []) { const k = e.group || e.id; if (!out.has(k)) out.set(k, []); out.get(k).push(e); }
+        return out;
+    }
     const inRect = (r, x, y) => x >= r.x && y >= r.y && x < r.x + (r.w || 1) && y < r.y + (r.h || 1);
 
     /** Tiles reachable on foot from (x, y), treating every placed object as an obstacle, except an encounter
@@ -158,7 +164,8 @@
                 if (!inBounds(map, sp.x, sp.y) || isSolidTile(world, map, sp.x, sp.y)) continue;
                 const area = reachable(world, map, sp.x, sp.y);
                 const usable = (x, y, onTile) => (onTile && area.has(`${x},${y}`)) || neighbours(x, y).some(([nx, ny]) => area.has(`${nx},${ny}`));
-                for (const e of map.exits || []) if (!usable(e.x, e.y, e.trigger === 'step')) err(`${where}: exit ${e.id} can't be reached from spawn ${sid}`);
+                // A doorway several tiles wide is several exits sharing a `group`: one usable tile is enough.
+                for (const [gid, group] of exitGroups(map)) if (!group.some((e) => usable(e.x, e.y, e.trigger === 'step'))) err(`${where}: exit ${gid} can't be reached from spawn ${sid}`);
                 for (const o of placed(map)) if (!usable(o.x, o.y, false)) err(`${where}: object ${o.id} can't be reached from spawn ${sid}`);
                 for (const b of map.boundaries || []) {
                     let ok = false;
@@ -173,14 +180,15 @@
         // A lands next to B, and B lands next to A.
         const near = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
         for (const [mid, map] of Object.entries(world.maps)) {
-            for (const a of map.exits || []) {
-                const dest = world.maps[a.toMap];
-                const landing = dest && (dest.spawns || {})[a.toSpawn];
+            for (const [gid, group] of exitGroups(map)) {
+                const a0 = group[0];
+                const dest = world.maps[a0.toMap];
+                const landing = dest && (dest.spawns || {})[a0.toSpawn];
                 if (!landing) continue;
                 const back = (dest.exits || []).filter((b) => b.toMap === mid);
-                if (!back.length) { err(`exit ${a.id}: no way back from ${a.toMap} to ${mid}`); continue; }
-                const pair = back.find((b) => near(landing, b) && map.spawns[b.toSpawn] && near(map.spawns[b.toSpawn], a));
-                if (!pair) err(`exit ${a.id}: the return trip isn't symmetrical (land next to the way back, and come back next to ${a.id})`);
+                if (!back.length) { err(`exit ${gid}: no way back from ${a0.toMap} to ${mid}`); continue; }
+                const pair = back.find((b) => near(landing, b) && map.spawns[b.toSpawn] && group.some((a) => near(map.spawns[b.toSpawn], a)));
+                if (!pair) err(`exit ${gid}: the return trip isn't symmetrical (land next to the way back, and come back next to ${gid})`);
             }
         }
         // Every map in a zone is reachable from the start through exits.
