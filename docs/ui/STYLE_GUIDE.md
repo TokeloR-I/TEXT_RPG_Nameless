@@ -91,3 +91,10 @@ except the focus/selection accent.
 - Focus is always visible: the selected entry has a cursor **and** a border, never colour alone.
 - New keys are screen-local and listed in that screen's hint (battle: `L` opens the full log).
 - Gamepad support is plan item P4.
+
+## HD-2D pass (typography, frames, battle HUD)
+- Type: DotGothic16 everywhere (one weight). Emphasis is colour and size, never fake bold.
+- Frames: the pixel 9-slice `border-image` in `world.css` (`.win, .dialog, .panel, .hud, .prompt, .toast`).
+  Its colours are the frame tokens, written out in the SVG.
+- Battle: nothing boxed over the field. Turn bar at the top, banner under it, foe tags under foes, gauges at bottom left,
+  commands at bottom right. Camera moves are CSS only, and `body.reduce-motion` turns them off.
