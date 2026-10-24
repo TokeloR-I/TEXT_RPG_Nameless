@@ -15,7 +15,9 @@
  *   encounters    { id, x, y, name, enemies: [enemy keys], trigger: 'contact', sprite, text? }
  *                 visible enemies: walking into one starts a normal fight; E on it shows `text`
  *   boundaries    { id, x, y, w, h, title, text } walkable area that shows a notice when you enter it
- *   lights        { x, y, radius } for dark maps (presentation only)
+ *   lights        { x, y, radius, color? } for dark maps; `color` adds a flickering glow (presentation only)
+ *   ambient       { darkness?, lantern?, tint?, fog?, particles?: { kind: dust|fireflies|embers|feathers, count } }
+ *                 Any placed object may also carry `light: { radius, color? }` (ui/world-render.js, GFX-3)
  * Chapter One adds (src/world/chapter1-maps.js): npc objects, `when` story conditions, locked exits
  * (`requires` + `lockedText`) and `gate: true` on a required fight that holds the only way on.
  * Validate after any change: `npm test` (tests/18-world.test.js).
@@ -71,7 +73,7 @@
         cellar: {
             zoneId: 'forgotten_homestead',
             name: 'The Cellar',
-            ambient: { darkness: 0.72, lantern: 4.5 },
+            ambient: { darkness: 0.72, lantern: 4.5, particles: { kind: 'dust', count: 18 } },
             legend: { 'R': { name: 'bedroll' } },
             tiles: [
                 '##############',
@@ -107,7 +109,7 @@
         house: {
             zoneId: 'forgotten_homestead',
             name: 'The House',
-            ambient: { darkness: 0.5, lantern: 5.5 },
+            ambient: { darkness: 0.5, lantern: 5.5, particles: { kind: 'dust', count: 14 } },
             tiles: [
                 'WWWWWWWWWWWWWWWWWWWW',
                 'WKKKS===W====FFF=SSW',
@@ -150,7 +152,7 @@
         grounds: {
             zoneId: 'forgotten_homestead',
             name: 'Homestead Grounds',
-            ambient: { darkness: 0.22, tint: 'rgba(40, 46, 92, 0.28)' },
+            ambient: { darkness: 0.22, tint: 'rgba(40, 46, 92, 0.28)', particles: { kind: 'fireflies', count: 14 } },
             tiles: [
                 'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
                 'T,,,,,,,,,hhhhhhhhhh,,,,T,,,,T',
@@ -240,7 +242,7 @@
         well: {
             zoneId: 'forgotten_homestead',
             name: 'Bottom of the Well',
-            ambient: { darkness: 0.78, lantern: 3.5 },
+            ambient: { darkness: 0.78, lantern: 3.5, particles: { kind: 'dust', count: 10 } },
             tiles: [
                 '#########',
                 '#rr.L..~#',

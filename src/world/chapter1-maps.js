@@ -201,7 +201,7 @@
         orchard: {
             zoneId: 'shamefield_vale',
             name: 'The North Orchard',
-            ambient: { tint: 'rgba(80, 60, 40, 0.18)' },
+            ambient: { tint: 'rgba(80, 60, 40, 0.18)', particles: { kind: 'fireflies', count: 12 } },
             tiles: [
                 'TTTTTTTTTTTTT.TTTTTTTTTTTT',
                 'T#####r######.###########T',
@@ -252,7 +252,7 @@
         featherwatch: {
             zoneId: 'featherwatch_heights',
             name: 'Featherwatch Path',
-            ambient: { darkness: 0.25, tint: 'rgba(40, 40, 70, 0.25)' },
+            ambient: { darkness: 0.25, tint: 'rgba(40, 40, 70, 0.25)', particles: { kind: 'feathers', count: 10 } },
             tiles: [
                 'TTTTTTTTTTTT:TTTTT',
                 'TTTTTTTTTTTT:TTTTT',
@@ -304,7 +304,7 @@
         sanctuary: {
             zoneId: 'featherwatch_heights',
             name: "The Warden's Sanctuary",
-            ambient: { darkness: 0.45, lantern: 5.5 },
+            ambient: { darkness: 0.45, lantern: 5.5, particles: { kind: 'feathers', count: 8 } },
             tiles: [
                 '######################',
                 '##########ZZ##########',
@@ -358,7 +358,7 @@
         seal_chamber: {
             zoneId: 'featherwatch_heights',
             name: 'The Seal Chamber',
-            ambient: { darkness: 0.7, lantern: 4 },
+            ambient: { darkness: 0.7, lantern: 4, particles: { kind: 'embers', count: 16 } },
             tiles: [
                 '###########',
                 '#.........#',

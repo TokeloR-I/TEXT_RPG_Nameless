@@ -591,6 +591,29 @@
             }
         }
 
+        // Render hooks (GFX-3): extra drawing at fixed points of the frame, without touching this file.
+        //   'ground'      after the floor, before anyone stands on it (decals, footprints, shadows)
+        //   'foreground'  after people and tree crowns, in map pixels (weather, overhead effects)
+        //   'light'       after darkness, glow and ambience, in screen pixels (flashes, vignettes)
+        // fn(g, { map, time, ox, oy, view, dark? }) — presentation only, never game state.
+        const hooks = { ground: [], foreground: [], light: [] };
+        function addHook(stage, fn) {
+            if (!hooks[stage]) throw new Error(`Unknown render stage '${stage}'`);
+            hooks[stage].push(fn);
+            return () => { const i = hooks[stage].indexOf(fn); if (i !== -1) hooks[stage].splice(i, 1); };
+        }
+        function run(stage, ctx) { for (const fn of hooks[stage]) { g.save(); try { fn(g, ctx); } finally { g.restore(); } } }
+        /** Fixed map lights, tiles that give light (fireplaces), and any placed thing with a `light: { radius, color? }`. */
+        const tileLights = new Map();
+        function lightsOf(map, objects) {
+            if (!tileLights.has(map)) {
+                const found = [];
+                map.tiles.forEach((row, y) => [...row].forEach((ch, x) => { const l = TILE_LIGHTS[nameAt(map, x, y)]; if (l) found.push({ x, y, ...l }); }));
+                tileLights.set(map, found);
+            }
+            return [...(map.lights || []), ...tileLights.get(map), ...objects.filter((o) => o.light).map((o) => ({ x: o.x, y: o.y, ...o.light }))];
+        }
+
         /** view = { mapId, x, y (tile units, may be fractional), facing, moving, className, appearance, marker, fade } */
         function draw(view, objects, time) {
             const map = world.maps[view.mapId];
@@ -606,7 +629,11 @@
             const x0 = Math.max(0, Math.floor(camX / T)), y0 = Math.max(0, Math.floor(camY / T));
             const x1 = Math.min(map.tiles[0].length - 1, Math.ceil((camX + W) / T)), y1 = Math.min(map.tiles.length - 1, Math.ceil((camY + H) / T));
             for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y))) paintTile(g, map, x, y, time);
-            for (const o of objects) {
+            run('ground', { map, time, ox, oy, view });
+            // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
+            for (const d of drawOrder(objects, view)) {
+                if (d.kind === 'player') { drawPlayer(view.x * T, view.y * T, view, time); continue; }
+                const o = d.o;
                 if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, o.x * T, o.y * T, T, time);
                 if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
@@ -614,12 +641,17 @@
                     g.fillRect(o.x * T + T - 9, o.y * T + 5, 2, 2); g.fillRect(o.x * T + T - 10, o.y * T + 6, 4, 1); g.fillRect(o.x * T + T - 9, o.y * T + 4, 1, 4);
                 }
             }
+            // Foreground: crowns of trees reach into the row above and cover whoever stands there.
+            for (let y = y0; y <= y1 + 1 && y < map.tiles.length; y++) for (let x = x0; x <= x1; x++) {
+                const name = nameAt(map, x, y);
+                if (OVERHANGS[name]) OVERHANGS[name](g, x * T, y * T, T, { tx: x, ty: y, time });
+            }
+            run('foreground', { map, time, ox, oy, view });
             if (view.marker) {                                                       // the tracked objective, when it's on this map
                 const mx = view.marker.x * T + T / 2, my = view.marker.y * T - 6 + Math.sin(time / 260) * 3;
                 g.fillStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.moveTo(mx, my + 1); g.lineTo(mx + 6, my - 6); g.lineTo(mx, my - 13); g.lineTo(mx - 6, my - 6); g.fill();
                 g.fillStyle = '#e8c860'; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + 5, my - 6); g.lineTo(mx, my - 12); g.lineTo(mx - 5, my - 6); g.fill();
             }
-            drawPlayer(view.x * T, view.y * T, view, time);
             g.restore();
 
             // lighting: darkness with holes for the player's light and fixed light sources
@@ -637,9 +669,25 @@
                     dg.fillStyle = gr; dg.fillRect(x - r, y - r, r * 2, r * 2);
                 };
                 if (amb.lantern) hole(view.x * T + T / 2 + ox, view.y * T + T / 2 + oy, amb.lantern * T, 0.95);
-                for (const l of map.lights || []) hole(l.x * T + T / 2 + ox, l.y * T + T / 2 + oy, l.radius * T, 0.8);
+                for (const l of lightsOf(map, objects)) hole(l.x * T + T / 2 + ox, l.y * T + T / 2 + oy, l.radius * T, 0.8);
                 g.drawImage(dark, 0, 0);
             }
+            // Coloured glow for lights that name a colour (fires, lanterns), with a gentle flicker.
+            g.save(); g.globalCompositeOperation = 'lighter';
+            for (const l of lightsOf(map, objects)) {
+                if (!l.color) continue;
+                const r = l.radius * T * (0.6 + 0.04 * Math.sin(time / 130 + l.x * 7 + l.y));
+                const cx = l.x * T + T / 2 + ox, cy = l.y * T + T / 2 + oy;
+                const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+                gr.addColorStop(0, l.color); gr.addColorStop(1, 'rgba(0,0,0,0)');
+                g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+            }
+            g.restore();
+            for (const p of particlesAt(amb.particles, mw, mh, time)) {
+                g.fillStyle = `rgba(${p.colour[0]}, ${p.colour[1]}, ${p.colour[2]}, ${p.a})`;
+                g.fillRect(p.x + ox, p.y + oy, p.size, p.size);
+            }
+            run('light', { map, time, ox, oy, view, dark: amb.darkness ? dg : null });
             if (amb.fog === 'bottom') {                      // the road fades into fog at the zone's edge
                 const fy = mh + oy;
                 const fg = g.createLinearGradient(0, fy - 4 * T, 0, fy);
@@ -652,7 +700,63 @@
             if (view.fade) { g.fillStyle = `rgba(0,0,0,${view.fade})`; g.fillRect(0, 0, W, H); }
         }
 
-        return { draw, tile: T };
+        return { draw, tile: T, addHook };
+    }
+
+    // ---------------------------------------------------------------------
+    // GFX-3 (#106): depth, foreground, ambience and light hooks. Pure helpers are exported for tests.
+    // ---------------------------------------------------------------------
+    /** Foreground overhangs: the part of a tall tile that reaches up into the tile ABOVE it. They are drawn
+     *  after people and the player, so someone standing just north of a tree is partly hidden by its crown.
+     *  (g, px, py, T, c) where (px, py) is the tile's own top-left. */
+    const OVERHANGS = {
+        tree(g, px, py, T, c) {
+            circle(g, px + T / 2, py + 2, T * 0.36, '#1d3023');
+            circle(g, px + T / 2 - 4, py - 2, T * 0.2, '#28432e');
+            if (hash(c.tx, c.ty, 2) < 0.5) circle(g, px + T / 2 + 5, py + 1, T * 0.14, '#24392a');
+        },
+        fruit_tree(g, px, py, T, c) {
+            circle(g, px + T / 2, py + 3, T * 0.32, '#24402a');
+            circle(g, px + T / 2 - 4, py - 1, T * 0.17, '#30553a');
+            circle(g, px + 9 + Math.floor(hash(c.tx, c.ty, 7) * 14), py, 1.8, '#b0402e');
+        },
+        dead_tree(g, px, py, T) {
+            g.strokeStyle = '#4a4038'; g.lineWidth = 2; g.lineCap = 'round';
+            g.beginPath(); g.moveTo(px + T / 2, py + 6); g.lineTo(px + T / 2 + 1, py - 5); g.moveTo(px + T / 2, py + 2); g.lineTo(px + T / 2 - 6, py - 3); g.stroke();
+            g.lineCap = 'butt';
+        }
+    };
+    /** Tiles that give off light wherever they are placed. */
+    const TILE_LIGHTS = { fireplace: { radius: 2.2, color: 'rgba(255, 140, 60, 0.30)' } };
+    /** Front-to-back drawing order for the things standing on a map: lower on screen = drawn later (in
+     *  front). Ties keep their input order, and the player goes after an object on the same row. */
+    function drawOrder(objects, player) {
+        const list = objects.map((o, i) => ({ kind: 'object', o, y: o.y, i }));
+        if (player) list.push({ kind: 'player', y: player.y, i: objects.length + 0.5 });
+        return list.sort((a, b) => a.y - b.y || a.i - b.i);
+    }
+    /** Ambient particles for a map (`ambient.particles: { kind, count }`), as pure positions in pixels.
+     *  Deterministic for a given time, so replays and captures look the same. */
+    const PARTICLES = {
+        dust: { colour: [220, 210, 190], size: 1, speed: 0.004, drift: 0.6, pulse: 0 },
+        fireflies: { colour: [200, 255, 150], size: 2, speed: 0.012, drift: 1.6, pulse: 1 },
+        embers: { colour: [255, 170, 90], size: 1, speed: 0.02, drift: 0.8, pulse: 0.6, rise: true },
+        feathers: { colour: [30, 30, 36], size: 2, speed: 0.01, drift: 1.2, pulse: 0, fall: true }
+    };
+    function particlesAt(spec, w, h, time) {
+        const k = PARTICLES[spec && spec.kind];
+        if (!k || !(w > 0) || !(h > 0)) return [];
+        const out = [];
+        for (let i = 0; i < (spec.count || 24); i++) {
+            const bx = hash(i, 1, 77) * w, by = hash(i, 2, 77) * h, ph = hash(i, 3, 77) * Math.PI * 2;
+            const t = time * k.speed / 16;
+            const vy = k.rise ? -t * 6 : k.fall ? t * 6 : 0;
+            const x = ((bx + Math.sin(t / 7 + ph) * 14 * k.drift) % w + w) % w;
+            const y = ((by + vy + Math.cos(t / 9 + ph) * 8 * k.drift) % h + h) % h;
+            const a = k.pulse ? 0.35 + 0.55 * k.pulse * (0.5 + 0.5 * Math.sin(time / 400 + ph * 3)) : 0.5;
+            out.push({ x: Math.floor(x), y: Math.floor(y), size: k.size, a: +a.toFixed(3), colour: k.colour });
+        }
+        return out;
     }
 
     /** Draw an enemy (by enemy key) into a small canvas, for battle cards. */
@@ -664,5 +768,6 @@
         g.restore();
     }
 
-    ENSO.worldRender = { create, drawCreature };
+    ENSO.worldRender = { create, drawCreature, drawOrder, particlesAt, OVERHANGS, PARTICLES, TILE_LIGHTS };
+    if (typeof module !== 'undefined' && module.exports) module.exports = ENSO.worldRender;
 })(typeof window !== 'undefined' ? window : globalThis);
