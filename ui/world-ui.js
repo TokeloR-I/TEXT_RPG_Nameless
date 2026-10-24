@@ -763,21 +763,49 @@
         if (r.type !== 'transition') { updateHud(); openDialog(readable(r.events || []).map((l) => l.text).join('\n') || CV.reasonText({ code: 'UNREACHABLE' }), 'Black Flight', afterStory); return; }
         feathersThen(() => startFade(r));
     }
-    /** Dark feathers rise around you, then the usual fade carries you there. Reduced motion: just the fade. */
+    /** Nahemoth's original 12-frame, transparent sprite atlas by Sable.
+     *  This is presentation only: the world/engine already authorized travel.
+     *  Frames 0–5 depart; initiate map fade at frame 6; frames 6–11 reassemble.
+     *  The single-file build inlines the SVG into this URL.
+     */
+    const BLACK_FLIGHT_ATLAS = 'assets/vfx/nahemoth/black-flight-atlas.svg';
+    const BLACK_FLIGHT_TIMING = [75, 65, 60, 55, 55, 70, 70, 55, 55, 60, 65, 75];
+    let blackFlightImage = null;
     let feathering = false;
     function feathersThen(fn) {
         if (REDUCED) { fn(); return; }
-        const box = document.createElement('div');
-        box.className = 'feathers';
-        box.setAttribute('aria-hidden', 'true');
-        const n = 18;
-        box.innerHTML = Array.from({ length: n }, (_, i) => {
-            const x = 50 + Math.cos(i * 2.4) * (8 + (i % 5) * 3), dx = Math.sin(i * 1.7) * 12;
-            return `<i style="left:${x.toFixed(1)}%;--r:${(i * 47) % 360}deg;--dx:${dx.toFixed(1)}cqw;--d:${FEATHER_MS - (i % 4) * 60}ms;--delay:${(i % 6) * 30}ms"></i>`;
-        }).join('');
-        $('world-stage').appendChild(box);
-        feathering = true;
-        setTimeout(() => { box.remove(); feathering = false; fn(); }, FEATHER_MS);
+        const image = blackFlightImage || (blackFlightImage = new Image());
+        if (!image.src) image.src = BLACK_FLIGHT_ATLAS;
+        const play = () => {
+            const stage = $('world-stage');
+            const overlay = document.createElement('canvas');
+            overlay.width = 640; overlay.height = 448;
+            overlay.className = 'black-flight-vfx';
+            overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:12;';
+            overlay.setAttribute('aria-hidden', 'true');
+            const g = overlay.getContext('2d');
+            if (!g) { fn(); return; }
+            g.imageSmoothingEnabled = false;
+            stage.appendChild(overlay);
+            feathering = true;
+            let frame = 0, invoked = false;
+            const draw = () => {
+                g.clearRect(0, 0, overlay.width, overlay.height);
+                // 96-pixel frames, centered over the player on the stage.
+                g.drawImage(image, frame * 96, 0, 96, 96, 256, 144, 128, 128);
+                if (frame === 6 && !invoked) { invoked = true; fn(); }
+                if (++frame === BLACK_FLIGHT_TIMING.length) {
+                    overlay.remove(); feathering = false;
+                    if (!invoked) fn();
+                } else setTimeout(draw, BLACK_FLIGHT_TIMING[frame - 1]);
+            };
+            draw();
+        };
+        if (image.complete && image.naturalWidth) play();
+        else {
+            image.addEventListener('load', play, { once: true });
+            image.addEventListener('error', () => { feathering = false; fn(); }, { once: true });
+        }
     }
 
     // ---------------------------------------------------------------------
