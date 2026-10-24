@@ -109,7 +109,7 @@
     const classes = Object.keys(DATA.basePlayerClasses);
     const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
     const NAME_MAX = 24;
-    const HAIR_STYLES = ['Cropped', 'Long', 'Braids', 'Shaved'];
+    const HAIR_STYLES = ['Messy Short', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
     const HAIR_COLOURS = ['Raven', 'Chestnut', 'Ash', 'Copper'];
     const OUTFITS = ['Traveler', 'Tattered', 'Armored', 'Ceremonial'];
     const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0 });
