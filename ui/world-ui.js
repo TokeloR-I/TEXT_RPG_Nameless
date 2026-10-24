@@ -493,6 +493,7 @@
         els.hud.hidden = true;
         battle = { id: result.id, log: [], ended: null, lastHp: {}, targetIds: [] };
         playActor('idle');
+        fx.clear();
         addLog(result.events);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
@@ -502,9 +503,13 @@
     }
     function send(action) {
         const hpBefore = engine.player.hp;
+        const before = engine.getState();
         const r = engine.act(action);
         addLog(r.events);
-        if (r.ok) actorReacts(action, hpBefore);
+        if (r.ok) {
+            actorReacts(action, hpBefore);
+            fx.push(ENSO.combatFx.eventsFromStates(before, engine.getState(), action, DATA, r.events), performance.now());
+        }
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
 
@@ -518,6 +523,30 @@
             : action.type === 'skill' || action.type === 'control' ? 'cast' : null;
         const after = engine.mode === 'game_over' ? ['death'] : engine.player.hp < hpBefore ? ['hit'] : [];
         if (move) playActor(move, ...after); else if (after.length) playActor(...after);
+    }
+    // Battle effects (GFX-4): one overlay canvas above the battle panel, sized to it every frame.
+    const fxCanvas = document.createElement('canvas');
+    fxCanvas.className = 'fx-layer';
+    fxCanvas.setAttribute('aria-hidden', 'true');
+    Object.assign(fxCanvas.style, { position: 'fixed', pointerEvents: 'none', zIndex: 50, left: '0', top: '0' });
+    fxCanvas.hidden = true;
+    document.body.appendChild(fxCanvas);
+    const fx = ENSO.combatFx.createFx(fxCanvas);
+    function drawFx(now) {
+        const box = els.combat.getBoundingClientRect();
+        const on = !els.combat.hidden && box.width > 0;
+        fxCanvas.hidden = !on;
+        if (!on) return;
+        if (fxCanvas.width !== Math.round(box.width) || fxCanvas.height !== Math.round(box.height)) { fxCanvas.width = Math.round(box.width); fxCanvas.height = Math.round(box.height); }
+        fxCanvas.style.left = `${box.left}px`; fxCanvas.style.top = `${box.top}px`;
+        const unit = (id) => els.combat.querySelector(`[data-unit-id="${CSS.escape(String(id))}"]`);
+        const anchorOf = (id) => {
+            const el = unit(id);
+            if (!el) return null;
+            const r = (el.querySelector('canvas') || el).getBoundingClientRect();
+            return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
+        };
+        fx.draw(now, anchorOf, (id) => (id === undefined ? [...els.combat.querySelectorAll('[data-unit-id]')] : unit(id)));
     }
     /** Draw the battle sprite; called every frame while the battle overlay is up. */
     function drawActor(now) {
@@ -616,15 +645,15 @@
             <div class="battle-head">${esc(heading)}</div>
             <div class="foes">${foes.map((e) => {
                 const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
-                return `<div class="foe ${battle.targetIds.includes(e.id) ? 'targeted' : ''} ${hit ? 'hit' : ''}">
+                return `<div class="foe ${battle.targetIds.includes(e.id) ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
                     <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
                     <div class="foe-name">${esc(e.name)}</div>
                     <div class="foe-hp">${bar(e.hp, e.maxHp, 'enemy')}<span>${e.hp}/${e.maxHp}</span></div>
                     <div class="tags">${tags(e.statusEffects)}</div></div>`;
-            }).join('')}${minions.map((m) => `<div class="foe ally"><div class="foe-name">${esc(m.name)}</div><div class="foe-hp">${bar(m.hp, m.maxHp, 'hp')}<span>${m.hp}/${m.maxHp}</span></div></div>`).join('')}</div>
+            }).join('')}${minions.map((m) => `<div class="foe ally" data-unit-id="${esc(m.id)}"><div class="foe-name">${esc(m.name)}</div><div class="foe-hp">${bar(m.hp, m.maxHp, 'hp')}<span>${m.hp}/${m.maxHp}</span></div></div>`).join('')}</div>
             <div class="battle-log" aria-live="polite">${battle.log.map((l) => `<p class="${l.important ? 'imp' : ''} ${/^--- .* ---$/.test(l.text) ? 'sep' : ''}">${esc(l.text)}</p>`).join('')}</div>
             <div class="battle-foot">
-                <div class="me">
+                <div class="me" data-unit-id="player">
                     <canvas class="me-sprite" width="56" height="72" aria-hidden="true"></canvas>
                     <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
                     <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${Math.max(0, p.hp)}/${p.maxHp}</span></div>
@@ -796,6 +825,7 @@
         if (!anim) view.moving = false;
         if (screen !== 'title') updatePrompt();
         if (screen === 'combat' || screen === 'over') drawActor(now);
+        drawFx(now);
         const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
         const dim = screen === 'combat' || screen === 'over' ? 0.6 : view.fade;
         renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
