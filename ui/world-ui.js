@@ -768,7 +768,7 @@
         if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
         if (!anim) view.moving = false;
         if (screen !== 'title') updatePrompt();
-        const objects = session.visibleObjects().map((o) => ({ ...o, seen: seen.has(o.id) }));
+        const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
         const dim = screen === 'combat' || screen === 'over' ? 0.6 : view.fade;
         renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);

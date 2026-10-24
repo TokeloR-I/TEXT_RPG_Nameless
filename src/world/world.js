@@ -204,7 +204,7 @@
         constructor(world, opts = {}) {
             this.world = world;
             this.engine = opts.engine || null;
-            this.local = { collected: [], defeated: [] };
+            this.local = { collected: [], defeated: [], narrated: [] };
             this.cooldown = null;   // encounter id that ignores contact until you step away (after fleeing)
             this.steps = 0;
             this.place(opts.map || world.start.map, opts.spawn || world.start.spawn);
@@ -212,15 +212,33 @@
 
         isCollected(id) { return this.engine ? this.engine.isCollected(id) : this.local.collected.includes(id); }
         isDefeated(id) { return this.engine ? this.engine.isDefeated(id) : this.local.defeated.includes(id); }
-        /** Is this placed thing still on the map? (collected pickups and beaten enemies are gone) */
-        present(o) {
+        /** Is this placed thing (on `map`, default the current one) still there? Collected pickups and beaten enemies are gone. */
+        present(o, map = this.map) {
             if (o.when && !this.allows(o.when)) return false;      // story-conditional people and enemies
-            return isEncounter(this.map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id));
+            return isEncounter(map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id));
         }
         /** Story conditions are the engine's (src/engine/story.js). Without an engine, everything is open. */
         allows(cond) { return !cond || !this.engine || !this.engine.story || this.engine.storyAllows(cond); }
-        /** Objects and enemies still on the current map. */
-        visibleObjects() { return placed(this.map).filter((o) => this.present(o)).map((o) => ({ ...o, kind: isEncounter(this.map, o) ? 'encounter' : o.kind })); }
+        /** Objects and enemies still on a map (default: the current one). A front end draws the map it is
+         *  showing, which during a step-and-fade transition is still the one the player just left (#98). */
+        visibleObjects(mapId = this.mapId) {
+            const map = this.world.maps[mapId];
+            if (!map) return [];
+            return placed(map).filter((o) => this.present(o, map)).map((o) => ({ ...o, kind: isEncounter(map, o) ? 'encounter' : o.kind }));
+        }
+
+        /** An exit's arrival narration plays once per run (#98): true the first time, false after.
+         *  With an engine the record is a run flag, so it survives save/load. */
+        firstNarration(id) {
+            if (this.engine && this.engine.world) {
+                if (this.engine.hasNarrated(id)) return false;
+                this.engine.act({ type: 'world_narration', id });
+                return true;
+            }
+            if (this.local.narrated.includes(id)) return false;
+            this.local.narrated.push(id);
+            return true;
+        }
 
         get map() { return this.world.maps[this.mapId]; }
 
@@ -329,7 +347,8 @@
             this.place(exit.toMap, exit.toSpawn);
             // Arriving is a story event (quests like "reach Shamefield"). Walking itself never calls the engine.
             const events = this.engine && this.engine.story ? this.engine.act({ type: 'world_enter', mapId: this.mapId }).events : [];
-            return { type: 'transition', exit: exit.id, from, to: this.mapId, text: exit.text || null, events };
+            const text = exit.text && this.firstNarration(exit.id) ? exit.text : null;
+            return { type: 'transition', exit: exit.id, from, to: this.mapId, text, events };
         }
 
         getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
