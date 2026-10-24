@@ -281,3 +281,23 @@ body {
 @media (max-width: 520px) {
     .title-screen .hairstyle-grid { grid-template-columns: repeat(2,minmax(0,1fr)); max-height: 64%; }
 }
+
+/* Creator: an unobstructed preview sharing the actual in-world sprite compositor. */
+.title-screen:has(.creator-workspace) { justify-content: center; }
+.creator-workspace { display: grid; grid-template-columns: minmax(190px, 0.85fr) minmax(0, 1.5fr); gap: 1.2em; align-items: center; width: min(100%, 920px); min-height: 0; }
+.creator-preview { display: flex; flex-direction: column; align-items: center; gap: 0.55em; padding: 1em 0.5em; border: 1px solid var(--edge); background: rgba(10, 10, 15, 0.94); min-width: 0; }
+.creator-preview-heading { color: var(--accent); text-transform: uppercase; letter-spacing: 0.09em; }
+#creator-sprite { display: block; width: min(100%, 288px); height: auto; image-rendering: pixelated; }
+.creator-current { color: var(--ink); line-height: 1.4; font-size: 0.91em; }
+.creator-legend { color: var(--ink-dim); font-size: 0.8em; }
+.creator-options { min-height: 0; min-width: 0; max-height: 52cqw; overflow-y: auto; }
+.creator-options .class-list { width: 100%; }
+.creator-options .hairstyle-grid { grid-template-columns: repeat(2, minmax(0,1fr)); max-height: none; }
+@media (max-width: 680px) {
+    .title-screen:has(.creator-workspace) { justify-content: flex-start; }
+    .creator-workspace { grid-template-columns: minmax(0,1fr); gap: 0.35em; }
+    .creator-preview { padding: 0.25em; gap: 0.2em; }
+    #creator-sprite { width: min(100%, 186px); }
+    .creator-options { max-height: 39cqw; }
+    .creator-options .class-list li { padding-block: 0.25em; }
+}
