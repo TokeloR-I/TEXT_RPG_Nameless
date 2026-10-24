@@ -739,7 +739,12 @@
             'Moldy Bread':           { use: 'heal', value: 8,  description: 'Better than nothing. Probably.' },
             'Half-full Wine Bottle': { use: 'heal', value: 12, description: 'Sour, but it takes the edge off.' },
             'Bandages':              { use: 'heal', value: 25, description: 'Clean enough.' },
-            'Healing Herb Bundle':   { use: 'heal', value: 40, description: 'Bitter leaves that knit flesh.' }
+            'Healing Herb Bundle':   { use: 'heal', value: 40, description: 'Bitter leaves that knit flesh.' },
+            'Roadworn Blade': { type: 'weapon', slot: 'mainHand', rarity: 'common', statModifiers: { strength: 1 }, sellable: true, sellPrice: 3, description: 'A nicked but serviceable blade.' },
+            'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
+            'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
+            'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
+            'Small Coin Purse': { type: 'consumable', use: 'gold', value: 6, sellable: false, description: 'A few coins from an earlier life.' }
         };
 
         // Global balance knobs.
@@ -761,7 +766,12 @@
         for (const key of Object.keys(skillDefinitions)) skillDefinitions[key].name = key;
 
         const data = {
-            shopDefinitions: {}, constructionDefinitions: {}, cropDefinitions: {}, recipeDefinitions: {},
+            shopDefinitions: {
+                mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
+                bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
+                iona: { stock: { 'Healing Herb Bundle': { buyPrice: 12, quantity: 5 }, 'Bandages': { buyPrice: 8, quantity: 3 }, 'Wild Herbs': { buyPrice: 3, quantity: 6 } } },
+                shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 } } }
+            }, constructionDefinitions: {}, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
             statusDefinitions, statusRules, statusReactions
