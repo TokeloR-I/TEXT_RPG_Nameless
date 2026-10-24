@@ -612,7 +612,12 @@
     };
 
     function create(canvas, world, opts = {}) {
-        const T = opts.tile || 32;
+        // T is the current map's cell size in pixels: 32 for the original maps, 16 for 16 px maps (Keel rev 2).
+        // A map converted from 32 px (src/world/scale16.js) keeps its `source32`: its painted tiles, overhangs,
+        // tile lights and object sprites are drawn from that at 32 px (the same pixels), everything that moves
+        // or is placed by cell uses the 16 px grid.
+        let T = opts.tile || 32;
+        const cellOf = (map) => map.tileSize || opts.tile || 32;
         const HD = ENSO.tilesHD;                       // HD-2D painters and shadows (ui/tiles-hd.js), when loaded
         if (HD) {
             Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
@@ -679,7 +684,8 @@
 
         function staticLayer(mapId) {
             if (cache.has(mapId)) return cache.get(mapId);
-            const map = world.maps[mapId];
+            const map = world.maps[mapId].source32 || world.maps[mapId];
+            T = map === world.maps[mapId] ? cellOf(map) : 32;
             const c = document.createElement('canvas');
             c.width = map.tiles[0].length * T; c.height = map.tiles.length * T;
             const cg = c.getContext('2d');
@@ -730,7 +736,8 @@
         function lightsOf(map, objects) {
             if (!tileLights.has(map)) {
                 const found = [];
-                map.tiles.forEach((row, y) => [...row].forEach((ch, x) => { const l = TILE_LIGHTS[nameAt(map, x, y)]; if (l) found.push({ x, y, ...l }); }));
+                const src = map.source32 || map, k = src === map ? 1 : 2;   // tile lights of a converted map sit at its block centres
+                src.tiles.forEach((row, y) => [...row].forEach((ch, x) => { const l = TILE_LIGHTS[nameAt(src, x, y)]; if (l) found.push({ ...l, x: x * k + (k - 1) / 2, y: y * k + (k - 1) / 2, radius: l.radius * k }); }));
                 tileLights.set(map, found);
             }
             return [...(map.lights || []), ...tileLights.get(map), ...objects.filter((o) => o.light).map((o) => ({ x: o.x, y: o.y, ...o.light }))];
@@ -739,6 +746,10 @@
         /** view = { mapId, x, y (tile units, may be fractional), facing, moving, className, appearance, marker, fade } */
         function draw(view, objects, time) {
             const map = world.maps[view.mapId];
+            const src = map.source32 || map, k = src === map ? 1 : 2;
+            staticLayer(view.mapId);                                   // (sets T for the painters; reset below)
+            T = cellOf(map);
+            const PT = T * k;                                          // the painters' tile size
             const mw = map.tiles[0].length * T, mh = map.tiles.length * T;
             const W = canvas.width, H = canvas.height;
             if (dark.width !== W || dark.height !== H) { dark.width = W; dark.height = H; g.imageSmoothingEnabled = false; }   // the stage was refitted (ui/display.js)
@@ -750,15 +761,17 @@
             rect(g, 0, 0, W, H, '#060608');
             g.drawImage(staticLayer(view.mapId), ox, oy);
             g.save(); g.translate(ox, oy);
-            const x0 = Math.max(0, Math.floor(camX / T)), y0 = Math.max(0, Math.floor(camY / T));
-            const x1 = Math.min(map.tiles[0].length - 1, Math.ceil((camX + W) / T)), y1 = Math.min(map.tiles.length - 1, Math.ceil((camY + H) / T));
-            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y)) && !artCells(map, x, y, UNDER).length) paintTile(g, map, x, y, time);
+            const x0 = Math.max(0, Math.floor(camX / PT)), y0 = Math.max(0, Math.floor(camY / PT));
+            const x1 = Math.min(src.tiles[0].length - 1, Math.ceil((camX + W) / PT)), y1 = Math.min(src.tiles.length - 1, Math.ceil((camY + H) / PT));
+            T = PT;
+            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
+            T = cellOf(map);
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
             for (const d of drawOrder(objects, view)) {
                 if (d.kind === 'player') { drawPlayer(view.x * T, view.y * T, view, time); continue; }
                 const o = d.o;
-                if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, o.x * T, o.y * T, T, time);
+                if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, PT, time);
                 if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
                     g.fillStyle = `rgba(255, 244, 200, ${a})`;
@@ -766,11 +779,13 @@
                 }
             }
             // Foreground: crowns of trees reach into the row above and cover whoever stands there.
-            for (let y = y0; y <= y1 + 1 && y < map.tiles.length; y++) for (let x = x0; x <= x1; x++) {
-                const name = nameAt(map, x, y);
-                if (OVERHANGS[name]) OVERHANGS[name](g, x * T, y * T, T, { tx: x, ty: y, time });
-                if (map.art) drawArt(g, artCells(map, x, y, ['overhead']), x * T, y * T);
+            T = PT;
+            for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
+                const name = nameAt(src, x, y);
+                if (OVERHANGS[name]) OVERHANGS[name](g, x * PT, y * PT, PT, { tx: x, ty: y, time });
+                if (src.art) drawArt(g, artCells(src, x, y, ['overhead']), x * PT, y * PT);
             }
+            T = cellOf(map);
             run('foreground', { map, time, ox, oy, view });
             if (view.marker) {                                                       // the tracked objective, when it's on this map
                 const mx = view.marker.x * T + T / 2, my = view.marker.y * T - 6 + Math.sin(time / 260) * 3;
