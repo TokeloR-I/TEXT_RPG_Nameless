@@ -123,6 +123,11 @@
     }
     const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit'];
     function creatorNext() {
+        if (menu && CREATOR_FLOW.includes(creator.step)) {
+            if (creator.step === 'class') creator.cls = classes[menu.index];
+            else if (creator.step === 'look') creator.look = menu.index;
+            else if (['hairStyle','hairColor','outfit'].includes(creator.step)) creator[creator.step] = menu.index;
+        }
         if (creator.step === 'name') {
             const input = els.title.querySelector('#hero-name');
             if (input) creator.name = input.value;
