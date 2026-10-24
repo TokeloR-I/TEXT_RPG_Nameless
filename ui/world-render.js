@@ -658,7 +658,7 @@
         const PACK = ENSO.tilesManaseed;
         if (PACK && !PACK.wrapped) {
             PACK.wrapped = true;
-            for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs]]) {
+            for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs], [sprites, PACK.sprites || {}]]) {
                 for (const [name, fn] of Object.entries(extra)) {
                     const prev = table[name];
                     table[name] = (...args) => { if (fn(...args) === false && prev) prev(...args); };
