@@ -193,7 +193,7 @@
             <h1>Enso's Last Stand</h1>
             <p class="subtitle">${sub}</p>
             <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `Customize ${esc(who)} · ${({look:'Skin tone',hairStyle:'Hair style',hairColor:'Hair colour',outfit:'Clothing'})[creator.step] || 'Appearance'}`}</p>
-            ${menuHtml(menu, 'class-list')}
+            ${menuHtml(menu, creator.step === 'hairStyle' ? 'class-list hairstyle-grid' : 'class-list')}
             <p class="keys">↑ ↓ choose · Enter ${creator.step === 'outfit' ? 'begin' : 'continue'} · Esc back</p>`;
         bindMenuClicks(els.title, menu);
     }
