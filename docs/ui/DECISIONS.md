@@ -37,3 +37,21 @@ One entry per change to an existing screen: what was kept, what was replaced, an
 - `getState().combat.order`: the living units in acting order, as ids (`'player'`, `'enemy_0'`, …), so the
   battle can show a turn-order strip without reading the log.
 - Structured battle events (Phase 1 PR-3) so the log can be styled from data instead of matching text.
+
+## 2026-10-24 · Whole-pixel scaling and the phone layout (UI-2)
+
+**Kept**
+- The 640×448 canvas and every renderer layer, on desktop and tablet.
+
+**Replaced**
+- *Stretch to 1120 px → fitted stage.* The stage was 100 % of a shell capped at 1120 px, so the canvas ran at
+  1.75× on most screens with uneven pixels. `fitStage()` now sizes it from the window with `ENSO.display.fit`
+  (Auto / Pixel-perfect / Fill, a per-browser preference in the pause menu).
+- *Stage border → outline,* so the border no longer eats 4 px of the canvas area and breaks whole-number scales.
+- *Landscape box on a phone → portrait stage.* On a portrait phone the canvas is 384 px wide and as tall as fits,
+  instead of a 280 px-tall strip with the battle squeezed over it.
+
+**Renderer touch (for Wren)**
+- `ui/world-render.js` `draw()`: when the canvas size changes, the darkness layer is resized to match and image
+  smoothing is switched off again (resizing a canvas resets its context). One line; nothing else in the
+  renderer changed. The renderer already read the canvas size every frame.

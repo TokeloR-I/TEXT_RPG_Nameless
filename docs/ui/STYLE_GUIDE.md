@@ -11,8 +11,15 @@ Priorities when rules conflict: **readability > consistency > feel > everything 
 - Sprites keep one art-pixel size per screen. In battle, creatures (32 px box) and the player (40×36 canvas)
   both draw at **10cqw per 32 art pixels**, so a pixel of a rat is the same size as a pixel of you.
 - Always `image-rendering: pixelated`; never smooth a sprite.
-- **Not yet:** integer scaling of the stage. Today the stage stretches to fit (e.g. 1.75× at 1120 px wide), so
-  some pixels are a screen pixel wider than others. Fixing it is plan item P1 (with a Settings toggle).
+- **Stage scaling (UI-2, `ui/display.js`).** One canvas pixel is the art's pixel, so only whole-number scales keep
+  every pixel the same width. The Display setting (pause menu) has three modes:
+  **Auto** (default: the largest whole-number scale when it uses at least 85 % of the space, else fill, so a
+  1080p screen gets crisp 2× and a 1280×900 laptop still fills the window), **Pixel-perfect** (always whole
+  numbers, with a border) and **Fill the window**. The stage has no border of its own (an `outline`), so the
+  canvas area is exactly the fitted size.
+- **Portrait phones.** The stage takes the whole width and height and the canvas becomes a 384-pixel-wide
+  column of the map (12 tiles across, as many rows as fit). Battle units grow into the extra height
+  (`.world-stage.tall` rules in `world.css`).
 
 ## Palette tokens
 Use the token, never a new hex value in a component. If a colour is missing, add a token first.

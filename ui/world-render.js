@@ -619,6 +619,7 @@
             const map = world.maps[view.mapId];
             const mw = map.tiles[0].length * T, mh = map.tiles.length * T;
             const W = canvas.width, H = canvas.height;
+            if (dark.width !== W || dark.height !== H) { dark.width = W; dark.height = H; g.imageSmoothingEnabled = false; }   // the stage was refitted (ui/display.js)
             // camera: follow the player, clamp to the map, centre maps smaller than the screen
             const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
             const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));

@@ -38,8 +38,8 @@ Each step is one small PR, run in the browser at desktop and phone sizes before 
 
 | Step | What | Fixes | Needs |
 |---|---|---|---|
-| **UI-1** (this PR) | UI kit (tokens, `.win` frame, bars, chips, key hints) and the battle screen rebuilt on it; banner and title fixes | 1–6, part of 8 | — |
-| **UI-2** | Integer pixel scaling (largest whole multiple that fits, or a "fill" option) and a responsive portrait stage for phones | 7, 15 | Wren's OK, since it changes the stage the renderer draws into |
+| **UI-1** ✓ #115 | UI kit (tokens, `.win` frame, bars, chips, key hints) and the battle screen rebuilt on it; banner and title fixes | 1–6, part of 8 | — |
+| **UI-2** (in review) | Integer pixel scaling (largest whole multiple that fits, or a "fill" option) and a responsive portrait stage for phones | 7, 15 | Wren to review the one-line renderer change |
 | **UI-3** | Main menu replaces the pause panel: tabs for Status, Items, Journal, Settings, Save; the seed moves to a small debug footer | 10, 12 (first settings: scaling, text speed, reduced motion) | — |
 | **UI-4** | Exploration HUD: compact status plate, objective as its own small window, map name only in the banner | 13 | — |
 | **UI-5** | Dialogue window on the kit: name plate, frame, choices in a command window. **After Sable's #97 lands**, built on her reveal, not instead of it | 16 | Sable |
