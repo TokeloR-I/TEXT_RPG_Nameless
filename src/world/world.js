@@ -351,6 +351,19 @@
             return { type: 'transition', exit: exit.id, from, to: this.mapId, text, events };
         }
 
+        /** Black Flight (src/engine/story.js): the engine checks the rules, then the player arrives at the
+         *  anchor's safe spawn exactly as if they had walked in. Same shape as transition(); a refusal
+         *  changes nothing and returns { type: 'refused', events }. */
+        blackFlight(anchorId) {
+            const r = this.engine.act({ type: 'black_flight', anchorId });
+            const go = r.ok && r.events.find((e) => e.type === 'world.travel');
+            if (!go || !this.world.maps[go.map]) return { type: 'refused', events: r.events };
+            const from = this.mapId;
+            this.place(go.map, go.spawn);
+            const events = [...r.events, ...this.engine.act({ type: 'world_enter', mapId: this.mapId }).events];
+            return { type: 'transition', exit: null, anchor: anchorId, from, to: this.mapId, text: null, events };
+        }
+
         getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
 
         /** Put the player back where a save says (getState() shape). Anything that doesn't fit the map

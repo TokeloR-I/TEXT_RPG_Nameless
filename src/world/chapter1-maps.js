@@ -128,7 +128,8 @@
             spawns: {
                 from_tollway: { x: 15, y: 22, facing: 'up' },
                 from_orchard: { x: 15, y: 1, facing: 'down' },
-                from_allotment: { x: 1, y: 10, facing: 'right' }
+                from_allotment: { x: 1, y: 10, facing: 'right' },
+                flight_well: { x: 15, y: 10, facing: 'up' }       // Black Flight arrival, beside the well
             },
             exits: [
                 { id: 'shamefield_south', x: 15, y: 23, trigger: 'step', toMap: 'tollway', toSpawn: 'from_village' },

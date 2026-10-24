@@ -104,7 +104,15 @@
                         { say: "You can't see the speaker's face. You don't know why the order was given. Only that whoever gave it expected to be obeyed.", important: true },
                         { say: 'The vision lets go. The key has crumbled to black sand in your hand, and something in you is a little less empty than before.' },
                         { removeItem: 'Seal-Key of the First Echo' },
-                        { flag: 'fragment_one' }
+                        { flag: 'fragment_one' },
+                        // Nahemoth, the first aspect (ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md; Vaelis's DRAFT lines).
+                        // Only opening the seal grants it, never the Warden's death alone.
+                        { say: 'The seal splits. A flock of ink-black feathers rises from a seam that has no depth. They turn against the wind and fold into a single crow.', important: true },
+                        { say: "Crow: 'You broke a door that was meant to stay shut. Consider me impressed. Or concerned. I haven't decided.'", important: true },
+                        { say: "Crow: 'Give me a place you've been, and I can show you how to return.'" },
+                        { say: '(You gained Nahemoth, the First Shell. Black Flight: travel to places you have attuned. Talk to the crow any time.)', important: true },
+                        { flag: 'aspect_nahemoth' },
+                        { flag: 'anchor:homestead' }
                     ] }
             ],
             onComplete: [{ start: 'Q07' }]
@@ -457,13 +465,16 @@
             nodes: {
                 first: {
                     lines: [
-                        ['npc', "So you're the one who opened the north road. I've been trying to get into that roost for years: the old fortification records are up there. Orin Vale. Mason."],
+                        // DRAFT (Vaelis): Orin came through the fissure when the first seal opened. He wears a mason's
+                        // name and works only with plans, materials, labour and Gold.
+                        [null, 'A man in a mason\'s apron stands among the old foundations. Black grit still clings to his sleeves, as if he walked out of a chimney.'],
+                        ['npc', "Why am I here? Because a door opened. Because old things hear doors. Orin Vale. Mason, if you need a word for it."],
                         ['npc', 'And this place. These foundations are older than the village. Somebody once built something here worth building.']
                     ],
                     choices: [{ text: 'Can it be rebuilt?', to: 'ledger' }]
                 },
                 ledger: {
-                    lines: [['npc', 'One stone at a time. Start with the gate: timber, nails and coin. I\'ve written the figures in this ledger. Mind you keep it.']],
+                    lines: [['npc', 'Your gate is an insult to masonry. And to insults. One stone at a time. Start with the gate: timber, nails and coin. I\'ve written the figures in this ledger. Mind you keep it.']],
                     effects: [{ item: "Builder's Ledger", key: 'item:builders_ledger' }, { flag: 'orin_met' }, { construction: 'homestead_gate' }],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
@@ -473,7 +484,67 @@
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
+        },
+
+        // ------------------------------------------------------------- The crow: Nahemoth's first aspect
+        // Talked to from a menu (talk_crow), not a map sprite. Lines are Vaelis's DRAFT; spoiler-safe.
+        crow: {
+            name: 'The Crow', title: 'Nahemoth, the First Shell',
+            when: { flags: ['aspect_nahemoth'] },
+            talk: [{ if: { flags: ['crow_met'] }, node: 'again' }, { node: 'first' }],
+            nodes: {
+                first: {
+                    lines: [['npc', "Well? You've got questions. Everyone who breaks a seal has questions."]],
+                    effects: [{ flag: 'crow_met' }],
+                    choices: [
+                        { text: 'Are you one of his birds?', to: 'birds' },
+                        { text: 'What are you?', to: 'what' },
+                        { text: 'Can you take me somewhere I haven\'t seen?', to: 'travel' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                again: {
+                    lines: [['npc', 'Still here. Still a crow. Mostly.']],
+                    choices: [
+                        { text: 'What are you?', to: 'what' },
+                        { text: 'How does the flight work?', to: 'travel' },
+                        { text: 'The Warden\'s birds.', to: 'warden' },
+                        { text: 'What about the homestead?', to: 'home', if: { flags: ['anchor:homestead'] } },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                birds: {
+                    lines: [['npc', "No. His birds loved him. I merely borrowed the shape. There's a difference."]],
+                    choices: [{ text: 'What are you, then?', to: 'what' }, { text: 'Goodbye.', end: true }]
+                },
+                what: {
+                    lines: [['npc', 'The part of the world that remembers where you have stepped.']],
+                    choices: [{ text: 'Where can you take me?', to: 'travel' }, { text: 'Goodbye.', end: true }]
+                },
+                travel: {
+                    lines: [
+                        ['npc', "I can take you somewhere you've *been*. I am a crow, not your imagination."],
+                        ['npc', 'The homestead, always. Anywhere else, you have to stand there first and mark it: a well, a stone, a place people come back to.']
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                warden: {
+                    lines: [['npc', "The other birds stayed with him. You'll notice I did not. It isn't because I lack manners."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                home: {
+                    lines: [['npc', 'Ah. That place. The stones are waiting for someone to remember how to stack them. You look suspiciously unemployed.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
         }
+    };
+
+    // Black Flight anchors (Nahemoth design): safe arrival points by story id. The flag 'anchor:<id>' attunes one.
+    // The homestead is attuned when the seal opens; others by visiting their marked place (triggers below).
+    const anchors = {
+        homestead: { name: 'The Homestead', region: 'The Forgotten Homestead', map: 'grounds', spawn: 'from_house' },
+        shamefield: { name: 'Shamefield, the village well', region: 'Shamefield Vale', map: 'shamefield', spawn: 'flight_well' }
     };
 
     const triggers = [
@@ -482,6 +553,7 @@
             { available: 'S01' }
         ] },
         { id: 'notice_board', on: { type: 'inspect', id: 'village_notice_board' }, effects: [{ start: 'J01' }, { start: 'J02' }] },
+        { id: 'anchor_shamefield', on: { type: 'inspect', id: 'village_well' }, effects: [{ flag: 'anchor:shamefield' }] },
         { id: 'register', on: { type: 'inspect', id: 'tollway_register' }, effects: [{ flag: 'register_carried' }] },
         // The Warden: DRAFT aftermath from the narrative foundation (Vaelis owns the final lines).
         { id: 'warden_falls', on: { type: 'defeat', id: 'sanctuary_warden' }, effects: [
@@ -507,7 +579,7 @@
         start: { effects: [{ start: 'Q01' }] },
         // Merchant ids for Rook's shopDefinitions (CH1-04): mara, bragg, iona, shane. Construction: homestead_gate (CH1-05).
         merchants: { mara: 'Mara', bragg: 'Bragg', iona: 'Iona', shane: 'Shane' },
-        quests, npcs, triggers
+        quests, npcs, triggers, anchors
     };
 
     (ENSO.story || (ENSO.story = {})).chapter1 = chapter1;

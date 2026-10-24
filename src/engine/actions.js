@@ -345,6 +345,7 @@
                 if (room.enemies.length) actions.push({ type: 'engage', enabled: true });
             }
             actions.push(...this.itemAvailability());
+            if (this.story) actions.push(...this.crowAvailability(), ...this.flightAvailability());   // Nahemoth (story.js)
             return actions;
         }
 
