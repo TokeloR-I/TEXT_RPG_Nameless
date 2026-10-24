@@ -16,7 +16,9 @@ const outName = Object.fromEntries(PAGES.map((p) => [p.page, p.out]));
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 for (const { page, out } of PAGES) {
     let html = read(page);
-    html = html.replace(/<link rel="stylesheet" href="([^"]+\.css)">/g, (_, file) => `<style>\n${read(file)}\n</style>`);
+    // fonts the stylesheet points at (url('assets/fonts/x.woff2')) are inlined, so the file still works on its own
+    const inlineFonts = (css) => css.replace(/url\('(assets\/fonts\/[^']+\.woff2)'\)/g, (_, f) => `url('data:font/woff2;base64,${fs.readFileSync(path.join(root, f)).toString('base64')}')`);
+    html = html.replace(/<link rel="stylesheet" href="([^"]+\.css)">/g, (_, file) => `<style>\n${inlineFonts(read(file))}\n</style>`);
     html = html.replace(/<script src="((?:src|ui|assets)\/[^"]+)"><\/script>/g, (_, file) => `<script>\n${read(file).replace(/<\/script>/g, '<\\/script>')}\n</script>`);
     // links between the pages point at their built names
     html = html.replace(/href="([a-z-]+\.html)"/g, (m, file) => (outName[file] ? `href="${outName[file]}"` : m));

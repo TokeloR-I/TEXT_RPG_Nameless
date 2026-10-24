@@ -113,3 +113,22 @@ Black Flight destination list, optional feather transition, reduced motion, keyb
 - Combat FX (screen shake, damage pop) do not follow the Motion setting yet.
 - No pursuit or forced-scene refusal codes exist in the engine yet; the UI already has words for `PURSUED` and
   `STORY_SCENE` and shows the engine's own message first.
+
+## HD-2D pass, UI lane (Tokelo's HD-2D brief; Wren owns the renderer, lighting, tiles, sprites and effects)
+References: Octopath Traveler and Sea of Stars battle and town shots (owner-supplied).
+
+**Changed**
+- *Battle HUD sits on the scene*, with no boxes over the field. The turn bar runs along the top: the unit acting now
+  is in a big diamond with its face, and the rest of the queue rides a gold line, with "Next" marking the next round.
+  The latest action shows as a small banner, and the whole log is still on L. Foes get slim name and gauge tags.
+  Your HP and resource sit on a fading strip at bottom left, and the command window is at bottom right.
+- *Gauges* are slim bars with a lit edge: HP green, resource blue, foes red. They keep the tone shift and the
+  drain trail.
+- *Battle camera:* the scene and field lean in on the foes while you pick a target, and on you during an enemy turn.
+  It is a CSS transform on the stage, off with reduced motion.
+- *Faces* in the turn bar come from `ENSO.sprites.drawPortrait` once Wren ships it. Until then they are a crop of the
+  walking sprite, or the creature.
+- *Pixel 9-slice frame* (12×12 art, drawn at 2×) on every window: battle, dialogue, menus, HUD, prompt and toast.
+- *Pixel font:* DotGothic16 (SIL OFL, `assets/fonts/`). Pixelify Sans was tried and dropped: its 5/S, B/8 and fi
+  glyphs misread at UI sizes. It has a single weight, so fake bold is off (`font-synthesis: none`). The
+  single-file build inlines the font.

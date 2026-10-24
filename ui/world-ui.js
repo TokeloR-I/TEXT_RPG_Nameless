@@ -74,6 +74,8 @@
         return `Motion: ${MOTION_LABELS[motionMode]}.`;
     }
     applyMotion();
+    /** Wren's render quality (ENSO.gfx, stored under 'enso.gfx'); 'high' unless set. */
+    const gfxQuality = () => { try { return localStorage.getItem('enso.gfx') === 'low' ? 'low' : 'high'; } catch (e) { return 'high'; } };
     function cycleDisplay() {
         displayMode = ENSO.display.nextMode(displayMode);
         try { localStorage.setItem(DISPLAY_KEY, displayMode); } catch (e) { /* private window: this session only */ }
@@ -616,6 +618,8 @@
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+            if (ENSO.gfx && ENSO.gfx.setQuality) items.push({ label: `Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}`, sub: 'High: lighting, bloom and grading. Low: plain canvas for weak devices. Applies on next load.',
+                action: again(() => { const q = gfxQuality() === 'low' ? 'high' : 'low'; ENSO.gfx.setQuality(q); mm.note = `Graphics: ${q === 'low' ? 'Low' : 'High'}. Reload the page to apply.`; }) });
         }
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
@@ -945,6 +949,7 @@
     function endBattle(result) {
         session.fightOver(battle.id, result);
         els.combat.hidden = true;
+        delete $('world-stage').dataset.cam;
         screen = 'explore';
         menu = null;
         muteHeldKeys();
@@ -990,7 +995,12 @@
         battle.labels = { ...BV.unitLabels([...foes, ...minions]), ...battle.labels };
         const name = (u) => battle.labels[u.id] || u.name;
         const strip = BV.turnStrip(battle.ended ? null : engine.getTurnOrder(), battle.labels);
-        const turnHtml = (list) => list.map((t) => `<li class="t-${esc(t.side)}${t.current ? ' now' : ''}${battle.targetIds.includes(t.id) ? ' aimed' : ''}">${esc(t.label)}</li>`).join('');
+        // Turn bar (HD-2D pass): the one acting sits in the big diamond, everyone after them rides the line.
+        const units = Object.fromEntries([...foes, ...minions].map((u) => [u.id, u]));
+        const face = (t, size) => `<canvas class="face" width="${size}" height="${size}" data-face="${esc(t.id)}" data-key="${esc((units[t.id] || {}).key || '')}" aria-hidden="true"></canvas>`;
+        const queue = [...strip.now, ...strip.next];
+        const actor = queue.find((t) => t.current) || null;
+        const turnHtml = (list) => list.filter((t) => t !== actor).map((t) => `<li class="t-${esc(t.side)}${battle.targetIds.includes(t.id) ? ' aimed' : ''}" title="${esc(t.label)}">${face(t, 24)}<span class="t-name">${esc(t.label)}</span></li>`).join('');
         const mode = battle.ended ? '' : controlled ? `You control ${controlled.name}` : avail && avail.awaiting === 'turn_order' ? 'Set the turn order' : '';
         const n = battle.log.length;
         const logHtml = battle.log.map((l, i) => {
@@ -1001,8 +1011,10 @@
         els.combat.classList.toggle('ended', !!battle.ended);
         els.combat.classList.toggle('log-open', battle.logOpen);
         els.combat.innerHTML = `
-            <header class="b-head"><span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}
-                ${strip.now.length ? `<ol class="b-turns" aria-label="Turn order"><span class="t-k">Turn</span>${turnHtml(strip.now)}${strip.next.length ? `<span class="t-k t-sep">Next</span>${turnHtml(strip.next)}` : ''}</ol>` : ''}</header>
+            <header class="b-head">
+                ${actor ? `<div class="b-now t-${esc(actor.side)}" aria-label="Acting now: ${esc(actor.label)}"><span class="dia">${face(actor, 32)}</span><span class="t-name">${esc(actor.label)}</span></div>` : ''}
+                ${queue.length ? `<ol class="b-turns" aria-label="Turn order">${turnHtml(strip.now)}${strip.next.length ? `<li class="t-sep" aria-hidden="true">Next</li>${turnHtml(strip.next)}` : ''}</ol>` : ''}
+                <span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}</header>
             <section class="b-field" aria-label="Battlefield">
                 <div class="b-side b-allies">
                     <figure class="unit me" data-unit-id="player">
@@ -1025,7 +1037,7 @@
             </section>
             <section class="win b-log ${battle.logOpen ? 'open' : ''}" aria-live="polite" aria-label="Battle log">${logHtml}</section>
             <footer class="b-foot">
-                <section class="win b-party" aria-label="Your status">
+                <section class="b-party" aria-label="Your status">
                     <div class="u-name">${esc(p.name)} <span class="lv">Lv ${p.level}</span></div>
                     <div class="stat"><span class="k">HP</span>${hpBar('player', p.hp, p.maxHp, 'hp')}<span class="v">${Math.max(0, p.hp)}<small>/${p.maxHp}</small></span></div>
                     <div class="stat"><span class="k">${esc(p.resource.type)}</span>${hpBar('player.res', p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
@@ -1040,7 +1052,10 @@
         const sel = els.combat.querySelector('.b-commands li.selected');
         if (sel) sel.scrollIntoView({ block: 'nearest' });                       // long skill lists scroll with the cursor
         els.combat.querySelector('.b-log').addEventListener('click', toggleBattleLog);
-        els.combat.querySelectorAll('canvas[data-key]').forEach((c) => ENSO.worldRender.drawCreature(c, c.dataset.key, performance.now()));
+        els.combat.querySelectorAll('canvas[data-key]:not(.face)').forEach((c) => ENSO.worldRender.drawCreature(c, c.dataset.key, performance.now()));
+        els.combat.querySelectorAll('canvas.face').forEach(drawFace);
+        // Camera: lean in on the foes while you pick a target, pull back otherwise (CSS; off with reduced motion).
+        $('world-stage').dataset.cam = battle.ended ? 'wide' : battle.targetIds.length ? 'foes' : actor && actor.side === 'enemy' ? 'me' : 'wide';
         // Collapsed, the message window starts at the first line of what just happened (your own action),
         // not at the bottom, so enemy turns never push your result out of view. Open, it shows the latest.
         const log = els.combat.querySelector('.b-log');
@@ -1049,6 +1064,20 @@
         battle.lastHp = Object.fromEntries([...foes, ...minions].map((e) => [e.id, e.hp]));
         battle.lastHp.player = p.hp;
         battle.lastHp['player.res'] = p.resource.current;
+    }
+    /** A turn-bar face: Wren's portrait hook when it exists, else a crop of the sprite or creature. */
+    function drawFace(c) {
+        const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
+        const id = c.dataset.face;
+        if (id === 'player' && ENSO.sprites.drawPortrait) { ENSO.sprites.drawPortrait(g, 0, 0, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className }, c.width); return; }
+        if (id === 'player') {
+            const k = c.width / 20;   // head and shoulders of the 32x36 walking sprite
+            g.save(); g.scale(k, k);
+            ENSO.sprites.drawCharacter(g, 10, 33, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
+            g.restore();
+            return;
+        }
+        if (c.dataset.key) ENSO.worldRender.drawCreature(c, c.dataset.key, 0);
     }
     function toggleBattleLog() { battle.logOpen = !battle.logOpen; renderBattle(); }
 
