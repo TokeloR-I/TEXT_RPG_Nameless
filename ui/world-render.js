@@ -623,6 +623,18 @@
             Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
             Object.assign(OVERHANGS, HD.overhangs); Object.assign(TILE_LIGHTS, HD.lights);
         }
+        // Pack art (ui/tiles-forsaken.js) goes over the painters; while its sheet loads it returns false and the
+        // painter it replaced draws instead.
+        const PACK = ENSO.tilesForsaken;
+        if (PACK && !PACK.wrapped) {
+            PACK.wrapped = true;
+            for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs]]) {
+                for (const [name, fn] of Object.entries(extra)) {
+                    const prev = table[name];
+                    table[name] = (...args) => { if (fn(...args) === false && prev) prev(...args); };
+                }
+            }
+        }
         const g = canvas.getContext('2d');
         g.imageSmoothingEnabled = false;
         const dark = document.createElement('canvas');
@@ -696,6 +708,7 @@
                 else if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
             }
             if (HD) HD.shadePass(cg, map, nameAt, T);
+            if (PACK) PACK.decorPass(cg, map, nameAt, T);
             cache.set(mapId, c);
             return c;
         }
