@@ -28,11 +28,17 @@ for (const { page, out } of PAGES) {
             fs.readFileSync(path.join(root, atlasPath)).toString('base64');
         html = html.replace(atlasPath, atlasData);
     }
-    // Embed the actual unarmed 64px body atlases for stand-alone offline gameplay.
+    // Ship the real unarmed animation PNGs in the standalone offline world.
     if (page === 'world.html') {
-        html = html.replace(/assets\\/basesprite\\/PNG\\/Unarmed\\/Without_shadow\\/Unarmed_(Idle|Walk|Run|Hurt|Death)_without_shadow\\.png/g,
-            (asset) => 'data:image/png;base64,' +
-                fs.readFileSync(path.join(root, asset)).toString('base64'));
+        const prefix = 'assets/basesprite/PNG/Unarmed/Without_shadow/';
+        const data = Object.fromEntries(['Idle', 'Walk', 'Run', 'Hurt', 'Death'].map(name => {
+            const file = 'Unarmed_' + name + '_without_shadow.png';
+            return [file, 'data:image/png;base64,' +
+                fs.readFileSync(path.join(root, prefix, file)).toString('base64')];
+        }));
+        html = html.replace('<!-- Front end -->',
+            '<script>globalThis.ENSO=globalThis.ENSO||{};globalThis.ENSO.baseSpriteData=' +
+            JSON.stringify(data) + ';</script>\n    <!-- Front end -->');
     }
     // links between the pages point at their built names
     html = html.replace(/href="([a-z-]+\.html)"/g, (m, file) => (outName[file] ? `href="${outName[file]}"` : m));
