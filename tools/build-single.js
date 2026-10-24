@@ -20,6 +20,14 @@ for (const { page, out } of PAGES) {
     const inlineFonts = (css) => css.replace(/url\('(assets\/fonts\/[^']+\.woff2)'\)/g, (_, f) => `url('data:font/woff2;base64,${fs.readFileSync(path.join(root, f)).toString('base64')}')`);
     html = html.replace(/<link rel="stylesheet" href="([^"]+\.css)">/g, (_, file) => `<style>\n${inlineFonts(read(file))}\n</style>`);
     html = html.replace(/<script src="((?:src|ui|assets)\/[^"]+)"><\/script>/g, (_, file) => `<script>\n${read(file).replace(/<\/script>/g, '<\\/script>')}\n</script>`);
+    // Transparent VFX atlases must remain available in the offline single-file
+    // graphical build. Inline the original SVG instead of requiring a network/file fetch.
+    if (page === 'world.html') {
+        const atlasPath = 'assets/vfx/nahemoth/black-flight-atlas.svg';
+        const atlasData = 'data:image/svg+xml;base64,' +
+            fs.readFileSync(path.join(root, atlasPath)).toString('base64');
+        html = html.replace(atlasPath, atlasData);
+    }
     // links between the pages point at their built names
     html = html.replace(/href="([a-z-]+\.html)"/g, (m, file) => (outName[file] ? `href="${outName[file]}"` : m));
     fs.writeFileSync(path.join(root, 'dist', out), html);
