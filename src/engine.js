@@ -155,7 +155,7 @@
                     strength: p.strength, intelligence: p.intelligence, agility: p.agility,
                     xp: p.xp, xpToNext: p.xpToNext,
                     resource: { ...p.resource },
-                    inventory: [...p.inventory],
+                    inventory: [...p.inventory], gold: p.gold, equipment: clone(p.equipment),
                     traits: clone(p.traits),
                     statusEffects: clone(p.statusEffects),
                     appearance: p.appearance,               // CH1-02 cosmetic preset (absent in the text game)

@@ -75,6 +75,14 @@
             const def = this.data.itemDefinitions[item];
             const p = this.player;
             if (!def) { this.refuse('ITEM_NO_USE', `You turn the ${item} over in your hands. There's nothing to use it for (yet).`); return false; }
+            if (def.use === 'gold') {
+                if (!Number.isSafeInteger(def.value) || def.value <= 0 ||
+                    !Number.isSafeInteger(p.gold + def.value)) {
+                    this.refuse('INVALID_GOLD', 'This purse cannot be opened.'); return false;
+                }
+                p.gold += def.value;
+                this.say(`You open the ${item} and find ${def.value} Gold. (${p.gold} total)`);
+            }
             if (def.use === 'heal') {
                 if (p.hp >= p.maxHp) { this.refuse('FULL_HEALTH', "You're already at full health."); return false; }
                 const healed = this.heal(p, def.value);
