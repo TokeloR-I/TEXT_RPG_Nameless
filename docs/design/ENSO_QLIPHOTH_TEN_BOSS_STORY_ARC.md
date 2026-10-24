@@ -1,5 +1,5 @@
 # ENSO — Ten Qliphoth Guardians and Memory Unlocks (story outline)
-**Vaelis — narrative proposal** · 2026-10-23 · **Director approved:** ten bosses inspired by Qliphoth, each killed unlocks an aspect in player, first boss Crow-Touched Warden, beloved hero ultimately opposed. **Specific associations and rewards not yet approved.**
+**Vaelis — narrative proposal** · 2026-10-23 · **Director approved:** ten bosses inspired by Qliphoth, each killed unlocks an aspect in player, first boss Crow-Touched Warden, beloved hero ultimately opposed. **UPDATE 24 Oct:** Director has established **Nahemoth as boss one** with a talking crow and exploration power, replacing the earlier A'arab Zaraq assignment. Remaining boss identities/order are provisional. See [Nahemoth Crow Aspect & Black Flight](ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md).
 
 ## Source note
 Qliphoth are drawn from Jewish mystical traditions and later Hermetic interpretations, not a single uncontested 'official ten bosses' list. ENSO adapts a **later tenfold Hermetic naming convention** for fictional aspects; it does **not** claim to reproduce authentic religious cosmology. Spellings and ordering vary: A'arab Zaraq / Harab Serapel, Ghagiel/Ghogiel, Sathariel/Satariel, Nahemoth/Lilith. Source: https://en.wikipedia.org/wiki/Qlippoth . **Creative order deliberately differs from descending tree order.** Respectful fictional adaptation; all guardian characters/world names are original proposals.
@@ -13,8 +13,8 @@ The aspects are **powers stolen from the fallen ruler and bound into seals**, no
 ## Proposed boss route (sequence ≠ traditional Qliphoth order)
 | Boss # | Qliphoth aspect | Working guardian / locale | Recovered theme; possible story/gameplay unlock (NOT approved) | Narrative beat |
 |---|---|---|---|---|
-| **1** | **A'arab Zaraq** — dispersing ravens | **Crow-Touched Warden**, sealed roost | **The Call**: crows/omens respond, first memory key, access to homestead construction NPC | Player killed a beloved animal caretaker; first sign victory has a victim |
-| 2 | **Nahemoth** — shadowed earth | The Hearthbound Sentinel, abandoned orchard | **The Claim**: sense buried roads/ruins; homestead ground survey | Old family land was seized to protect others |
+| **1** | **Nahemoth / Nehemoth** — shadow of the material world | **Crow-Touched Warden**, sealed roost | **The Black Flight**: a talking crow manifests from the first opened seal and enables travel between visited safe anchors; first memory and Orin's other-side emergence | Player kills a good animal caretaker; his ordinary crows mourn; the aspect-crow is separate |
+| 2 | **TBD (formerly Nahemoth)** | The Hearthbound Sentinel, abandoned orchard (working) | Second aspect and ability to be reassigned after Director settles progression | This slot is deliberately unassigned to avoid two Nahemoth aspects |
 | 3 | **Gamaliel** — distorted reflection/dream | The Lantern Matron, dreaming chapel | **The Dream**: more detailed episodic memory recollection | Player receives a memory in which victims call them 'Your Majesty', but context obscured |
 | 4 | **Samael** — poison/falsehood | The Ash Physician, quarantine city | **The Word**: recognize propaganda/ancient seals | Competing accounts of the tyrant contradict player's memories |
 | 5 | **Thagirion** — false or corrupted radiance | The Sunbound Justiciar, hall of laurels | **The Face**: mirror reflects pre-fall royal visage | **Suggested reveal threshold**: prove identity, without retroactively demonizing heroes |
@@ -24,7 +24,7 @@ The aspects are **powers stolen from the fallen ruler and bound into seals**, no
 | 9 | **Ghagiel** — hindering/divided wisdom | The Two-Tongued Oracle, shattered observatory | **The Division**: fractured intention and competing loyalties | Former allies and hero's entourage converge |
 | **10** | **Thaumiel** — divided crown | **Beloved champion** (name TBD), at heart of restored dominion | **The Crown**: final personal confrontation, final recovered aspect | Hero was right to stop the old empire; outcome/ending options await CD |
 
-**Design caution:** Using Crow Warden as aspect #1 under A'arab Zaraq fits the raven motif, though A'arab Zaraq is traditionally a different *position* on the tenfold tree. Do **not** confuse kill sequence with fixed numbered Hermetic spheres. The beloved champion might be the tenth **guardian of Thaumiel** rather than personifying its traditional evil quality. This preserves their genuine goodness.
+**Design correction:** Nahemoth's traditional occult connection is to the material/earthly realm, not ravens; the talking crow is ENSO's invented **form** of the seal's released aspect. A'arab Zaraq (ravens of dispersion) is unassigned and may become a later aspect. **Do not confuse the encounter order with a canonical Jewish mystical sequence; all other rows are proposals pending reordering.** The beloved champion might be the tenth **guardian of Thaumiel** rather than personifying its traditional evil quality. This preserves their genuine goodness.
 
 ## Boss experience contract (later implementation handoff)
 - Guardian has a distinct human motivation, a recognizable location, a foreshadowed moral context, and a unique gameplay hook rather than merely higher HP.
@@ -34,7 +34,7 @@ The aspects are **powers stolen from the fallen ruler and bound into seals**, no
 - Neither ending nor mandatory execution of every sympathetic guardian is fully specified beyond the ten-boss vision; player choice around surrender/mercy is an open discussion if it would contradict the requirement 'each boss killed'.
 
 ## Later decisions
-1. Approve/change the ten aspect-to-guardian associations and order; preserve Raven/Crow first.
+1. **Locked:** first guardian Warden → Nahemoth → talking aspect-crow. Assign remaining nine aspects and decide whether to follow a strictly bottom-up later-occult order; A'arab Zaraq is not first.
 2. Which aspect unlocks are **narrative-only** vs meaningful mechanics (exploration, castle access, combat, companions); choose no values yet.
 3. Precise midpoint reveal timing and dramatic staging.
 4. Whether the beloved hero is boss 10 or a climactic encounter after all ten aspect bosses. **This outline proposes hero as #10 only; not yet canon.**
