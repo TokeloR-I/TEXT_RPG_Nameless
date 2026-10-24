@@ -54,3 +54,34 @@ fleeing does not.
 
 **On screen.** One overlay canvas sits above the battle panel (`pointer-events: none`). Units are found by
 `data-unit-id` (`player`, `enemy_0`, …). Flash, shake and fade are applied as styles on the unit's card.
+
+## HD-2D pipeline (2026-10-24, Tokelo's HD-2D brief)
+
+Tokelo pre-approved changing the stack to reach the HD-2D target (*Sea of Stars*, *Octopath Traveler*).
+**Decision:** we keep the custom Canvas renderer and add a **WebGL compositor** on top of it. We don't adopt
+an engine. This keeps the single double-click file and the headless engine, and it gives real lighting
+and post-processing. It extends Keel's 2026-10-24 decision ("Canvas 2D for the world") and doesn't reverse it.
+
+| File | Role |
+|---|---|
+| `ui/world-render.js` | Draws the pixel-art scene on an offscreen 2D canvas at native size. With `post: true`, it returns `{ lights, grade, fade }` instead of painting darkness and a vignette. |
+| `ui/postfx.js` | WebGL compositor (see below). Also provides `ENSO.gfx.createView`, the world view the front end uses. |
+| `ui/tiles-hd.js` | Detailed painters: grass, cobbles, paths, flagstones, clay roofs, half-timber walls, lit windows, trees, stone walls, water, fences, lanterns. Also the cast-shadow and contact-occlusion pass. |
+
+`ui/postfx.js` does the following:
+- The scene is sampled nearest-neighbour at full display resolution, so the pixels stay crisp.
+- Up to 24 coloured point lights are applied as smooth falloff.
+- Bloom: a bright pass, then a half-resolution and a quarter-resolution blur.
+- Tilt-shift depth of field: the top and bottom of the screen soften.
+- Colour grading: exposure, contrast, saturation, and split toning (cool shadows, warm highlights).
+- A vignette and fades.
+
+- **Per-map look:** `ambient.grade` in map data sets the grade, for example `{ ambient: 0.78 }` for a lantern-lit
+  evening. Dark maps (`ambient.darkness`) get a lower ambient level, colder shadows and stronger bloom automatically.
+- **Lights:** these come from tiles (`TILE_LIGHTS` plus `ENSO.tilesHD.lights`: fireplaces, ovens, lanterns, windows),
+  `map.lights`, objects with `light`, the player's lantern in dark places, and the glowing hands.
+- **Quality:** `ENSO.gfx.setQuality('high' | 'low')`, stored in `localStorage['enso.gfx']`. It applies on the next
+  load, because a canvas can't switch back from WebGL to 2D. `low`, or no WebGL, draws plain canvas as before.
+- **Replacing painters with PNG tilesets:** this works one tile name at a time. Map data doesn't change.
+
+Captures are in `docs/captures/hd2d/`.

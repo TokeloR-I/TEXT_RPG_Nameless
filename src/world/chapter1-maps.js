@@ -34,7 +34,8 @@
         'g': { name: 'sacks', solid: true },
         'e': { name: 'pig', solid: true },
         'u': { name: 'cask', solid: true },
-        'J': { name: 'bell', solid: true }
+        'J': { name: 'bell', solid: true },
+        'l': { name: 'lantern', solid: true }
     };
 
     const zones = {
@@ -107,7 +108,7 @@
         shamefield: {
             zoneId: 'shamefield_vale',
             name: 'Shamefield',
-            ambient: { tint: 'rgba(90, 70, 50, 0.12)' },
+            ambient: { tint: 'rgba(90, 70, 50, 0.12)', grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
             tiles: [
                 'TTTTTTTTTTTTTTT:TTTTTTTTTTTTTTTT',
                 'TTfffffffffffff:ffffffffffffffTT',
@@ -117,12 +118,12 @@
                 'TT,,,,,,,,,,,,,:,,,,,,,,,,,,,,::',
                 'TT,,,,+++++mm+++++++mm++++,,,,TT',
                 'TT,,,,++N+++++++++++++++++,,,,TT',
-                'TT,,,,++++++++++++++++++++,,,,TT',
+                'TT,,,,l++++++++++++++++++l,,,,TT',
                 'TT,,,,+++++++++O++++++++++,T,,TT',
                 ':::::::+++++++++++++++++++,,,,TT',
                 'TT,,o,++++++++++++++++++++,,,,TT',
-                'TT,,,,++++U+++++++++++mm++,,,,TT',
-                'TT,,,,++++++++++++++++++++,,,,TT',
+                'TT,,,,++++U+l+++++++++mm++,,,,TT',
+                'TT,,,,l++++++++++++++++++l,,,,TT',
                 'TT,,,,,,,,,,,,,:,,,,,,,,,,,,,,TT',
                 'TT,hhhhhh,,,,,,:,,,,,,,,,,M,,,::',
                 'TT,hhhhhh,,,,,,:,,,,,,,,,,,,,,TT',
@@ -182,7 +183,7 @@
         briarwell_cloister_court: {
             zoneId: 'shamefield_vale',
             name: 'Briarwell Cloister',
-            ambient: { tint: 'rgba(90, 80, 60, 0.12)', particles: { kind: 'smoke', count: 8 } },
+            ambient: { tint: 'rgba(90, 80, 60, 0.12)', particles: { kind: 'smoke', count: 8 }, grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
             tiles: [
                 '########################',
                 '#hhhhhhhh######hhhhhhhh#',
@@ -191,9 +192,9 @@
                 '#+gg+++++++++++++++uuu+#',
                 '#+gg+++++++++++++++uuu+#',
                 '#++++++++++U+++++++++++#',
-                '#++++++++++++++++++++++#',
+                '#+++++l+++++++++l++++++#',
                 '#,,,,,,,,,,::,,,,,jjjj,#',
-                '#,,,,,,,,,,::,,,,,,,,,,#',
+                '#,,,,,,,,,l::,,,,,,,,,,#',
                 '#,,,,,,,,,,::,,,,,jjjj,#',
                 '#,,,,,,,,,,::,,,,,,,,,,#',
                 ':::::::::::::,,,,,jjjj,#',
@@ -226,17 +227,17 @@
         village_residential_lane: {
             zoneId: 'shamefield_vale',
             name: "Baker's Lane",
-            ambient: { tint: 'rgba(90, 70, 50, 0.12)', particles: { kind: 'smoke', count: 10 } },
+            ambient: { tint: 'rgba(90, 70, 50, 0.12)', particles: { kind: 'smoke', count: 10 }, grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
             tiles: [
                 'TTTTTTTTTTTTTTTTTTTTTTTT',
                 'T,hhhhhh,,hhhhhh,,hhhhhT',
                 'T,XXnXXX,,XnXXXX,,XXnXXT',
                 'T,,,,,,,,,,,,,,,,,,,,,,T',
-                'T,V,,,,,,,,,,,,,,,,,,o,T',
+                'T,V,,,,,l,,,,,,,l,,,,o,T',
                 'T++++++++++++++++++++++T',
                 'T++++++++++++++++++++++T',
                 ':++++++++++++++++++++++T',
-                'T,,,,,,,,,,,,,,,,,,,,,,T',
+                'T,,,,,,,l,,,,,,,l,,,,,,T',
                 'T,hhhhh,,ffffff,,hhhhh,T',
                 'T,XXnXX,,f,e,,f,,XXnXX,T',
                 'T,,,,,,,,f,,e,f,,,,,,,,T',

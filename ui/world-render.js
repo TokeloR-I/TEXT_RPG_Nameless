@@ -15,7 +15,7 @@
         h = Math.imul(h ^ (h >>> 13), 1274126177);
         return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
     };
-    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope', 'seal_door']);
+    const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope', 'seal_door', 'lantern']);
     const WALLS = new Set(['stone_wall', 'wood_wall']);
     const EXTERIOR = new Set(['house_wall', 'house_window', 'roof', 'shed_wall', 'shed_roof', 'shed_door_shut']);
 
@@ -89,7 +89,7 @@
         stall: 'cobble', notice_board: 'cobble', fruit_tree: 'grass', seal_door: 'stone_floor', cage: 'stone_floor',
         memorial: 'grass', wagon: 'grass', cart: 'grass',
         // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md)
-        fountain: 'cobble', oven: 'cobble', hops: 'grass', sacks: 'cobble', pig: 'grass', cask: 'cobble', bell: 'cobble'
+        lantern: 'cobble', fountain: 'cobble', oven: 'cobble', hops: 'grass', sacks: 'cobble', pig: 'grass', cask: 'cobble', bell: 'cobble'
     };
     const painters = {
         // Shamefield expansion: market fountain, bread oven, hop trellis, half-timber walls, grain sacks, pigs, casks, bell
@@ -584,6 +584,11 @@
 
     function create(canvas, world, opts = {}) {
         const T = opts.tile || 32;
+        const HD = ENSO.tilesHD;                       // HD-2D painters and shadows (ui/tiles-hd.js), when loaded
+        if (HD) {
+            Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
+            Object.assign(OVERHANGS, HD.overhangs); Object.assign(TILE_LIGHTS, HD.lights);
+        }
         const g = canvas.getContext('2d');
         g.imageSmoothingEnabled = false;
         const dark = document.createElement('canvas');
@@ -627,6 +632,7 @@
             for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) {
                 if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
             }
+            if (HD) HD.shadePass(cg, map, nameAt, T);
             cache.set(mapId, c);
             return c;
         }
@@ -717,6 +723,7 @@
             // lighting: darkness with holes for the player's light and fixed light sources
             const amb = map.ambient || {};
             if (amb.tint) { g.fillStyle = amb.tint; g.fillRect(0, 0, W, H); }
+            if (opts.post) return postFrame(map, amb, objects, view, time, ox, oy, mw, mh, W, H);   // HD-2D: ui/postfx.js lights and grades
             if (amb.darkness) {
                 dg.globalCompositeOperation = 'source-over';
                 dg.clearRect(0, 0, W, H);
@@ -758,6 +765,34 @@
             vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
             g.fillStyle = vg; g.fillRect(0, 0, W, H);
             if (view.fade) { g.fillStyle = `rgba(0,0,0,${view.fade})`; g.fillRect(0, 0, W, H); }
+        }
+
+        /** HD-2D frame (ui/postfx.js): particles, hooks and fog stay here; darkness, coloured light, vignette
+         *  and fade become a list of lights and a grade for the WebGL compositor. Returns { lights, grade, fade }. */
+        function postFrame(map, amb, objects, view, time, ox, oy, mw, mh, W, H) {
+            const PF = ENSO.postfx;
+            for (const p of particlesAt(amb.particles, mw, mh, time)) {
+                g.fillStyle = `rgba(${p.colour[0]}, ${p.colour[1]}, ${p.colour[2]}, ${p.a})`;
+                g.fillRect(p.x + ox, p.y + oy, p.size, p.size);
+            }
+            run('light', { map, time, ox, oy, view, dark: null });
+            if (amb.fog === 'bottom') {
+                const fy = mh + oy;
+                const fg = g.createLinearGradient(0, fy - 4 * T, 0, fy);
+                fg.addColorStop(0, 'rgba(150, 155, 170, 0)'); fg.addColorStop(1, 'rgba(150, 155, 170, 0.75)');
+                g.fillStyle = fg; g.fillRect(0, fy - 4 * T, W, 4 * T);
+            }
+            const lights = [];
+            const px = view.x * T + T / 2 + ox, py = view.y * T + T / 2 + oy;
+            if (amb.darkness) lights.push({ x: px, y: py, r: (amb.lantern || 3) * T, color: [0.75, 0.82, 1.0], intensity: 0.9 });
+            for (const l of lightsOf(map, objects)) {
+                const cx = l.x * T + T / 2 + ox, cy = l.y * T + T / 2 + oy;
+                if (cx < -l.radius * T || cy < -l.radius * T || cx > W + l.radius * T || cy > H + l.radius * T) continue;   // off screen
+                const flicker = l.color ? 0.92 + 0.08 * Math.sin(time / 130 + l.x * 7 + l.y) : 1;
+                lights.push({ x: cx, y: cy, r: l.radius * T * 1.4 * flicker, color: PF.parseColour(l.color || 'rgb(255, 214, 150)'), intensity: l.color ? 1.2 : 0.8 });
+            }
+            lights.push({ x: px, y: py - 6, r: T * 1.2, color: [0.6, 1.0, 0.85], intensity: 0.35 });      // the faintly glowing hands
+            return { lights, grade: PF.gradeFor(amb), fade: view.fade || 0 };
         }
 
         return { draw, tile: T, addHook };

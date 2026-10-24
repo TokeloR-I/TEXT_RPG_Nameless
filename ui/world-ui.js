@@ -35,7 +35,7 @@
 
     const $ = (id) => document.getElementById(id);
     const canvas = $('world-canvas');
-    const renderer = ENSO.worldRender.create(canvas, WORLD, { tile: 32 });
+    const renderer = ENSO.gfx.createView(canvas, WORLD, { tile: 32 });   // HD-2D when WebGL is there (ui/postfx.js)
     const els = {
         title: $('title'), dialog: $('dialog'), pause: $('pause'), hud: $('hud'), banner: $('banner'),
         problems: $('problems'), combat: $('combat'), toast: $('toast'), prompt: $('prompt'), pad: $('touch-pad')
@@ -54,7 +54,8 @@
         shell.style.width = `${f.w}px`;
         Object.assign(stage.style, { width: `${f.w}px`, height: `${f.h}px`, aspectRatio: 'auto' });
         stage.classList.toggle('tall', f.tall);
-        if (canvas.width !== f.canvasW || canvas.height !== f.canvasH) { canvas.width = f.canvasW; canvas.height = f.canvasH; }   // the renderer follows (GFX-3 draw reads the size each frame)
+        if (renderer.hd) renderer.resize(f.canvasW, f.canvasH);   // the scene; postfx sizes the visible canvas to the screen
+        else if (canvas.width !== f.canvasW || canvas.height !== f.canvasH) { canvas.width = f.canvasW; canvas.height = f.canvasH; }   // the renderer follows (GFX-3 draw reads the size each frame)
         stage.dataset.scale = f.integer ? `${f.scale}x` : 'fill';
     }
     // Motion: follow the system's reduced-motion setting, or always reduce, or always animate.
