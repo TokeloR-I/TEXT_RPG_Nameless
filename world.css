@@ -189,6 +189,19 @@ body {
 .b-round.b-victory { color: var(--c-gold); border-color: var(--c-gold); }
 .b-round.b-defeat { color: var(--c-hp-low); border-color: var(--c-hp); }
 .b-mode { color: var(--c-accent); font-size: 0.85em; }
+.b-head { flex-wrap: wrap; row-gap: 0.4em; }
+/* Turn order (UI-8): the rest of this round, then the next. Side is shown by a glyph and a frame colour. */
+.b-turns { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25em; margin: 0; padding: 0.1em 0.4em; list-style: none; font-size: 0.75em; background: rgba(10, 9, 14, 0.75); border: 1px solid var(--c-frame-lo); }
+.b-turns .t-k { color: var(--c-ink-dim); letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.9em; margin-right: 0.2em; }
+.b-turns .t-sep { margin-left: 0.6em; padding-left: 0.6em; border-left: 1px solid var(--c-frame); }
+.b-turns li { padding: 0 0.4em; border: 1px solid #3a3540; color: var(--c-ink-dim); white-space: nowrap; }
+.b-turns li::before { margin-right: 0.25em; }
+.b-turns li.t-player { border-color: var(--c-accent); color: var(--c-ink); }
+.b-turns li.t-player::before { content: '◇'; color: var(--c-accent); }
+.b-turns li.t-minion::before { content: '✦'; color: var(--c-accent); }
+.b-turns li.t-enemy::before { content: '✕'; color: var(--c-foe); }
+.b-turns li.now { color: var(--c-ink); background: rgba(159, 232, 207, 0.14); font-weight: bold; }
+.b-turns li.aimed { box-shadow: 0 0 0 1px var(--c-accent); color: var(--c-accent); }
 
 /* Field: allies left, foes right, standing on a shared floor line. */
 .b-field {

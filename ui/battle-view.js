@@ -59,7 +59,36 @@
         return item.sub || '';
     }
 
-    const api = { statusChip, hpTone, pct, logLine, helpText, CATEGORY_GLYPH };
+    /**
+     * Display names that tell twins apart: two "Rust Rat"s become "Rust Rat A" and "Rust Rat B", lettered in
+     * the order the engine lists them, so plates, the turn order and the target menu all agree.
+     * `units` is [{ id, name }]; returns { id: label }.
+     */
+    function unitLabels(units) {
+        const count = {};
+        for (const u of units) count[u.name] = (count[u.name] || 0) + 1;
+        const seen = {};
+        const out = {};
+        for (const u of units) {
+            if (count[u.name] < 2) { out[u.id] = u.name; continue; }
+            const i = seen[u.name] = (seen[u.name] || 0) + 1;
+            out[u.id] = `${u.name} ${String.fromCharCode(64 + i)}`;
+        }
+        return out;
+    }
+
+    /**
+     * The turn-order strip from engine.getTurnOrder(): { now, next } lists of { id, label, side, current }.
+     * `now` is the rest of this round (the one acting first), `next` the round after, each cut to `max`.
+     * The player is shown as "You".
+     */
+    function turnStrip(order, labels, max = 6) {
+        if (!order) return { now: [], next: [] };
+        const one = (e) => ({ id: e.id, side: e.side, current: !!e.current, label: e.side === 'player' ? 'You' : (labels && labels[e.id]) || e.name });
+        return { now: order.now.slice(0, max).map(one), next: order.next.slice(0, max).map(one) };
+    }
+
+    const api = { statusChip, hpTone, pct, logLine, helpText, unitLabels, turnStrip, CATEGORY_GLYPH };
     ENSO.battleView = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
