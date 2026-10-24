@@ -11,6 +11,7 @@
     "pending": "node tools/pending-decisions.js",
     "play": "node tools/play-cli.js",
     "build": "node tools/build-single.js",
+    "pack": "node tools/pack-assets.js",
     "world": "node tools/world-check.js"
   }
 }

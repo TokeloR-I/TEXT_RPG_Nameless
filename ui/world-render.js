@@ -652,14 +652,42 @@
             if (painters[name]) painters[name](tg, px, py, T, ctx);
             else if (!base) rect(tg, px, py, T, T, '#ff00ff'); // unknown tile: make it obvious
         }
+        // Authored art (Keel rev 2): a map from a Tiled file carries `art` (src/world/tiled.js). Its ground, detail
+        // and walls layers draw under the player and its overhead layer over them; any cell with no loaded art
+        // under the player falls back to the procedural painter for its logical tile.
+        const ATLAS = ENSO.atlas, TILED = ENSO.tiled;
+        if (ATLAS) ATLAS.onLoad(() => cache.clear());
+        function artCells(map, x, y, layers) {
+            const art = map.art;
+            if (!art || !ATLAS || !TILED || x >= art.width || y >= art.height) return [];
+            const out = [];
+            for (const name of layers) {
+                const data = art.layers[name];
+                const cell = data && TILED.artCell(art, data[y * art.width + x]);
+                const img = cell && ATLAS.image(cell.asset);
+                if (img) out.push({ img, ...cell, size: art.tileSize });
+            }
+            return out;
+        }
+        function drawArt(tg, cells, px, py) {
+            for (const c of cells) {
+                if (c.flipX) { tg.save(); tg.translate(px + T, py); tg.scale(-1, 1); tg.drawImage(c.img, c.sx, c.sy, c.size, c.size, 0, 0, T, T); tg.restore(); }
+                else tg.drawImage(c.img, c.sx, c.sy, c.size, c.size, px, py, T, T);
+            }
+        }
+        const UNDER = ['ground', 'detail', 'walls'];
+
         function staticLayer(mapId) {
             if (cache.has(mapId)) return cache.get(mapId);
             const map = world.maps[mapId];
             const c = document.createElement('canvas');
             c.width = map.tiles[0].length * T; c.height = map.tiles.length * T;
             const cg = c.getContext('2d');
+            cg.imageSmoothingEnabled = false;
             for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) {
-                if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
+                const art = artCells(map, x, y, UNDER);
+                if (art.length) drawArt(cg, art, x * T, y * T);
+                else if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
             }
             if (HD) HD.shadePass(cg, map, nameAt, T);
             cache.set(mapId, c);
@@ -724,7 +752,7 @@
             g.save(); g.translate(ox, oy);
             const x0 = Math.max(0, Math.floor(camX / T)), y0 = Math.max(0, Math.floor(camY / T));
             const x1 = Math.min(map.tiles[0].length - 1, Math.ceil((camX + W) / T)), y1 = Math.min(map.tiles.length - 1, Math.ceil((camY + H) / T));
-            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y))) paintTile(g, map, x, y, time);
+            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(map, x, y)) && !artCells(map, x, y, UNDER).length) paintTile(g, map, x, y, time);
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
             for (const d of drawOrder(objects, view)) {
@@ -741,6 +769,7 @@
             for (let y = y0; y <= y1 + 1 && y < map.tiles.length; y++) for (let x = x0; x <= x1; x++) {
                 const name = nameAt(map, x, y);
                 if (OVERHANGS[name]) OVERHANGS[name](g, x * T, y * T, T, { tx: x, ty: y, time });
+                if (map.art) drawArt(g, artCells(map, x, y, ['overhead']), x * T, y * T);
             }
             run('foreground', { map, time, ox, oy, view });
             if (view.marker) {                                                       // the tracked objective, when it's on this map

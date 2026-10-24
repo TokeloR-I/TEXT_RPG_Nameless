@@ -7,7 +7,8 @@
  * `legend` if it overrides one. Coordinates are tile columns/rows from 0,0
  * at the top left. Things placed on a map:
  *   spawns        named arrival points { x, y, facing }
- *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn, prompt?, text? }
+ *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn, prompt?, text?, group? }
+ *                 exits sharing a `group` are one doorway several tiles wide (checked as one)
  *                 'interact' exits need a `prompt` (the hint shown when you face them);
  *                 `text` is shown on arrival, the first time only (once per run, kept in saves)
  *   interactables { id, kind: 'inspect'|'pickup', x, y, name, text, item?, sprite? } (they block the tile;

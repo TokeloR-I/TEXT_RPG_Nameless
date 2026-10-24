@@ -85,3 +85,18 @@ and post-processing. It extends Keel's 2026-10-24 decision ("Canvas 2D for the w
 - **Replacing painters with PNG tilesets:** this works one tile name at a time. Map data doesn't change.
 
 Captures are in `docs/captures/hd2d/`.
+
+## Authored art pipeline (Keel's engine decision rev 2, P0)
+
+Art is moving from code to image files. The pieces:
+
+- **`assets/src/`** holds the PNG atlases and Tiled maps (`assets/src/README.md` has the conventions).
+  `npm run pack` (`tools/pack-assets.js`) writes them into `assets/packed/assets.js` as data URIs, because a PNG
+  opened from `file://` can't be read by the WebGL pass.
+- **`src/world/tiled.js`** turns a Tiled JSON map into the `src/world` format. The rules see one-character
+  tiles as before, and the layers stay on `map.art`.
+- **`ui/atlas.js`** loads the packed images. `ui/world-render.js` draws a map's `ground`, `detail` and `walls`
+  art under the player and its `overhead` art over them. A cell with no art (or art still loading) falls back to
+  the procedural painter, so maps can be converted one tile at a time.
+- **`src/world/scale16.js`** (`node tools/convert-maps-16.js`) converts the 32 px maps to 16 px tiles by
+  turning each cell into a 2×2 block. Wide doorways are exits sharing a `group`.
