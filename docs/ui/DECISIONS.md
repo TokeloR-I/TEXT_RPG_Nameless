@@ -137,3 +137,14 @@ References: Octopath Traveler and Sea of Stars battle and town shots (owner-supp
 - *The boxed HUD panel became an unboxed strip.* Top left holds your face in a diamond, your name, level and place,
   and slim HP and resource gauges. Top right holds the quest tracker. Each sits on a fading dark gradient with
   outlined text, so it stays readable over lit or dark scenes and covers less of the map.
+
+## UI-2 revision: 480×270 stage (Keel's engine decision rev 2, #146)
+- *Stage base 640×448 → 480×270* (16:9, 30×17 tiles of 16 px) in `ui/display.js`, `world.html` and the stage's aspect
+  ratio. Whole-number scaling still applies: full-screen 1080p is exactly ×4, 1440p is ×5, and a browser window
+  that ×N would leave mostly empty fills instead (auto mode, unchanged rule).
+- *Portrait phones:* the canvas column is 288 px wide (18 tiles of 16 px), replacing 384.
+- *UI sizes:* HUD, prompt, banner, dialogue, menus and battle text no longer stop growing at 15–20 px. They now scale
+  with the stage (a minimum only), so ×4 at 1080p reads at the same proportion as ×2.
+- *Battle on 16:9:* the stage is shorter for its width, so battle text drops to 1.45cqw, the field ends higher, the
+  help line is one line, and the command window still shows all four root commands.
+- The Black Flight effects overlay follows the canvas size instead of a fixed 640×448.

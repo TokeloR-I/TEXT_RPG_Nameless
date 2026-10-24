@@ -83,7 +83,7 @@ body {
 .world-stage {
     position: relative;
     width: 100%;
-    aspect-ratio: 640 / 448;
+    aspect-ratio: 480 / 270;
     container-type: inline-size;
     outline: 2px solid #2a2620;      /* outside the box, so the canvas area is exactly the fitted size */
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
@@ -98,7 +98,7 @@ body {
 /* ---------- HUD (HD-2D pass): no boxes over the lit scene ---------- */
 .hud {
     position: absolute; inset: 1.6cqw 2cqw auto 2cqw; display: flex; justify-content: space-between; align-items: flex-start; gap: 2cqw;
-    font-size: clamp(10px, 1.6cqw, 15px); pointer-events: none; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
+    font-size: max(10px, 1.6cqw); pointer-events: none; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
 }
 .hud-me { display: flex; align-items: center; gap: 1.1cqw; padding: 0.35em 2.6em 0.4em 0.4em;
     background: linear-gradient(90deg, rgba(10, 9, 16, 0.7) 0, rgba(10, 9, 16, 0.5) 80%, rgba(10, 9, 16, 0) 100%); }
@@ -125,7 +125,7 @@ body {
 .prompt {
     position: absolute; bottom: 2.4cqw; left: 50%; transform: translateX(-50%);
     background: var(--panel); padding: 0.45em 1em;
-    font-size: clamp(11px, 1.7cqw, 16px); white-space: nowrap; pointer-events: none;
+    font-size: max(11px, 1.7cqw); white-space: nowrap; pointer-events: none;
 }
 .prompt kbd { border: 1px solid var(--ink-dim); padding: 0 0.35em; margin-right: 0.4em; font-family: inherit; color: var(--accent); }
 
@@ -142,7 +142,7 @@ body {
 /* ---------- map name banner ---------- */
 .banner {
     position: absolute; top: 4cqw; left: 50%; transform: translateX(-50%);
-    font-size: clamp(14px, 2.8cqw, 26px); letter-spacing: 0.2em; text-transform: uppercase;
+    font-size: max(14px, 2.8cqw); letter-spacing: 0.2em; text-transform: uppercase;
     color: var(--ink); text-shadow: 0 2px 8px #000; pointer-events: none; opacity: 0;
 }
 .banner.show { animation: banner 2.6s ease forwards; }
@@ -152,7 +152,7 @@ body {
 .dialog {
     position: absolute; left: 3cqw; right: 3cqw; bottom: 3cqw;
     background: var(--panel); padding: 1.8cqw 2.2cqw 2.4cqw;
-    font-size: clamp(12px, 2.1cqw, 20px); line-height: 1.5;
+    font-size: max(12px, 2.1cqw); line-height: 1.5;
 }
 .dialog-text { white-space: pre-line; }
 .dialog-title { color: var(--accent); font-weight: bold; margin-bottom: 0.3em; }
@@ -163,7 +163,7 @@ body {
 .panel {
     position: absolute; inset: 6cqw 14cqw; overflow: auto;
     background: var(--panel); padding: 2cqw 3cqw;
-    font-size: clamp(11px, 1.8cqw, 17px); line-height: 1.45;
+    font-size: max(11px, 1.8cqw); line-height: 1.45;
 }
 .panel h2 { margin: 0 0 0.6em; letter-spacing: 0.15em; text-transform: uppercase; font-size: 1.3em; }
 .panel h3 { margin: 0.8em 0 0.2em; color: var(--accent); font-size: 1em; }
@@ -186,7 +186,7 @@ body {
 .toast {
     position: absolute; top: 11cqw; left: 50%; transform: translateX(-50%);
     background: var(--panel); padding: 0.6em 1.2em;
-    font-size: clamp(11px, 1.8cqw, 16px); white-space: nowrap;
+    font-size: max(11px, 1.8cqw); white-space: nowrap;
 }
 
 /* ---------- battle (Pixie, HD-2D pass; docs/ui/STYLE_GUIDE.md) ----------
@@ -194,7 +194,7 @@ body {
    latest action shows as a small banner, foes carry slim tags, and the bottom holds your gauges (left)
    and the command window (right). Units keep data-unit-id so ui/combat-fx.js finds them. */
 .combat {
-    position: absolute; inset: 0; font-size: clamp(11px, 1.65cqw, 16px);
+    position: absolute; inset: 0; font-size: max(11px, 1.45cqw);   /* 16:9 stage (480×270): tighter vertically */
     background:                                       /* readability scrim: darker at the edges, clear in the middle */
         radial-gradient(ellipse 80% 70% at 55% 52%, transparent 60%, rgba(4, 3, 8, 0.45) 100%),
         linear-gradient(180deg, rgba(4, 3, 8, 0.55) 0, transparent 18%, transparent 70%, rgba(4, 3, 8, 0.7) 100%);
@@ -237,7 +237,7 @@ body {
 
 /* Field: allies left, foes right, standing on the scene. */
 .b-field {
-    left: 3cqw; right: 3cqw; top: 12cqw; bottom: 25cqw; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: end;
+    left: 3cqw; right: 3cqw; top: 11cqw; bottom: 20cqw; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: end;
     transition: transform 420ms cubic-bezier(.2, .7, .2, 1); transform-origin: 70% 80%;
 }
 #world-canvas { transition: transform 420ms cubic-bezier(.2, .7, .2, 1), filter 420ms; transform-origin: 65% 60%; }
@@ -294,7 +294,7 @@ body {
 .b-log p:not(.fresh) { display: none; }
 .b-log p.fresh { color: var(--c-ink); }
 .b-log p.lg-turn, .b-log p.lg-round { display: none; }
-.b-log.open { top: 9.6cqw; bottom: 25cqw; max-height: none; width: min(80cqw, 48em); text-align: left; cursor: zoom-out; scrollbar-width: thin; }
+.b-log.open { top: 9.6cqw; bottom: 20cqw; max-height: none; width: min(80cqw, 48em); text-align: left; cursor: zoom-out; scrollbar-width: thin; }
 .b-log.open p { display: block; }
 .b-log.open p.lg-turn { color: var(--c-accent); font-size: 0.78em; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25em; }
 .b-log.open p.lg-round { color: var(--c-ink-dim); font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; margin-top: 0.25em; }
@@ -304,7 +304,7 @@ body {
 .b-log p.imp.fresh:not(.lg-turn):not(.lg-round) { color: var(--c-gold); }
 
 /* Bottom: your gauges on a fading strip (left), the command window (right). */
-.b-foot { left: 2cqw; right: 2cqw; bottom: 1.8cqw; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2cqw; align-items: end; }
+.b-foot { left: 2cqw; right: 2cqw; bottom: 1.4cqw; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 2cqw; align-items: end; }
 .b-party {
     display: flex; flex-direction: column; gap: 0.15em; padding: 0.5em 1.2em 0.6em 0.9em;
     background: linear-gradient(90deg, rgba(10, 9, 16, 0.92) 0, rgba(10, 9, 16, 0.75) 70%, rgba(10, 9, 16, 0) 100%);
@@ -317,7 +317,7 @@ body {
 .b-party .v { text-align: right; font-variant-numeric: tabular-nums; font-size: 1.2em; font-weight: bold; min-width: 4.6em; }
 .b-party .v small { color: var(--c-ink-dim); font-size: 0.65em; font-weight: normal; }
 .b-cmd { display: flex; flex-direction: column; min-height: 0; }
-.b-commands { display: flex; flex-direction: column; gap: 0.05em; max-height: 8.6em; overflow-y: auto; scrollbar-width: thin; }
+.b-commands { display: flex; flex-direction: column; gap: 0.05em; max-height: 8em; overflow-y: auto; scrollbar-width: thin; }
 .combat .menu li { padding: 0.2em 0.5em 0.2em 1.4em; position: relative; border: 1px solid transparent; flex-direction: row; overflow-wrap: anywhere; }
 .combat .menu li.selected { border-color: transparent; background: linear-gradient(90deg, rgba(159, 232, 207, 0.22), rgba(159, 232, 207, 0.04)); box-shadow: inset 2px 0 0 var(--c-accent); }
 .combat .menu li.selected .m-label { color: #fff; }
@@ -328,7 +328,7 @@ body {
 .combat .menu li.disabled .m-label { color: var(--c-ink-mute); }
 .combat .menu li.disabled .m-label::after { content: ' ✕'; font-size: 0.8em; }
 .combat .menu li.disabled.selected { box-shadow: inset 2px 0 0 var(--c-ink-mute); }
-.b-help { margin: 0.35em 0 0; min-height: 2.6em; color: var(--c-ink); font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
+.b-help { margin: 0.3em 0 0; min-height: 1.4em; color: var(--c-ink); font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
 .b-cmd .keys { margin: 0.2em 0 0 !important; font-size: 0.78em; color: var(--c-ink-dim); }
 
 @media (max-width: 640px) {
