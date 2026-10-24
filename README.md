@@ -4,7 +4,8 @@
 **About the game, story and features:** [docs/ABOUT_THE_GAME.md](docs/ABOUT_THE_GAME.md)
 
 Turn-based dungeon RPG. The game rules live in a UI-free engine, so the same
-engine can drive the text version now and a Phaser side-scroller later.
+engine drives both the text version and the graphical world. The world is drawn with our own
+Canvas renderer, with no game framework.
 
 ## Play
 - **Explore the world (Chapter One):** double-click `world.html`. Name your character, pick a class and a look, then walk with the arrow keys or WASD, interact or talk with E / Enter, Esc for the menu and journal.

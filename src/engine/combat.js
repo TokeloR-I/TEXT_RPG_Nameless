@@ -64,6 +64,23 @@
                 .sort((a, b) => this.speedOf(b) - this.speedOf(a));
         }
 
+        /**
+         * UI-8: the turn-order strip (pure). This round's order from the current actor on, then the next round's
+         * order as it stands now (speeds can still change). Dead or erased combatants are left out.
+         * Each entry: { id, name, side: 'player' | 'enemy' | 'minion', current }.
+         */
+        getTurnOrder() {
+            const c = this.combat;
+            if (!c || this.mode !== 'combat') return null;
+            const side = (x) => (x.isPlayer ? 'player' : c.minions.includes(x) ? 'minion' : 'enemy');
+            const entry = (x, current) => ({ id: x.id, name: x.name, side: side(x), current });
+            const live = (x) => x.hp > 0 && !x.erased;
+            const now = c.order.slice(Math.min(c.idx, c.order.length)).filter(live);
+            const next = [this.player, ...this.alive(c.enemies), ...this.alive(c.minions)].filter(live)
+                .sort((a, b) => this.speedOf(b) - this.speedOf(a));
+            return { round: c.round, now: now.map((x, i) => entry(x, i === 0)), next: next.map((x) => entry(x, false)) };
+        }
+
         /** Effective speed this round ([Pin] slows). */
         speedOf(c) {
             let spd = c.spd;
