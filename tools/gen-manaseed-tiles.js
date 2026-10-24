@@ -15,10 +15,10 @@ const { PARTS, layout } = require('../ui/tiles-manaseed.js');
 
 const root = path.join(__dirname, '..');
 const pack = path.resolve(process.argv[2] || process.env.MANASEED_DIR || '/mnt/project-files/25.07 - Free Mana Seed RPG Starter Pack');
-const SHEETS = { S: 'seasonal sample (summer).png', T: 'simplified full timber.png', H: 'home interiors, timber roof.png' };
+const SHEETS = { S: 'tilesets/seasonal sample (summer).png', T: 'tilesets/simplified full timber.png', H: 'tilesets/home interiors, timber roof.png', C: 'icons & objects/cozy furnishings sampler.png' };
 const OUT = path.join(root, 'assets/src/tiles/manaseed.png');
 
-const src = Object.fromEntries(Object.entries(SHEETS).map(([k, f]) => [k, PNG.decode(fs.readFileSync(path.join(pack, 'tilesets', f)))]));
+const src = Object.fromEntries(Object.entries(SHEETS).map(([k, f]) => [k, PNG.decode(fs.readFileSync(path.join(pack, f)))]));
 const { at, w, h } = layout();
 const out = { w, h, data: Buffer.alloc(w * h * 4) };
 for (const [name, [sheet, sx, sy, pw, ph]] of Object.entries(PARTS)) {

@@ -17,7 +17,7 @@
     const KEY = 'tiles/manaseed';
     const t16 = (sheet, c, r) => [sheet, c * 16, r * 16, 16, 16];
     // name -> [pack sheet, x, y, w, h] in the pack's own pictures. S = seasonal sample (summer), T = simplified
-    // full timber, H = home interiors, timber roof.
+    // full timber, H = home interiors, timber roof, C = cozy furnishings sampler.
     const PARTS = {
         ...Object.fromEntries([1, 2, 3, 4, 5].map((r, i) => [`grass${i}`, t16('S', 0, r)])),
         ...Object.fromEntries([[0, 6], [1, 6], [2, 6], [3, 6], [0, 7], [1, 7], [2, 7], [3, 7]].map(([c, r], i) => [`flowers${i}`, t16('S', c, r)])),
@@ -31,7 +31,8 @@
         tree: ['S', 176, 0, 80, 112],
         boulder: ['S', 48, 224, 32, 32],
         wall: ['T', 128, 96, 32, 32], window: ['T', 96, 96, 32, 32], roof: ['T', 208, 32, 32, 32],
-        floor: ['H', 16, 160, 32, 32]
+        floor: ['H', 16, 160, 32, 32],
+        table: ['C', 39, 5, 34, 42], chair: ['C', 17, 7, 14, 24], bookcase: ['C', 128, 0, 32, 54], rocker: ['C', 74, 50, 21, 30]
     };
 
     /** Where each part sits in the shipped atlas: shelf-packed in PARTS order, ATLAS_W wide. Shared with the tool. */
@@ -60,6 +61,14 @@
         const img = sheet();
         if (!img) return false;
         for (let y = 0; y < T; y += 32) for (let x = 0; x < T; x += 32) put(g, img, name, px + x, py + y);
+    };
+
+    /** Furniture: the piece stands on the bottom middle of its cell (taller pieces reach into the cell above). */
+    const stand = (name) => (g, px, py, T) => {
+        const img = sheet();
+        if (!img) return false;
+        const [, , w, h] = AT[name];
+        put(g, img, name, px + Math.floor((T - w) / 2), py + T - h - 1);
     };
 
     // What a path's edge treats as grass.
@@ -102,7 +111,8 @@
             if (!img) return false;
             put(g, img, 'boulder', px + (T - 32) / 2, py + T - 32);
         },
-        house_wall: fill32('wall'), timber_wall: fill32('wall'), house_window: fill32('window'), roof: fill32('roof')
+        house_wall: fill32('wall'), timber_wall: fill32('wall'), house_window: fill32('window'), roof: fill32('roof'),
+        table: stand('table'), chair: stand('chair'), shelf: stand('bookcase'), armchair: stand('rocker')
     };
 
     /** Where a tree's sprite goes: trunk foot at the bottom middle of its cell. */
