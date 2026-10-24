@@ -33,12 +33,13 @@
     const FIXED = { k: '#14100e', e: '#1a1412', p: '#3a3430', b: '#2a2018' };
 
     /** Role -> colour for one character's cosmetics. Unknown indices fall back to option 0. */
-    function paletteFor({ appearance = 0, cosmetics = {}, className } = {}) {
+    function paletteFor({ appearance = 0, cosmetics = {}, className, palette } = {}) {
         const skin = SKIN[appearance] || SKIN[0];
         const hair = HAIR[cosmetics.hairColor] || HAIR[0];
         const fit = OUTFIT[cosmetics.outfit] || OUTFIT[0];
         const cloth = fit.cloth || CLASS_CLOTH[className] || ['#6a6a6a', '#4a4a4a'];
-        return { ...FIXED, s: skin[0], S: skin[1], h: hair[0], H: hair[1], L: hair[2], c: cloth[0], C: cloth[1], a: fit.accent, m: fit.metal[0], M: fit.metal[1] };
+        const base = { ...FIXED, s: skin[0], S: skin[1], h: hair[0], H: hair[1], L: hair[2], c: cloth[0], C: cloth[1], a: fit.accent, m: fit.metal[0], M: fit.metal[1] };
+        return palette ? { ...base, ...palette } : base;   // villagers recolour any role (ui/world-render.js PEOPLE)
     }
 
     // ---------------------------------------------------------------------
