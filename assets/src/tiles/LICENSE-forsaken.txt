@@ -1,0 +1,5 @@
+forsaken.png: "Free Environment Pixel Tilemap & Assets 16x16" by Forsaken Pixels
+(https://instagram.com/forsaken_pixels). Unmodified copy of ForsakenAssetsPNG.png from the pack.
+
+The author's note in the pack says: "the assets is free to use anywhere, no copyright on this assets."
+Credit is not required but is given here and in docs/SPRITES.md.

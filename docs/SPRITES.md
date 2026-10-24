@@ -135,3 +135,4 @@ licence. Any external art added later needs its source and licence recorded here
 |---|---|---|
 | `assets/sprites/player-placeholder.js` | Generated in-repo | Repository licence |
 | `assets/sprites/necromancer-art.js`, `assets/art/necromancer/` | Generated with PixelLab for this project (prompt in `pixellab-metadata.json`); south view cleaned of ghost duplicates | PixelLab output, owned by the project |
+| `assets/src/tiles/forsaken.png` (used by `ui/tiles-forsaken.js`) | "Free Environment Pixel Tilemap & Assets 16x16" by Forsaken Pixels | Free to use anywhere, no copyright (author's note; see `assets/src/tiles/LICENSE-forsaken.txt`) |
