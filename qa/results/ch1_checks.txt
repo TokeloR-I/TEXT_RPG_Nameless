@@ -1,0 +1,16 @@
+Chapter One checks — ROOT /tmp/claude-0/-home-claude/72459434-7491-5781-be08-d9b153f5ca24/scratchpad/r10
+
+INFO  [X1] XP timeline with EVERY optional thing done as early as possible (rats, wolf, Shane, both jobs): level at each required fight
+        rats: 35 XP, L1 · wolf: 70 XP, L1 · Q03: 95 XP, L1 · G1: 115 XP, L2 · G2: 140 XP, L2 · Q04: 165 XP, L2 · notice board (J01 completes: wolf already beaten): 175 XP, L2 · constables: 205 XP, L2 · S01: 225 XP, L2 · Q05: 245 XP, L2 · J02: 255 XP, L3 · → branch choice offered here · G3: 295 XP, L3 · G4: 325 XP, L3 · Q06 (before the Warden): 355 XP, L3
+PASS  [X2] Save → JSON → GameEngine.fromSave mid-route; then re-enter every map, re-read, re-talk: no XP or item is paid twice
+        XP 80 → 80 after the tour (original engine 80); items 3 → 3; beaten Ragpickers back on the map: false
+PASS  [X3] Flee a required fight: no XP, the gate still blocks the way on, the enemy ignores you until you step away, then the fight works
+        fled: no XP true; way south blocked true; still on the map true; walking straight back in ignored true; after stepping away it starts true; XP after the win +20
+PASS  [X4] Dying in a required world fight ends the run cleanly (game over, no stuck state)
+        mode game_over; world result defeat; available: restart
+FAIL  [X6] Q07 in real play: after the Warden and the seal, Orin hands over the ledger; can the gate actually be built (the only way to finish Chapter One)?
+        Q07 active; constructionDefinitions.homestead_gate exists: false; CLI 'build homestead_gate' → "I don't understand that command. Type 'help' for a list."; act(build) → UNKNOWN_ACTION; Gold 0
+INFO  [X5] Candidate optional XP and the constable kit (Wren's 'candidate' marks), as data
+        S01 20 (candidate), J01 10 (candidate), J02 10 (candidate) · watch_constable: HP 28, DEF 3, SPD 9, Truncheon 4–7 / Shield Shove 2–4, XP 15 each (S01 pays 20 + 2×15 = 50)
+
+3/4 pass (+2 info)
