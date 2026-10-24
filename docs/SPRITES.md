@@ -22,10 +22,21 @@ single-file game. No libraries, no build step for art.
 
 - **frame** `{ w: 24, h: 32 }`. Every layer of a character uses the same frame size.
 - **anchor** `{ x: 12, y: 30 }`. The pixel that stands on the ground point (centre of the feet).
-- **animations**: a list of steps, each `{ pose, ms, oy }`. `pose` names the frame to show, `ms` is how long,
-  `oy` is a whole-pixel vertical bob for the whole body. Today: `idle` (2 steps) and `walk` (4 steps).
-  GFX-2 adds `attack`, `cast`, `hit` and `death` in the same shape. The renderer only looks names up and
-  knows no game rules.
+- **animations**: steps, each `{ pose, ms, oy }`. `pose` names the frame to show, `ms` is how long,
+  `oy` is a whole-pixel vertical offset for the whole body (bob, recoil, kneeling).
+  - **Looping** (a plain list): `idle`, `walk`.
+  - **One-shot** (`{ once: true, then?, steps }`), from GFX-2: `attack` (windup → strike), `cast` (hands up),
+    `hit` (recoil), `death` (recoil → kneel, no `then`, so it holds the last step). After a one-shot animation
+    with `then`, the character returns to that animation.
+  - `animationDone(character, anim, elapsed)` tells a front end when a one-shot animation has finished, for
+    example to chain `attack` → `hit`.
+  - The renderer only looks names up and knows no game rules. **The front end decides when to play an
+    animation.** In the world battle screen (`ui/world-ui.js`, `actorReacts`), an attack, or a skill whose
+    data says `damage_type: 'physical'`, plays `attack`. Any other skill, or controlling an enemy, plays
+    `cast`. Losing HP plays `hit` afterwards, and the game ending in defeat plays `death`. GFX-4 replaces this
+    with structured combat events.
+- **Body poses** in the placeholders: `stand`, `stepA`, `stepB`, `windup`, `strike`, `cast`, `hit`, `kneel`.
+  Hair and clothes use one frame per facing and follow the body through `oy`.
 - **layerOrder** per facing, bottom to top:
   - down, left, right: `hairBack → body → outfit → hairFront`
   - up: `body → outfit → hairBack → hairFront` (seen from behind, long hair falls over the clothes)
