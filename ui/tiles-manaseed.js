@@ -6,6 +6,7 @@
  * The static layer paints converted maps at 32 px, so a cell is four 16 px tiles or one 32 px piece.
  *   ground.grass / dirt_path / wood_floor   (g, px, py, T, c), c has the neighbours' names
  *   painters.*                               drawn over the floor; trees draw in decorPass so crowns can overlap
+ *   sprites.strongbox                        the treasure chest
  *   overhangs.tree                           the crown above the tree's cell, over people standing there
  * Every function returns false while the atlas loads; ui/world-render.js then uses the painter it replaced.
  * Never use this art as input for AI image generation. Presentation only.
@@ -17,7 +18,8 @@
     const KEY = 'tiles/manaseed';
     const t16 = (sheet, c, r) => [sheet, c * 16, r * 16, 16, 16];
     // name -> [pack sheet, x, y, w, h] in the pack's own pictures. S = seasonal sample (summer), T = simplified
-    // full timber, H = home interiors, timber roof.
+    // full timber, H = home interiors, timber roof, C = cozy furnishings sampler, W = summer water sparkles,
+    // X = treasure chests.
     const PARTS = {
         ...Object.fromEntries([1, 2, 3, 4, 5].map((r, i) => [`grass${i}`, t16('S', 0, r)])),
         ...Object.fromEntries([[0, 6], [1, 6], [2, 6], [3, 6], [0, 7], [1, 7], [2, 7], [3, 7]].map(([c, r], i) => [`flowers${i}`, t16('S', c, r)])),
@@ -31,7 +33,11 @@
         tree: ['S', 176, 0, 80, 112],
         boulder: ['S', 48, 224, 32, 32],
         wall: ['T', 128, 96, 32, 32], window: ['T', 96, 96, 32, 32], roof: ['T', 208, 32, 32, 32],
-        floor: ['H', 16, 160, 32, 32]
+        floor: ['H', 16, 160, 32, 32],
+        water0: t16('S', 12, 13), water1: t16('S', 13, 13), water2: t16('S', 13, 14),
+        ...Object.fromEntries([0, 1, 2, 3].map((f) => [`sparkle${f}`, t16('W', f, 0)])),
+        chest: ['X', 6, 9, 20, 19],
+        table: ['C', 39, 5, 34, 42], chair: ['C', 17, 7, 14, 24], bookcase: ['C', 128, 0, 32, 54], rocker: ['C', 74, 50, 21, 30]
     };
 
     /** Where each part sits in the shipped atlas: shelf-packed in PARTS order, ATLAS_W wide. Shared with the tool. */
@@ -60,6 +66,14 @@
         const img = sheet();
         if (!img) return false;
         for (let y = 0; y < T; y += 32) for (let x = 0; x < T; x += 32) put(g, img, name, px + x, py + y);
+    };
+
+    /** Furniture: the piece stands on the bottom middle of its cell (taller pieces reach into the cell above). */
+    const stand = (name) => (g, px, py, T) => {
+        const img = sheet();
+        if (!img) return false;
+        const [, , w, h] = AT[name];
+        put(g, img, name, px + Math.floor((T - w) / 2), py + T - h - 1);
     };
 
     // What a path's edge treats as grass.
@@ -102,7 +116,28 @@
             if (!img) return false;
             put(g, img, 'boulder', px + (T - 32) / 2, py + T - 32);
         },
-        house_wall: fill32('wall'), timber_wall: fill32('wall'), house_window: fill32('window'), roof: fill32('roof')
+        house_wall: fill32('wall'), timber_wall: fill32('wall'), house_window: fill32('window'), roof: fill32('roof'),
+        /** Deep water; a few tiles glint, each on its own beat (water is redrawn every frame). */
+        water(g, px, py, T, c) {
+            const img = sheet();
+            if (!img) return false;
+            for (let y = 0; y < T; y += 16) for (let x = 0; x < T; x += 16) {
+                const tx = c.tx * 4 + x / 16, ty = c.ty * 4 + y / 16;
+                put(g, img, `water${Math.floor(hash(tx, ty, 15) * 3)}`, px + x, py + y);
+                if (hash(tx, ty, 16) < 0.3) {
+                    const f = Math.floor((c.time || 0) / 180 + hash(tx, ty, 17) * 24) % 8;
+                    if (f < 4) put(g, img, `sparkle${f}`, px + x, py + y);
+                }
+            }
+            // A muddy bank where the water meets land.
+            g.fillStyle = '#3d4a2a';
+            if (c.above !== 'water') g.fillRect(px, py, T, 3);
+            if (c.left !== 'water') g.fillRect(px, py, 2, T);
+            if (c.right !== 'water') g.fillRect(px + T - 2, py, 2, T);
+            g.fillStyle = '#1e5a7a';
+            if (c.below !== 'water') g.fillRect(px, py + T - 2, T, 2);
+        },
+        table: stand('table'), chair: stand('chair'), shelf: stand('bookcase'), armchair: stand('rocker')
     };
 
     /** Where a tree's sprite goes: trunk foot at the bottom middle of its cell. */
@@ -133,7 +168,10 @@
         }
     };
 
-    const api = { ground, painters, overhangs, decorPass, KEY, PARTS, layout };
+    /** Object sprites (interactables with a `sprite`). */
+    const sprites = { strongbox: stand('chest') };
+
+    const api = { ground, sprites, painters, overhangs, decorPass, KEY, PARTS, layout };
     ENSO.tilesManaseed = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
