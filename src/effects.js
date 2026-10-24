@@ -610,6 +610,23 @@
         }
     });
 
+    register('eternal_lich_unmake', {
+        requires(ctx) {
+            const t = ctx.targets[0];
+            if (!t || t.hp <= 0 || t.erased) return 'Unmake requires a living enemy.';
+            if ((t.specialFlags || []).includes('boss') || t.tier === 'boss')
+                return 'Eternal Lich cannot Unmake a boss.';
+            if ((t.statusAffinities || {}).Unmake === 'immune' ||
+                (t.specialFlags || []).includes('erase_immune'))
+                return 'That enemy is immune to Unmake.';
+            return null;
+        },
+        apply(ctx) {
+            const target = ctx.targets[0];
+            ctx.engine.say(`${target.name} is unmade by the Eternal Lich.`, { important: true });
+            ctx.engine.erase(target);
+        }
+    });
     register('remove_from_fight_permanent', {
         apply(ctx) {
             for (const t of ctx.targets) {

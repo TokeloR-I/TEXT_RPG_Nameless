@@ -221,6 +221,8 @@
                 this.say(`Used ${cost} ${p.resource.type}.`);
             }
             if (skill.oncePerFight) c.usedOncePerFight[skillName] = true;
+            if (skillName === 'Soul Feast' && cost === 0 && this.hasTrait('Undying Will'))
+                c.freeSoulFeastUsed = true;
             if (this.isMarkSkill(skill) && this.hasTrait('Hunter\'s Instinct') && !c.freeMarkUsedThisRound && skill.cost !== 'all') {
                 c.freeMarkUsedThisRound = true;
                 if (skill.cost) this.say("Hunter's Instinct: your first mark this turn is free.");

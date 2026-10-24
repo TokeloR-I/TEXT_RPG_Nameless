@@ -252,9 +252,16 @@
                             link.type === 'soul_link' && link.linkGroup === s.linkGroup)) : [] };
                 }) : [];
             target.hp -= actual;
+            // Intercept lethal damage before onDeath can strip Soulbinder links/marks.
+            if (target.isPlayer && target.hp <= 0 && !target.erased && this.tryUndyingWill()) {
+                // The damage event occurred, but the actor never entered the dead state.
+            }
             if (target.isPlayer && this.combat && source && source !== target) this.resourceEvent('onDamageTaken', 1, 'pain');
             if (!options.secondaryLink && source && source.isPlayer && this.combat) this.combat.dealtDamageThisRound = true;
             if (!options.secondaryLink && this.combat && this.isPlayerSide(source) && this.marksOn(target).length) this.combat.markedEnemyHitThisRound = true;
+            // Undying Will intercepts the lethal hit before death cleanup can
+            // orphan marks or dissolve Soul Chain / Soul Feast memberships.
+            if (target.hp <= 0 && target.isPlayer && !target.erased) this.tryUndyingWill();
             if (target.hp <= 0 && !target.dead) this.onDeath(target, source, options);
             for (const { owner, partners } of propagation) {
                 for (const partner of partners) {

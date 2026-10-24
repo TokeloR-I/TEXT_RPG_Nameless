@@ -79,6 +79,8 @@
         skillCost(skill) {
             const p = this.player;
             if (skill.cost === 'all') return p.resource.current;
+            if (skill === this.data.skillDefinitions['Soul Feast'] && this.combat && this.hasTrait('Undying Will') &&
+                !this.combat.freeSoulFeastUsed) return 0;
             const c = this.combat;
             if (c && this.isMarkSkill(skill) && this.hasTrait('Hunter\'s Instinct') && !c.freeMarkUsedThisRound) return 0;
             return skill.cost || 0;
@@ -95,6 +97,7 @@
 
         resolveSkillName(input) {
             const lower = input.toLowerCase().replace(/[’‘]/g, "'");
+            if (lower === 'unmake' && this.player.skills.includes('Eternal Lich Unmake')) return 'Eternal Lich Unmake';
             if (this.data.skillAliases[lower]) return this.data.skillAliases[lower];
             for (const name in this.data.skillDefinitions) {
                 if (name.toLowerCase().replace(/[’‘]/g, "'") === lower) return name;
