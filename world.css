@@ -433,3 +433,29 @@ body {
     .creator-options { max-height: 39cqw; }
     .creator-options .class-list li { padding-block: 0.25em; }
 }
+
+/* Creator actions are explicit and consistently reachable: selections never auto-advance. */
+.title-screen .creator-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1em; width: min(100%, 780px); margin: 0.8em auto 0;
+}
+.title-screen .creator-nav button {
+    font: inherit; font-weight: 700; cursor: pointer;
+    background: #25282b; color: var(--ink); border: 2px solid var(--edge);
+    min-width: 7em; min-height: 2.7em; padding: 0.35em 1.15em;
+}
+.title-screen .creator-nav button[data-creator-next] {
+    border-color: var(--accent); background: #1a403a; color: #d9fff2;
+}
+.title-screen .creator-nav button:hover,
+.title-screen .creator-nav button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+    background: #32534b;
+}
+.title-screen .creator-progress { color: var(--ink-dim); white-space: nowrap; }
+.title-screen .creator-options { min-height: 0; overflow-y: auto; }
+.title-screen .creator-preview canvas { image-rendering: pixelated; max-width: 100%; }
+@media (max-width: 600px) {
+    .title-screen .creator-nav { gap: 0.4em; }
+    .title-screen .creator-nav button { min-width: 5.5em; padding: 0.3em 0.45em; }
+}
