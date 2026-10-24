@@ -6,6 +6,7 @@
  * them onto GameEngine.prototype, so callers just use engine.method().
  * ========================================================================= */
 (function (global) {
+    const EQUIP_SLOTS = ['mainHand', 'bodyArmor', 'accessory'];
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
     const { cap, pretty } = isNode ? require('./util.js') : ENSO.engineUtil;
@@ -127,12 +128,41 @@
                 this.refuse('NOT_EQUIPMENT', 'Select a valid owned equipment item.'); return;
             }
             const current = this.player.equipment[def.slot];
-            const prev = this.data.itemDefinitions[current] || {};
+            const differences = this.equipmentDiff(item);
+            this.say(`${item} vs ${current || 'empty'}: ${JSON.stringify(differences)}`);
+            return differences;
+        }
+
+        /** Stat change if `item` replaced what is in its slot now (pure). */
+        equipmentDiff(item) {
+            const def = this.data.itemDefinitions[item] || {};
+            const prev = this.data.itemDefinitions[this.player.equipment[def.slot]] || {};
             const differences = {};
             for (const stat of new Set([...Object.keys(prev.statModifiers || {}), ...Object.keys(def.statModifiers || {})]))
                 differences[stat] = (def.statModifiers?.[stat] || 0) - (prev.statModifiers?.[stat] || 0);
-            this.say(`${item} vs ${current || 'empty'}: ${JSON.stringify(differences)}`);
             return differences;
+        }
+
+        /**
+         * UI-6: the equipment screen's data (pure). Each slot shows what is worn and every owned item that fits,
+         * with its stat change and, if it can't be worn, the same code and message equipItem() refuses with.
+         * The screen then sends act({ type: 'equip', item }) or act({ type: 'unequip', slot }).
+         */
+        getEquipment() {
+            const p = this.player;
+            if (!p) return null;
+            const slots = {};
+            for (const slot of EQUIP_SLOTS) slots[slot] = { item: (p.equipment && p.equipment[slot]) || null, candidates: [] };
+            for (const item of new Set(p.inventory)) {
+                const def = this.data.itemDefinitions[item];
+                if (!def || !slots[def.slot]) continue;
+                const c = { item, rarity: def.rarity || null, description: def.description || '', diff: this.equipmentDiff(item), enabled: true };
+                if (!Object.entries(def.requirements || {}).every(([stat, min]) => (p[stat] || 0) >= min)) {
+                    c.enabled = false; c.reason = { code: 'EQUIP_REQUIREMENTS', message: 'You do not meet that item’s requirements.' };
+                }
+                slots[def.slot].candidates.push(c);
+            }
+            return { slots, modifiers: this.equipmentModifiers() };
         }
 
         equipItem(name) {
