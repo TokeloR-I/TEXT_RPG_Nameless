@@ -74,6 +74,8 @@
         return `Motion: ${MOTION_LABELS[motionMode]}.`;
     }
     applyMotion();
+    /** Wren's render quality (ENSO.gfx, stored under 'enso.gfx'); 'high' unless set. */
+    const gfxQuality = () => { try { return localStorage.getItem('enso.gfx') === 'low' ? 'low' : 'high'; } catch (e) { return 'high'; } };
     function cycleDisplay() {
         displayMode = ENSO.display.nextMode(displayMode);
         try { localStorage.setItem(DISPLAY_KEY, displayMode); } catch (e) { /* private window: this session only */ }
@@ -623,6 +625,8 @@
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+            if (ENSO.gfx && ENSO.gfx.setQuality) items.push({ label: `Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}`, sub: 'High: lighting, bloom and grading. Low: plain canvas for weak devices. Applies on next load.',
+                action: again(() => { const q = gfxQuality() === 'low' ? 'high' : 'low'; ENSO.gfx.setQuality(q); mm.note = `Graphics: ${q === 'low' ? 'Low' : 'High'}. Reload the page to apply.`; }) });
         }
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
@@ -1072,7 +1076,7 @@
     function drawFace(c) {
         const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
         const id = c.dataset.face;
-        if (ENSO.sprites.drawPortrait) { ENSO.sprites.drawPortrait(g, 0, 0, id === 'player' ? view : { key: c.dataset.key }, c.width); return; }
+        if (id === 'player' && ENSO.sprites.drawPortrait) { ENSO.sprites.drawPortrait(g, 0, 0, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className }, c.width); return; }
         if (id === 'player') {
             const k = c.width / 20;   // head and shoulders of the 32x36 walking sprite
             g.save(); g.scale(k, k);
