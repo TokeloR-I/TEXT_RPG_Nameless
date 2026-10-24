@@ -58,6 +58,8 @@ Objects drawn on a floor (barrels, beds, trees) need a `BASE` entry naming their
 
 Every exit needs a partner going back. The landing spawn must be next to the partner, and the partner's landing spawn must be next to this exit. The validator enforces this, so transitions are always symmetrical and you can never land on an exit.
 
+An exit's `text` is arrival narration. It plays the first time you use that exit in a run, never again after (backtracking and save/load included). Put anything the player must be able to re-read on an object instead.
+
 ## Things on a map
 
 All of them occupy one tile and block movement while they're there.

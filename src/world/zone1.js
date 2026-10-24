@@ -9,7 +9,7 @@
  *   spawns        named arrival points { x, y, facing }
  *   exits         { id, x, y, trigger: 'step'|'interact', toMap, toSpawn, prompt?, text? }
  *                 'interact' exits need a `prompt` (the hint shown when you face them);
- *                 `text` is shown on arrival
+ *                 `text` is shown on arrival, the first time only (once per run, kept in saves)
  *   interactables { id, kind: 'inspect'|'pickup', x, y, name, text, item?, sprite? } (they block the tile;
  *                 a pickup gives `item` once per run through the engine, using the normal loot rules)
  *   encounters    { id, x, y, name, enemies: [enemy keys], trigger: 'contact', sprite, text? }

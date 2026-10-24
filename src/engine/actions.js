@@ -24,7 +24,7 @@
     // Targeting kinds that don't take a chosen enemy (pickTargets decides who is affected).
     const NO_CHOICE = new Set(['self', 'minions', 'ground', 'corpse', 'enemy_aoe', 'all_enemies', 'all_combatants', 'linked_enemies']);
     const DIRECTION_NAMES = { n: 'north', s: 'south', e: 'east', w: 'west' };
-    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter']);
+    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter', 'world_narration']);
 
     class ActionMethods {
         // =====================================================================
@@ -474,6 +474,12 @@
                 const received = this.grantItem(a.item);
                 this.say(`You pick up the ${received}.`, { important: true });
                 this.storyEvent({ type: 'pickup', id: a.pickupId });
+                return;
+            }
+            if (a.type === 'world_narration') {          // created on first use, so older saves load unchanged
+                const id = String(a.id || '');
+                if (!this.world.narrated) this.world.narrated = [];
+                if (!this.world.narrated.includes(id)) this.world.narrated.push(id);
                 return;
             }
             if (this.isDefeated(a.encounterId)) { this.refuse('ALREADY_DEFEATED', 'Nothing stirs here any more.'); return; }

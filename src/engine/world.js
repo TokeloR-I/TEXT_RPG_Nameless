@@ -22,6 +22,8 @@
 
         isCollected(id) { return !!this.world && this.world.collected.includes(id); }
         isDefeated(id) { return !!this.world && this.world.defeated.includes(id); }
+        /** Has this one-time arrival narration (an exit's text) been shown this run? */
+        hasNarrated(id) { return !!this.world && !!this.world.narrated && this.world.narrated.includes(id); }
 
         /** Pick up a world object once per run. Uses the same loot rules as `take`. */
         worldPickup(id, item) { return this.act({ type: 'world_pickup', pickupId: id, item }).events; }
