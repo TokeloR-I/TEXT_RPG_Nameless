@@ -50,3 +50,20 @@ test('Battle view: the help line explains the highlighted command, or why it is 
     assert.strictEqual(BV.helpText({ disabled: true, sub: 'nothing usable' }), 'Unavailable · nothing usable');
     assert.strictEqual(BV.helpText(null), '');
 });
+
+test('Battle view (UI-8): twins get letters in engine order; single names stay plain', () => {
+    const l = BV.unitLabels([{ id: 'enemy_0', name: 'Rust Rat' }, { id: 'enemy_1', name: 'Crow' }, { id: 'enemy_2', name: 'Rust Rat' }]);
+    assert.deepStrictEqual(l, { enemy_0: 'Rust Rat A', enemy_1: 'Crow', enemy_2: 'Rust Rat B' });
+});
+
+test('Battle view (UI-8): the turn strip follows engine.getTurnOrder(), shows you as "You", and uses the lettered names', () => {
+    const order = {
+        round: 2,
+        now: [{ id: 'enemy_2', name: 'Rust Rat', side: 'enemy', current: true }, { id: 'player', name: 'Ayla', side: 'player', current: false }],
+        next: [{ id: 'enemy_0', name: 'Rust Rat', side: 'enemy', current: false }, { id: 'player', name: 'Ayla', side: 'player', current: false }, { id: 'm1', name: 'Skeleton', side: 'minion', current: false }]
+    };
+    const strip = BV.turnStrip(order, { enemy_0: 'Rust Rat A', enemy_2: 'Rust Rat B' }, 2);
+    assert.deepStrictEqual(strip.now.map((t) => [t.label, t.current]), [['Rust Rat B', true], ['You', false]]);
+    assert.deepStrictEqual(strip.next.map((t) => t.label), ['Rust Rat A', 'You'], 'cut to max');
+    assert.deepStrictEqual(BV.turnStrip(null), { now: [], next: [] });
+});

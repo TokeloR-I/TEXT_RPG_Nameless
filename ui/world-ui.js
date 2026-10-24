@@ -578,7 +578,7 @@
         muteHeldKeys();
         els.hud.hidden = true;
         els.banner.hidden = true; clearTimeout(bannerTimer);   // the map name never shows through the battle
-        battle = { id: result.id, log: [], fresh: 0, logOpen: false, ended: null, lastHp: {}, targetIds: [] };
+        battle = { id: result.id, log: [], fresh: 0, logOpen: false, ended: null, lastHp: {}, targetIds: [], labels: {} };
         playActor('idle');
         fx.clear();
         addLog(result.events);
@@ -673,7 +673,7 @@
         const parent = menu;
         const picked = [];
         const build = () => {
-            const ents = BM.targetEntries(option, engine.getState()).map((t) => ({
+            const ents = BM.targetEntries(option, engine.getState()).map((t) => ({ ...t, label: battle.labels[t.id] || t.label })).map((t) => ({
                 ...t, label: how !== 'multi' ? t.label
                     : option.type === 'turn_order' ? `${picked.includes(t.id) ? `${picked.indexOf(t.id) + 1}.` : '·'} ${t.label}`  // D-09: show the position
                         : `${picked.includes(t.id) ? '☑' : '☐'} ${t.label}`
@@ -751,6 +751,11 @@
         const controlled = avail && avail.awaiting === 'control' ? foes.find((e) => e.id === avail.controlledActorId) : null;
         const round = s.combat ? `Round ${s.combat.round}` : '';
         const heading = battle.ended === 'victory' ? 'Victory' : battle.ended === 'defeat' ? 'Defeat' : round;
+        // Twins keep the letter they started the fight with ("Rust Rat B" stays B after A falls).
+        battle.labels = { ...BV.unitLabels([...foes, ...minions]), ...battle.labels };
+        const name = (u) => battle.labels[u.id] || u.name;
+        const strip = BV.turnStrip(battle.ended ? null : engine.getTurnOrder(), battle.labels);
+        const turnHtml = (list) => list.map((t) => `<li class="t-${esc(t.side)}${t.current ? ' now' : ''}${battle.targetIds.includes(t.id) ? ' aimed' : ''}">${esc(t.label)}</li>`).join('');
         const mode = battle.ended ? '' : controlled ? `You control ${controlled.name}` : avail && avail.awaiting === 'turn_order' ? 'Set the turn order' : '';
         const n = battle.log.length;
         const logHtml = battle.log.map((l, i) => {
@@ -761,7 +766,8 @@
         els.combat.classList.toggle('ended', !!battle.ended);
         els.combat.classList.toggle('log-open', battle.logOpen);
         els.combat.innerHTML = `
-            <header class="b-head"><span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}</header>
+            <header class="b-head"><span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}
+                ${strip.now.length ? `<ol class="b-turns" aria-label="Turn order"><span class="t-k">Turn</span>${turnHtml(strip.now)}${strip.next.length ? `<span class="t-k t-sep">Next</span>${turnHtml(strip.next)}` : ''}</ol>` : ''}</header>
             <section class="b-field" aria-label="Battlefield">
                 <div class="b-side b-allies">
                     <figure class="unit me" data-unit-id="player">
@@ -770,7 +776,7 @@
                     </figure>
                     ${minions.map((m) => `<figure class="unit ally" data-unit-id="${esc(m.id)}">
                         <span class="ally-mark" aria-hidden="true">✦</span>
-                        <figcaption class="plate"><span class="u-name">${esc(m.name)}</span>${hpBar(m.id, m.hp, m.maxHp, 'hp')}<span class="u-hp">${m.hp}/${m.maxHp}</span></figcaption></figure>`).join('')}
+                        <figcaption class="plate"><span class="u-name">${esc(name(m))}</span>${hpBar(m.id, m.hp, m.maxHp, 'hp')}<span class="u-hp">${m.hp}/${m.maxHp}</span></figcaption></figure>`).join('')}
                 </div>
                 <div class="b-side b-foes">${foes.map((e) => {
                     const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
@@ -778,7 +784,7 @@
                     return `<figure class="unit foe ${aimed ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
                         <span class="b-cursor" aria-hidden="true">${aimed ? '▼' : ''}</span>
                         <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
-                        <figcaption class="plate"><span class="u-name">${esc(e.name)}</span>${hpBar(e.id, e.hp, e.maxHp, 'enemy')}<span class="u-hp">${e.hp}/${e.maxHp}</span>
+                        <figcaption class="plate"><span class="u-name">${esc(name(e))}</span>${hpBar(e.id, e.hp, e.maxHp, 'enemy')}<span class="u-hp">${e.hp}/${e.maxHp}</span>
                             <span class="chips">${chips(e.statusEffects)}</span></figcaption></figure>`;
                 }).join('')}</div>
             </section>

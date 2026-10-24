@@ -39,13 +39,13 @@ Each step is one small PR, run in the browser at desktop and phone sizes before 
 | Step | What | Fixes | Needs |
 |---|---|---|---|
 | **UI-1** ✓ #115 | UI kit (tokens, `.win` frame, bars, chips, key hints) and the battle screen rebuilt on it; banner and title fixes | 1–6, part of 8 | — |
-| **UI-2** (in review) | Integer pixel scaling (largest whole multiple that fits, or a "fill" option) and a responsive portrait stage for phones | 7, 15 | Wren to review the one-line renderer change |
+| **UI-2** ✓ #117 | Integer pixel scaling (largest whole multiple that fits, or a "fill" option) and a responsive portrait stage for phones | 7, 15 | ✓ Wren approved the renderer line |
 | **UI-3** | Main menu replaces the pause panel: tabs for Status, Items, Journal, Settings, Save; the seed moves to a small debug footer | 10, 12 (first settings: scaling, text speed, reduced motion) | — |
 | **UI-4** | Exploration HUD: compact status plate, objective as its own small window, map name only in the banner | 13 | — |
 | **UI-5** | Dialogue window on the kit: name plate, frame, choices in a command window. **After Sable's #97 lands**, built on her reveal, not instead of it | 16 | Sable |
-| **UI-6** | Inventory and equipment with up/down stat comparison | 11 | Wren: an equipment API in `getAvailableActions()` |
+| **UI-6** | Inventory and equipment with up/down stat comparison | 11 | ✓ Wren's `getEquipment()` (#118) |
 | **UI-7** | Gamepad (Gamepad API mapped onto the same keys) and key remapping in Settings | 14, 12 | — |
-| **UI-8** | Turn-order strip in battle | — | Wren: `getState().combat.order` |
+| **UI-8** (in review) | Turn-order strip in battle, lettered twins | — | ✓ Wren's `getTurnOrder()` (#118) |
 | **P5** | A real pixel font, bundled locally | 9 | Owner: authored or open-licence font |
 
 ## Coordination

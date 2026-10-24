@@ -55,3 +55,15 @@ One entry per change to an existing screen: what was kept, what was replaced, an
 - `ui/world-render.js` `draw()`: when the canvas size changes, the darkness layer is resized to match and image
   smoothing is switched off again (resizing a canvas resets its context). One line; nothing else in the
   renderer changed. The renderer already read the canvas size every frame.
+
+## 2026-10-24 · Turn-order strip and lettered twins (UI-8)
+
+**Added**
+- A turn-order strip in the battle header from Wren's `engine.getTurnOrder()` (#118): the rest of this round
+  (the one acting now highlighted), then the next round. Each entry has a side glyph (◇ you, ✦ ally, ✕ foe) as
+  well as a frame colour, and the unit being aimed at is outlined in the strip too.
+- Twins are lettered: two "Rust Rat"s become "Rust Rat A" and "Rust Rat B" on their plates, in the strip and in
+  the target menu, so "which rat" is never a guess. A letter sticks for the whole fight.
+
+**Kept**
+- The log still prints the engine's "Battle Order" text; the strip is the at-a-glance version.
