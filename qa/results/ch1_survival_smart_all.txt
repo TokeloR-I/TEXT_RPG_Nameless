@@ -1,0 +1,43 @@
+Chapter One survival — 200 seeds per class · bot: smart · pickups: shed Bandages + well bottle + orchard herbs · data: resourceRules.Stealth Tokens.regen=1 resourceRules.Combo Points.regen=1 resourceRules.Deception Tokens.regen=2 basePlayerClasses.mage.baseStats.def=3 basePlayerClasses.rogue.baseStats.def=4 basePlayerClasses.necromancer.baseStats.def=5
+
+| Class | Encounter | Lvl | Reached | Win % (95% CI) | HP in → out (of max) | Lowest HP left (wins) | Heal items used | Biggest hit taken | Rounds | Who kills you |
+|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|
+| warrior | G1 Ragpickers | 1 | 200 | 100 (98–100) | 120 → 120 (120) | 108 | 0.00 | 7 | 6.7 | — |
+| warrior | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 120 → 130 (120) | 130 | 0.00 | 8 | 4.3 | — |
+| warrior | G3 Cultists | 2 | 200 | 100 (98–100) | 130 → 127 (130) | 107 | 0.00 | 11 | 4.8 | — |
+| warrior | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 127 → 122 (130) | 95 | 0.00 | 16 | 4.8 | — |
+| warrior | B01 Warden | 3 | 200 | 91 (86–94) | 140 → 87 (140) | 30 | 2.03 | 27 | 22.6 | The Crow-Touched Warden 19 |
+| warrior | Opt rats (L1) | 1 | 100 | 100 (96–100) | 120 → 120 (120) | 120 | 0.00 | 2 | 4.0 | — |
+| warrior | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 120 → 119 (120) | 112 | 0.00 | 12 | 4.8 | — |
+| warrior | Opt constables (L2) | 2 | 100 | 100 (96–100) | 130 → 130 (130) | 130 | 0.00 | 4 | 7.1 | — |
+| mage | G1 Ragpickers | 1 | 200 | 100 (98–100) | 70 → 62 (70) | 50 | 0.01 | 9 | 3.9 | — |
+| mage | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 62 → 80 (70) | 80 | 0.00 | 10 | 2.6 | — |
+| mage | G3 Cultists | 2 | 200 | 100 (98–100) | 80 → 65 (80) | 53 | 0.12 | 13 | 3.9 | — |
+| mage | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 65 → 67 (80) | 53 | 0.33 | 18 | 3.1 | — |
+| mage | B01 Warden | 3 | 200 | 63 (56–69) | 90 → 58 (90) | 22 | 1.99 | 29 | 13.5 | The Crow-Touched Warden 75 |
+| mage | Opt rats (L1) | 1 | 100 | 100 (96–100) | 70 → 70 (70) | 70 | 0.00 | 4 | 2.0 | — |
+| mage | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 70 → 66 (70) | 53 | 0.00 | 14 | 2.8 | — |
+| mage | Opt constables (L2) | 2 | 100 | 100 (96–100) | 80 → 80 (80) | 80 | 0.00 | 6 | 3.8 | — |
+| rogue | G1 Ragpickers | 1 | 200 | 100 (98–100) | 85 → 85 (85) | 72 | 0.00 | 8 | 4.1 | — |
+| rogue | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 85 → 95 (85) | 95 | 0.00 | 9 | 3.0 | — |
+| rogue | G3 Cultists | 2 | 200 | 100 (98–100) | 95 → 90 (95) | 70 | 0.00 | 12 | 4.0 | — |
+| rogue | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 90 → 86 (95) | 70 | 0.01 | 17 | 3.0 | — |
+| rogue | B01 Warden | 3 | 200 | 100 (98–100) | 105 → 80 (105) | 27 | 1.29 | 28 | 13.5 | — |
+| rogue | Opt rats (L1) | 1 | 100 | 100 (96–100) | 85 → 85 (85) | 85 | 0.00 | 3 | 2.5 | — |
+| rogue | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 85 → 84 (85) | 70 | 0.00 | 13 | 3.0 | — |
+| rogue | Opt constables (L2) | 2 | 100 | 100 (96–100) | 95 → 95 (95) | 95 | 0.00 | 5 | 4.1 | — |
+| necromancer | G1 Ragpickers | 1 | 200 | 100 (98–100) | 80 → 78 (80) | 66 | 0.00 | 7 | 5.6 | — |
+| necromancer | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 78 → 90 (80) | 90 | 0.00 | 8 | 3.9 | — |
+| necromancer | G3 Cultists | 2 | 200 | 100 (98–100) | 90 → 86 (90) | 68 | 0.00 | 11 | 4.0 | — |
+| necromancer | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 86 → 79 (90) | 61 | 0.01 | 16 | 4.0 | — |
+| necromancer | B01 Warden | 3 | 200 | 57 (50–63) | 100 → 45 (100) | 21 | 2.94 | 27 | 25.2 | The Crow-Touched Warden 87 |
+| necromancer | Opt rats (L1) | 1 | 100 | 100 (96–100) | 80 → 80 (80) | 80 | 0.00 | 2 | 3.6 | — |
+| necromancer | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 80 → 78 (80) | 67 | 0.00 | 12 | 3.9 | — |
+| necromancer | Opt constables (L2) | 2 | 100 | 100 (96–100) | 90 → 90 (90) | 90 | 0.00 | 4 | 5.6 | — |
+
+| Class | Full mainline survived (to the end of B01) | Where runs ended | Reached the Warden at exactly 250 XP / L3 | Warden win % by branch (runs) |
+|---|---:|---|---|---|
+| warrior | 91% | survived 181, B01 19 | 200/200 at 250, 200/200 at L3 | berserker 100% (67), warden 72% (67), vanguard 100% (66) |
+| mage | 63% | B01 75, survived 125 | 200/200 at 250, 200/200 at L3 | illusionist 88% (67), chronomancer 7% (67), elementalist 92% (66) |
+| rogue | 100% | survived 200 | 200/200 at 250, 200/200 at L3 | duelist 100% (67), saboteur 100% (67), assassin 100% (66) |
+| necromancer | 57% | survived 113, B01 87 | 200/200 at 250, 200/200 at L3 | plaguecaller 55% (67), soulbinder 66% (67), bone_warden 48% (66) |
