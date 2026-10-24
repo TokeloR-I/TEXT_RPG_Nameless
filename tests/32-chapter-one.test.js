@@ -255,3 +255,13 @@ test('Chapter One: leaving a main quest behind never stalls the chain: a later s
     assert.strictEqual(g.questState('Q05'), 'active', 'the Captain gives the register errand');
     for (const q of ['Q03', 'Q04']) assert.strictEqual(g.questState(q), 'complete');
 });
+
+test('Chapter One: catching up stops at the quest that asked for the step, never skipping the Warden (QA-41)', () => {
+    const { g, s } = run();
+    travel(s, 'house'); travel(s, 'grounds'); travel(s, 'road'); travel(s, 'grounds');
+    inspect(s, 'grounds_foundation');
+    assert.strictEqual(g.questState('Q01'), 'complete');
+    assert.strictEqual(g.questState('Q02'), 'complete', 'its road was already walked');
+    assert.strictEqual(g.questState('Q03'), 'active');
+    for (const q of ['Q04', 'Q05', 'Q06', 'B01', 'Q07', 'Q08']) assert.notStrictEqual(g.questState(q), 'complete', `${q} is not skipped`);
+});

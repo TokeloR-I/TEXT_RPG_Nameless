@@ -403,11 +403,15 @@
         shed_wall: 0.5, shed_roof: 0.8, shed_door_shut: 0.5
     };
     /** Cast shadows and contact occlusion onto the neighbours of tall tiles (static layer, after all tiles). */
+    const packTrees = () => { const P = ENSO.tilesManaseed; return !!(P && ENSO.atlas && ENSO.atlas.image(P.KEY)); };
+
     function shadePass(g, map, nameAt, T) {
         const H = map.tiles.length, W = map.tiles[0].length;
         for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-            const h = TALL[nameAt(map, x, y)];
+            const name = nameAt(map, x, y), h = TALL[name];
             if (!h) continue;
+            if (name === 'tree' && packTrees()) continue;   // Mana Seed trees carry their own shadow
+
             const px = x * T, py = y * T;
             if (!TALL[nameAt(map, x, y + 1)] && y + 1 < H) {                    // falls down onto the tile below
                 const d = Math.round(T * 0.45 * h + 4);
