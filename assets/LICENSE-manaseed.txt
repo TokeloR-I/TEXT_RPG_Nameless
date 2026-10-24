@@ -1,0 +1,19 @@
+Mana Seed art by Seliel the Shaper (https://seliel-the-shaper.itch.io/)
+Used in: assets/sprites/manaseed.js (player character) and the Mana Seed tiles.
+
+The packs' own licence (https://selieltheshaper.weebly.com/user-license.html) forbids use alongside generative AI
+content. This game's code is AI-assisted, so the project owner (Tokelo) asked the artist and received this written
+permission on 2026-10-24 (copy as provided by Tokelo):
+
+    Hi Tokelo,
+
+    Of course, no worries! You're welcome to use my artwork in your game. My only condition is that my art must not
+    be used as a reference or input for AI image generation, including creating new images based on it.
+
+    As long as you're using the original artwork in your game and not using it to generate AI images, I'm happy to
+    give you my permission. :)
+
+    — Seliel
+
+Condition for everyone working on this repository: never feed this art to an AI image generator or use it as a
+reference for generated images. The raw packs are not stored in the repository; only the frames the game uses are.

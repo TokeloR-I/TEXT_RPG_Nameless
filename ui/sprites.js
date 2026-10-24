@@ -141,18 +141,19 @@
      * The layers to stack for one character, bottom to top:
      * [{ layer, sheetId, frame, fallback }]. Pure: tests use it to check composition.
      */
-    function characterLayers({ cosmetics = {}, facing = 'down', anim = 'idle', time = 0, character = manifest.player } = {}) {
+    function characterLayers({ cosmetics = {}, appearance = 0, facing = 'down', anim = 'idle', time = 0, character = manifest.player } = {}) {
+        const fields = { appearance, ...cosmetics };                  // sheet templates may use {appearance} (skin)
         const dir = FACINGS.includes(facing) ? facing : 'down';
         const step = animationStep(character, anim, time);
         const out = [];
         for (const layer of character.layerOrder[dir]) {
             const spec = typeof character.layers[layer] === 'string' ? { sheet: character.layers[layer] } : character.layers[layer];
-            const want = fill(spec.sheet, cosmetics);
+            const want = fill(spec.sheet, fields);
             let id = resolveId(want), fallback = id !== want;
             if (!id) {
                 if (spec.optional && !sheets[want]) continue;          // e.g. a short style has no rear hair
                 warn(want);
-                const fb = character.fallbacks[layer] && resolveId(fill(character.fallbacks[layer], cosmetics));
+                const fb = character.fallbacks[layer] && resolveId(fill(character.fallbacks[layer], fields));
                 if (!fb) continue;
                 id = fb; fallback = true;
             }
@@ -206,11 +207,12 @@
     // ---------------------------------------------------------------------
     // Canvas side: cached composites, drawn at whole pixels (nearest neighbour, no blur).
     // ---------------------------------------------------------------------
-    /** The character drawn for a player class: a manifest entry that lists it in `classes`, else the layered
-     *  player (e.g. the Necromancer test sprite, assets/sprites/necromancer-art.js). */
+    /** The character drawn for a player class: a manifest entry that lists it in `classes` (a class name, or '*' for
+     *  every class, as the Mana Seed player in assets/sprites/manaseed.js does), else the layered placeholder player. */
     function characterFor(className) {
         const k = String(className || '').toLowerCase();
-        return Object.values(manifest).find((c) => c.classes && c.classes.includes(k)) || manifest.player;
+        const all = Object.values(manifest).filter((c) => c.classes);
+        return all.find((c) => c.classes.includes(k)) || all.find((c) => c.classes.includes('*')) || manifest.player;
     }
 
     const cache = new Map();
