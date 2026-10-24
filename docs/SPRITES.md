@@ -115,6 +115,8 @@ has `classes: ['*']`, so `characterFor(className)` picks it for every class. Vil
   14 colours, 10 outfits, hats (none + 10), 15 weapons (sword, axe, mace × 5 metals) and shields (none + 15).
   Cosmetics fields: `hairStyle`, `hairColor`, `outfit`, `hat`, `weapon`, `shield`.
 - Sheet templates can use `{appearance}` as well as the cosmetics fields.
+- **Villagers** use the same paper doll (`person()` in `ui/world-render.js`): their colours pick the nearest skin, hair,
+  outfit and hood or hat by the swatches in `options` (`outfitSwatches`, `hatSwatches`); helms and props are drawn on top.
 
 **Licence:** used with the artist's written permission (`assets/LICENSE-manaseed.txt`), on one condition: the art must
 never be used as reference or input for AI image generation.

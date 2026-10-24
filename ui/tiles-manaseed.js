@@ -126,8 +126,10 @@
             const img = sheet();
             if (!img) return false;
             const t = treeAt(c.tx, c.ty, T);
-            const above = py - t.dy;
-            if (above > 0) g.drawImage(img, t.sx, t.sy, t.w, above, t.dx, t.dy, t.w, above);
+            // Only the crown straight above the trunk's cell covers people: the parts spilling sideways would hide
+            // anyone in a gap between trees (paths through a tree line).
+            const above = py - t.dy, cut = Math.max(0, Math.floor((t.w - T) / 2) - 6);
+            if (above > 0) g.drawImage(img, t.sx + cut, t.sy, t.w - 2 * cut, above, t.dx + cut, t.dy, t.w - 2 * cut, above);
         }
     };
 

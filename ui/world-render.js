@@ -467,6 +467,21 @@
         const cx = px + 16, base = py + 30;
         const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
         g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
+        const MS = ENSO.spriteManifest && ENSO.spriteManifest.manaseed;
+        if (MS) {
+            // Mana Seed paper doll (assets/sprites/manaseed.js): the villager's colours pick the nearest skin, hair,
+            // outfit and hood or hat; helms and props are still drawn on top below.
+            const op = MS.options, near = (list, hex, from = 0) => nearest(list.map((x) => (x && x.swatch) || x), hex, from);
+            const cosmetics = {
+                hairStyle: o.hairStyle != null ? o.hairStyle % op.hairStyles.length : seed % op.hairStyles.length,
+                hairColor: o.hair ? near(op.hairColours, o.hair) : seed % op.hairColours.length,
+                outfit: o.cloak ? near(op.outfitSwatches, o.cloak) : seed % op.outfits.length,
+                hat: o.hood ? near(op.hatSwatches.slice(0, 6), o.hood, 1) : o.hat ? near(op.hatSwatches, o.hat, 1) : 0
+            };
+            const appearance = o.skin ? near(op.skins, o.skin) : o.appearance != null ? o.appearance : seed % op.skins.length;
+            ENSO.sprites.drawCharacter(g, cx, base, { appearance, cosmetics, character: MS, facing: 'down', anim: 'idle' }, t);
+            return personProps(g, cx, base - 30, { ...o, hat: null, hood: null });
+        }
         const palette = { c: o.cloak, C: darker(o.cloak) };
         if (o.belt) palette.a = o.belt;
         if (o.hair) Object.assign(palette, { h: o.hair, H: darker(o.hair), L: darker(o.hair, 1.25) });
@@ -475,7 +490,22 @@
             appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics: { hairStyle: o.hairStyle != null ? o.hairStyle : seed % 12, hairColor: seed % 4, outfit: 0 },
             facing: 'down', anim: 'idle', palette
         }, t + seed * 37);
-        const top = base - 30;                                                          // top of the 32-px frame
+        personProps(g, cx, base - 30, o);
+    }
+    /** Index of the colour in `list` (hex strings, nulls skipped) nearest to `hex`, from index `from`. */
+    function nearest(list, hex, from = 0) {
+        const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+        const [r, g2, b] = rgb(hex);
+        let best = from, bd = Infinity;
+        list.forEach((c, i) => {
+            if (i < from || !c) return;
+            const [r2, gg, b2] = rgb(c), d = (r - r2) ** 2 + (g2 - gg) ** 2 + (b - b2) ** 2;
+            if (d < bd) { bd = d; best = i; }
+        });
+        return best;
+    }
+    /** What a villager wears or carries over the body: hat, helm, hood, scarf, tools, crows. `top` is 30 px above the feet. */
+    function personProps(g, cx, top, o) {
         if (o.hat) { rect(g, cx - 8, top + 6, 16, 2, o.hat); rect(g, cx - 5, top + 1, 10, 5, o.hat); rect(g, cx - 5, top + 1, 10, 1, darker(o.hat, 1.3)); }
         if (o.helm) { g.fillStyle = o.helm; g.beginPath(); g.arc(cx, top + 9, 6.5, Math.PI, Math.PI * 2); g.fill(); rect(g, cx - 6, top + 8, 13, 2, darker(o.helm)); rect(g, cx - 1, top + 1, 2, 3, o.helm); }
         if (o.hood) { g.fillStyle = o.hood; g.beginPath(); g.arc(cx, top + 10, 7.5, Math.PI * 0.95, Math.PI * 2.05); g.fill(); rect(g, cx - 7, top + 10, 2, 7, o.hood); rect(g, cx + 6, top + 10, 2, 7, o.hood); }

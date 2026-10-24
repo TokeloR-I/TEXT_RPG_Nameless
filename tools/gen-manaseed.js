@@ -143,12 +143,12 @@ const images = [];                                         // [sheetId, uri]
 const add = (id, img) => { if (!img) throw new Error(`gen-manaseed: no pixels for ${id}`); images.push([id, uri(img)]); return img; };
 const options = { skins: [], hairStyles: HAIR_STYLES.map(([n]) => n), hairColours: [], outfits: OUTFITS.map(([n]) => n), hats: HATS.map(([n]) => n), weapons: WEAPONS.map(([n]) => n), shields: SHIELDS.map(([n]) => n) };
 SKINS.forEach(([name, v], i) => options.skins.push({ name, swatch: swatch(add(`ms.body.${i}`, atlas(null, `humn_${v}`))) }));
-OUTFITS.forEach(([, id], i) => add(`ms.outfit.${i}`, atlas('1out', id)));
+options.outfitSwatches = OUTFITS.map(([, id], i) => swatch(add(`ms.outfit.${i}`, atlas('1out', id))));   // villagers pick by colour
 HAIR_STYLES.forEach(([, style], s) => HAIR_COLOURS.forEach((name, c) => {
     const img = add(`ms.hair.${s}.${c}`, atlas('4har', `${style}_v${String(c).padStart(2, '0')}`));
     if (s === 0) options.hairColours.push({ name, swatch: swatch(img) });
 }));
-HATS.forEach(([, id], i) => { if (id) add(`ms.hat.${i}`, atlas('5hat', id)); });
+options.hatSwatches = HATS.map(([, id], i) => (id ? swatch(add(`ms.hat.${i}`, atlas('5hat', id))) : null));
 WEAPONS.forEach(([, id], i) => add(`ms.weapon.${i}`, atlas('6tla', id)));
 SHIELDS.forEach(([, id], i) => { if (id) add(`ms.shield.${i}`, atlas('7tlb', id)); });
 
