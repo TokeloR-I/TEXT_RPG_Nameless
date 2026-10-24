@@ -17,7 +17,7 @@ fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 for (const { page, out } of PAGES) {
     let html = read(page);
     html = html.replace(/<link rel="stylesheet" href="([^"]+\.css)">/g, (_, file) => `<style>\n${read(file)}\n</style>`);
-    html = html.replace(/<script src="((?:src|ui)\/[^"]+)"><\/script>/g, (_, file) => `<script>\n${read(file).replace(/<\/script>/g, '<\\/script>')}\n</script>`);
+    html = html.replace(/<script src="((?:src|ui|assets)\/[^"]+)"><\/script>/g, (_, file) => `<script>\n${read(file).replace(/<\/script>/g, '<\\/script>')}\n</script>`);
     // links between the pages point at their built names
     html = html.replace(/href="([a-z-]+\.html)"/g, (m, file) => (outName[file] ? `href="${outName[file]}"` : m));
     fs.writeFileSync(path.join(root, 'dist', out), html);
