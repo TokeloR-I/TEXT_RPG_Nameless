@@ -256,7 +256,7 @@ body {
 .foe::before { top: calc(11cqw - 0.9cqw); }
 .me::before { bottom: -0.3cqw; }
 .foe canvas { width: 11cqw; height: 11cqw; image-rendering: pixelated; display: block; position: relative; transform: scaleX(-1); filter: drop-shadow(0 0 0.4cqw rgba(0, 0, 0, 0.6)); }
-.me .me-sprite { width: 12.5cqw; height: 11.25cqw;   /* 40x36 art pixels at the creatures' scale */ image-rendering: pixelated; display: block; position: relative; filter: drop-shadow(0 0 0.4cqw rgba(0, 0, 0, 0.6)); }
+.me .me-sprite { width: 20cqw; height: 15cqw;   /* 64x48 art pixels at the creatures' scale */ image-rendering: pixelated; display: block; position: relative; filter: drop-shadow(0 0 0.4cqw rgba(0, 0, 0, 0.6)); }
 /* Foe tags: name and a slim gauge under the unit, no box. */
 .plate {
     margin-top: 0.35em; width: 14cqw; max-width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0.1em 0.4em; align-items: center; font-size: 0.82em;
@@ -350,7 +350,7 @@ body {
 .world-stage.tall .b-field { top: 26cqw; bottom: 62cqw; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
 .world-stage.tall .foe canvas { width: 20cqw; height: 20cqw; }
 .world-stage.tall .foe::before { top: calc(20cqw - 1cqw); }
-.world-stage.tall .me .me-sprite { width: 25cqw; height: 22.5cqw; }
+.world-stage.tall .me .me-sprite { width: 40cqw; height: 30cqw; }
 .world-stage.tall .plate { width: 30cqw; }
 
 /* ---------- title / class selection (scoped to avoid changing battle menus) ---------- */

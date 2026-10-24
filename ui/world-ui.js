@@ -159,10 +159,15 @@
     const classes = Object.keys(DATA.basePlayerClasses);
     const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
     const NAME_MAX = 24;
-    const HAIR_STYLES = ['Wild Raven', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
-    const HAIR_COLOURS = ['Raven', 'Chestnut', 'Ash', 'Copper'];
-    const OUTFITS = ['Worn Traveler', 'Tattered', 'Armored', 'Ceremonial'];
-    const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0 });
+    // The choices come from the player character's art (the Mana Seed paper doll, assets/sprites/manaseed.js);
+    // the lists below are for the placeholder player when that art isn't loaded.
+    const OPTS = (ENSO.sprites && ENSO.sprites.characterFor && ENSO.sprites.characterFor('*').options) || {};
+    const HAIR_STYLES = OPTS.hairStyles || ['Wild Raven', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
+    const HAIR_COLOURS = OPTS.hairColours ? OPTS.hairColours.map((c) => c.name) : ['Raven', 'Chestnut', 'Ash', 'Copper'];
+    const OUTFITS = OPTS.outfits || ['Worn Traveler', 'Tattered', 'Armored', 'Ceremonial'];
+    const HATS = OPTS.hats || ['None'], WEAPONS = OPTS.weapons || ['Sword'], SHIELDS = OPTS.shields || ['None'];
+    const CHOICES = { hairStyle: HAIR_STYLES, hairColor: HAIR_COLOURS, outfit: OUTFITS, hat: HATS, weapon: WEAPONS, shield: SHIELDS };
+    const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0, hat: 0, weapon: 0, shield: SHIELDS.length > 1 ? 1 : 0 });
     function showTitle() {
         screen = 'title';
         modal = 'creator';                    // the creation steps (Enter, Enter, Enter starts with the defaults)
@@ -171,18 +176,19 @@
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
         creatorStep(readSave() ? 'start' : 'name');
     }
-    const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit'];
+    const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit', 'hat', 'weapon', 'shield'];
+    const LAST_STEP = CREATOR_FLOW[CREATOR_FLOW.length - 1];
     function creatorNext() {
         if (menu && CREATOR_FLOW.includes(creator.step)) {
             if (creator.step === 'class') creator.cls = classes[menu.index];
             else if (creator.step === 'look') creator.look = menu.index;
-            else if (['hairStyle','hairColor','outfit'].includes(creator.step)) creator[creator.step] = menu.index;
+            else if (CHOICES[creator.step]) creator[creator.step] = menu.index;
         }
         if (creator.step === 'name') {
             const input = els.title.querySelector('#hero-name');
             if (input) creator.name = input.value;
         }
-        if (creator.step === 'outfit') {
+        if (creator.step === LAST_STEP) {
             startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             return;
         }
@@ -206,9 +212,7 @@
         }
         const options = step === 'class' ? classes.map(key => DATA.basePlayerClasses[key].name)
             : step === 'look' ? looks.map(l => l.label)
-            : step === 'hairStyle' ? HAIR_STYLES
-            : step === 'hairColor' ? HAIR_COLOURS
-            : step === 'outfit' ? OUTFITS : null;
+            : CHOICES[step] || null;
         if (options) {
             menu = makeMenu(options.map((label, i) => ({
                 label,
@@ -226,7 +230,7 @@
         renderTitle();
     }
     function cosmeticsFromCreator() {
-        return { hairStyle: creator.hairStyle, hairColor: creator.hairColor, outfit: creator.outfit };
+        return Object.fromEntries(Object.keys(CHOICES).map((k) => [k, creator[k] || 0]));
     }
     function renderTitle() {
         const sub = esc(WORLD.zones[WORLD.maps[WORLD.start.map].zoneId].name);
@@ -257,8 +261,8 @@
         const isClass = creator.step === 'class';
         const cosmetic = cosmeticsFromCreator();
         const field = creator.step;
-        const skinSwatches = ['#d9c3a5','#c69072','#8a5a40','#efd9c4'];
-        const hairSwatches = ['#2b2320','#6b4530','#a3a0a1','#b05b36'];
+        const skinSwatches = OPTS.skins ? OPTS.skins.map((c) => c.swatch) : ['#d9c3a5','#c69072','#8a5a40','#efd9c4'];
+        const hairSwatches = OPTS.hairColours ? OPTS.hairColours.map((c) => c.swatch) : ['#2b2320','#6b4530','#a3a0a1','#b05b36'];
         const cycle = (key, label, values, index) => `<div class="vessel-control" data-editor-field="${key}">
             <span class="vessel-field-name">${label}</span>
             <button type="button" data-cycle="${key}" data-delta="-1" aria-label="Previous ${label}">‹</button>
@@ -283,7 +287,7 @@
                         <div class="vessel-directions" role="group" aria-label="Preview direction">
                             ${['down','up','left','right'].map((direction,i) => `<button type="button" data-facing="${direction}" class="${(creator.facing||'down')===direction?'active':''}" aria-pressed="${(creator.facing||'down')===direction}">${['FRONT','BACK','LEFT','RIGHT'][i]}</button>`).join('')}
                         </div>
-                        <p class="vessel-preview-caption">Your actual in-game sprite · 24 × 32 artwork</p>
+                        <p class="vessel-preview-caption">Your actual in-game sprite</p>
                     </section>
                     <section class="vessel-customize" aria-label="Appearance options">
                         <h2>${isClass ? 'CHOOSE A CLASS' : 'APPEARANCE OPTIONS'}</h2>
@@ -291,9 +295,12 @@
                         ${cycle('look','Skin tone',looks.map(l => l.label),creator.look)}
                         ${cycle('hairStyle','Hair style',HAIR_STYLES,creator.hairStyle)}
                         ${cycle('outfit','Outfit',OUTFITS,creator.outfit)}
+                        ${cycle('hat','Hat',HATS,creator.hat || 0)}
+                        ${cycle('weapon','Weapon',WEAPONS,creator.weapon || 0)}
+                        ${cycle('shield','Shield',SHIELDS,creator.shield || 0)}
                         ${swatches('hairColor','Hair colour',hairSwatches,creator.hairColor)}
                         ${swatches('look','Skin tone',skinSwatches,creator.look)}
-                        <div class="vessel-styles-heading">HAIRSTYLES <span>12 DISTINCT STYLES</span></div>
+                        <div class="vessel-styles-heading">HAIRSTYLES <span>${HAIR_STYLES.length} STYLES</span></div>
                         <div class="vessel-hairstyles" role="group" aria-label="Choose hairstyle">
                         ${HAIR_STYLES.map((name,i) => `<button type="button" data-style="${i}" class="vessel-style ${i===creator.hairStyle?'active':''}" aria-label="${esc(name)}" aria-pressed="${i===creator.hairStyle}">
                             <canvas width="48" height="64" data-style-preview="${i}" aria-hidden="true"></canvas>
@@ -304,7 +311,7 @@
                 <footer class="vessel-footer">
                     <button type="button" data-creator-back>← Back</button>
                     <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
-                    <button type="button" data-creator-next>${creator.step === 'outfit' ? 'Start Game →' : 'Continue →'}</button>
+                    <button type="button" data-creator-next>${creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
                 </footer>
             </div>`;
         if (isClass) bindMenuClicks(els.title, menu);
@@ -320,8 +327,8 @@
         }));
         els.title.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {
             const field = button.dataset.cycle;
-            const max = field === 'look' ? looks.length : field === 'hairStyle' ? HAIR_STYLES.length : OUTFITS.length;
-            creator[field] = (creator[field] + Number(button.dataset.delta) + max) % max;
+            const max = field === 'look' ? looks.length : CHOICES[field].length;
+            creator[field] = ((creator[field] || 0) + Number(button.dataset.delta) + max) % max;
             renderTitle();
         }));
         els.title.querySelectorAll('[data-swatch]').forEach(button => button.addEventListener('click', () => {
@@ -347,7 +354,8 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,canvas.width,canvas.height);
             ctx.imageSmoothingEnabled = false;
-            ENSO.sprites.drawCharacter(ctx, 96, 183, { appearance, cosmetics: cosmetic, className, facing, anim: 'idle', scale: 5 }, 0);
+            const big = ENSO.sprites.characterFor && ENSO.sprites.characterFor(className).frame.h > 32 ? 4 : 5;   // 64 px frames: room for the weapon
+            ENSO.sprites.drawCharacter(ctx, 96, 183, { appearance, cosmetics: cosmetic, className, facing, anim: 'ready', scale: big }, 0);
         }
         els.title.querySelectorAll('[data-style-preview]').forEach(tile => {
             const g = tile.getContext('2d');
@@ -919,11 +927,11 @@
         if (ENSO.battleHD) els.combat.querySelectorAll('.foe canvas[data-key]').forEach((f) => ENSO.worldRender.drawCreature(f, f.dataset.key, now));   // HD foes breathe
         const c = els.combat.querySelector('canvas.me-sprite');
         if (!c) return;
-        const S = ENSO.sprites, P = S.manifest.player;
+        const S = ENSO.sprites, P = S.characterFor ? S.characterFor(view.className) : S.manifest.player;
         if (actor.queue.length && S.animationDone(P, actor.anim, now - actor.t0)) playActor(...actor.queue);
         const g = c.getContext('2d');
         g.clearRect(0, 0, c.width, c.height);
-        S.drawCharacter(g, c.width / 2, c.height - 2, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'right', anim: actor.anim, scale: 1 }, now - actor.t0);
+        S.drawCharacter(g, c.width / 2, c.height - 2, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'right', anim: actor.anim === 'idle' ? 'ready' : actor.anim, scale: 1 }, now - actor.t0);   // weapon drawn in battle
     }
     /** Menu items from battle-menu entries; `go` runs when an enabled entry is chosen. */
     const toItems = (list, go) => list.map((e) => ({ label: e.label, sub: e.sub, disabled: e.disabled, action: () => go(e) }));
@@ -1057,7 +1065,7 @@
             <section class="b-field" aria-label="Battlefield">
                 <div class="b-side b-allies">
                     <figure class="unit me" data-unit-id="player">
-                        <canvas class="me-sprite" width="40" height="36" aria-hidden="true"></canvas>
+                        <canvas class="me-sprite" width="64" height="48" aria-hidden="true"></canvas>
                         <figcaption class="sr-only">${esc(p.name)}</figcaption>
                     </figure>
                     ${minions.map((m) => `<figure class="unit ally" data-unit-id="${esc(m.id)}">
