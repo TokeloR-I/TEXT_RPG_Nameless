@@ -140,7 +140,7 @@
             m.index = (m.index + (dir === 'up' ? n - 1 : 1)) % n;
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { creatorNext(); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
+        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { m.back(); return true; }
         return false;
     }
@@ -153,9 +153,9 @@
     const classes = Object.keys(DATA.basePlayerClasses);
     const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
     const NAME_MAX = 24;
-    const HAIR_STYLES = ['Messy Short', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
+    const HAIR_STYLES = ['Wild Raven', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
     const HAIR_COLOURS = ['Raven', 'Chestnut', 'Ash', 'Copper'];
-    const OUTFITS = ['Traveler', 'Tattered', 'Armored', 'Ceremonial'];
+    const OUTFITS = ['Worn Traveler', 'Tattered', 'Armored', 'Ceremonial'];
     const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0 });
     function showTitle() {
         screen = 'title';
@@ -248,57 +248,117 @@
             return;
         }
         const who = creator.name.trim() || (STORY && STORY.defaultName) || 'The Wanderer';
+        const isClass = creator.step === 'class';
+        const cosmetic = cosmeticsFromCreator();
+        const field = creator.step;
+        const skinSwatches = ['#d9c3a5','#c69072','#8a5a40','#efd9c4'];
+        const hairSwatches = ['#2b2320','#6b4530','#a3a0a1','#b05b36'];
+        const cycle = (key, label, values, index) => `<div class="vessel-control" data-editor-field="${key}">
+            <span class="vessel-field-name">${label}</span>
+            <button type="button" data-cycle="${key}" data-delta="-1" aria-label="Previous ${label}">‹</button>
+            <strong>${esc(values[index])}</strong>
+            <button type="button" data-cycle="${key}" data-delta="1" aria-label="Next ${label}">›</button>
+        </div>`;
+        const swatches = (key, label, values, selected) => `<div class="vessel-swatches"><span class="vessel-field-name">${label}</span>
+            <div class="vessel-swatch-row">${values.map((color,i) => `<button type="button" class="vessel-swatch ${i===selected?'active':''}" style="--swatch:${color}" data-swatch="${key}" data-choice="${i}" aria-label="${label} ${i+1}" aria-pressed="${i===selected}"></button>`).join('')}</div>
+        </div>`;
+        const classOptions = isClass ? `<div class="vessel-class-list">${menuHtml(menu, 'class-list')}</div>` : '';
         els.title.innerHTML = `
-            <h1>Enso's Last Stand</h1>
-            <p class="subtitle">${sub}</p>
-            <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `Customize ${esc(who)} · ${({look:'Skin tone',hairStyle:'Hair style',hairColor:'Hair colour',outfit:'Clothing'})[creator.step] || 'Appearance'}`}</p>
-            <div class="creator-workspace">
-                <section class="creator-preview" aria-label="Character preview">
-                    <div class="creator-preview-heading">Your character</div>
-                    <canvas id="creator-sprite" width="216" height="112" role="img" aria-label="Player sprite from front, side and behind"></canvas>
-                    <div class="creator-current" aria-live="polite"></div>
-                    <div class="creator-legend">Front · Side · Back</div>
-                </section>
-                <div class="creator-options">
-                    ${menuHtml(menu, creator.step === 'hairStyle' ? 'class-list hairstyle-grid' : 'class-list')}
+            <div class="vessel-screen">
+                <header class="vessel-header"><div class="vessel-brand">ENSO'S LAST STAND</div>
+                    <div class="vessel-step">${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
+                    <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
+                    <p>Every forgotten soul once had a face.</p></header>
+                <div class="vessel-columns">
+                    <aside class="vessel-lore">
+                        <div class="vessel-portrait" aria-label="Ashbound Wanderer art direction study">
+                            <div class="vessel-crest">✦</div><div class="vessel-shadow-person"></div>
+                        </div>
+                        <h2>THE ASHBOUND WANDERER</h2>
+                        <div class="vessel-ornament">◆ ───── ◆ ───── ◆</div>
+                        <p>Neither kingdom nor grave could hold you.<br>You walk the ruined roads, carrying what others forget.</p>
+                    </aside>
+                    <section class="vessel-preview" aria-label="Live player sprite preview">
+                        <h2>${esc(who)}</h2>
+                        <div class="vessel-preview-stage"><canvas id="creator-sprite" width="192" height="208" role="img" aria-label="Live in-game sprite preview"></canvas></div>
+                        <div class="vessel-directions" role="group" aria-label="Preview direction">
+                            ${['down','up','left','right'].map((direction,i) => `<button type="button" data-facing="${direction}" class="${(creator.facing||'down')===direction?'active':''}" aria-pressed="${(creator.facing||'down')===direction}">${['FRONT','BACK','LEFT','RIGHT'][i]}</button>`).join('')}
+                        </div>
+                        <p class="vessel-preview-caption">Your actual in-game sprite · 24 × 32 artwork</p>
+                    </section>
+                    <section class="vessel-customize" aria-label="Appearance options">
+                        <h2>${isClass ? 'CHOOSE A CLASS' : 'APPEARANCE OPTIONS'}</h2>
+                        ${isClass ? classOptions : `
+                        ${cycle('look','Skin tone',looks.map(l => l.label),creator.look)}
+                        ${cycle('hairStyle','Hair style',HAIR_STYLES,creator.hairStyle)}
+                        ${cycle('outfit','Outfit',OUTFITS,creator.outfit)}
+                        ${swatches('hairColor','Hair colour',hairSwatches,creator.hairColor)}
+                        ${swatches('look','Skin tone',skinSwatches,creator.look)}
+                        <div class="vessel-styles-heading">HAIRSTYLES <span>12 DISTINCT STYLES</span></div>
+                        <div class="vessel-hairstyles" role="group" aria-label="Choose hairstyle">
+                        ${HAIR_STYLES.map((name,i) => `<button type="button" data-style="${i}" class="vessel-style ${i===creator.hairStyle?'active':''}" aria-label="${esc(name)}" aria-pressed="${i===creator.hairStyle}">
+                            <canvas width="48" height="64" data-style-preview="${i}" aria-hidden="true"></canvas>
+                            <small>${String(i+1).padStart(2,'0')}</small><span>${esc(name)}</span></button>`).join('')}
+                        </div>`}
+                    </section>
                 </div>
-            </div>
-            <div class="creator-nav">
-                <button type="button" data-creator-back>← Back</button>
-                <span class="creator-progress">Step ${CREATOR_FLOW.indexOf(creator.step) + 1} / ${CREATOR_FLOW.length}</span>
-                <button type="button" data-creator-next>${creator.step === 'outfit' ? 'Start Game' : 'Next →'}</button>
-            </div>
-            <p class="keys">↑ ↓ preview · Click to select · Next to confirm · Esc back</p>`;
-        bindMenuClicks(els.title, menu);
+                <footer class="vessel-footer">
+                    <button type="button" data-creator-back>← Back</button>
+                    <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
+                    <button type="button" data-creator-next>${creator.step === 'outfit' ? 'Start Game →' : 'Continue →'}</button>
+                </footer>
+            </div>`;
+        if (isClass) bindMenuClicks(els.title, menu);
         els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
-        els.title.querySelector('[data-creator-next]').addEventListener('click', creatorNext);
+        els.title.querySelector('[data-creator-next]').addEventListener('click', () => {
+            // The appearance panel is a unified editor, so Continue confirms all cosmetics.
+            if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+            else creatorNext();
+        });
+        els.title.querySelectorAll('[data-facing]').forEach(button => button.addEventListener('click', () => {
+            creator.facing = button.dataset.facing;
+            renderTitle();
+        }));
+        els.title.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {
+            const field = button.dataset.cycle;
+            const max = field === 'look' ? looks.length : field === 'hairStyle' ? HAIR_STYLES.length : OUTFITS.length;
+            creator[field] = (creator[field] + Number(button.dataset.delta) + max) % max;
+            renderTitle();
+        }));
+        els.title.querySelectorAll('[data-swatch]').forEach(button => button.addEventListener('click', () => {
+            creator[button.dataset.swatch] = Number(button.dataset.choice);
+            renderTitle();
+        }));
+        els.title.querySelectorAll('[data-style]').forEach(button => button.addEventListener('click', () => {
+            creator.hairStyle = Number(button.dataset.style);
+            renderTitle();
+        }));
         drawCreatorSprite();
     }
 
-    /** Preview uses exactly the same sprite compositor as the playable world. */
+    /** Identical renderer and cosmetic values are used in the creator and the playable world. */
     function drawCreatorSprite() {
+        if (!ENSO.sprites) return;
+        const cosmetic = cosmeticsFromCreator();
+        const appearance = creator.look;
+        const className = creator.step === 'class' && menu ? classes[menu.index] : creator.cls;
+        const facing = creator.facing || 'down';
         const canvas = els.title.querySelector('#creator-sprite');
-        if (!canvas || !ENSO.sprites) return;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = false;
-        const current = creator.step;
-        const selected = menu ? menu.index : 0;
-        const cosmetics = cosmeticsFromCreator();
-        if (['hairStyle','hairColor','outfit'].includes(current)) cosmetics[current] = selected;
-        const skin = current === 'look' ? selected : creator.look;
-        const cls = current === 'class' ? classes[selected] : creator.cls;
-        for (const [i, facing] of ['down', 'right', 'up'].entries()) {
-            ENSO.sprites.drawCharacter(ctx, 36 + i * 72, 95, {
-                facing, appearance: skin, cosmetics, className: cls, anim: 'idle', scale: 3
-            }, 0);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.imageSmoothingEnabled = false;
+            ENSO.sprites.drawCharacter(ctx, 96, 183, { appearance, cosmetics: cosmetic, className, facing, anim: 'idle', scale: 5 }, 0);
         }
-        const chosen = current === 'class' ? DATA.basePlayerClasses[cls].name :
-            current === 'look' ? looks[skin].label :
-            current === 'hairStyle' ? HAIR_STYLES[selected] :
-            current === 'hairColor' ? HAIR_COLOURS[selected] : OUTFITS[selected];
-        const label = els.title.querySelector('.creator-current');
-        if (label) label.textContent = chosen + ' · Cosmetic choices do not change stats';
+        els.title.querySelectorAll('[data-style-preview]').forEach(tile => {
+            const g = tile.getContext('2d');
+            if (!g) return;
+            g.imageSmoothingEnabled = false;
+            ENSO.sprites.drawCharacter(g, 24, 60, {
+                appearance, cosmetics: { ...cosmetic, hairStyle: Number(tile.dataset.stylePreview) },
+                className, facing: 'down', anim: 'idle', scale: 2
+            }, 0);
+        });
     }
 
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
