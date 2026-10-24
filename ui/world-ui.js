@@ -96,7 +96,7 @@
             m.index = (m.index + (dir === 'up' ? n - 1 : 1)) % n;
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
+        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { creatorNext(); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { m.back(); return true; }
         return false;
     }
@@ -121,10 +121,27 @@
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
         creatorStep(readSave() ? 'start' : 'name');
     }
+    const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit'];
+    function creatorNext() {
+        if (creator.step === 'name') {
+            const input = els.title.querySelector('#hero-name');
+            if (input) creator.name = input.value;
+        }
+        if (creator.step === 'outfit') {
+            startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+            return;
+        }
+        const next = CREATOR_FLOW[CREATOR_FLOW.indexOf(creator.step) + 1];
+        if (next) creatorStep(next);
+    }
+    function creatorBack() {
+        const previous = CREATOR_FLOW[CREATOR_FLOW.indexOf(creator.step) - 1];
+        if (previous) creatorStep(previous);
+    }
     function creatorStep(step) {
         creator.step = step;
         menu = null;
-        if (step === 'start') {            // a saved game in this browser: continue it, or start a new one
+        if (step === 'start') {
             const save = readSave();
             const when = save && save.meta && save.meta.createdAt ? new Date(save.meta.createdAt).toLocaleString() : '';
             menu = makeMenu([
@@ -132,32 +149,24 @@
                 { label: 'New game', sub: 'The saved game stays until you save over it.', action: () => creatorStep('name') }
             ], { render: renderTitle });
         }
-        if (step === 'class') {
-            menu = makeMenu(classes.map((key) => ({ label: DATA.basePlayerClasses[key].name, sub: DATA.basePlayerClasses[key].description,
-                action: () => { creator.cls = key; creatorStep('look'); } })), { back: () => creatorStep('name'), render: renderTitle });
-            menu.index = Math.max(0, classes.indexOf(creator.cls));
-        }
-        if (step === 'look') {
-            menu = makeMenu(looks.map((l, i) => ({ label: l.label, sub: 'Appearance (no effect on stats)', action: () => { creator.look = i; creatorStep('hairStyle'); } })),
-                { back: () => creatorStep('class'), render: renderTitle });
-            menu.index = creator.look;
-        }
-        const cosmeticSteps = [
-            ['hairStyle', HAIR_STYLES, 'hairColor', 'look'],
-            ['hairColor', HAIR_COLOURS, 'outfit', 'hairStyle'],
-            ['outfit', OUTFITS, null, 'hairColor']
-        ];
-        for (const [field, labels, next, previous] of cosmeticSteps) {
-            if (step !== field) continue;
-            menu = makeMenu(labels.map((label, i) => ({
-                label, sub: field === 'outfit' ? 'Outfit appearance only; no stat changes' : 'Visible on your character',
+        const options = step === 'class' ? classes.map(key => DATA.basePlayerClasses[key].name)
+            : step === 'look' ? looks.map(l => l.label)
+            : step === 'hairStyle' ? HAIR_STYLES
+            : step === 'hairColor' ? HAIR_COLOURS
+            : step === 'outfit' ? OUTFITS : null;
+        if (options) {
+            menu = makeMenu(options.map((label, i) => ({
+                label,
+                sub: step === 'class' ? DATA.basePlayerClasses[classes[i]].description : null,
                 action: () => {
-                    creator[field] = i;
-                    if (next) creatorStep(next);
-                    else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+                    if (step === 'class') creator.cls = classes[i];
+                    else if (step === 'look') creator.look = i;
+                    else creator[step] = i;
+                    menu.index = i;
+                    renderTitle();
                 }
-            })), { back: () => creatorStep(previous), render: renderTitle });
-            menu.index = creator[field];
+            })), { back: creatorBack, render: renderTitle });
+            menu.index = step === 'class' ? Math.max(0, classes.indexOf(creator.cls)) : step === 'look' ? creator.look : creator[step];
         }
         renderTitle();
     }
@@ -173,13 +182,14 @@
                 <p class="subtitle">${sub}</p>
                 <p class="prompt">Who wakes in the cellar?</p>
                 <label class="name-field">Name<input id="hero-name" maxlength="${NAME_MAX}" autocomplete="off" spellcheck="false" placeholder="${esc(fallback)}" value="${esc(creator.name)}"></label>
-                <p class="keys">Type a name (or leave it blank) · Enter continue</p>`;
+                <div class="creator-nav"><button type="button" data-creator-next>Next →</button></div><p class="keys">Type a name (or leave it blank) · Enter continue</p>`;
             const input = els.title.querySelector('#hero-name');
             input.addEventListener('input', () => { creator.name = input.value; });
             input.addEventListener('keydown', (ev) => {
                 ev.stopPropagation();                     // typing never walks, opens menus, or picks things
-                if (ev.key === 'Enter') { ev.preventDefault(); creator.name = input.value; creatorStep('class'); }
+                if (ev.key === 'Enter') { ev.preventDefault(); creatorNext(); }
             });
+            els.title.querySelector('[data-creator-next]').addEventListener('click', creatorNext);
             setTimeout(() => input.focus(), 0);
             return;
         }
@@ -204,8 +214,15 @@
                     ${menuHtml(menu, creator.step === 'hairStyle' ? 'class-list hairstyle-grid' : 'class-list')}
                 </div>
             </div>
-            <p class="keys">↑ ↓ choose · Enter ${creator.step === 'outfit' ? 'begin' : 'continue'} · Esc back</p>`;
+            <div class="creator-nav">
+                <button type="button" data-creator-back>← Back</button>
+                <span class="creator-progress">Step ${CREATOR_FLOW.indexOf(creator.step) + 1} / ${CREATOR_FLOW.length}</span>
+                <button type="button" data-creator-next>${creator.step === 'outfit' ? 'Start Game' : 'Next →'}</button>
+            </div>
+            <p class="keys">↑ ↓ preview · Click to select · Next to confirm · Esc back</p>`;
         bindMenuClicks(els.title, menu);
+        els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
+        els.title.querySelector('[data-creator-next]').addEventListener('click', creatorNext);
         drawCreatorSprite();
     }
 
