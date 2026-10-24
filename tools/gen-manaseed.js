@@ -46,6 +46,25 @@ const ROWS = Math.ceil(CELLS.length / COLS);
 const SKINS = [['Ash', 'v08'], ['Ember', 'v06'], ['Umber', 'v10'], ['Pale', 'v01']];             // = story appearances
 const HAIR_STYLES = [['Bob', 'bob1'], ['Top Knot', 'dap1']];
 const HAIR_COLOURS = ['Slate', 'Silver', 'Ash', 'Gold', 'Rose', 'Copper', 'Blossom', 'Violet', 'Teal', 'Azure', 'Grey', 'Chestnut', 'Magenta', 'Midnight'];
+// More hair colours: the farmer sample's hair ramps (palettes/mana seed hair ramps.png) the starter pack has no
+// sheet for, swapped onto the v00 sheet's base ramp. [name, ramp row]
+const RAMP_FILE = path.resolve(process.env.MANASEED_FARMER_DIR || '/mnt/project-files/Mana Seed Farmer Sprite Free Sample', '_supporting files/palettes/mana seed hair ramps.png');
+const RAMP_COLOURS = [['Frost', 3], ['Sky', 4], ['Ocean', 5], ['Moss', 7], ['Sage', 8], ['Straw', 9], ['Honey', 10], ['Wheat', 13],
+    ['Ginger', 14], ['Auburn', 15], ['Flame', 16], ['Coral', 17], ['Pink', 19], ['Lilac', 21]];
+const BASE_RAMP = [0xc8c8b8, 0x8898a0, 0x686878, 0x503850];
+/** The four ramp colours of one row of the ramps picture (each colour is 2 px wide; the first is the highlight). */
+function ramp(img, row) {
+    const at = (x) => { const i = (row * 2 * img.w + x) * 4; return (img.data[i] << 16) | (img.data[i + 1] << 8) | img.data[i + 2]; };
+    return [2, 4, 6, 8].map(at);
+}
+function recolour(img, to) {
+    const out = { w: img.w, h: img.h, data: Buffer.from(img.data) };
+    for (let i = 0; i < out.data.length; i += 4) {
+        const k = BASE_RAMP.indexOf((out.data[i] << 16) | (out.data[i + 1] << 8) | out.data[i + 2]);
+        if (k >= 0 && out.data[i + 3]) { out.data[i] = to[k] >> 16; out.data[i + 1] = (to[k] >> 8) & 255; out.data[i + 2] = to[k] & 255; }
+    }
+    return out;
+}
 const OUTFITS = [
     ['Forester · Crimson', 'fstr_v01'], ['Forester · Plum', 'fstr_v02'], ['Forester · Moss', 'fstr_v03'], ['Forester · Amber', 'fstr_v04'], ['Forester · Pine', 'fstr_v05'],
     ['Farmer · Indigo', 'pfpn_v01'], ['Farmer · Rust', 'pfpn_v02'], ['Farmer · Dusk', 'pfpn_v03'], ['Farmer · Teal', 'pfpn_v04'], ['Farmer · Linen', 'pfpn_v05']
@@ -146,6 +165,11 @@ SKINS.forEach(([name, v], i) => options.skins.push({ name, swatch: swatch(add(`m
 options.outfitSwatches = OUTFITS.map(([, id], i) => swatch(add(`ms.outfit.${i}`, atlas('1out', id))));   // villagers pick by colour
 HAIR_STYLES.forEach(([, style], s) => HAIR_COLOURS.forEach((name, c) => {
     const img = add(`ms.hair.${s}.${c}`, atlas('4har', `${style}_v${String(c).padStart(2, '0')}`));
+    if (s === 0) options.hairColours.push({ name, swatch: swatch(img) });
+}));
+const ramps = PNG.decode(fs.readFileSync(RAMP_FILE));
+HAIR_STYLES.forEach(([, style], s) => RAMP_COLOURS.forEach(([name, row], k) => {
+    const img = add(`ms.hair.${s}.${HAIR_COLOURS.length + k}`, recolour(atlas('4har', `${style}_v00`), ramp(ramps, row)));
     if (s === 0) options.hairColours.push({ name, swatch: swatch(img) });
 }));
 options.hatSwatches = HATS.map(([, id], i) => (id ? swatch(add(`ms.hat.${i}`, atlas('5hat', id))) : null));
