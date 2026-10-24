@@ -177,12 +177,34 @@
             if (!this.story.dialogue) this.maybePromptBranch();
         }
 
+        /** The main quests are a chain. If the player has gone on ahead and does something a later main quest
+         *  asks for, the quests before it complete (with their XP) so the story catches up instead of stalling
+         *  (QA-36/39). */
+        catchUpChain(ev) {
+            const quests = this.storyContent().quests;
+            const next = (id) => { const s = ((quests[id] && quests[id].onComplete) || []).find((e) => e.start); return s ? s.start : null; };
+            const asks = (id) => quests[id].objectives.some((o) => o.on && o.on.type === ev.type && o.on.id === ev.id);
+            const active = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
+            if (ev.type === 'enter' || !active || asks(active)) return;   // walking somewhere isn't doing a quest's step
+            let target = null;
+            for (let id = next(active), n = 0; id && quests[id] && quests[id].kind === 'main' && quests[id].xp > 0 && n < 20; id = next(id), n++) {
+                if (asks(id)) { target = id; break; }
+            }
+            if (!target) return;
+            for (let guard = 0; guard < 200; guard++) {
+                const cur = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
+                if (!cur || cur === target) return;
+                this.advanceQuest(cur);
+            }
+        }
+
         /** Something happened in the world. Advances every active quest waiting for it, then any triggers. */
         storyEvent(ev) {
             if (!this.story || !ev || !ev.type || ev.id == null) return;
             const key = `${ev.type}:${ev.id}`;
             const first = !this.story.seen.includes(key);
             if (first) this.story.seen.push(key);
+            this.catchUpChain(ev);
             for (const id of Object.keys(this.story.quests)) {
                 const o = this.currentObjective(id);
                 if (o && o.on && o.on.type === ev.type && o.on.id === ev.id) { this.advanceQuest(id); this.catchUpQuest(id); }

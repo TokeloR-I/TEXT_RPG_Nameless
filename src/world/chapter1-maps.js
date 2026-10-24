@@ -147,7 +147,7 @@
                 { id: 'shamefield_south', x: 15, y: 23, trigger: 'step', toMap: 'tollway', toSpawn: 'from_village' },
                 { id: 'shamefield_north_gate', x: 15, y: 0, trigger: 'step', toMap: 'orchard', toSpawn: 'from_village',
                     requires: { flags: ['north_gate_open'] },
-                    lockedText: 'The orchard gate is chained shut. A painted board on it reads: CLOSED BY ORDER OF THE WATCH. ASK AT THE WATCH POST.' },
+                    lockedText: 'The orchard gate is chained shut. A painted board on it reads: CLOSED BY ORDER OF THE WATCH. ASK THE WATCH CAPTAIN.' },
                 { id: 'shamefield_west', x: 0, y: 10, trigger: 'step', toMap: 'allotment', toSpawn: 'from_village' },
                 { id: 'shamefield_cloister', x: 31, y: 5, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_village',
                     text: 'The lane climbs past the last houses to a stone arch. Beyond it, a bell, a courtyard, and the warm, sour smell of malt.' },

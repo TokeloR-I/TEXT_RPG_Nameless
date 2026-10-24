@@ -166,10 +166,10 @@ test('Story: CLI parity: numbers pick choices, "bye" is a normal goodbye, "journ
     b.act({ type: 'talk', npcId: 'sam' }); choose(b, /Agree/); b.act({ type: 'dialogue_leave' });
     assert.strictEqual(a.snapshot().json, b.snapshot().json);
     const c = story();
+    const j = c.input('journal');
     c.input('talk sam');
     const bad = c.input('9');
     assert.match(bad.map((e) => e.text).join('\n'), /Type a number from 1 to 3, or 'bye'/);
-    const j = c.input('journal');
     assert.match(j.map((e) => e.text).join('\n'), /--- Journal: Fixture Chapter ---\n› First: Look at the stone/);
 });
 
