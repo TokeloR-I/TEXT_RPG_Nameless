@@ -253,21 +253,21 @@
         const field = creator.step;
         const skinSwatches = ['#d9c3a5','#c69072','#8a5a40','#efd9c4'];
         const hairSwatches = ['#2b2320','#6b4530','#a3a0a1','#b05b36'];
-        const cycle = (key, label, values, index) => \`<div class="vessel-control" data-editor-field="\${key}">
-            <span class="vessel-field-name">\${label}</span>
-            <button type="button" data-cycle="\${key}" data-delta="-1" aria-label="Previous \${label}">‹</button>
-            <strong>\${esc(values[index])}</strong>
-            <button type="button" data-cycle="\${key}" data-delta="1" aria-label="Next \${label}">›</button>
-        </div>\`;
-        const swatches = (key, label, values, selected) => \`<div class="vessel-swatches"><span class="vessel-field-name">\${label}</span>
-            <div class="vessel-swatch-row">\${values.map((color,i) => \`<button type="button" class="vessel-swatch \${i===selected?'active':''}" style="--swatch:\${color}" data-swatch="\${key}" data-choice="\${i}" aria-label="\${label} \${i+1}" aria-pressed="\${i===selected}"></button>\`).join('')}</div>
-        </div>\`;
-        const classOptions = isClass ? \`<div class="vessel-class-list">\${menuHtml(menu, 'class-list')}</div>\` : '';
-        els.title.innerHTML = \`
+        const cycle = (key, label, values, index) => `<div class="vessel-control" data-editor-field="${key}">
+            <span class="vessel-field-name">${label}</span>
+            <button type="button" data-cycle="${key}" data-delta="-1" aria-label="Previous ${label}">‹</button>
+            <strong>${esc(values[index])}</strong>
+            <button type="button" data-cycle="${key}" data-delta="1" aria-label="Next ${label}">›</button>
+        </div>`;
+        const swatches = (key, label, values, selected) => `<div class="vessel-swatches"><span class="vessel-field-name">${label}</span>
+            <div class="vessel-swatch-row">${values.map((color,i) => `<button type="button" class="vessel-swatch ${i===selected?'active':''}" style="--swatch:${color}" data-swatch="${key}" data-choice="${i}" aria-label="${label} ${i+1}" aria-pressed="${i===selected}"></button>`).join('')}</div>
+        </div>`;
+        const classOptions = isClass ? `<div class="vessel-class-list">${menuHtml(menu, 'class-list')}</div>` : '';
+        els.title.innerHTML = `
             <div class="vessel-screen">
                 <header class="vessel-header"><div class="vessel-brand">ENSO'S LAST STAND</div>
-                    <div class="vessel-step">\${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
-                    <h1>\${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
+                    <div class="vessel-step">${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
+                    <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
                     <p>Every forgotten soul once had a face.</p></header>
                 <div class="vessel-columns">
                     <aside class="vessel-lore">
@@ -279,35 +279,35 @@
                         <p>Neither kingdom nor grave could hold you.<br>You walk the ruined roads, carrying what others forget.</p>
                     </aside>
                     <section class="vessel-preview" aria-label="Live player sprite preview">
-                        <h2>\${esc(who)}</h2>
+                        <h2>${esc(who)}</h2>
                         <div class="vessel-preview-stage"><canvas id="creator-sprite" width="192" height="208" role="img" aria-label="Live in-game sprite preview"></canvas></div>
                         <div class="vessel-directions" role="group" aria-label="Preview direction">
-                            \${['down','up','left','right'].map((direction,i) => \`<button type="button" data-facing="\${direction}" class="\${(creator.facing||'down')===direction?'active':''}" aria-pressed="\${(creator.facing||'down')===direction}">\${['FRONT','BACK','LEFT','RIGHT'][i]}</button>\`).join('')}
+                            ${['down','up','left','right'].map((direction,i) => `<button type="button" data-facing="${direction}" class="${(creator.facing||'down')===direction?'active':''}" aria-pressed="${(creator.facing||'down')===direction}">${['FRONT','BACK','LEFT','RIGHT'][i]}</button>`).join('')}
                         </div>
                         <p class="vessel-preview-caption">Your actual in-game sprite · 24 × 32 artwork</p>
                     </section>
                     <section class="vessel-customize" aria-label="Appearance options">
-                        <h2>\${isClass ? 'CHOOSE A CLASS' : 'APPEARANCE OPTIONS'}</h2>
-                        \${isClass ? classOptions : \`
-                        \${cycle('look','Skin tone',looks.map(l => l.label),creator.look)}
-                        \${cycle('hairStyle','Hair style',HAIR_STYLES,creator.hairStyle)}
-                        \${cycle('outfit','Outfit',OUTFITS,creator.outfit)}
-                        \${swatches('hairColor','Hair colour',hairSwatches,creator.hairColor)}
-                        \${swatches('look','Skin tone',skinSwatches,creator.look)}
+                        <h2>${isClass ? 'CHOOSE A CLASS' : 'APPEARANCE OPTIONS'}</h2>
+                        ${isClass ? classOptions : `
+                        ${cycle('look','Skin tone',looks.map(l => l.label),creator.look)}
+                        ${cycle('hairStyle','Hair style',HAIR_STYLES,creator.hairStyle)}
+                        ${cycle('outfit','Outfit',OUTFITS,creator.outfit)}
+                        ${swatches('hairColor','Hair colour',hairSwatches,creator.hairColor)}
+                        ${swatches('look','Skin tone',skinSwatches,creator.look)}
                         <div class="vessel-styles-heading">HAIRSTYLES <span>12 DISTINCT STYLES</span></div>
                         <div class="vessel-hairstyles" role="group" aria-label="Choose hairstyle">
-                        \${HAIR_STYLES.map((name,i) => \`<button type="button" data-style="\${i}" class="vessel-style \${i===creator.hairStyle?'active':''}" aria-label="\${esc(name)}" aria-pressed="\${i===creator.hairStyle}">
-                            <canvas width="48" height="64" data-style-preview="\${i}" aria-hidden="true"></canvas>
-                            <small>\${String(i+1).padStart(2,'0')}</small><span>\${esc(name)}</span></button>\`).join('')}
-                        </div>\`}
+                        ${HAIR_STYLES.map((name,i) => `<button type="button" data-style="${i}" class="vessel-style ${i===creator.hairStyle?'active':''}" aria-label="${esc(name)}" aria-pressed="${i===creator.hairStyle}">
+                            <canvas width="48" height="64" data-style-preview="${i}" aria-hidden="true"></canvas>
+                            <small>${String(i+1).padStart(2,'0')}</small><span>${esc(name)}</span></button>`).join('')}
+                        </div>`}
                     </section>
                 </div>
                 <footer class="vessel-footer">
                     <button type="button" data-creator-back>← Back</button>
-                    <span>\${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
-                    <button type="button" data-creator-next>\${creator.step === 'outfit' ? 'Start Game →' : 'Continue →'}</button>
+                    <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
+                    <button type="button" data-creator-next>${creator.step === 'outfit' ? 'Start Game →' : 'Continue →'}</button>
                 </footer>
-            </div>\`;
+            </div>`;
         if (isClass) bindMenuClicks(els.title, menu);
         els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
         els.title.querySelector('[data-creator-next]').addEventListener('click', () => {
