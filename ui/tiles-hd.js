@@ -1,7 +1,8 @@
 /* =========================================================================
  * Enso's Last Stand — HD TILE PAINTERS (HD-2D overhaul)
  * Detailed pixel-art painters for the common tiles (grass, cobbles, paths, flagstones, clay roofs,
- * half-timber walls, windows, trees, stone walls, water, fences, lanterns) and the cast-shadow /
+ * half-timber walls, windows, trees, stone walls, water, fences, lanterns, and the interiors: floorboards,
+ * plank walls, flagstones, furniture, storage and the hearth) and the cast-shadow /
  * ambient-occlusion pass that gives the flat tile grid height. ui/world-render.js uses these in
  * place of its simple painters when this file is loaded; the map data doesn't change, so authored
  * PNG tilesets can replace any painter later, one tile name at a time.
@@ -63,6 +64,13 @@
         }
     }
 
+    // Interior palettes: oiled floorboards, plank walls, dressed flagstones
+    const W_ = {
+        board: ['#6a4a30', '#5e4229', '#734f33', '#654630'], boardLine: '#2e1f14', grain: 'rgba(30,18,10,0.35)', boardLight: 'rgba(255,220,170,0.10)',
+        plank: ['#5b4430', '#533e2b', '#624a34'], plankDark: '#2e2016', cap: '#7a5e44',
+        ash: ['#5c5864', '#58545f', '#605c68', '#5a5662', '#64606c'], seam: '#2c2a32'
+    };
+
     const ground = {
         grass(g, px, py, T, c) { grassBase(g, px, py, T, c); },
         cobble(g, px, py, T, c) { cobbleBase(g, px, py, T, c); },
@@ -80,14 +88,52 @@
                 if (soft(c.below)) { const h = 1 + Math.floor(hash(c.tx * 43 + i, c.ty, 9) * 3); rect(g, px + i, py + T - h, 3, h, P.grass[1]); }
             }
         },
+        // Flagstones in a running bond: two courses per tile, stone lengths vary, worn edges, moss in some seams.
         stone_floor(g, px, py, T, c) {
-            rect(g, px, py, T, T, P.flagLine);
-            for (const [x, y, w, h] of [[0, 0, 16, 16], [16, 0, 16, 16], [0, 16, 16, 16], [16, 16, 16, 16]]) {
-                const col = pick(P.flag, hash(c.tx * 4 + x, c.ty * 4 + y, 6));
-                rect(g, px + x + 1, py + y + 1, w - 2, h - 2, col);
-                rect(g, px + x + 1, py + y + 1, w - 2, 1, 'rgba(255,255,255,0.08)');
-                rect(g, px + x + 1, py + y + h - 2, w - 2, 1, 'rgba(0,0,0,0.25)');
-                if (hash(c.tx * 4 + x, c.ty * 4 + y, 7) < 0.25) rect(g, px + x + 4, py + y + 6, 5, 1, 'rgba(0,0,0,0.3)');   // a crack
+            rect(g, px, py, T, T, W_.seam);
+            const h = T / 2;
+            for (let r = 0; r < 2; r++) {
+                const row = c.ty * 2 + r;
+                let x = -Math.floor(hash(row, c.tx, 31) * 10);
+                for (let k = 0; x < T; k++) {
+                    const w = 10 + Math.floor(hash(c.tx * 7 + k, row, 32) * 12);
+                    const sx = Math.max(0, x), ex = Math.min(T, x + w);
+                    if (ex - sx >= 2) {
+                        const sy = py + r * h, X = px + sx, Wd = ex - sx - 1, Hd = h - 1;
+                        rect(g, X, sy, Wd, Hd, pick(W_.ash, hash(c.tx * 13 + k, row, 33)));
+                        rect(g, X, sy, Wd, 1, 'rgba(255,250,240,0.10)'); rect(g, X, sy, 1, Hd, 'rgba(255,250,240,0.06)');
+                        rect(g, X, sy + Hd - 1, Wd, 1, 'rgba(0,0,0,0.22)');
+                        const r1 = hash(c.tx * 5 + k, row, 34);
+                        if (r1 < 0.07 && Wd > 8) {                                                    // a hairline crack
+                            g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 1; g.beginPath();
+                            const cx0 = X + 2 + hash(k, row, 36) * (Wd - 6);
+                            g.moveTo(cx0, sy + 1); g.lineTo(cx0 + (hash(k, row, 37) - 0.5) * 6, sy + Hd * 0.5); g.lineTo(cx0 + (hash(k, row, 38) - 0.5) * 8, sy + Hd - 1); g.stroke();
+                        }
+                        else if (r1 > 0.86) rect(g, X + 2, sy + 3, 3, 2, 'rgba(255,255,255,0.06)');                                                       // a worn hollow
+                        if (hash(c.tx * 3 + k, row, 35) < 0.12) rect(g, X, sy + Hd, Math.min(5, Wd), 1, P.moss);
+                    }
+                    x += w;
+                }
+            }
+            const lf = hash(c.tx >> 2, c.ty >> 2, 39) - 0.5;                                          // broad patches of damp and wear
+            g.fillStyle = lf > 0 ? `rgba(255,248,235,${lf * 0.08})` : `rgba(10,10,20,${-lf * 0.18})`; g.fillRect(px, py, T, T);
+        },
+        // Floorboards run left to right, ends staggered per row, with grain, nail heads and a soft sheen.
+        wood_floor(g, px, py, T, c) {
+            rect(g, px, py, T, T, W_.boardLine);
+            const h = T / 4;
+            for (let r = 0; r < 4; r++) {
+                const row = c.ty * 4 + r, sy = py + r * h;
+                const joint = 4 + Math.floor(hash(row, c.tx, 41) * (T - 8));
+                const ends = hash(row, c.tx, 45) < 0.5 ? [[0, joint], [joint, T]] : [[0, T]];
+                for (const [a, b] of ends) {
+                    const col = pick(W_.board, hash(row, c.tx * 2 + (a > 0 ? 1 : 0), 42));
+                    rect(g, px + a, sy, b - a, h - 1, col);
+                    rect(g, px + a, sy, b - a, 1, W_.boardLight);
+                    const gx = px + a + Math.floor(hash(row, c.tx * 3 + a, 43) * Math.max(1, b - a - 8));
+                    rect(g, gx, sy + 3, 5 + Math.floor(hash(row, c.tx, 44) * 6), 1, W_.grain);
+                    if (a > 0) { rect(g, px + a - 1, sy, 1, h - 1, W_.boardLine); rect(g, px + a + 1, sy + 3, 1, 1, '#2a2420'); rect(g, px + a - 3, sy + 3, 1, 1, '#2a2420'); }
+                }
             }
         }
     };
@@ -179,6 +225,147 @@
                 rect(g, x, y, 7, 1, 'rgba(160,220,235,0.35)'); rect(g, x + 2, y, 3, 1, 'rgba(230,250,255,0.5)');
             }
             if (c.above && c.above !== 'water' && c.above !== 'bridge') { rect(g, px, py, T, 3, 'rgba(0,0,0,0.35)'); rect(g, px, py + 3, T, 1, 'rgba(200,240,255,0.35)'); }
+        },
+        // ---- interiors: plank walls, furniture and storage, lit from the upper left ----
+        wood_wall(g, px, py, T, c) {
+            const face = c.below !== 'wood_wall' && c.below !== 'stone_wall';
+            rect(g, px, py, T, T, '#1c140e');
+            rect(g, px, py, T, 2, '#3a2a1c');                                                     // the wall's top edge catches the light
+            if (!face) { rect(g, px + 2, py + 4, T - 4, T - 6, '#21170f'); return; }
+            const top = py + Math.floor(T * 0.28);
+            for (let i = 0; i < 4; i++) {
+                const x = px + i * T / 4;
+                rect(g, x, top, T / 4 - 1, py + T - top, pick(W_.plank, hash(c.tx * 4 + i, c.ty, 51)));
+                rect(g, x, top, 1, py + T - top, 'rgba(255,220,170,0.08)');
+                rect(g, x + T / 4 - 1, top, 1, py + T - top, W_.plankDark);
+                if (hash(c.tx * 4 + i, c.ty, 52) < 0.3) circle(g, x + 4, top + 8 + hash(c.tx + i, c.ty, 53) * 8, 1.2, '#3a2a1a');   // a knot
+            }
+            rect(g, px, top, T, 3, W_.cap); rect(g, px, top + 3, T, 1, 'rgba(0,0,0,0.35)');
+            rect(g, px, py + T - 4, T, 4, '#2a1d13'); rect(g, px, py + T - 4, T, 1, '#4a3626');   // skirting
+            if (hash(c.tx, c.ty, 54) < 0.18) {                                                    // a bundle of drying herbs
+                rect(g, px + T / 2, top + 4, 1, 4, '#2a1d13');
+                for (let k = -2; k <= 2; k++) rect(g, px + T / 2 + k, top + 8, 1, 7 - Math.abs(k), k % 2 ? '#5a7040' : '#6a8048');
+            }
+        },
+        barrel(g, px, py, T) {
+            const cx = px + T / 2, cy = py + T / 2;
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx + 2, cy + T * 0.34, T * 0.34, T * 0.1, 0, 0, Math.PI * 2); g.fill();
+            rect(g, cx - T * 0.32, cy - T * 0.2, T * 0.64, T * 0.52, '#5b3f28');
+            for (let i = 1; i < 5; i++) rect(g, cx - T * 0.32 + i * T * 0.128, cy - T * 0.2, 1, T * 0.52, '#3a2818');   // staves
+            rect(g, cx - T * 0.32, cy - T * 0.2, T * 0.14, T * 0.52, 'rgba(255,220,170,0.12)');
+            rect(g, cx + T * 0.18, cy - T * 0.2, T * 0.14, T * 0.52, 'rgba(0,0,0,0.25)');
+            for (const y of [cy - T * 0.1, cy + T * 0.2]) { rect(g, cx - T * 0.33, y, T * 0.66, 2, '#3a3a40'); rect(g, cx - T * 0.33, y, T * 0.66, 1, '#7a7a84'); }
+            g.fillStyle = '#6e4e34'; g.beginPath(); g.ellipse(cx, cy - T * 0.2, T * 0.32, T * 0.11, 0, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = '#3a2818'; g.lineWidth = 1; g.beginPath(); g.ellipse(cx, cy - T * 0.2, T * 0.24, T * 0.07, 0, 0, Math.PI * 2); g.stroke();
+        },
+        crate(g, px, py, T) {
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(px + 5, py + T - 5, T - 6, 3);
+            rect(g, px + 3, py + 8, T - 6, T - 12, '#6b5235');                                    // front
+            rect(g, px + 3, py + 3, T - 6, 6, '#8a6c48');                                        // lid, lit
+            for (let i = 1; i < 3; i++) rect(g, px + 3, py + 8 + Math.round(i * (T - 12) / 3), T - 6, 1, '#4a3825');
+            rect(g, px + 3, py + 8, 3, T - 12, '#4e3a26'); rect(g, px + T - 6, py + 8, 3, T - 12, '#4e3a26');
+            g.strokeStyle = '#4e3a26'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 6, py + 9); g.lineTo(px + T - 6, py + T - 5); g.stroke();
+            for (const [x, y] of [[4, 9], [T - 5, 9], [4, T - 6], [T - 5, T - 6]]) rect(g, px + x, py + y, 1, 1, '#a8a8b0');
+            rect(g, px + 3, py + 3, T - 6, 1, 'rgba(255,230,190,0.25)');
+        },
+        shelf(g, px, py, T, c) {
+            rect(g, px + 1, py + 1, T - 2, T - 2, '#3a2a1c'); rect(g, px + 3, py + 3, T - 6, T - 6, '#1e150e');
+            for (let r = 0; r < 3; r++) {
+                const by = py + 3 + Math.round((r + 1) * (T - 6) / 3) - 2;
+                let x = px + 4;
+                while (x < px + T - 7) {
+                    const kind = hash(c.tx * 9 + x, c.ty * 3 + r, 61);
+                    if (kind < 0.55) {                                                               // books
+                        const w = 2 + Math.floor(kind * 3), hh = 5 + Math.floor(hash(x, r, 62) * 3);
+                        rect(g, x, by - hh, w, hh, pick(['#6a2a2a', '#2a4a6a', '#5a5a2a', '#4a2a5a', '#7a5a30'], hash(x, c.ty + r, 63))); rect(g, x, by - hh, 1, hh, 'rgba(255,255,255,0.15)');
+                        x += w + 1;
+                    } else if (kind < 0.85) {                                                        // a jar
+                        circle(g, x + 2, by - 3, 2.5, pick(['#4f7a52', '#7a6a50', '#8a8a96'], hash(x, r, 64))); rect(g, x + 1, by - 7, 3, 2, '#5a4a3a'); rect(g, x + 1, by - 4, 1, 1, 'rgba(255,255,255,0.45)');
+                        x += 6;
+                    } else x += 4;
+                }
+                rect(g, px + 2, by, T - 4, 2, '#5a4430'); rect(g, px + 2, by, T - 4, 1, '#7a5e44');
+            }
+        },
+        bed(g, px, py, T, c) {
+            const head = c.above !== 'bed', foot = c.below !== 'bed';
+            rect(g, px + 1, py, T - 2, T, '#4a3220');
+            rect(g, px + 1, py, 2, T, '#6a4a30'); rect(g, px + T - 3, py, 2, T, '#2e1f14');
+            if (head) { rect(g, px + 1, py, T - 2, 4, '#6a4a30'); rect(g, px + 5, py + 5, T - 10, 8, '#e0d8c8'); rect(g, px + 5, py + 11, T - 10, 2, '#b0a898'); }
+            const qy = head ? py + 13 : py, qb = foot ? py + T - 3 : py + T;
+            rect(g, px + 3, qy, T - 6, qb - qy, '#6a4a6a');                                      // quilt
+            for (let y = qy + 2; y < qb - 1; y += 6) for (let x = px + 5; x < px + T - 5; x += 6) rect(g, x, y, 2, 2, (x + y) % 12 ? '#8a6a8a' : '#a88a50');
+            if (head) rect(g, px + 3, qy, T - 6, 2, '#d8d0c0');                                  // turned-down sheet
+            rect(g, px + T - 5, qy, 2, qb - qy, 'rgba(0,0,0,0.2)');
+            if (foot) rect(g, px + 1, py + T - 3, T - 2, 3, '#6a4a30');
+        },
+        rug(g, px, py, T, c) {
+            const e = (t) => t !== 'rug';
+            rect(g, px, py, T, T, '#5a1e26');
+            for (let y = 0; y < T; y += 4) for (let x = (y / 4) % 2 ? 2 : 0; x < T; x += 4) rect(g, px + x, py + y, 2, 2, '#64242c');
+            if (e(c.above)) { rect(g, px, py, T, 4, '#8a5a30'); rect(g, px, py + 4, T, 1, '#c8a050'); }
+            if (e(c.below)) { rect(g, px, py + T - 4, T, 4, '#8a5a30'); rect(g, px, py + T - 5, T, 1, '#c8a050'); }
+            if (e(c.left)) { rect(g, px, py, 4, T, '#8a5a30'); rect(g, px + 4, py, 1, T, '#c8a050'); }
+            if (e(c.right)) { rect(g, px + T - 4, py, 4, T, '#8a5a30'); rect(g, px + T - 5, py, 1, T, '#c8a050'); }
+            const cx = px + T / 2, cy = py + T / 2;                                               // a medallion on each tile
+            g.fillStyle = '#2a3a5a'; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 6, cy); g.lineTo(cx, cy + 6); g.lineTo(cx - 6, cy); g.fill();
+            g.fillStyle = '#c8a050'; g.beginPath(); g.moveTo(cx, cy - 3); g.lineTo(cx + 3, cy); g.lineTo(cx, cy + 3); g.lineTo(cx - 3, cy); g.fill();
+        },
+        fireplace(g, px, py, T, c) {
+            rect(g, px, py, T, T, '#3a3640');
+            for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) {
+                const x = px + (r % 2) * 5 + k * 11 - 5, y = py + r * 8;
+                const sx = Math.max(px, x), ex = Math.min(px + T, x + 10);
+                if (ex > sx) { rect(g, sx, y, ex - sx, 7, pick(W_.ash, hash(c.tx * 4 + k, r, 71))); rect(g, sx, y, ex - sx, 1, 'rgba(255,255,255,0.1)'); }
+            }
+            rect(g, px + 5, py + 12, T - 10, T - 12, '#100a08');                                 // firebox
+            rect(g, px, py + 8, T, 4, '#5a3e28'); rect(g, px, py + 8, T, 1, '#7a5a3c');          // mantel
+            rect(g, px + 7, py + T - 4, T - 14, 3, '#3a2418');                                    // logs
+            const t = c.time || 0;
+            for (let i = 0; i < 4; i++) {
+                const fx = px + 10 + i * 4, hh = 6 + (i % 2) * 3 + Math.sin(t / 110 + i * 1.7) * 2;
+                g.fillStyle = '#e8702a'; g.beginPath(); g.moveTo(fx - 2.5, py + T - 4); g.quadraticCurveTo(fx, py + T - 4 - hh * 1.4, fx + 2.5, py + T - 4); g.fill();
+                g.fillStyle = '#ffd070'; g.beginPath(); g.moveTo(fx - 1.2, py + T - 4); g.quadraticCurveTo(fx, py + T - 4 - hh * 0.8, fx + 1.2, py + T - 4); g.fill();
+            }
+            for (let i = 0; i < 3; i++) { const k = (t / 600 + i / 3) % 1; rect(g, px + 11 + i * 5 + Math.sin(t / 200 + i) * 2, py + T - 8 - k * 12, 1, 1, `rgba(255, 180, 90, ${1 - k})`); }
+        },
+        table(g, px, py, T) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(px + 4, py + T - 4, T - 6, 3);
+            rect(g, px + 4, py + T - 10, 3, 9, '#3a2a1c'); rect(g, px + T - 7, py + T - 10, 3, 9, '#2e2016');
+            rect(g, px + 2, py + 6, T - 4, T - 15, '#7a5a3c');
+            for (let i = 1; i < 3; i++) rect(g, px + 2, py + 6 + Math.round(i * (T - 15) / 3), T - 4, 1, '#5a4028');
+            rect(g, px + 2, py + 6, T - 4, 1, '#9a7a58'); rect(g, px + 2, py + T - 10, T - 4, 2, '#4a3220');
+            circle(g, px + 11, py + 12, 4, '#c8c0b0'); circle(g, px + 11, py + 12, 2.5, '#a8a090');
+            rect(g, px + 19, py + 8, 4, 6, '#8a6a4a'); rect(g, px + 19, py + 8, 4, 1, '#c8b090');    // a mug
+        },
+        chair(g, px, py, T) {
+            rect(g, px + 9, py + 4, T - 18, 10, '#6b4f35'); rect(g, px + 9, py + 4, T - 18, 1, '#8a6a48');
+            for (let i = 0; i < 3; i++) rect(g, px + 11 + i * 4, py + 6, 1, 7, '#4a3220');
+            rect(g, px + 8, py + 14, T - 16, 6, '#7a5a3c'); rect(g, px + 8, py + 14, T - 16, 1, '#9a7a58');
+            rect(g, px + 9, py + 20, 2, 7, '#3a2a1c'); rect(g, px + T - 11, py + 20, 2, 7, '#3a2a1c');
+        },
+        bedroll(g, px, py, T) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(px + 4, py + T - 7, T - 6, 3);
+            rect(g, px + 3, py + 7, T - 6, T - 14, '#5a5240'); rect(g, px + 3, py + 7, T - 6, 1, '#7a7058');
+            for (let i = 0; i < 3; i++) rect(g, px + 12 + i * 6, py + 7, 1, T - 14, '#4a4232');
+            rect(g, px + 4, py + 9, 8, T - 18, '#8a826c'); rect(g, px + 4, py + 9, 8, 1, '#a8a088');      // rolled blanket as a pillow
+            rect(g, px + T - 7, py + 8, 2, T - 16, '#3a2a1a');                                          // a tie
+        },
+        stairs_up(g, px, py, T) {
+            for (let i = 0; i < 5; i++) {
+                const y = py + i * T / 5, v = 70 + i * 10;
+                rect(g, px + 2, y, T - 4, T / 5 - 1, `rgb(${v},${v - 4},${v + 4})`);
+                rect(g, px + 2, y, T - 4, 1, `rgba(255,255,255,${0.06 + i * 0.02})`);
+            }
+            rect(g, px, py, 2, T, '#2c2a32'); rect(g, px + T - 2, py, 2, T, '#2c2a32');
+        },
+        stairs_down(g, px, py, T) {
+            for (let i = 0; i < 5; i++) {
+                const y = py + i * T / 5, v = 60 - i * 10;
+                rect(g, px + 2, y, T - 4, T / 5 - 1, `rgb(${v},${Math.max(0, v - 14)},${Math.max(0, v - 26)})`);
+                rect(g, px + 2, y, T - 4, 1, `rgba(255,220,170,${0.12 - i * 0.02})`);
+            }
+            rect(g, px, py, 2, T, '#2a1d13'); rect(g, px + T - 2, py, 2, T, '#2a1d13');
         },
         lantern(g, px, py, T, c) {
             g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + T / 2 + 3, py + T - 3, 6, 2, 0, 0, Math.PI * 2); g.fill();
