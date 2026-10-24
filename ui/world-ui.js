@@ -169,9 +169,38 @@
             <h1>Enso's Last Stand</h1>
             <p class="subtitle">${sub}</p>
             <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `How does ${esc(who)} look?`}</p>
+            ${creator.step === 'look' ? `<div class="creator-preview">
+                <canvas id="creator-portrait" width="96" height="112" role="img" aria-label="Character appearance preview"></canvas>
+                <div class="creator-preview-label" aria-live="polite"></div>
+            </div>` : ''}
             ${menuHtml(menu, 'class-list')}
             <p class="keys">↑ ↓ choose · Enter ${creator.step === 'look' ? 'begin' : 'continue'} · Esc back</p>`;
         bindMenuClicks(els.title, menu);
+        if (creator.step === 'look') drawCreatorPreview();
+    }
+
+    /** Pixel portrait: same four skin presets and class cloak colours as the world sprite. */
+    function drawCreatorPreview() {
+        const canvas = els.title.querySelector('#creator-portrait');
+        if (!canvas || !menu) return;
+        const choice = Math.max(0, Math.min(looks.length - 1, menu.index));
+        const skins = ['#d9c3a5', '#c69072', '#8a5a40', '#efd9c4'];
+        const cloaks = { warrior: '#8a3b2e', mage: '#35548a', rogue: '#3d6640', necromancer: '#5a3b7a' };
+        const g = canvas.getContext('2d');
+        if (!g) return;
+        g.clearRect(0, 0, canvas.width, canvas.height);
+        g.fillStyle = '#191a20'; g.fillRect(0, 0, 96, 112);
+        const rect = (x, y, w, h, color) => { g.fillStyle = color; g.fillRect(x, y, w, h); };
+        // Low-resolution pixel shapes match the explorable world's current art fidelity.
+        rect(22, 94, 52, 4, '#343039');
+        rect(32, 71, 11, 23, '#2a2420'); rect(53, 71, 11, 23, '#2a2420');
+        rect(26, 49, 44, 34, cloaks[creator.cls] || '#6a6a6a');
+        rect(33, 36, 30, 23, skins[choice] || skins[0]);
+        rect(31, 30, 34, 10, '#2b2320');
+        rect(39, 45, 4, 4, '#1a1412'); rect(53, 45, 4, 4, '#1a1412');
+        rect(43, 59, 10, 17, '#2b2731');
+        const label = els.title.querySelector('.creator-preview-label');
+        if (label) label.textContent = `${looks[choice].label} · ${DATA.basePlayerClasses[creator.cls].name} · Cosmetic only`;
     }
 
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
