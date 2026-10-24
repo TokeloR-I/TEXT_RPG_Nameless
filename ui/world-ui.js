@@ -46,7 +46,7 @@
     let session = null;
     let screen = 'title';                 // title | explore | combat | over
     let modal = null;                     // null | 'creator' | 'dialog' | 'talk' | 'pause' | 'branch'
-    let creator = null;                   // title screen: { step: 'name'|'class'|'look', name, cls, look }
+    let creator = null;                   // name, class, skin, hairstyle, hair colour and outfit
     let menu = null;                      // the keyboard menu that currently has focus
     let dialog = null;                    // { pages, title, onClose }
     let battle = null;                    // { id, log, stack, ended, lastHp }
@@ -109,12 +109,16 @@
     const classes = Object.keys(DATA.basePlayerClasses);
     const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
     const NAME_MAX = 24;
+    const HAIR_STYLES = ['Cropped', 'Long', 'Braids', 'Shaved'];
+    const HAIR_COLOURS = ['Raven', 'Chestnut', 'Ash', 'Copper'];
+    const OUTFITS = ['Traveler', 'Tattered', 'Armored', 'Ceremonial'];
+    const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0 });
     function showTitle() {
         screen = 'title';
         modal = 'creator';                    // the creation steps (Enter, Enter, Enter starts with the defaults)
         for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
-        creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0 };
+        creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
         creatorStep(readSave() ? 'start' : 'name');
     }
     function creatorStep(step) {
@@ -134,11 +138,31 @@
             menu.index = Math.max(0, classes.indexOf(creator.cls));
         }
         if (step === 'look') {
-            menu = makeMenu(looks.map((l, i) => ({ label: l.label, sub: 'Appearance (no effect on stats)', action: () => { creator.look = i; startGame(creator.cls, creator.name, i); } })),
+            menu = makeMenu(looks.map((l, i) => ({ label: l.label, sub: 'Appearance (no effect on stats)', action: () => { creator.look = i; creatorStep('hairStyle'); } })),
                 { back: () => creatorStep('class'), render: renderTitle });
             menu.index = creator.look;
         }
+        const cosmeticSteps = [
+            ['hairStyle', HAIR_STYLES, 'hairColor', 'look'],
+            ['hairColor', HAIR_COLOURS, 'outfit', 'hairStyle'],
+            ['outfit', OUTFITS, null, 'hairColor']
+        ];
+        for (const [field, labels, next, previous] of cosmeticSteps) {
+            if (step !== field) continue;
+            menu = makeMenu(labels.map((label, i) => ({
+                label, sub: field === 'outfit' ? 'Outfit appearance only; no stat changes' : 'Visible on your character',
+                action: () => {
+                    creator[field] = i;
+                    if (next) creatorStep(next);
+                    else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+                }
+            })), { back: () => creatorStep(previous), render: renderTitle });
+            menu.index = creator[field];
+        }
         renderTitle();
+    }
+    function cosmeticsFromCreator() {
+        return { hairStyle: creator.hairStyle, hairColor: creator.hairColor, outfit: creator.outfit };
     }
     function renderTitle() {
         const sub = esc(WORLD.zones[WORLD.maps[WORLD.start.map].zoneId].name);
@@ -168,9 +192,9 @@
         els.title.innerHTML = `
             <h1>Enso's Last Stand</h1>
             <p class="subtitle">${sub}</p>
-            <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `How does ${esc(who)} look?`}</p>
+            <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `Customize ${esc(who)} · ${({look:'Skin tone',hairStyle:'Hair style',hairColor:'Hair colour',outfit:'Clothing'})[creator.step] || 'Appearance'}`}</p>
             ${menuHtml(menu, 'class-list')}
-            <p class="keys">↑ ↓ choose · Enter ${creator.step === 'look' ? 'begin' : 'continue'} · Esc back</p>`;
+            <p class="keys">↑ ↓ choose · Enter ${creator.step === 'outfit' ? 'begin' : 'continue'} · Esc back</p>`;
         bindMenuClicks(els.title, menu);
     }
 
@@ -187,7 +211,7 @@
     function saveGame() {
         const p = engine.getState().player;
         const save = engine.serialize({ label: `${p.name} · Lv ${p.level} · ${WORLD.maps[session.mapId].name}`, createdAt: new Date().toISOString(),
-            attachments: { world: session.getState(), seen: [...seen] } });
+            attachments: { world: session.getState(), seen: [...seen], cosmetics: view.cosmetics || defaultCosmetics() } });
         try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); return 'Saved. Continue from the title screen next time.'; } catch (e) { return `Couldn't save in this browser (${e.message}).`; }
     }
     function continueGame(save) {
@@ -200,15 +224,16 @@
         window.ensoWorld = session;
         seen.clear();
         for (const id of ((engine.lastLoad.attachments || {}).seen) || []) seen.add(id);
-        enterExplore(engine.player.className, engine.player.appearance || 0);
+        enterExplore(engine.player.className, engine.player.appearance || 0, (engine.lastLoad.attachments || {}).cosmetics || defaultCosmetics());
         const warn = engine.lastLoad.warnings.length ? ['(The game has been updated since this save. It loaded anyway.)'] : [];
         openDialog([`Welcome back, ${engine.player.name}.`, ...warn], null, afterStory);
     }
-    function enterExplore(cls, look) {
+    function enterExplore(cls, look, cosmetics = defaultCosmetics()) {
         battle = null;
         syncView();
         view.className = cls;
         view.appearance = look;
+        view.cosmetics = cosmetics;
         screen = 'explore';
         modal = null;
         menu = null;
@@ -218,7 +243,7 @@
         showBanner(WORLD.maps[session.mapId].name);
     }
 
-    function startGame(cls, name, look) {
+    function startGame(cls, name, look, cosmetics = defaultCosmetics()) {
         engine = new ENSO.GameEngine({ seed: seedFromUrl() });
         window.enso = engine;                 // handy from the browser console
         engine.start();
@@ -228,7 +253,7 @@
         session = new WorldSession(WORLD, { engine });
         window.ensoWorld = session;
         seen.clear();
-        enterExplore(cls, look || 0);
+        enterExplore(cls, look || 0, cosmetics);
         openDialog(WORLD.intro, null);
     }
 
@@ -710,7 +735,8 @@
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
             const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
             const look = creator && creator.step === 'look' && menu ? menu.index : (creator ? creator.look : 0);
-            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: cls, appearance: look, marker: null, fade: 0.35 }, [], now);
+            if (creator && ['hairStyle','hairColor','outfit'].includes(creator.step) && menu) creator[creator.step] = menu.index;
+            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: cls, appearance: look, cosmetics: creator ? cosmeticsFromCreator() : defaultCosmetics(), marker: null, fade: 0.35 }, [], now);
             requestAnimationFrame(frame);
             return;
         }
