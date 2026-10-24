@@ -1,0 +1,25 @@
+name: pr-base
+
+# A PR that targets another branch (a "stacked" PR) merges into that branch, not into main.
+# Its work then never reaches the game unless someone notices (it happened to #80, #81, #82, #86 and #91).
+# This check is red until the PR targets main, and the repo rule is that a red PR is never merged.
+# To fix: merge the parent PR first, then on this PR click Edit (next to the title) and change base to main.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  base-is-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: The PR must target main
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          if [ "$BASE" != "main" ]; then
+            echo "::error::This PR targets '$BASE', not 'main'. Merging it would land the work on '$BASE' only."
+            echo "Merge the parent PR into main first, then retarget this PR to main (Edit > base: main)."
+            exit 1
+          fi
+          echo "Targets main."

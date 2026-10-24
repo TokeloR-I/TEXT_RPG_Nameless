@@ -265,6 +265,20 @@
                 return;
             }
 
+            const home = /^(build|plant|tend|harvest|craft)\s+(.+)$/i.exec(text.trim());
+            if (home) {
+                const command = home[1].toLowerCase(), value = home[2].trim();
+                if (command === 'build') this.perform({ type: 'build', upgradeId: value });
+                else if (command === 'craft') this.perform({ type: 'craft', recipeId: value });
+                else if (command === 'tend' || command === 'harvest')
+                    this.perform({ type: command, plotId: value });
+                else {
+                    const space = value.indexOf(' ');
+                    if (space === -1) this.refuse('INVALID_PLANT','Enter a plot ID and seed name.');
+                    else this.perform({ type: 'plant', plotId: value.slice(0, space), seed: value.slice(space + 1) });
+                }
+                return;
+            }
             const parts = lower.split(/\s+/);
             let cmd = parts[0];
             let arg = parts.slice(1).join(' ');
