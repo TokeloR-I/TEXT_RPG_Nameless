@@ -1,16 +1,71 @@
 /* Enso's Last Stand — graphical world front end (world.html) */
 :root {
-    --ink: #e8e1cf;
-    --ink-dim: #a49c8a;
+    /* Palette tokens (docs/ui/STYLE_GUIDE.md). Use these names, never new hex values in components. */
+    --c-void: #07070a;          /* page and letterbox */
+    --c-ink: #e8e1cf;           /* body text */
+    --c-ink-dim: #a49c8a;       /* secondary text, key hints */
+    --c-ink-mute: #77705f;      /* disabled text (still >= 4.5:1 on window colours) */
+    --c-win-hi: #1d1b29;        /* window fill, top band */
+    --c-win-mid: #181623;       /* window fill, middle band */
+    --c-win-lo: #13111b;        /* window fill, bottom band */
+    --c-frame-hi: #d8c690;      /* window frame, lit edge */
+    --c-frame: #8a7a58;         /* window frame */
+    --c-frame-lo: #2a2620;      /* window frame, outer shadow */
+    --c-accent: #9fe8cf;        /* the glow in your hands: focus, cursor, selection */
+    --c-gold: #e8c860;          /* objectives, rewards, victory */
+    --c-hp: #c4503f; --c-hp-mid: #d8923a; --c-hp-low: #ff5a3c;
+    --c-res: #4f7fb8;
+    --c-foe: #a4783e;
+    --c-bar-bg: #1b1820;
+    /* status categories (same colours as ui/combat-fx.js STYLE.status) */
+    --c-st-buff: #e8c860; --c-st-debuff: #c060e0; --c-st-control: #60c8ff; --c-st-dot: #90d060;
+    --c-st-mark: #ff9a6a; --c-st-cooldown: #9aa0b4; --c-st-other: #c8c8c8;
+    /* spacing grid: 4px steps */
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+    /* motion */
+    --t-snap: 90ms; --t-ui: 160ms; --t-trail: 420ms;
+
+    /* older names, kept so existing screens keep working until they move to the tokens above */
+    --ink: var(--c-ink);
+    --ink-dim: var(--c-ink-dim);
     --panel: rgba(14, 13, 18, 0.92);
     --edge: #6d6250;
-    --accent: #9fe8cf;        /* the glow in your hands */
-    --hp: #b9483a;
-    --res: #4f7fb8;
-    --bg: #07070a;
+    --accent: var(--c-accent);
+    --hp: var(--c-hp);
+    --res: var(--c-res);
+    --bg: var(--c-void);
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- UI kit: window frame (Pixie) ----------
+   One window language for every screen: a banded fill (hard stops, no smooth gradient), a two-tone
+   frame with a lit inner edge, and notched pixel corners. Scales by font size, so it stays crisp. */
+.win {
+    position: relative;
+    background: linear-gradient(180deg, var(--c-win-hi) 0 33%, var(--c-win-mid) 33% 66%, var(--c-win-lo) 66% 100%);
+    border: 2px solid var(--c-frame);
+    box-shadow: inset 0 0 0 1px var(--c-frame-lo), inset 0 2px 0 1px rgba(216, 198, 144, 0.18), 0 0 0 2px var(--c-frame-lo);
+    clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px), 0 3px);
+    padding: 0.55em 0.8em;
+}
+kbd {
+    font-family: inherit; font-size: 0.9em; color: var(--c-accent);
+    border: 1px solid var(--c-ink-dim); border-bottom-width: 2px; padding: 0 0.3em; margin: 0 0.15em 0 0.5em;
+}
+kbd:first-child { margin-left: 0; }
+
+/* Status chip: category glyph + name + rounds left. Colour is a second cue, never the only one. */
+.chips { display: flex; flex-wrap: wrap; gap: 0.25em; min-height: 1.25em; }
+.chip {
+    display: inline-flex; align-items: center; gap: 0.25em; font-size: 0.72em; line-height: 1.35;
+    padding: 0 0.4em; color: var(--c-ink); background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--st, var(--c-st-other)); box-shadow: inset 2px 0 0 var(--st, var(--c-st-other));
+}
+.chip i { font-style: normal; color: var(--st, var(--c-st-other)); }
+.st-buff { --st: var(--c-st-buff); } .st-debuff { --st: var(--c-st-debuff); } .st-control { --st: var(--c-st-control); }
+.st-dot { --st: var(--c-st-dot); } .st-mark { --st: var(--c-st-mark); } .st-cooldown { --st: var(--c-st-cooldown); }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
 body {
     font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'Liberation Mono', monospace;
@@ -117,46 +172,119 @@ body {
     font-size: clamp(11px, 1.8cqw, 16px); white-space: nowrap;
 }
 
-/* ---------- battle ---------- */
+/* ---------- battle (Pixie, docs/ui/STYLE_GUIDE.md) ----------
+   The fight plays on the dimmed map: no full-screen box. Field on top, message window, then status and
+   command windows. Units keep data-unit-id so ui/combat-fx.js finds them. */
 .combat {
-    position: absolute; inset: 2cqw; display: grid; grid-template-rows: auto auto 1fr auto; gap: 1.2cqw;
-    background: rgba(10, 9, 13, 0.82); border: 2px solid var(--edge); padding: 1.6cqw 2cqw;
-    font-size: clamp(10px, 1.65cqw, 16px);
+    position: absolute; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 1cqw;
+    padding: 1.6cqw 2cqw 2cqw; font-size: clamp(11px, 1.65cqw, 16px);
+    background: linear-gradient(180deg, rgba(6, 6, 10, 0.6) 0 8%, rgba(6, 6, 10, 0.35) 8% 60%, rgba(6, 6, 10, 0.7) 60% 100%);
 }
-.battle-head { letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-dim); text-align: center; }
-.foes { display: flex; justify-content: center; gap: 1.6cqw; flex-wrap: wrap; }
-.foe { width: 17cqw; border: 1px solid #3a3540; background: rgba(0, 0, 0, 0.35); padding: 0.6cqw; text-align: center; }
-.foe canvas { width: 9cqw; height: 9cqw; image-rendering: pixelated; display: block; margin: 0 auto; }
-.foe.targeted { border-color: var(--accent); box-shadow: 0 0 10px rgba(159, 232, 207, 0.3); }
-.foe.ally { opacity: 0.85; border-style: dashed; }
-.foe.hit { animation: hit 0.35s ease; }
-@keyframes hit { 20% { transform: translateX(-4px); background: rgba(185, 72, 58, 0.35); } 60% { transform: translateX(3px); } }
-.foe-name { font-weight: bold; margin: 0.2em 0; }
-.foe-hp { display: flex; align-items: center; gap: 0.4em; font-size: 0.85em; }
-.tags { min-height: 1.2em; display: flex; flex-wrap: wrap; gap: 0.3em; justify-content: center; margin-top: 0.3em; }
-.tag { font-size: 0.75em; padding: 0 0.4em; border: 1px solid #4a4452; color: #d8cfe8; }
-.battle-log { overflow-y: auto; min-height: 0; border-top: 1px solid #2a2620; border-bottom: 1px solid #2a2620; padding: 0.4em 0; line-height: 1.4; }
-.battle-log p { margin: 0.1em 0; }
-.battle-log p.imp { color: var(--ink); font-weight: bold; }
-.battle-log p.sep { color: var(--ink-dim); font-size: 0.85em; }
-.battle-foot { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2cqw; align-items: start; }
-.battle-foot .tags { justify-content: flex-start; }
-.battle-foot .me-sprite { float: left; width: 56px; height: 72px; margin: 0 10px 4px 0; image-rendering: pixelated; }   /* GFX-2 battle sprite (layout: Sable) */
-.battle-menu .keys { margin-top: 0.4em !important; font-size: 0.85em; }
+.b-head { display: flex; justify-content: center; align-items: center; gap: 0.8em; }
+.b-round {
+    letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.85em; color: var(--c-ink);
+    padding: 0.1em 0.9em; background: rgba(10, 9, 14, 0.8); border: 1px solid var(--c-frame); border-left-width: 3px; border-right-width: 3px;
+}
+.b-round.b-victory { color: var(--c-gold); border-color: var(--c-gold); }
+.b-round.b-defeat { color: var(--c-hp-low); border-color: var(--c-hp); }
+.b-mode { color: var(--c-accent); font-size: 0.85em; }
 
-/* Disabled actions remain inspectable: preserve readable refusal explanations.
-   Selection keeps a border and cursor marker, rather than relying on color. */
+/* Field: allies left, foes right, standing on a shared floor line. */
+.b-field {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: end; min-height: 0; padding: 0 2cqw 0.6cqw;
+    background: linear-gradient(180deg, transparent 0 70%, rgba(0, 0, 0, 0.28) 70% 100%);   /* the floor the fight stands on */
+}
+.b-side { display: flex; align-items: flex-end; gap: 1.4cqw; min-width: 0; }
+.b-allies { justify-content: flex-start; }
+.b-foes { justify-content: flex-end; flex-wrap: wrap-reverse; }
+.unit { margin: 0; position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.unit::before {                                  /* ground shadow under every unit */
+    content: ''; position: absolute; left: 18%; right: 18%; height: 0.7cqw; background: rgba(0, 0, 0, 0.45); border-radius: 50%;
+}
+.foe::before { top: calc(10cqw - 0.6cqw); }
+.me::before { bottom: 0.1cqw; }
+.foe canvas { width: 10cqw; height: 10cqw; image-rendering: pixelated; display: block; position: relative; transform: scaleX(-1); }
+.me .me-sprite { width: 12.5cqw; height: 11.25cqw;   /* 40x36 art pixels at the creatures' scale */ image-rendering: pixelated; display: block; position: relative; }
+.plate {
+    margin-top: 0.4em; width: 15cqw; max-width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0.15em 0.4em; align-items: center;
+    background: rgba(8, 8, 12, 0.82); border: 1px solid var(--c-frame-lo); padding: 0.25em 0.45em; font-size: 0.85em;
+}
+.plate .u-name { grid-column: 1 / -1; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plate .bar { min-width: 0; }
+.plate .u-hp { font-size: 0.85em; color: var(--c-ink-dim); }
+.plate .chips { grid-column: 1 / -1; min-height: 0; }
+.ally .ally-mark { font-size: 3cqw; color: var(--c-accent); line-height: 1; }
+.foe.targeted .plate { border-color: var(--c-accent); box-shadow: 0 0 0 1px var(--c-accent); }
+.foe.targeted .u-name { color: var(--c-accent); }
+.b-cursor { position: absolute; top: -1.6em; color: var(--c-accent); font-size: 1.1em; height: 1em; animation: bob 0.6s steps(2) infinite; }
+@keyframes bob { 50% { transform: translateY(3px); } }
+.foe.hit canvas { animation: hit 0.3s steps(4); }
+@keyframes hit { 25% { transform: scaleX(-1) translateX(4px); filter: brightness(2.2); } 75% { transform: scaleX(-1) translateX(-3px); } }
+
+/* Bars: segmented, tone-shifting HP, and a trail that drains to the new value after a hit. */
+.combat .bar { position: relative; flex: 1; height: 0.6em; background: var(--c-bar-bg); border: 1px solid #3a3540; min-width: 4em; overflow: hidden; }
+.combat .bar > .fill { position: relative; display: block; height: 100%; }
+.combat .bar.hp > .fill { background: var(--c-hp); }
+.combat .bar.res > .fill { background: var(--c-res); }
+.combat .bar.enemy > .fill { background: var(--c-foe); }
+.combat .bar.tone-mid:not(.res) > .fill { background: var(--c-hp-mid); }
+.combat .bar.tone-low:not(.res) > .fill { background: var(--c-hp-low); }
+.combat .bar::after {                            /* segment ticks every 10% */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(0, 0, 0, 0.45) calc(10% - 1px) 10%);
+}
+.combat .bar > .trail { position: absolute; left: 0; top: 0; bottom: 0; width: var(--to); background: #f0e6d0; animation: trail var(--t-trail) steps(6) 180ms both; }
+@keyframes trail { from { width: var(--from); } to { width: var(--to); } }
+
+/* Message window: the last few lines; L (or a click) opens the whole log over the field. */
+.b-log { overflow-y: auto; min-height: 0; max-height: 5.6em; line-height: 1.4; padding-block: 0.35em; scrollbar-width: thin; cursor: pointer; }
+.b-field { grid-row: 2; }
+.b-log { grid-row: 3; }
+.combat.log-open .b-field { display: none; }
+.b-log.open { grid-row: 2 / 4; max-height: none; cursor: zoom-out; }
+.b-log p { margin: 0; color: var(--c-ink-dim); }
+.b-log p.fresh { color: var(--c-ink); }
+.b-log p.lg-turn { color: var(--c-accent); font-size: 0.78em; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25em; }
+.b-log p.lg-round { color: var(--c-ink-dim); font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; margin-top: 0.25em; }
+.b-log p.lg-dmg.fresh { color: #ffd9c8; }
+.b-log p.lg-heal.fresh { color: #a8eab2; }
+.b-log p.imp.fresh:not(.lg-turn):not(.lg-round) { color: var(--c-gold); }
+
+/* Status window and command window. */
+.b-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4cqw; align-items: stretch; }
+.b-party { display: flex; flex-direction: column; gap: 0.3em; }
+.b-party .u-name { font-weight: bold; }
+.b-party .lv { color: var(--c-ink-dim); font-weight: normal; margin-left: 0.4em; }
+.b-party .stat { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 5.2em; align-items: center; gap: 0.5em; }
+.b-party .k { color: var(--c-ink-dim); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; }
+.b-party .v { text-align: right; font-variant-numeric: tabular-nums; }
+.b-party .v small { color: var(--c-ink-dim); font-size: 0.8em; }
+.b-cmd { display: flex; flex-direction: column; min-height: 0; }
+.b-commands { display: flex; flex-direction: column; gap: 0.1em; max-height: 7.6em; overflow-y: auto; scrollbar-width: thin; }
+.combat .menu li { padding: 0.2em 0.5em 0.2em 1.3em; position: relative; border: 1px solid transparent; flex-direction: row; overflow-wrap: anywhere; }
+.combat .menu li.selected { border-color: var(--c-accent); background: rgba(159, 232, 207, 0.12); }
+.combat .menu li.selected .m-label::before { content: '▶'; position: absolute; left: 0.35em; color: var(--c-accent); animation: nudge 0.6s steps(2) infinite; }
+@keyframes nudge { 50% { transform: translateX(2px); } }
+.combat .menu li:hover:not(.disabled):not(.selected) { background: rgba(159, 232, 207, 0.06); }
 .combat .menu li.disabled { opacity: 1; cursor: default; }
-.combat .menu li.disabled .m-label { color: #bcb6a8; }
-.combat .menu li.disabled .m-label::after {
-    content: ' (unavailable)'; font-size: 0.8em; font-weight: normal;
-}
-.combat .menu li.disabled .m-sub { color: var(--ink); }
-.combat .menu li.selected { border-color: var(--accent); background: rgba(159, 232, 207, 0.12); }
-.combat .menu li.selected .m-label::before { content: '▶ '; color: var(--accent); }
+.combat .menu li.disabled .m-label { color: var(--c-ink-mute); }
+.combat .menu li.disabled .m-label::after { content: ' ✕'; font-size: 0.8em; }
 .combat .menu li.disabled.selected { border-style: dashed; }
-.combat .menu li { overflow-wrap: anywhere; }
+.b-help { margin: 0.35em 0 0; min-height: 2.6em; color: var(--c-ink); font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
+.b-cmd .keys { margin: 0.2em 0 0 !important; font-size: 0.78em; color: var(--c-ink-dim); }
 
+@media (max-width: 640px) {
+    .combat { font-size: clamp(10px, 2.6cqw, 13px); padding: 1.4cqw; }
+    .b-foot { grid-template-columns: minmax(0, 1fr); gap: 0.6em; }
+    .b-commands { max-height: 5.4em; }
+    .plate { width: 22cqw; }
+    .b-log { max-height: 3em; }
+    .win { padding: 0.3em 0.55em; }
+    .b-party { flex-direction: row; flex-wrap: wrap; column-gap: 1em; }
+    .b-party .stat { flex: 1 1 12em; grid-template-columns: auto minmax(0, 1fr) auto; }
+    .b-party .chips:empty, .b-cmd .keys { display: none; }
+    .b-help { min-height: 1.4em; }
+}
 
 /* ---------- title / class selection (scoped to avoid changing battle menus) ---------- */
 .title-screen {
@@ -176,7 +304,10 @@ body {
     color: var(--accent); letter-spacing: 0.16em; text-transform: uppercase;
     margin: 0.5em 0 1em;
 }
-.title-screen .prompt { color: var(--ink-dim); margin: 0 0 0.8em; }
+.title-screen .prompt {           /* not the in-world interact hint: undo its absolute placement */
+    position: static; transform: none; background: none; border: 0; padding: 0; white-space: normal; pointer-events: auto;
+    color: var(--ink-dim); margin: 0 0 0.8em;
+}
 .title-screen .class-list {
     list-style: none; margin: 0; padding: 0; width: min(100%, 620px);
     text-align: left;
@@ -209,7 +340,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .banner.show { animation: none; opacity: 1; }
-    .dialog-more, .foe.hit { animation: none; }
+    .dialog-more, .foe.hit canvas, .b-cursor, .combat .bar > .trail, .combat .menu li.selected .m-label::before { animation: none; }
 }
 
 /* ---------- Chapter One: name entry, objective, conversations, journal ---------- */
