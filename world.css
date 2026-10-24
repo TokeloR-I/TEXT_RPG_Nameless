@@ -557,3 +557,98 @@ body {
 .talk-head { display: flex; gap: 0.8em; align-items: flex-start; }
 .talk-head .dialog-title { margin-top: 0.2em; }
 .portrait { width: 48px; height: 48px; flex: none; image-rendering: pixelated; background: var(--c-win-hi); outline: 2px solid var(--c-frame); }
+
+/* MORRIGAN VD-001 — Ashbound Wanderer. CSS-only framing; sprite art stays renderer-owned. */
+.title-screen:has(.vessel-screen) {
+    padding: 0; display: block; background: #08090b; overflow: hidden;
+    font-family: Georgia, 'Times New Roman', serif; font-size: clamp(10px,1.45cqw,15px);
+}
+.vessel-screen {
+    height: 100%; width: 100%; display: grid;
+    grid-template-rows: auto minmax(0,1fr) auto; gap: 0.6cqw;
+    padding: 1cqw 2.2cqw 1.5cqw;
+    color: #e4d3be; text-align: center;
+    background: radial-gradient(ellipse at 45% 34%,rgba(77,54,48,.36),transparent 56%),
+      linear-gradient(140deg,#10171b 0%,#151316 42%,#08090c 100%);
+}
+.vessel-header { min-height: 0; position: relative; padding: 0; }
+.vessel-brand { font-size: clamp(14px,3.3cqw,31px); font-weight: bold; letter-spacing: .09em; line-height: 1.1; text-shadow: 2px 3px #080608; }
+.vessel-step { position: absolute; top: .3em; right: 0; color: #ca997f; letter-spacing: .2em; font: 700 .75em ui-monospace,monospace; }
+.vessel-header h1 { font: bold clamp(16px,3.1cqw,30px) Georgia,serif; letter-spacing: 0; color: #f3dfc3; margin: .1em 0 0; text-shadow: 0 2px 7px #000; }
+.vessel-header p { margin: .05em 0; color: #bdac9e; letter-spacing: .065em; font-size: .94em; }
+.vessel-columns { display: grid; grid-template-columns: 29% 32% minmax(0,1fr); gap: 1.2cqw; min-height: 0; }
+.vessel-columns > * { min-height: 0; min-width: 0; border: 1px solid #71584d; box-shadow: inset 0 0 0 3px #141317,0 0 0 1px #231917; background: rgba(7,9,12,.88); }
+.vessel-lore { display: flex; flex-direction: column; padding: .65cqw; gap: .4cqw; overflow: hidden; }
+.vessel-portrait {
+    position: relative; flex: 1; min-height: 0; overflow: hidden;
+    background: radial-gradient(ellipse at 51% 35%,#65646a 0%,#343943 28%,transparent 61%),
+      repeating-linear-gradient(90deg,transparent 0 18px,rgba(12,9,12,.43) 18px 25px),
+      linear-gradient(#36404c,#151d20 72%,#120e12);
+    border-bottom: 1px solid #9b7359;
+}
+.vessel-portrait:before { content: ''; position: absolute; inset: 9% 14% 0; border: 3px double #6e6563; clip-path: polygon(0 10%,48% 0,100% 10%,100% 100%,0 100%); opacity: .4; }
+.vessel-crest { position: absolute; top: 12%; left: 50%; color: #c8a16d; font-size: 3em; transform: translateX(-50%); opacity: .6; }
+.vessel-shadow-person {
+    position: absolute; bottom: -8%; left: 50%; transform: translateX(-50%);
+    width: 72%; height: 74%; border-radius: 42% 42% 8% 8%;
+    background: radial-gradient(ellipse at 50% 15%,#17151a 0 18%,transparent 19%),
+       linear-gradient(96deg,transparent 0 12%,#2a1c20 12% 28%,#71383a 29% 46%,#342024 48% 70%,#1a171b 70% 87%,transparent 88%);
+    filter: drop-shadow(0 6px 12px #050407);
+}
+.vessel-lore h2 { color: #edceb0; letter-spacing: .07em; margin: .15em 0 0; font-size: 1.04em; line-height: 1.2; }
+.vessel-lore p { font-size: .85em; line-height: 1.3; margin: .1em; color: #c8b9a8; }
+.vessel-ornament { color: #8f6c51; font-size: .7em; }
+.vessel-preview { display: flex; flex-direction: column; padding: .7cqw; gap: .35cqw; }
+.vessel-preview h2 { font-size: .95em; letter-spacing: .11em; margin: .1em 0; color: #e5bf9c; text-transform: uppercase; }
+.vessel-preview-stage {
+    min-height: 0; flex: 1; display: grid; place-items: center; overflow: hidden;
+    border: 1px solid #635449;
+    background: radial-gradient(circle at 52% 27%,#5b606a 0 9%,transparent 10%),
+       linear-gradient(0deg,rgba(29,25,25,.95) 0 24%,transparent 25%),
+       linear-gradient(145deg,#242c31,#252a30 44%,#0f1217);
+}
+#creator-sprite { display: block; width: auto; height: min(100%, 35cqw); max-width: 100%; image-rendering: pixelated; }
+.vessel-directions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .3cqw; }
+.vessel-directions button { background: #14171b; border: 1px solid #554c46; color: #c9b9a8; font: 700 .71em Georgia,serif; padding: .55em .1em; cursor: pointer; }
+.vessel-directions button.active { color: #9fe8cf; border-color: #9fe8cf; box-shadow: inset 0 0 8px #26534f; }
+.vessel-preview-caption { font-size: .72em; color: #b6a694; margin: .2em 0; }
+.vessel-customize { padding: .7cqw 1cqw; overflow-y: auto; scrollbar-width: thin; text-align: left; }
+.vessel-customize > h2 { font-size: 1.05em; letter-spacing: .2em; color: #c99e79; margin: .2em 0 .7em; padding-bottom: .6em; border-bottom: 1px solid #786252; }
+.vessel-control { display: grid; grid-template-columns: 34% 2em minmax(0,1fr) 2em; gap: .2em; align-items: center; border-bottom: 1px solid #493d36; min-height: 2.4em; }
+.vessel-field-name { color: #edcfaa; font-weight: bold; font-size: .9em; }
+.vessel-control strong { text-align: center; font-size: .88em; font-weight: normal; color: #e8ddcc; }
+.vessel-control button { border: 0; background: transparent; color: #e9b38b; cursor: pointer; font-size: 1.7em; padding: 0; }
+.vessel-control button:hover { color: #9fe8cf; }
+.vessel-swatches { display: flex; align-items: center; justify-content: space-between; gap: .6em; padding: .65em 0; border-bottom: 1px solid #493d36; }
+.vessel-swatch-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45em; }
+.vessel-swatch { width: clamp(15px,2cqw,24px); height: clamp(15px,2cqw,24px); border-radius: 50%; border: 2px solid #362e28; background: var(--swatch); cursor: pointer; }
+.vessel-swatch.active { outline: 2px solid #a5e4d9; outline-offset: 2px; }
+.vessel-styles-heading { margin: .7em 0 .5em; display: flex; justify-content: space-between; color: #e8c49c; letter-spacing: .12em; font-weight: bold; }
+.vessel-styles-heading span { color: #9c9b91; font-size: .72em; letter-spacing: .03em; }
+.vessel-hairstyles { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: .35cqw; }
+.vessel-style { position: relative; min-width: 0; padding: .12em; border: 1px solid #68564d; background: #1d2023; color: #dac2ab; cursor: pointer; }
+.vessel-style canvas { display:block; width:100%; image-rendering:pixelated; }
+.vessel-style small { position:absolute;top:.1em;left:.2em;font-size:.65em;text-shadow:1px 1px #000; }
+.vessel-style span { display:block; max-width:100%; overflow:hidden; white-space:nowrap;text-overflow:ellipsis;font-size:.65em; }
+.vessel-style.active { outline:2px solid #9fe8cf; outline-offset:0; box-shadow: 0 0 11px #3e978a; }
+.vessel-footer { display:grid;grid-template-columns: 20% minmax(0,1fr) 20%; align-items:center;gap:1.4cqw; }
+.vessel-footer button { font: bold clamp(12px,2.1cqw,22px) Georgia,serif; min-height: 3.6cqw; padding: .4em; background: #1a191a; border: 2px ridge #8e6852; color:#f2dcca; cursor:pointer; }
+.vessel-footer button[data-creator-next] { background: linear-gradient(#6a232e,#3a151f); border-color: #a06b5f; }
+.vessel-footer button:hover,.vessel-footer button:focus-visible,.vessel-directions button:focus-visible,.vessel-style:focus-visible,.vessel-control button:focus-visible,.vessel-swatch:focus-visible { outline:2px solid #9fe8cf; outline-offset:2px; }
+.vessel-footer span { color: #b8a38e; font-size: .72em; }
+.vessel-class-list { max-height: 70%; overflow-y: auto; }
+.vessel-class-list .class-list { font-family: ui-monospace, monospace; }
+@media (max-width: 660px) {
+ .title-screen:has(.vessel-screen) { overflow-y: auto; }
+ .vessel-screen { height:auto;min-height:100%;gap:1em;padding:1em; }
+ .vessel-columns {grid-template-columns:minmax(0,1fr);gap:.8em;}
+ .vessel-lore {display:none;}
+ .vessel-preview { min-height:210px; }
+ .vessel-preview-stage {height:160px;}
+ #creator-sprite {height:175px;}
+ .vessel-customize {overflow:visible;}
+ .vessel-hairstyles {grid-template-columns:repeat(4,minmax(0,1fr));}
+ .vessel-footer {grid-template-columns:auto auto;position:sticky;bottom:0;background:#101014;padding:.6em;}
+ .vessel-footer span {display:none;}
+ .vessel-footer button {min-height:40px;}
+}
