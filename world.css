@@ -263,3 +263,13 @@ body {
     .dialog:has(.talk-choices) .talk-choices { max-height: 38%; }
     .hud-obj { max-width: 50cqw; }
 }
+
+/* Character customization: immediately preview the highlighted appearance. */
+.title-screen .creator-preview { display: grid; justify-items: center; gap: 0.45em; margin: 0.25em auto 0.75em; }
+.title-screen #creator-portrait { display: block; width: clamp(58px, 13cqw, 125px); height: auto; image-rendering: pixelated; border: 1px solid var(--edge); background: #191a20; }
+.title-screen .creator-preview-label { color: var(--ink); font-size: 0.85em; }
+.title-screen:has(.creator-preview) .class-list { max-height: 35%; overflow-y: auto; }
+@media(max-width: 600px) {
+    .title-screen:has(.creator-preview) .subtitle { margin-bottom: 0.2em; }
+    .title-screen:has(.creator-preview) .class-list li { padding-block: 0.3em; }
+}
