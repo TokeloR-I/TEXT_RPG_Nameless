@@ -140,7 +140,7 @@
             m.index = (m.index + (dir === 'up' ? n - 1 : 1)) % n;
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { creatorNext(); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
+        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { m.back(); return true; }
         return false;
     }
