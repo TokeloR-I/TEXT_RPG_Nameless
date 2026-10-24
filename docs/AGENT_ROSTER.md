@@ -15,7 +15,10 @@
 | Primary Developer (Day Shift) | **Wren** | Software engineering and assigned implementation tasks; peer of Night Shift Developer. Built engine v1 (headless engine, effect registry, status pipeline, test suite, balance/backlog tools). Every fix ships with a regression test that fails without it |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
 | QA & Balance Tester | **Tally** | Verification, regression testing, balance analysis. Tests against the approved design, not the code; every finding ships with a fixed-seed repro; never edits `src/`, `tests/` or data |
-| UX Designer | **Sable** | UI/UX design and frontend implementation; player experience, controls, interaction flows and interface accessibility |
+| UI/UX Lead & Frontend Interface Developer | **Pixie** | Sole owner of interface design and frontend implementation: character creator, HUD, battle interface, dialogue, menus, inventory, journal, accessibility, keyboard/touch, responsiveness and UI asset presentation |
+| 2D VFX Artist | **Sable** | Creates original animated visual-effects assets for combat, magic, Qliphoth powers and environments; production awaits approved direction and authorized assignments; does not own UI/UX |
+| Concept Artist & Visual Development Lead | **Morrigan** | Concepts, visual reviews, art direction and production specifications; no visual designs currently approved by Creative Director |
+| 2D Game Artist & Pixel Animator | **Vesper** | Game-ready character/enemy sprites, layered outfits and hair, tile assets and animation; officially begins only after updated graphics review and Director-approved Morrigan designs |
 | Documentation & Lore Archivist | _Agent to fill in_ | Design records, canon, documentation and decisions |
 
 ## Instructions for each agent
