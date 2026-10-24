@@ -623,9 +623,9 @@
             Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
             Object.assign(OVERHANGS, HD.overhangs); Object.assign(TILE_LIGHTS, HD.lights);
         }
-        // Pack art (ui/tiles-forsaken.js) goes over the painters; while its sheet loads it returns false and the
+        // Pack art (ui/tiles-manaseed.js) goes over the painters; while its sheet loads it returns false and the
         // painter it replaced draws instead.
-        const PACK = ENSO.tilesForsaken;
+        const PACK = ENSO.tilesManaseed;
         if (PACK && !PACK.wrapped) {
             PACK.wrapped = true;
             for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs]]) {
@@ -661,7 +661,8 @@
         }
         function paintTile(tg, map, x, y, time) {
             const name = nameAt(map, x, y);
-            const ctx = { tx: x, ty: y, name, time, below: nameAt(map, x, y + 1), above: nameAt(map, x, y - 1), left: nameAt(map, x - 1, y), right: nameAt(map, x + 1, y) };
+            const ctx = { tx: x, ty: y, name, time, below: nameAt(map, x, y + 1), above: nameAt(map, x, y - 1), left: nameAt(map, x - 1, y), right: nameAt(map, x + 1, y),
+                aboveLeft: nameAt(map, x - 1, y - 1), aboveRight: nameAt(map, x + 1, y - 1), belowLeft: nameAt(map, x - 1, y + 1), belowRight: nameAt(map, x + 1, y + 1) };
             const px = x * T, py = y * T;
             if (ground[name]) { ground[name](tg, px, py, T, ctx); return; }
             const base = BASE[name] && floorUnder(map, x, y, BASE[name]);

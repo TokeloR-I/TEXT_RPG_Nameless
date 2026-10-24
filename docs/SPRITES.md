@@ -144,5 +144,6 @@ licence. Any external art added later needs its source and licence recorded here
 | Asset | Source | Licence |
 |---|---|---|
 | `assets/sprites/player-placeholder.js` | Generated in-repo | Repository licence |
+| `assets/src/tiles/manaseed.png` (from `tools/gen-manaseed-tiles.js`, used by `ui/tiles-manaseed.js`) | Mana Seed starter pack tilesets by Seliel the Shaper | Written permission from the artist, see `assets/LICENSE-manaseed.txt`; never use as AI input |
 | `assets/sprites/manaseed.js` (from `tools/gen-manaseed.js`) | Mana Seed Character Base by Seliel the Shaper (seliel-the-shaper.itch.io) | Written permission from the artist, see `assets/LICENSE-manaseed.txt`; never use as AI input |
-| `assets/src/tiles/forsaken.png` (used by `ui/tiles-forsaken.js`) | "Free Environment Pixel Tilemap & Assets 16x16" by Forsaken Pixels | Free to use anywhere, no copyright (author's note; see `assets/src/tiles/LICENSE-forsaken.txt`) |
+
