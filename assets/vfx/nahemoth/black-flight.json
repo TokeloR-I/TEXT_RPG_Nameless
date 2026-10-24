@@ -1,0 +1,51 @@
+{
+  "id": "nahemoth.black_flight",
+  "artist": "Sable — 2D VFX",
+  "asset": "black-flight-atlas.svg",
+  "kind": "transparent_sprite_atlas",
+  "frame": {
+    "width": 96,
+    "height": 96,
+    "count": 12,
+    "columns": 12,
+    "rows": 1
+  },
+  "durationMs": [
+    75,
+    65,
+    60,
+    55,
+    55,
+    70,
+    70,
+    55,
+    55,
+    60,
+    65,
+    75
+  ],
+  "totalMs": 760,
+  "loop": false,
+  "origin": {
+    "x": 48,
+    "y": 76
+  },
+  "compositing": "source-over",
+  "nearestNeighbor": true,
+  "transparency": true,
+  "palette": [
+    "#090a11",
+    "#171825",
+    "#262335",
+    "#3b324d",
+    "#615172",
+    "#a79bb7"
+  ],
+  "playback": "frames 0–5 departure; frames 6–11 arrival; allow a world transition between",
+  "integration": {
+    "owner": "Wren",
+    "trigger": "successful black_flight transition only",
+    "respectReducedMotion": true,
+    "note": "Pure presentation: no alteration to safe anchors, traversal restrictions, quest rewards, or save mechanics."
+  }
+}
