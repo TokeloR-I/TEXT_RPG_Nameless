@@ -193,9 +193,46 @@
             <h1>Enso's Last Stand</h1>
             <p class="subtitle">${sub}</p>
             <p class="prompt">${creator.step === 'class' ? `Choose ${esc(who)}'s calling` : `Customize ${esc(who)} · ${({look:'Skin tone',hairStyle:'Hair style',hairColor:'Hair colour',outfit:'Clothing'})[creator.step] || 'Appearance'}`}</p>
-            ${menuHtml(menu, creator.step === 'hairStyle' ? 'class-list hairstyle-grid' : 'class-list')}
+            <div class="creator-workspace">
+                <section class="creator-preview" aria-label="Character preview">
+                    <div class="creator-preview-heading">Your character</div>
+                    <canvas id="creator-sprite" width="216" height="112" role="img" aria-label="Player sprite from front, side and behind"></canvas>
+                    <div class="creator-current" aria-live="polite"></div>
+                    <div class="creator-legend">Front · Side · Back</div>
+                </section>
+                <div class="creator-options">
+                    ${menuHtml(menu, creator.step === 'hairStyle' ? 'class-list hairstyle-grid' : 'class-list')}
+                </div>
+            </div>
             <p class="keys">↑ ↓ choose · Enter ${creator.step === 'outfit' ? 'begin' : 'continue'} · Esc back</p>`;
         bindMenuClicks(els.title, menu);
+        drawCreatorSprite();
+    }
+
+    /** Preview uses exactly the same sprite compositor as the playable world. */
+    function drawCreatorSprite() {
+        const canvas = els.title.querySelector('#creator-sprite');
+        if (!canvas || !ENSO.sprites) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = false;
+        const current = creator.step;
+        const selected = menu ? menu.index : 0;
+        const cosmetics = cosmeticsFromCreator();
+        if (['hairStyle','hairColor','outfit'].includes(current)) cosmetics[current] = selected;
+        const skin = current === 'look' ? selected : creator.look;
+        const cls = current === 'class' ? classes[selected] : creator.cls;
+        for (const [i, facing] of ['down', 'right', 'up'].entries()) {
+            ENSO.sprites.drawCharacter(ctx, 36 + i * 72, 95, {
+                facing, appearance: skin, cosmetics, className: cls, anim: 'idle', scale: 3
+            }, 0);
+        }
+        const chosen = current === 'class' ? DATA.basePlayerClasses[cls].name :
+            current === 'look' ? looks[skin].label :
+            current === 'hairStyle' ? HAIR_STYLES[selected] :
+            current === 'hairColor' ? HAIR_COLOURS[selected] : OUTFITS[selected];
+        const label = els.title.querySelector('.creator-current');
+        if (label) label.textContent = chosen + ' · Cosmetic choices do not change stats';
     }
 
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
