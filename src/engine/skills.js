@@ -332,6 +332,14 @@
             if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {
                 this.stats.kills++;
                 this.stats.credited.push(target.entityKey);
+                // Fixed early-game coin reward. Credited entity keys are persistent,
+                // so neither replaying an encounter nor a duplicate death can farm Gold.
+                const coins = Number.isSafeInteger(target.goldReward) && target.goldReward >= 0
+                    ? target.goldReward : 2;
+                if (coins && Number.isSafeInteger(p.gold + coins)) {
+                    p.gold += coins;
+                    this.say(`You recover ${coins} Gold from ${target.name}.`);
+                }
             }
             if (!p.isHollowKing) {
                 this.combat.corpses++;
