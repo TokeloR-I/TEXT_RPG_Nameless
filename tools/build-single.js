@@ -28,6 +28,12 @@ for (const { page, out } of PAGES) {
             fs.readFileSync(path.join(root, atlasPath)).toString('base64');
         html = html.replace(atlasPath, atlasData);
     }
+    // Embed the actual unarmed 64px body atlases for stand-alone offline gameplay.
+    if (page === 'world.html') {
+        html = html.replace(/assets\\/basesprite\\/PNG\\/Unarmed\\/Without_shadow\\/Unarmed_(Idle|Walk|Run|Hurt|Death)_without_shadow\\.png/g,
+            (asset) => 'data:image/png;base64,' +
+                fs.readFileSync(path.join(root, asset)).toString('base64'));
+    }
     // links between the pages point at their built names
     html = html.replace(/href="([a-z-]+\.html)"/g, (m, file) => (outName[file] ? `href="${outName[file]}"` : m));
     fs.writeFileSync(path.join(root, 'dist', out), html);
