@@ -71,18 +71,19 @@ body {
     font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'Liberation Mono', monospace;
     display: flex; align-items: center; justify-content: center;
 }
-.world-shell { width: min(100vw - 32px, 1120px); }
+.world-shell { width: min(100vw - 32px, 1120px); }   /* fitStage() (ui/world-ui.js) sets the exact size */
 .world-stage {
     position: relative;
     width: 100%;
     aspect-ratio: 640 / 448;
     container-type: inline-size;
-    border: 2px solid #2a2620;
+    outline: 2px solid #2a2620;      /* outside the box, so the canvas area is exactly the fitted size */
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
     overflow: hidden;
     background: #000;
 }
 #world-canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+/* Portrait phones (.tall): the canvas itself becomes a taller column of the map (ui/display.js). */
 .world-help { color: var(--ink-dim); font-size: 13px; text-align: center; margin: 10px 0 0; }
 .world-help a { color: var(--accent); }
 
@@ -285,6 +286,13 @@ body {
     .b-party .chips:empty, .b-cmd .keys { display: none; }
     .b-help { min-height: 1.4em; }
 }
+/* Portrait phones: the stage is narrow but tall, so battle units grow into the extra height. */
+.world-stage.tall .foe canvas { width: 20cqw; height: 20cqw; }
+.world-stage.tall .foe::before { top: calc(20cqw - 1cqw); }
+.world-stage.tall .me .me-sprite { width: 25cqw; height: 22.5cqw; }
+.world-stage.tall .plate { width: 30cqw; }
+.world-stage.tall .b-field { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
+.world-stage.tall .b-log { max-height: 4.4em; }
 
 /* ---------- title / class selection (scoped to avoid changing battle menus) ---------- */
 .title-screen {

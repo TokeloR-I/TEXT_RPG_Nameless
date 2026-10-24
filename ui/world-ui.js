@@ -37,6 +37,30 @@
         title: $('title'), dialog: $('dialog'), pause: $('pause'), hud: $('hud'), banner: $('banner'),
         problems: $('problems'), combat: $('combat'), toast: $('toast'), prompt: $('prompt'), pad: $('touch-pad')
     };
+    // ---------------------------------------------------------------------
+    // Display: the stage is sized in whole screen pixels per canvas pixel when that fits well
+    // (ui/display.js). The choice is a per-browser preference, kept outside any save.
+    // ---------------------------------------------------------------------
+    const DISPLAY_KEY = 'enso.ui.display';
+    let displayMode = (() => { try { const m = localStorage.getItem(DISPLAY_KEY); return ENSO.display.MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } })();
+    function fitStage() {
+        const stage = $('world-stage'), shell = stage.parentElement;
+        const help = shell.querySelector('.world-help');
+        const below = (help ? help.offsetHeight + 10 : 0) + (els.pad && !els.pad.hidden ? els.pad.offsetHeight + 12 : 0);
+        const f = ENSO.display.fit(window.innerWidth - 32, window.innerHeight - 24 - below, displayMode);
+        shell.style.width = `${f.w}px`;
+        Object.assign(stage.style, { width: `${f.w}px`, height: `${f.h}px`, aspectRatio: 'auto' });
+        stage.classList.toggle('tall', f.tall);
+        if (canvas.width !== f.canvasW || canvas.height !== f.canvasH) { canvas.width = f.canvasW; canvas.height = f.canvasH; }   // the renderer follows (GFX-3 draw reads the size each frame)
+        stage.dataset.scale = f.integer ? `${f.scale}x` : 'fill';
+    }
+    function cycleDisplay() {
+        displayMode = ENSO.display.nextMode(displayMode);
+        try { localStorage.setItem(DISPLAY_KEY, displayMode); } catch (e) { /* private window: this session only */ }
+        fitStage();
+        return `Display: ${ENSO.display.LABELS[displayMode]}. ${ENSO.display.HELP[displayMode]}`;
+    }
+    window.addEventListener('resize', fitStage);
     const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
     // ---------------------------------------------------------------------
@@ -447,7 +471,7 @@
     // ---------------------------------------------------------------------
     // Pause menu: character, journal, inventory (use healing items), controls
     // ---------------------------------------------------------------------
-    function openPause(note) {
+    function openPause(note, at) {
         modal = 'pause';
         muteHeldKeys();
         els.hud.hidden = true;
@@ -459,9 +483,12 @@
             const def = DATA.itemDefinitions[item];
             items.push({ label: `Use ${item}${n > 1 ? ` (x${n})` : ''}`, sub: `${def.description} Heals ${def.value}.`, action: () => useItem(item) });
         }
+        const displayAt = items.length;
+        items.push({ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: () => openPause(cycleDisplay(), displayAt) });
         items.push({ label: 'Save game', sub: 'Keeps your place in this browser (one save slot).', action: () => openPause(saveGame()) });
         items.push({ label: 'Quit to title', sub: 'Anything since your last save is lost.', action: showTitle });
         menu = makeMenu(items, { back: closePause, render: () => renderPause(note) });
+        if (at != null) menu.index = at;                                  // a setting keeps the cursor where it was
         renderPause(note);
     }
     function renderPause(note) {
@@ -966,5 +993,6 @@
     };
 
     showTitle();
+    fitStage();
     requestAnimationFrame(frame);
 })();

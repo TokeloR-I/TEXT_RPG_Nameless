@@ -43,6 +43,7 @@ ui/world-render.js  canvas painter for the world (no image files)
 ui/world-ui.js    world front end (world.html): title, movement, dialogs, menus
 ui/battle-menu.js turns the engine's availability list into the battle menus (no DOM, tested)
 ui/battle-view.js small battle-screen view rules: status chips, bar tones, log lines (no DOM, tested)
+ui/display.js     stage size: whole-pixel scaling modes and the portrait phone layout (no DOM, tested)
 tests/            headless tests, one file per area (NN-area.test.js) + helpers.js
 tools/            balance bot, backlog, pending decisions, terminal player, single-file build
 docs/             design status, engine reports, approved design handoffs (docs/design/)
