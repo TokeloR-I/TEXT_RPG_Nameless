@@ -103,8 +103,8 @@
     /** The frame key a sheet has for (facing, pose): `${facing}.${pose}` first, then `${facing}`. */
     function frameKey(sheet, facing, pose) {
         if (!sheet || !sheet.frames) return null;
-        if (sheet.frames[`${facing}.${pose}`]) return `${facing}.${pose}`;
-        if (sheet.frames[facing]) return facing;
+        if (sheet.frames[`${facing}.${pose}`] != null) return `${facing}.${pose}`;
+        if (sheet.frames[facing] != null) return facing;   // image cell 0 counts
         return null;
     }
 
@@ -206,9 +206,16 @@
     // ---------------------------------------------------------------------
     // Canvas side: cached composites, drawn at whole pixels (nearest neighbour, no blur).
     // ---------------------------------------------------------------------
+    /** The character drawn for a player class: a manifest entry that lists it in `classes`, else the layered
+     *  player (e.g. the Necromancer test sprite, assets/sprites/necromancer-art.js). */
+    function characterFor(className) {
+        const k = String(className || '').toLowerCase();
+        return Object.values(manifest).find((c) => c.classes && c.classes.includes(k)) || manifest.player;
+    }
+
     const cache = new Map();
     function drawCharacter(g, x, y, opts, time) {
-        const character = opts.character || manifest.player;
+        const character = opts.character || characterFor(opts.className);
         const o = { ...opts, time, character };
         const { layers, oy } = characterLayers(o);
         const palette = paletteFor(o);
@@ -252,8 +259,8 @@
     /** Problems with the registered sheets for a character; [] = valid (tests and `npm run world`). */
     function validateSheets(character = manifest.player) {
         const errs = [];
-        const { w, h } = character.frame;
         for (const [id, sheet] of Object.entries(sheets)) {
+            const { w, h } = sheet.frame || character.frame;   // a sheet for another character says its own frame size
             if (!sheet.frames || !Object.keys(sheet.frames).length) { errs.push(`${id}: no frames`); continue; }
             if (sheet.src) {
                 if (!sheet.fallback || !sheets[sheet.fallback]) errs.push(`${id}: an image sheet needs a fallback sheet (drawn while it loads or if it fails)`);
@@ -268,9 +275,9 @@
                 for (const r of roles) if (!(r in paletteFor())) errs.push(`${id}.${k}: unknown palette role '${r}'`);
             }
         }
-        for (const dir of FACINGS) for (const layer of ['body']) {
-            const id = fill(typeof character.layers[layer] === 'string' ? character.layers[layer] : character.layers[layer].sheet, {});
-            for (const anim of Object.keys(character.animations)) for (const s of animDef(character, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
+        for (const ch of new Set([character, ...Object.values(manifest)])) for (const dir of FACINGS) for (const layer of ['body']) {
+            const id = fill(typeof ch.layers[layer] === 'string' ? ch.layers[layer] : ch.layers[layer].sheet, {});
+            for (const anim of Object.keys(ch.animations)) for (const s of animDef(ch, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
         }
         return errs;
     }
@@ -281,7 +288,7 @@
      * opts are drawCharacter's ({ appearance, cosmetics, className }).
      */
     function drawPortrait(g, x, y, opts, size = 32) {
-        const character = opts.character || manifest.player;
+        const character = opts.character || characterFor(opts.className);
         const { w, h } = character.frame;
         const tmp = document.createElement('canvas');
         tmp.width = w; tmp.height = h;
@@ -297,7 +304,7 @@
         g.imageSmoothingEnabled = prev;
     }
 
-    const api = { drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
+    const api = { characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
     ENSO.sprites = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,36 @@
+{
+  "group_id": "813162d8-9d09-4e4e-b370-9eba2cdb28b9",
+  "states": [
+    {
+      "character": {
+        "id": "f9b1ded9-ede4-499c-9d81-7f2bfdfb810f",
+        "name": "Idle",
+        "prompt": "Create an original 24x32 pixel-art base Necromancer sprite for a dark fantasy RPG, with front, back, left, and right views on a transparent background. Style should fit a top-down JRPG / HD-2D game. This is a starter Necromancer, not an endgame lich: dark worn robes, layered cloth, practical boots, occult accessories, bone charms, leather details, belt pouches, scrolls or vials, and a subtle eerie presence. Use charcoal black, ash grey, deep burgundy, faded bone, dark brown, and a small sickly green or dim violet accent. Keep the silhouette clear and readable at 1x scale. Avoid heavy armor, crowns, excessive glow, or making the character fully undead. It should feel mysterious, intelligent, and quietly menacing, with room for future class evolution.",
+        "size": {
+          "width": 48,
+          "height": 48
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-24T16:04:55.578136+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-24T16:11:47.353414"
+}
