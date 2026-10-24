@@ -652,3 +652,8 @@ body {
  .vessel-footer span {display:none;}
  .vessel-footer button {min-height:40px;}
 }
+
+/* VD-001 revision: remove the irrelevant Ashbound lore panel; prioritize playable preview and controls. */
+.vessel-columns { grid-template-columns: minmax(0, 44%) minmax(0, 56%); }
+.vessel-preview-stage { min-height: 0; }
+@media (max-width: 660px) { .vessel-columns { grid-template-columns: minmax(0, 1fr); } }

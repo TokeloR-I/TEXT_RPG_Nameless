@@ -270,14 +270,7 @@
                     <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
                     <p>Every forgotten soul once had a face.</p></header>
                 <div class="vessel-columns">
-                    <aside class="vessel-lore">
-                        <div class="vessel-portrait" aria-label="Ashbound Wanderer art direction study">
-                            <div class="vessel-crest">✦</div><div class="vessel-shadow-person"></div>
-                        </div>
-                        <h2>THE ASHBOUND WANDERER</h2>
-                        <div class="vessel-ornament">◆ ───── ◆ ───── ◆</div>
-                        <p>Neither kingdom nor grave could hold you.<br>You walk the ruined roads, carrying what others forget.</p>
-                    </aside>
+                    
                     <section class="vessel-preview" aria-label="Live player sprite preview">
                         <h2>${esc(who)}</h2>
                         <div class="vessel-preview-stage"><canvas id="creator-sprite" width="192" height="208" role="img" aria-label="Live in-game sprite preview"></canvas></div>
