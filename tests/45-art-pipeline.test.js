@@ -153,3 +153,17 @@ test('Art pipeline: the 32 -> 16 px converter keeps every map valid and every pl
     const s = new WorldSession(w16);
     assert.ok(['moved', 'blocked'].includes(s.move('down').type));
 });
+
+test('Art pipeline: a save made on 32 px tiles loads in the same place on the 16 px world', () => {
+    const old = new WorldSession(ZONE1);
+    old.place('grounds', 'from_house');
+    const st = old.getState();
+    assert.strictEqual(st.tile, undefined, 'the authored 32 px world saves as before');
+    const s16 = new WorldSession(doubleWorld(ZONE1));
+    s16.restorePosition(st);
+    assert.deepStrictEqual([s16.mapId, Math.floor(s16.x / 2), Math.floor(s16.y / 2)], ['grounds', st.x, st.y]);
+    assert.strictEqual(s16.getState().tile, 16);
+    const again = new WorldSession(doubleWorld(ZONE1));
+    again.restorePosition(s16.getState());
+    assert.deepStrictEqual([again.x, again.y], [s16.x, s16.y], 'a 16 px save loads unchanged');
+});

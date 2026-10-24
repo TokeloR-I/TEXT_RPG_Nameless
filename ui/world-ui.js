@@ -22,12 +22,15 @@
  * ========================================================================= */
 (function () {
     const { WorldSession, validateWorld, DIRS } = ENSO.worldModel;
-    const WORLD = ENSO.world.zone1;
+    // Keel rev 2: the world plays on 16 px tiles. Maps authored for 32 px are converted on load (each tile becomes a
+    // 2x2 block, src/world/scale16.js); the data files and the headless tests keep the original coordinates.
+    const WORLD = ENSO.scale16 ? ENSO.scale16.doubleWorld(ENSO.world.zone1) : ENSO.world.zone1;
+    const markerScale = (mapId) => (WORLD.maps[mapId] && WORLD.maps[mapId].source32 ? 2 : 1);   // story markers use 32 px coordinates
     const DATA = ENSO.data;
     const CV = ENSO.crowView;
     const SYSTEM_REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let REDUCED = SYSTEM_REDUCED;   // Settings → Motion can override the system choice (applyMotion below)
-    const STEP_MS = 150;     // one tile step
+    const STEP_MS = 150;     // one 32 px tile step; a 16 px map takes half as long per tile, so walking speed stays the same
     const fadeMs = () => (REDUCED ? 60 : 220);     // each half of a map transition
     const FEATHER_MS = 700;  // Black Flight: feathers rise before the fade
     const BUMP_MS = 180;     // minimum gap between "blocked" bumps while a key is held
@@ -439,7 +442,7 @@
             ${objectiveHtml()}`;
         const face = els.hud.querySelector('canvas.face'); if (face && view.className) drawFace(face);
         const obj = engine.story ? engine.trackedObjective() : null;
-        view.marker = obj && obj.marker && session && obj.marker.map === session.mapId ? { x: obj.marker.x, y: obj.marker.y } : null;
+        view.marker = obj && obj.marker && session && obj.marker.map === session.mapId ? { x: obj.marker.x * markerScale(obj.marker.map), y: obj.marker.y * markerScale(obj.marker.map) } : null;
     }
     /** The tracked objective (the engine's choice) and where it is. */
     function objectiveHtml() {
@@ -1248,7 +1251,7 @@
             return;
         }
         if (anim) {
-            const k = Math.min(1, (now - anim.t0) / STEP_MS);
+            const k = Math.min(1, (now - anim.t0) / (STEP_MS * ((WORLD.maps[view.mapId].tileSize || 32) / 32)));
             view.x = anim.fx + (anim.tx - anim.fx) * k;
             view.y = anim.fy + (anim.ty - anim.fy) * k;
             view.moving = true;
@@ -1286,6 +1289,7 @@
 
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')
     window.ensoDebug = {
+        world: WORLD,   // the world as played (16 px tiles); ENSO.world.zone1 keeps the authored 32 px coordinates
         goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
         start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); },
         actor(name) { playActor(name); return actor.anim; },
