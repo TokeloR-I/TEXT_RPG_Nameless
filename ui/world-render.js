@@ -458,7 +458,36 @@
         }
     };
     // Chapter One people and foes. person() draws a small standing figure in the player's style.
+    /** A shade darker, for the second step of a colour ramp. */
+    const darker = (hex, k = 0.72) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+    /** HD-2D villagers: the same layered, proportioned sprite pipeline as the player (ui/sprites.js), recoloured
+     *  per villager, with their hat, helm, hood or tool on top. Falls back to the simple figure without sprites. */
     function person(g, px, py, t, o) {
+        if (!ENSO.sprites || !ENSO.sprites.drawCharacter) return personFlat(g, px, py, t, o);
+        const cx = px + 16, base = py + 30;
+        const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
+        g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
+        const palette = { c: o.cloak, C: darker(o.cloak) };
+        if (o.belt) palette.a = o.belt;
+        if (o.hair) Object.assign(palette, { h: o.hair, H: darker(o.hair), L: darker(o.hair, 1.25) });
+        if (o.skin) Object.assign(palette, { s: o.skin, S: darker(o.skin, 0.85) });
+        ENSO.sprites.drawCharacter(g, cx, base, {
+            appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics: { hairStyle: o.hairStyle != null ? o.hairStyle : seed % 12, hairColor: seed % 4, outfit: 0 },
+            facing: 'down', anim: 'idle', palette
+        }, t + seed * 37);
+        const top = base - 30;                                                          // top of the 32-px frame
+        if (o.hat) { rect(g, cx - 8, top + 6, 16, 2, o.hat); rect(g, cx - 5, top + 1, 10, 5, o.hat); rect(g, cx - 5, top + 1, 10, 1, darker(o.hat, 1.3)); }
+        if (o.helm) { g.fillStyle = o.helm; g.beginPath(); g.arc(cx, top + 9, 6.5, Math.PI, Math.PI * 2); g.fill(); rect(g, cx - 6, top + 8, 13, 2, darker(o.helm)); rect(g, cx - 1, top + 1, 2, 3, o.helm); }
+        if (o.hood) { g.fillStyle = o.hood; g.beginPath(); g.arc(cx, top + 10, 7.5, Math.PI * 0.95, Math.PI * 2.05); g.fill(); rect(g, cx - 7, top + 10, 2, 7, o.hood); rect(g, cx + 6, top + 10, 2, 7, o.hood); }
+        if (o.scarf) { rect(g, cx - 5, top + 17, 10, 3, o.scarf); rect(g, cx - 5, top + 17, 10, 1, darker(o.scarf, 1.25)); }
+        if (o.prop === 'staff') { rect(g, cx + 8, top + 2, 2, 28, '#7a6044'); rect(g, cx + 8, top + 2, 1, 28, '#9a8064'); }
+        if (o.prop === 'pack') { rect(g, cx - 11, top + 14, 5, 9, '#6a5440'); rect(g, cx - 11, top + 14, 5, 1, '#8a7460'); }
+        if (o.prop === 'hammer') { rect(g, cx + 8, top + 15, 2, 12, '#7a6044'); rect(g, cx + 6, top + 13, 6, 3, '#9a9aa2'); }
+        if (o.prop === 'basket') { rect(g, cx + 6, top + 21, 7, 5, '#8a6a3a'); rect(g, cx + 7, top + 19, 5, 2, '#5a8a4a'); }
+        if (o.prop === 'halberd') { rect(g, cx + 9, top - 2, 2, 31, '#5a4a3a'); rect(g, cx + 7, top - 3, 7, 5, '#a8a8b0'); }
+        if (o.crows) for (const [dx, dy] of [[-9, 10], [9, 6]]) { circle(g, cx + dx, top + dy, 2.6, '#0a0a0e'); rect(g, cx + dx + 2, top + dy - 1, 2, 1, '#0a0a0e'); }
+    }
+    function personFlat(g, px, py, t, o) {
         const cx = px + 16, base = py + 28, bob = Math.sin(t / 500 + px) * 0.6;
         g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(cx, base, 8, 3, 0, 0, Math.PI * 2); g.fill();
         rect(g, cx - 4, base - 6, 3, 6, '#2a2420'); rect(g, cx + 1, base - 6, 3, 6, '#2a2420');
