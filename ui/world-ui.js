@@ -528,14 +528,17 @@
         modal = null;
         muteHeldKeys();
         els.hud.hidden = true;
-        battle = { id: result.id, log: [], ended: null, lastHp: {}, targetIds: [] };
+        els.banner.hidden = true; clearTimeout(bannerTimer);   // the map name never shows through the battle
+        battle = { id: result.id, log: [], fresh: 0, logOpen: false, ended: null, lastHp: {}, targetIds: [] };
         playActor('idle');
         fx.clear();
         addLog(result.events);
         if (engine.mode === 'combat') battleRoot(); else battleOver();
     }
     function addLog(events) {
-        for (const l of readable(events)) battle.log.push(l);
+        const lines = readable(events);
+        for (const l of lines) battle.log.push(l);
+        battle.fresh = Math.min(lines.length, LOG_LINES);           // what the last action said is highlighted
         if (battle.log.length > LOG_LINES) battle.log.splice(0, battle.log.length - LOG_LINES);
     }
     function send(action) {
@@ -593,7 +596,7 @@
         if (actor.queue.length && S.animationDone(P, actor.anim, now - actor.t0)) playActor(...actor.queue);
         const g = c.getContext('2d');
         g.clearRect(0, 0, c.width, c.height);
-        S.drawCharacter(g, c.width / 2, c.height - 4, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'right', anim: actor.anim, scale: 2 }, now - actor.t0);
+        S.drawCharacter(g, c.width / 2, c.height - 2, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'right', anim: actor.anim, scale: 1 }, now - actor.t0);
     }
     /** Menu items from battle-menu entries; `go` runs when an enabled entry is chosen. */
     const toItems = (list, go) => list.map((e) => ({ label: e.label, sub: e.sub, disabled: e.disabled, action: () => go(e) }));
@@ -666,45 +669,98 @@
         if (engine.mode === 'branch_select') openBranchMenu();
     }
 
+    // Battle screen (Pixie, docs/ui/STYLE_GUIDE.md): the fight plays on the dimmed map itself. Foes stand on
+    // the right with name plates, you (and your summons) on the left; under them a short message window,
+    // then your status window and the command window. The highlighted command explains itself in one help
+    // line, so each entry is one line tall. L opens the full log.
+    const BV = ENSO.battleView;
+    function hpBar(id, cur, max, cls) {
+        const now = BV.pct(cur, max);
+        const was = battle.lastHp[id] != null ? BV.pct(battle.lastHp[id], max) : now;
+        const trail = was > now ? `<span class="trail" style="--from:${was}%;--to:${now}%"></span>` : '';
+        return `<span class="bar ${cls} tone-${BV.hpTone(cur, max)}" role="meter" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${Math.max(0, cur)}">${trail}<span class="fill" style="width:${now}%"></span></span>`;
+    }
+    function chips(list) {
+        return (list || []).map((x) => {
+            const c = BV.statusChip(x, DATA.statusDefinitions);
+            return `<span class="chip st-${c.category}" title="${esc(c.title)}"><i aria-hidden="true">${c.glyph}</i>${esc(c.text)}</span>`;
+        }).join('');
+    }
+    function commandHtml(m) {
+        const items = m ? m.items : [];
+        return `<ul class="menu b-commands" role="listbox" aria-label="Commands">${items.map((it, i) => `
+            <li role="option" data-i="${i}" aria-selected="${i === m.index}" aria-disabled="${!!it.disabled}" class="${i === m.index ? 'selected' : ''} ${it.disabled ? 'disabled' : ''}">
+                <span class="m-label">${esc(it.label)}</span></li>`).join('')}</ul>
+            <p class="b-help" aria-live="polite">${esc(BV.helpText(items[m ? m.index : 0]))}</p>`;
+    }
     function renderBattle() {
         const s = engine.getState();
         const p = s.player;
         const foes = s.combat ? s.combat.enemies : [];
         const minions = s.combat ? s.combat.minions : [];
-        const tags = (list) => (list || []).map((x) => `<span class="tag">${esc(x.name)}${x.stacks > 1 ? ` x${x.stacks}` : ''}${typeof x.duration === 'number' ? ` ${x.duration}` : ''}</span>`).join('');
         const avail = !battle.ended && engine.mode === 'combat' ? engine.getAvailableActions() : null;
         const controlled = avail && avail.awaiting === 'control' ? foes.find((e) => e.id === avail.controlledActorId) : null;
-        const heading = battle.ended === 'victory' ? 'Victory' : battle.ended === 'defeat' ? 'Defeat'
-            : controlled ? `Round ${s.combat.round} · You control ${controlled.name}`
-                : avail && avail.awaiting === 'turn_order' ? `Round ${s.combat.round} · Set the turn order` : `Round ${s.combat ? s.combat.round : ''}`;
+        const round = s.combat ? `Round ${s.combat.round}` : '';
+        const heading = battle.ended === 'victory' ? 'Victory' : battle.ended === 'defeat' ? 'Defeat' : round;
+        const mode = battle.ended ? '' : controlled ? `You control ${controlled.name}` : avail && avail.awaiting === 'turn_order' ? 'Set the turn order' : '';
+        const n = battle.log.length;
+        const logHtml = battle.log.map((l, i) => {
+            const v = BV.logLine(l.text);
+            return `<p class="lg-${v.kind}${l.important ? ' imp' : ''}${i >= n - battle.fresh ? ' fresh' : ''}">${esc(v.text)}</p>`;
+        }).join('');
         els.combat.hidden = false;
+        els.combat.classList.toggle('ended', !!battle.ended);
+        els.combat.classList.toggle('log-open', battle.logOpen);
         els.combat.innerHTML = `
-            <div class="battle-head">${esc(heading)}</div>
-            <div class="foes">${foes.map((e) => {
-                const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
-                return `<div class="foe ${battle.targetIds.includes(e.id) ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
-                    <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
-                    <div class="foe-name">${esc(e.name)}</div>
-                    <div class="foe-hp">${bar(e.hp, e.maxHp, 'enemy')}<span>${e.hp}/${e.maxHp}</span></div>
-                    <div class="tags">${tags(e.statusEffects)}</div></div>`;
-            }).join('')}${minions.map((m) => `<div class="foe ally" data-unit-id="${esc(m.id)}"><div class="foe-name">${esc(m.name)}</div><div class="foe-hp">${bar(m.hp, m.maxHp, 'hp')}<span>${m.hp}/${m.maxHp}</span></div></div>`).join('')}</div>
-            <div class="battle-log" aria-live="polite">${battle.log.map((l) => `<p class="${l.important ? 'imp' : ''} ${/^--- .* ---$/.test(l.text) ? 'sep' : ''}">${esc(l.text)}</p>`).join('')}</div>
-            <div class="battle-foot">
-                <div class="me" data-unit-id="player">
-                    <canvas class="me-sprite" width="56" height="72" aria-hidden="true"></canvas>
-                    <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
-                    <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${Math.max(0, p.hp)}/${p.maxHp}</span></div>
-                    <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>
-                    <div class="tags">${tags(p.statusEffects)}</div>
+            <header class="b-head"><span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}</header>
+            <section class="b-field" aria-label="Battlefield">
+                <div class="b-side b-allies">
+                    <figure class="unit me" data-unit-id="player">
+                        <canvas class="me-sprite" width="40" height="36" aria-hidden="true"></canvas>
+                        <figcaption class="sr-only">${esc(p.name)}</figcaption>
+                    </figure>
+                    ${minions.map((m) => `<figure class="unit ally" data-unit-id="${esc(m.id)}">
+                        <span class="ally-mark" aria-hidden="true">✦</span>
+                        <figcaption class="plate"><span class="u-name">${esc(m.name)}</span>${hpBar(m.id, m.hp, m.maxHp, 'hp')}<span class="u-hp">${m.hp}/${m.maxHp}</span></figcaption></figure>`).join('')}
                 </div>
-                <div class="battle-menu">${menuHtml(menu)}<p class="keys">↑ ↓ choose · Enter confirm${menu && menu.back ? ' · Esc back' : ''}</p></div>
-            </div>`;
+                <div class="b-side b-foes">${foes.map((e) => {
+                    const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
+                    const aimed = battle.targetIds.includes(e.id);
+                    return `<figure class="unit foe ${aimed ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
+                        <span class="b-cursor" aria-hidden="true">${aimed ? '▼' : ''}</span>
+                        <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
+                        <figcaption class="plate"><span class="u-name">${esc(e.name)}</span>${hpBar(e.id, e.hp, e.maxHp, 'enemy')}<span class="u-hp">${e.hp}/${e.maxHp}</span>
+                            <span class="chips">${chips(e.statusEffects)}</span></figcaption></figure>`;
+                }).join('')}</div>
+            </section>
+            <section class="win b-log ${battle.logOpen ? 'open' : ''}" aria-live="polite" aria-label="Battle log">${logHtml}</section>
+            <footer class="b-foot">
+                <section class="win b-party" aria-label="Your status">
+                    <div class="u-name">${esc(p.name)} <span class="lv">Lv ${p.level}</span></div>
+                    <div class="stat"><span class="k">HP</span>${hpBar('player', p.hp, p.maxHp, 'hp')}<span class="v">${Math.max(0, p.hp)}<small>/${p.maxHp}</small></span></div>
+                    <div class="stat"><span class="k">${esc(p.resource.type)}</span>${hpBar('player.res', p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
+                    <div class="chips">${chips(p.statusEffects)}</div>
+                </section>
+                <section class="win b-cmd" aria-label="Commands">
+                    ${commandHtml(menu)}
+                    <p class="keys"><kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm${menu && menu.back ? ' <kbd>Esc</kbd> back' : ''} <kbd>L</kbd> ${battle.logOpen ? 'close log' : 'log'}</p>
+                </section>
+            </footer>`;
         bindMenuClicks(els.combat, menu);
+        const sel = els.combat.querySelector('.b-commands li.selected');
+        if (sel) sel.scrollIntoView({ block: 'nearest' });                       // long skill lists scroll with the cursor
+        els.combat.querySelector('.b-log').addEventListener('click', toggleBattleLog);
         els.combat.querySelectorAll('canvas[data-key]').forEach((c) => ENSO.worldRender.drawCreature(c, c.dataset.key, performance.now()));
-        const log = els.combat.querySelector('.battle-log');
-        log.scrollTop = log.scrollHeight;
-        battle.lastHp = Object.fromEntries(foes.map((e) => [e.id, e.hp]));
+        // Collapsed, the message window starts at the first line of what just happened (your own action),
+        // not at the bottom, so enemy turns never push your result out of view. Open, it shows the latest.
+        const log = els.combat.querySelector('.b-log');
+        const first = !battle.logOpen && log.querySelector('p.fresh');
+        log.scrollTop = first ? first.offsetTop - 4 : log.scrollHeight;   // .win is the offsetParent
+        battle.lastHp = Object.fromEntries([...foes, ...minions].map((e) => [e.id, e.hp]));
+        battle.lastHp.player = p.hp;
+        battle.lastHp['player.res'] = p.resource.current;
     }
+    function toggleBattleLog() { battle.logOpen = !battle.logOpen; renderBattle(); }
 
     // ---------------------------------------------------------------------
     // World actions
@@ -781,6 +837,7 @@
         if (stale.has(ev.key)) return;
         down.add(ev.key);
         if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
+            if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
             if (menu) menuKey(menu, ev, dir);
             return;
         }
@@ -864,7 +921,7 @@
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
         const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
-        const dim = screen === 'combat' || screen === 'over' ? 0.6 : view.fade;
+        const dim = screen === 'combat' || screen === 'over' ? 0.7 : view.fade;   // the map stays visible as the battle's backdrop
         renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }
