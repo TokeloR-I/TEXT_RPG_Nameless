@@ -25,12 +25,21 @@
         'k': { name: 'cage', solid: true },
         'M': { name: 'memorial', solid: true },
         'w': { name: 'wagon', solid: true },
-        'C': { name: 'cart', solid: true }
+        'C': { name: 'cart', solid: true },
+        // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md)
+        'U': { name: 'fountain', solid: true },
+        'V': { name: 'oven', solid: true },
+        'j': { name: 'hops', solid: true },
+        'X': { name: 'timber_wall', solid: true },
+        'g': { name: 'sacks', solid: true },
+        'e': { name: 'pig', solid: true },
+        'u': { name: 'cask', solid: true },
+        'J': { name: 'bell', solid: true }
     };
 
     const zones = {
         broken_tollway: { name: 'The Broken Tollway', mapIds: ['tollway'] },
-        shamefield_vale: { name: 'Shamefield', mapIds: ['shamefield', 'allotment', 'orchard'] },
+        shamefield_vale: { name: 'Shamefield', mapIds: ['shamefield', 'allotment', 'orchard', 'briarwell_cloister_court', 'village_residential_lane'] },
         featherwatch_heights: { name: 'Featherwatch', mapIds: ['featherwatch', 'sanctuary', 'seal_chamber'] }
     };
 
@@ -105,17 +114,17 @@
                 'TT,hhhhhhh,,,,,:,,,,hhhhhhhh,,TT',
                 'TT,hhhhhhh,,,,,:,,,,hhhhhhhh,,TT',
                 'TT,HnHHHnH,,,,,:,,,,HnHHnHnH,,TT',
-                'TT,,,,,,,,,,,,,:,,,,,,,,,,,,,,TT',
+                'TT,,,,,,,,,,,,,:,,,,,,,,,,,,,,::',
                 'TT,,,,+++++mm+++++++mm++++,,,,TT',
                 'TT,,,,++N+++++++++++++++++,,,,TT',
                 'TT,,,,++++++++++++++++++++,,,,TT',
                 'TT,,,,+++++++++O++++++++++,T,,TT',
                 ':::::::+++++++++++++++++++,,,,TT',
                 'TT,,o,++++++++++++++++++++,,,,TT',
-                'TT,,,,++++++++++++++++mm++,,,,TT',
+                'TT,,,,++++U+++++++++++mm++,,,,TT',
                 'TT,,,,++++++++++++++++++++,,,,TT',
                 'TT,,,,,,,,,,,,,:,,,,,,,,,,,,,,TT',
-                'TT,hhhhhh,,,,,,:,,,,,,,,,,M,,,TT',
+                'TT,hhhhhh,,,,,,:,,,,,,,,,,M,,,::',
                 'TT,hhhhhh,,,,,,:,,,,,,,,,,,,,,TT',
                 'TT,HnHHnH,T,,,,:,,,,,,,,,,,,,,TT',
                 'TT,,,,,,,,,,,,,:,,,,,,hhhhhh,,TT',
@@ -129,14 +138,20 @@
                 from_tollway: { x: 15, y: 22, facing: 'up' },
                 from_orchard: { x: 15, y: 1, facing: 'down' },
                 from_allotment: { x: 1, y: 10, facing: 'right' },
-                flight_well: { x: 15, y: 10, facing: 'up' }       // Black Flight arrival, beside the well
+                flight_well: { x: 15, y: 10, facing: 'up' },      // Black Flight arrival, beside the well
+                from_cloister: { x: 30, y: 5, facing: 'left' },
+                from_lane: { x: 30, y: 15, facing: 'left' }
             },
             exits: [
                 { id: 'shamefield_south', x: 15, y: 23, trigger: 'step', toMap: 'tollway', toSpawn: 'from_village' },
                 { id: 'shamefield_north_gate', x: 15, y: 0, trigger: 'step', toMap: 'orchard', toSpawn: 'from_village',
                     requires: { flags: ['north_gate_open'] },
                     lockedText: 'The orchard gate is chained shut. A painted board on it reads: CLOSED BY ORDER OF THE WATCH. ASK AT THE WATCH POST.' },
-                { id: 'shamefield_west', x: 0, y: 10, trigger: 'step', toMap: 'allotment', toSpawn: 'from_village' }
+                { id: 'shamefield_west', x: 0, y: 10, trigger: 'step', toMap: 'allotment', toSpawn: 'from_village' },
+                { id: 'shamefield_cloister', x: 31, y: 5, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_village',
+                    text: 'The lane climbs past the last houses to a stone arch. Beyond it, a bell, a courtyard, and the warm, sour smell of malt.' },
+                { id: 'shamefield_lane', x: 31, y: 15, trigger: 'step', toMap: 'village_residential_lane', toSpawn: 'from_village',
+                    text: 'Behind the square, the houses lean together over a narrow cobbled lane. Bread, woodsmoke and pigs, in roughly that order.' }
             ],
             interactables: [
                 { id: 'village_tamsin', kind: 'npc', npc: 'tamsin', x: 9, y: 8, name: 'Tamsin', sprite: 'elder' },
@@ -151,8 +166,100 @@
                     text: 'FESTIVAL OF THE SUN: the heroes\' victory, one year on! Below the bunting, two handwritten requests: "Wolf on the homestead road. Someone see to it." and "Herbs wanted from the north orchard. Ask Iona."' },
                 { id: 'village_well', kind: 'inspect', x: 15, y: 9, name: 'Village well',
                     text: 'The well\'s stones are carved with names: everyone who helped rebuild the bridge last spring. Someone has chalked SHAME ON SHANE across the bucket.' },
+                { id: 'village_fountain', kind: 'inspect', x: 10, y: 12, name: 'Market fountain',
+                    text: 'Three stone basins, one above the other, splashing into each other. Names are chiselled round the rim: the families who paid to bring the cloister spring down to the square. The well is for drawing water; the fountain is for meeting people.' },
+                { id: 'village_cloister_sign', kind: 'inspect', x: 29, y: 4, name: 'Signpost',
+                    text: 'East, uphill: BRIARWELL CLOISTER. Someone has added in chalk: AND BEER.' },
                 { id: 'village_memorial', kind: 'inspect', x: 26, y: 15, name: 'Memorial stone',
                     text: 'FOR THOSE TAKEN UNDER THE OLD CROWN. Fresh flowers. No names: the list was too long to carve.' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md, Vaelis): the cloister
+        // courtyard and a residential lane. Flavour and inspection only: no new quest gates, no shops yet
+        // (bread, beer and pork stock wait for Rook's real item definitions).
+        briarwell_cloister_court: {
+            zoneId: 'shamefield_vale',
+            name: 'Briarwell Cloister',
+            ambient: { tint: 'rgba(90, 80, 60, 0.12)', particles: { kind: 'smoke', count: 8 } },
+            tiles: [
+                '########################',
+                '#hhhhhhhh######hhhhhhhh#',
+                '#XXXnXXXX######XXXnXXXX#',
+                '#++++++++++J+++++++++++#',
+                '#+gg+++++++++++++++uuu+#',
+                '#+gg+++++++++++++++uuu+#',
+                '#++++++++++U+++++++++++#',
+                '#++++++++++++++++++++++#',
+                '#,,,,,,,,,,::,,,,,jjjj,#',
+                '#,,,,,,,,,,::,,,,,,,,,,#',
+                '#,,,,,,,,,,::,,,,,jjjj,#',
+                '#,,,,,,,,,,::,,,,,,,,,,#',
+                ':::::::::::::,,,,,jjjj,#',
+                '#,,,,,,,,,,,,,,,,,,,,,,#',
+                '#,,T,,,,,,,,,,,,,,,T,,,#',
+                '########################'
+            ],
+            spawns: { from_village: { x: 1, y: 12, facing: 'right' } },
+            exits: [
+                { id: 'cloister_west', x: 0, y: 12, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' }
+            ],
+            interactables: [
+                { id: 'cloister_fenric', kind: 'npc', npc: 'fenric', x: 17, y: 6, name: 'Brother Fenric', sprite: 'monk' },
+                { id: 'cloister_merrow', kind: 'npc', npc: 'merrow', x: 4, y: 6, name: 'Sister Merrow', sprite: 'steward' },
+                { id: 'cloister_charter', kind: 'inspect', x: 4, y: 2, name: 'Cloister charter',
+                    text: 'A board behind glass, the ink brown with age: the cloister may brew, bake and keep a granary "for the living, and against the winter". Older than the old crown. Nobody tore it down, so nobody had to put it back up.' },
+                { id: 'cloister_casks', kind: 'inspect', x: 19, y: 4, name: 'Casks',
+                    text: 'Chalk on every cask: BRIARWELL PALE, a date, and a small cross for each time the brewer tasted it. Some have a great many crosses.' },
+                { id: 'cloister_granary', kind: 'inspect', x: 2, y: 4, name: 'Granary sacks',
+                    text: 'Barley for the brewery, rye for the ovens, and a row set apart, tied with red cord: the reserve. A slate says DO NOT TOUCH in two different hands.' },
+                { id: 'cloister_cistern', kind: 'inspect', x: 11, y: 6, name: 'Fountain house',
+                    text: 'The spring comes up cold under a little stone roof. From here it runs to the brewery, to the gardens, and down the hill to the square. A cup on a chain. The water tastes of stone.' },
+                { id: 'cloister_bell', kind: 'inspect', x: 11, y: 3, name: 'Cloister bell',
+                    text: 'Its rope is worn smooth. It rings for dawn, for meals, and once, a year ago, for an hour without stopping.' },
+                { id: 'cloister_hops', kind: 'inspect', x: 18, y: 8, name: 'Hop trellis',
+                    text: 'Green cones hang in rows, sticky and bitter-smelling. A few leaves at the end have gone brown at the edges.' }
+            ]
+        },
+
+        village_residential_lane: {
+            zoneId: 'shamefield_vale',
+            name: "Baker's Lane",
+            ambient: { tint: 'rgba(90, 70, 50, 0.12)', particles: { kind: 'smoke', count: 10 } },
+            tiles: [
+                'TTTTTTTTTTTTTTTTTTTTTTTT',
+                'T,hhhhhh,,hhhhhh,,hhhhhT',
+                'T,XXnXXX,,XnXXXX,,XXnXXT',
+                'T,,,,,,,,,,,,,,,,,,,,,,T',
+                'T,V,,,,,,,,,,,,,,,,,,o,T',
+                'T++++++++++++++++++++++T',
+                'T++++++++++++++++++++++T',
+                ':++++++++++++++++++++++T',
+                'T,,,,,,,,,,,,,,,,,,,,,,T',
+                'T,hhhhh,,ffffff,,hhhhh,T',
+                'T,XXnXX,,f,e,,f,,XXnXX,T',
+                'T,,,,,,,,f,,e,f,,,,,,,,T',
+                'T,,,,x,,,ffffff,,,,,,,,T',
+                'TTTTTTTTTTTTTTTTTTTTTTTT'
+            ],
+            spawns: { from_village: { x: 1, y: 7, facing: 'right' } },
+            exits: [
+                { id: 'lane_west', x: 0, y: 7, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_lane' }
+            ],
+            interactables: [
+                { id: 'lane_oda', kind: 'npc', npc: 'oda', x: 3, y: 4, name: 'Oda of the Oven', sprite: 'baker' },
+                { id: 'lane_greta', kind: 'npc', npc: 'greta', x: 19, y: 3, name: 'Greta Rusk', sprite: 'butcher' },
+                { id: 'lane_oven', kind: 'inspect', x: 2, y: 4, name: 'Bread oven',
+                    text: 'A domed oven of blackened brick, still warm. Dark rye loaves cool on a board beside it. The crust cracks when you so much as look at it.' },
+                { id: 'lane_smokehouse', kind: 'inspect', x: 20, y: 2, name: 'Smokehouse',
+                    text: 'Beechwood smoke seeps out between the boards. Inside, in the dark, hams and long sausages hang in rows like bells.' },
+                { id: 'lane_pigs', kind: 'inspect', x: 9, y: 10, name: 'Pig pen',
+                    text: 'Two pigs, very pleased with the mud. A bucket of bran and bakery crusts stands by the gate: nothing in this lane is wasted.' },
+                { id: 'lane_woodpile', kind: 'inspect', x: 5, y: 12, name: 'Woodpile',
+                    text: 'Split beech for the oven, oak for the smokehouse. They are stacked apart, and you get the feeling that matters to someone.' },
+                { id: 'lane_stone', kind: 'inspect', x: 21, y: 4, name: 'Mounting stone',
+                    text: 'A worn stone for climbing onto carts. Children have scratched a game board into the top.' }
             ]
         },
 
