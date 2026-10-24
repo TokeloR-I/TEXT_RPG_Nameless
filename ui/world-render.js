@@ -714,6 +714,7 @@
             const mw = map.tiles[0].length * T, mh = map.tiles.length * T;
             const W = canvas.width, H = canvas.height;
             if (dark.width !== W || dark.height !== H) { dark.width = W; dark.height = H; g.imageSmoothingEnabled = false; }   // the stage was refitted (ui/display.js)
+            if (view.battle && ENSO.battleHD) return drawBattle(map, view, time, W, H);
             // camera: follow the player, clamp to the map, centre maps smaller than the screen
             const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
             const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
@@ -798,6 +799,29 @@
 
         /** HD-2D frame (ui/postfx.js): particles, hooks and fog stay here; darkness, coloured light, vignette
          *  and fade become a list of lights and a grade for the WebGL compositor. Returns { lights, grade, fade }. */
+        // HD-2D battle stage (ui/battle-hd.js): a painted backdrop picked from the map the fight began on.
+        const themes = new Map();
+        function drawBattle(map, view, time, W, H) {
+            const BH = ENSO.battleHD;
+            if (!themes.has(view.mapId)) {
+                const names = {};
+                for (const [ch, def] of Object.entries({ ...world.tileset, ...(map.legend || {}) })) names[ch] = def && def.name;
+                themes.set(view.mapId, BH.themeFor(map, names));
+            }
+            const theme = themes.get(view.mapId), amb = map.ambient || {};
+            BH.backdrop(g, W, H, theme, time);
+            if (amb.tint) { g.fillStyle = amb.tint; g.fillRect(0, 0, W, H); }
+            for (const p of particlesAt(amb.particles, W, H, time)) {
+                g.fillStyle = `rgba(${p.colour[0]}, ${p.colour[1]}, ${p.colour[2]}, ${p.a})`;
+                g.fillRect(p.x, p.y, p.size, p.size);
+            }
+            if (!opts.post) {
+                if (theme.night && theme.stage !== 'interior') { g.fillStyle = 'rgba(4, 4, 12, 0.25)'; g.fillRect(0, 0, W, H); }
+                return undefined;
+            }
+            return { lights: BH.stageLights(theme, W, H, time), grade: ENSO.postfx.gradeFor(amb), fade: view.fade || 0 };
+        }
+
         function postFrame(map, amb, objects, view, time, ox, oy, mw, mh, W, H) {
             const PF = ENSO.postfx;
             for (const p of particlesAt(amb.particles, mw, mh, time)) {
@@ -886,6 +910,7 @@
 
     /** Draw an enemy (by enemy key) into a small canvas, for battle cards. */
     function drawCreature(c, enemyKey, time) {
+        if (ENSO.battleHD) return ENSO.battleHD.drawFoe(c, enemyKey, time);   // 64px HD foes
         const g = c.getContext('2d');
         g.clearRect(0, 0, c.width, c.height);
         g.save(); g.scale(c.width / 32, c.height / 32);
