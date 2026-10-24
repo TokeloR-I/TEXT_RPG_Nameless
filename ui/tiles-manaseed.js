@@ -146,13 +146,26 @@
         return { sx, sy, w, h, dx: x * T + Math.floor((T - w) / 2), dy: (y + 1) * T - h + 6 };
     }
 
+    // What a tree's crown may spread over.
+    const CANOPY = new Set(['tree', 'dead_tree', 'fruit_tree']);
+
     function decorPass(g, map, nameAt, T) {
         const img = sheet();
         if (!img) return false;
         for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) {
             if (nameAt(map, x, y) !== 'tree') continue;
             const t = treeAt(x, y, T);
+            // The crown only spreads over its own cell and other trees (or the map's edge): paths, grass you can
+            // walk on and exits stay in view (QA-35).
+            g.save();
+            g.beginPath();
+            for (let cy = Math.floor(t.dy / T); cy <= y; cy++) for (let cx = Math.floor(t.dx / T); cx * T < t.dx + t.w; cx++) {
+                const n = nameAt(map, cx, cy);
+                if ((cx === x && cy === y) || n === null || CANOPY.has(n)) g.rect(cx * T, cy * T, T, T);
+            }
+            g.clip();
             g.drawImage(img, t.sx, t.sy, t.w, t.h, t.dx, t.dy, t.w, t.h);
+            g.restore();
         }
     }
 
@@ -160,6 +173,7 @@
         tree(g, px, py, T, c) {
             const img = sheet();
             if (!img) return false;
+            if (!CANOPY.has(c.above)) return;               // the crown was clipped off that cell (decorPass)
             const t = treeAt(c.tx, c.ty, T);
             // Only the crown straight above the trunk's cell covers people: the parts spilling sideways would hide
             // anyone in a gap between trees (paths through a tree line).

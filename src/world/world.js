@@ -51,11 +51,17 @@
         return out;
     }
     const inRect = (r, x, y) => x >= r.x && y >= r.y && x < r.x + (r.w || 1) && y < r.y + (r.h || 1);
+    /** The cells an object covers: one, or its w x h footprint (16 px maps give objects their whole 2x2 block). */
+    const cellsOf = (o) => {
+        const out = [];
+        for (let y = o.y; y < o.y + (o.h || 1); y++) for (let x = o.x; x < o.x + (o.w || 1); x++) out.push([x, y]);
+        return out;
+    };
 
     /** Tiles reachable on foot from (x, y), treating every placed object as an obstacle, except an encounter
      *  marked `gate: true`: a required fight that holds the only way on (Chapter One), gone once it's beaten. */
     function reachable(world, map, x, y) {
-        const blocked = new Set(placed(map).filter((o) => !(o.gate && isEncounter(map, o))).map((o) => `${o.x},${o.y}`));
+        const blocked = new Set(placed(map).filter((o) => !(o.gate && isEncounter(map, o))).flatMap(cellsOf).map(([x, y]) => `${x},${y}`));
         const seen = new Set([`${x},${y}`]);
         const queue = [[x, y]];
         while (queue.length) {
@@ -107,8 +113,10 @@
             for (const o of placed(map)) {
                 claim(o.id, `${where} object`);
                 if (!inBounds(map, o.x, o.y)) { err(`${where}: object ${o.id} out of bounds`); continue; }
-                if (objAt.has(`${o.x},${o.y}`)) err(`${where}: objects ${o.id} and ${objAt.get(`${o.x},${o.y}`)} share a tile`);
-                objAt.set(`${o.x},${o.y}`, o.id);
+                for (const [x, y] of cellsOf(o)) {
+                    if (objAt.has(`${x},${y}`)) err(`${where}: objects ${o.id} and ${objAt.get(`${x},${y}`)} share a tile`);
+                    objAt.set(`${x},${y}`, o.id);
+                }
                 if (isSolidTile(world, map, o.x, o.y) && isEncounter(map, o)) err(`${where}: encounter ${o.id} stands in a wall`);
                 if (isEncounter(map, o)) {
                     if (o.trigger !== 'contact') err(`${where}: encounter ${o.id} needs trigger 'contact'`);
@@ -166,7 +174,7 @@
                 const usable = (x, y, onTile) => (onTile && area.has(`${x},${y}`)) || neighbours(x, y).some(([nx, ny]) => area.has(`${nx},${ny}`));
                 // A doorway several tiles wide is several exits sharing a `group`: one usable tile is enough.
                 for (const [gid, group] of exitGroups(map)) if (!group.some((e) => usable(e.x, e.y, e.trigger === 'step'))) err(`${where}: exit ${gid} can't be reached from spawn ${sid}`);
-                for (const o of placed(map)) if (!usable(o.x, o.y, false)) err(`${where}: object ${o.id} can't be reached from spawn ${sid}`);
+                for (const o of placed(map)) if (!cellsOf(o).some(([x, y]) => usable(x, y, false))) err(`${where}: object ${o.id} can't be reached from spawn ${sid}`);
                 for (const b of map.boundaries || []) {
                     let ok = false;
                     for (let y = b.y; y < b.y + (b.h || 1); y++) for (let x = b.x; x < b.x + (b.w || 1); x++) if (area.has(`${x},${y}`)) ok = true;
@@ -261,7 +269,7 @@
         }
 
         tile(x, y) { return tileAt(this.world, this.map, x, y); }
-        objectAt(x, y) { return placed(this.map).find((o) => o.x === x && o.y === y && this.present(o)) || null; }
+        objectAt(x, y) { return placed(this.map).find((o) => inRect(o, x, y) && this.present(o)) || null; }
         boundaryAt(x, y) { return (this.map.boundaries || []).find((b) => inRect(b, x, y)) || null; }
         exitAt(x, y, trigger) { return (this.map.exits || []).find((e) => e.x === x && e.y === y && (!trigger || e.trigger === trigger)) || null; }
         isBlocked(x, y) { return isSolidTile(this.world, this.map, x, y) || !!this.objectAt(x, y); }

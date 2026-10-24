@@ -305,6 +305,8 @@
         watch_captain: {
             name: 'Watch Captain', title: 'Shamefield Watch',
             talk: [
+                // He tells you about Shane's allotment once, even mid-errand (optional quests can come first).
+                { if: { flags: ['shane_watch_resolved'], notFlags: ['captain_told_shane'] }, node: 'suspicious' },
                 { if: { quests: { Q05: 'active' }, flags: ['register_carried'] }, node: 'register' },
                 { if: { quests: { Q05: 'active' } }, node: 'gate' },
                 { if: { flags: ['shane_watch_resolved'] }, node: 'suspicious' },
@@ -328,6 +330,7 @@
                 },
                 suspicious: {
                     lines: [['npc', "Two of my constables came back limping from Shane's allotment, and the evidence wagon's lighter than it was. I can't prove who did it. Yet."]],
+                    effects: [{ flag: 'captain_told_shane' }],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 default: {

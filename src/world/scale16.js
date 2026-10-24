@@ -33,7 +33,8 @@
         };
         const place = (o) => {
             const bx = o.x * 2, by = o.y * 2;
-            if (!solid(bx, by) || !Object.keys(tileset).length) return { ...o, x: bx, y: by };
+            // An object on open ground takes its whole block, so it blocks, talks and fights from all of it (QA-33/34).
+            if (!solid(bx, by) || !Object.keys(tileset).length) return { ...o, x: bx, y: by, w: 2, h: 2 };
             for (const [dx, dy] of BLOCK) {
                 const x = bx + dx, y = by + dy;
                 const open = [[x, y + 1], [x, y - 1], [x - 1, y], [x + 1, y]].some(([nx, ny]) => (nx < bx || nx > bx + 1 || ny < by || ny > by + 1) && !solid(nx, ny));

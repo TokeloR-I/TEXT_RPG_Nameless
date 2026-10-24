@@ -238,3 +238,20 @@ test('Chapter One: content integrity: every objective marker, npc and condition 
     assert.strictEqual(gates.reduce((sum, e) => sum + e.enemies.reduce((t, k) => t + data.enemies[k].xp, 0), 0), 115, 'required fights: 20+25+40+30');
     assert.strictEqual(STORY.npcs.shane.farewell, 'Suffer!');
 });
+
+test('Chapter One: leaving a main quest behind never stalls the chain: a later step catches it up (QA-36/39)', () => {
+    const { g, s } = run();
+    assert.strictEqual(g.questState('Q01'), 'active');
+    travel(s, 'tollway');
+    assert.strictEqual(g.questState('Q01'), 'active', 'walking on alone completes nothing');
+    talk(s, 'tollway_elian');
+    for (const q of ['Q01', 'Q02']) assert.strictEqual(g.questState(q), 'complete', `${q} caught up by talking to Elian`);
+    assert.strictEqual(g.questState('Q03'), 'active');
+    bye(g);
+    const xp = total(g);
+    assert.strictEqual(xp, 15 + 20, 'the skipped quests pay their XP once');
+    s.place('shamefield', 'from_tollway');
+    talk(s, 'village_captain');
+    assert.strictEqual(g.questState('Q05'), 'active', 'the Captain gives the register errand');
+    for (const q of ['Q03', 'Q04']) assert.strictEqual(g.questState(q), 'complete');
+});
