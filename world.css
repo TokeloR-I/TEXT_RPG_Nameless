@@ -44,7 +44,7 @@
    frame with a lit inner edge, and notched pixel corners. Scales by font size, so it stays crisp. */
 .win {
     position: relative;
-    background: linear-gradient(180deg, var(--c-win-hi) 0 33%, var(--c-win-mid) 33% 66%, var(--c-win-lo) 66% 100%);
+    background: linear-gradient(180deg, var(--c-win-hi) 0 1.6em, var(--c-win-mid) 1.6em 3.2em, var(--c-win-lo) 3.2em 100%);   /* hard-stepped header shading, whatever the window's height */
     border: 2px solid var(--c-frame);
     box-shadow: inset 0 0 0 1px var(--c-frame-lo), inset 0 2px 0 1px rgba(216, 198, 144, 0.18), 0 0 0 2px var(--c-frame-lo);
     clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px), 0 3px);
@@ -479,4 +479,64 @@ body {
 @media (max-width: 600px) {
     .title-screen .creator-nav { gap: 0.4em; }
     .title-screen .creator-nav button { min-width: 5.5em; padding: 0.3em 0.45em; }
+}
+
+/* ---------- main menu (Pixie, UI-3 / UI-6) ----------
+   Esc: tabs on the left, the tab's page on the right, help and keys at the bottom. */
+.panel.win { border: 2px solid var(--c-frame); background: linear-gradient(180deg, var(--c-win-hi) 0 1.6em, var(--c-win-mid) 1.6em 3.2em, var(--c-win-lo) 3.2em 100%);   /* hard-stepped header shading, whatever the window's height */ }
+.panel.mm {
+    inset: 4cqw 8cqw; padding: 1.4cqw 1.8cqw; overflow: hidden;
+    display: grid; grid-template-columns: minmax(9em, 0.32fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 0.6em 1.6cqw;
+}
+.mm h2 { font-size: 0.85em; letter-spacing: 0.22em; color: var(--c-ink-dim); margin: 0 0 0.5em; }
+.mm h3 { margin: 0.7em 0 0.3em; font-size: 0.85em; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-accent); }
+.mm h3:first-of-type { margin-top: 0; }
+.mm-nav { border-right: 1px solid rgba(138, 122, 88, 0.45); padding-right: 1.2cqw; min-height: 0; }
+.mm-page { min-height: 0; overflow-y: auto; scrollbar-width: thin; padding-right: 0.3em; }
+.mm-foot { grid-column: 1 / -1; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.35em; }
+.mm-foot .b-help, .mm-foot .note { margin: 0 0 0.2em !important; min-height: 0; border: 0; padding: 0; }
+.mm-foot .keys { margin: 0 !important; font-size: 0.8em; color: var(--c-ink-dim); }
+.mm .menu li { padding: 0.25em 0.5em 0.25em 1.3em; position: relative; flex-direction: row; }
+.mm .menu li.selected { border-color: var(--c-accent); background: rgba(159, 232, 207, 0.12); }
+.mm .menu li.selected .m-label::before { content: '▶'; position: absolute; left: 0.35em; color: var(--c-accent); animation: nudge 0.6s steps(2) infinite; }
+.mm .menu li.disabled { opacity: 1; }
+.mm .menu li.disabled .m-label { color: var(--c-ink-mute); }
+.mm .menu li.disabled .m-label::after { content: ' ✕'; font-size: 0.8em; }
+.mm-tabs li.active { border-color: var(--c-frame); background: rgba(216, 198, 144, 0.08); }
+.mm-tabs li.active .m-label::before { content: '▸'; position: absolute; left: 0.35em; color: var(--c-frame-hi); }
+.mm-tabs li:nth-child(6) { margin-top: 0.6em; }                     /* Save and Quit sit apart from the pages */
+.mm-list { display: flex; flex-direction: column; gap: 0.1em; }
+.mm-page .b-help { margin: 0.35em 0 0; min-height: 2.6em; font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
+.mm-dim { color: var(--c-ink-dim); }
+.mm-plain { list-style: none; margin: 0; padding: 0; }
+.mm-plain li { padding: 0.15em 0; }
+.mm-status { display: flex; align-items: center; gap: 1em; margin-bottom: 0.6em; }
+.mm-sprite { width: 8cqw; height: 9cqw; image-rendering: pixelated; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--c-frame-lo); }
+.mm-who .u-name { font-weight: bold; font-size: 1.1em; }
+.mm-bars { display: flex; flex-direction: column; gap: 0.3em; max-width: 30em; }
+.mm-bars .stat { display: grid; grid-template-columns: 5em minmax(0, 1fr) 5.5em; align-items: center; gap: 0.5em; }
+.mm-bars .k { color: var(--c-ink-dim); font-size: 0.85em; }
+.mm-bars .v { text-align: right; font-variant-numeric: tabular-nums; }
+.mm-bars .v small { color: var(--c-ink-dim); }
+.bar.xp > span { background: var(--c-gold); }
+.mm-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4em; margin: 0.8em 0; max-width: 30em; }
+.mm-stats div { border: 1px solid var(--c-frame-lo); background: rgba(0, 0, 0, 0.3); padding: 0.3em 0.5em; }
+.mm-stats dt { color: var(--c-ink-dim); font-size: 0.78em; letter-spacing: 0.1em; }
+.mm-stats dd { margin: 0; font-weight: bold; font-variant-numeric: tabular-nums; }
+.mm-stats .up { border-color: var(--c-st-dot); } .mm-stats .up .arrow { color: var(--c-st-dot); }
+.mm-stats .down { border-color: var(--c-hp); } .mm-stats .down .arrow { color: var(--c-hp-low); }
+.mm-cols .mm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mm-gear { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.2em 1em; }
+.mm-cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.4cqw; }
+.mm code { color: var(--c-accent); }
+.mm kbd { margin: 0 0.1em; }
+@media (max-width: 640px) {
+    .panel.mm { inset: 2cqw; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; padding: 2.5cqw; }
+    .mm-nav { border-right: 0; border-bottom: 1px solid rgba(138, 122, 88, 0.45); padding: 0 0 0.4em; }
+    .mm-nav h2 { display: none; }
+    .mm-tabs { display: flex; flex-wrap: wrap; gap: 0.2em; }
+    .mm-tabs li { padding: 0.2em 0.5em 0.2em 1.1em; }
+    .mm-tabs li:nth-child(6) { margin-top: 0; }
+    .mm-cols { grid-template-columns: minmax(0, 1fr); }
+    .mm-sprite { width: 16cqw; height: 18cqw; }
 }

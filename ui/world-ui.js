@@ -469,53 +469,149 @@
     }
 
     // ---------------------------------------------------------------------
-    // Pause menu: character, journal, inventory (use healing items), controls
+    // Main menu (Esc; Pixie UI-3 / UI-6, docs/ui/STYLE_GUIDE.md): tabs on the left, the tab's page on the
+    // right. ↑↓ choose a tab and preview it; Enter or → goes into its list; Esc or ← comes back out.
+    // Items and Equipment show the engine's own answers (getAvailableActions, getEquipment) and send
+    // its actions; this file never decides what can be used or worn.
     // ---------------------------------------------------------------------
-    function openPause(note, at) {
+    const MM = ENSO.mainMenu;
+    const MM_TABS = [
+        { id: 'status', label: 'Status', sub: 'Your character, stats and gear.' },
+        { id: 'items', label: 'Items', sub: 'Use what you carry.' },
+        { id: 'equipment', label: 'Equipment', sub: 'Change your gear and compare stats.' },
+        { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'settings', label: 'Settings', sub: 'Display, controls and this run.' },
+        { id: 'save', label: 'Save game', sub: 'Keeps your place in this browser (one save slot).' },
+        { id: 'quit', label: 'Quit to title', sub: 'Anything since your last save is lost.' }
+    ];
+    let mm = { tab: 0, focus: 'tabs', slot: null, note: '' };
+    function openPause(note) {
         modal = 'pause';
         muteHeldKeys();
         els.hud.hidden = true;
-        const p = engine.getState().player;
-        const usable = [...new Set(p.inventory.filter((i) => DATA.itemDefinitions[i]))];
-        const items = [{ label: 'Resume', action: closePause }];
-        for (const item of usable) {
-            const n = p.inventory.filter((i) => i === item).length;
-            const def = DATA.itemDefinitions[item];
-            items.push({ label: `Use ${item}${n > 1 ? ` (x${n})` : ''}`, sub: `${def.description} Heals ${def.value}.`, action: () => useItem(item) });
-        }
-        const displayAt = items.length;
-        items.push({ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: () => openPause(cycleDisplay(), displayAt) });
-        items.push({ label: 'Save game', sub: 'Keeps your place in this browser (one save slot).', action: () => openPause(saveGame()) });
-        items.push({ label: 'Quit to title', sub: 'Anything since your last save is lost.', action: showTitle });
-        menu = makeMenu(items, { back: closePause, render: () => renderPause(note) });
-        if (at != null) menu.index = at;                                  // a setting keeps the cursor where it was
-        renderPause(note);
+        mm = { tab: mm.tab || 0, focus: 'tabs', slot: null, note: note || '' };
+        focusTabs();
     }
-    function renderPause(note) {
-        const s = engine.getState(), p = s.player;
+    function focusTabs() {
+        mm.focus = 'tabs'; mm.slot = null;
+        menu = makeMenu(MM_TABS.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
+            { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
+        menu.index = mm.tab;
+        renderMain();
+    }
+    function runTab(id) {
+        if (id === 'save') { mm.note = saveGame(); renderMain(); return; }
+        if (id === 'quit') { showTitle(); return; }
+        enterList(id, 0);
+    }
+    /** The list inside a tab (or, in Equipment, a slot's choices). `at` keeps the cursor after an action. */
+    function enterList(id, at) {
+        let items = null;
+        const again = (fn) => () => { const i = menu.index; fn(); enterList(id, i); };
+        if (id === 'items') {
+            const v = MM.itemsView(engine.getAvailableActions(), engine.getState().player.inventory, DATA.itemDefinitions);
+            items = v.usable.map((u) => ({ label: `${u.item}${u.count > 1 ? ` ×${u.count}` : ''}`, sub: u.enabled ? u.description : (u.reason ? u.reason.message : ''), disabled: !u.enabled,
+                action: again(() => { mm.note = actLines({ type: 'use_item', item: u.item }); }) }));
+        }
+        if (id === 'equipment' && !mm.slot) {
+            items = MM.slotsView(engine.getEquipment()).map((r) => ({ label: `${r.label}: ${r.item || '—'}`, sub: r.candidates.length ? `${r.candidates.length} to choose from` : r.item ? 'Nothing else fits here' : 'Nothing that fits',
+                disabled: !r.candidates.length && !r.item, action: () => { mm.slot = r.slot; enterList('equipment', 0); } }));
+        }
+        if (id === 'equipment' && mm.slot) {
+            const row = MM.slotsView(engine.getEquipment()).find((r) => r.slot === mm.slot);
+            items = row.candidates.map((c) => ({ label: c.item, sub: c.enabled ? `${c.diffText}${c.description ? ` · ${c.description}` : ''}` : c.reason.message, disabled: !c.enabled, diff: c.diff,
+                action: () => { mm.note = actLines({ type: 'equip', item: c.item }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } }));
+            if (row.item) items.push({ label: `Take off ${row.item}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
+        }
+        if (id === 'settings') {
+            items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) }];
+        }
+        if (!items || !items.length) { renderMain(); return; }          // Status and Journal are pages, not lists
+        mm.focus = 'list';
+        const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); } : null;
+        menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
+        if (at != null && at < items.length) menu.index = at;
+        renderMain();
+    }
+    /** Run an engine action from the menu and return what it said, for the note line. */
+    function actLines(action) {
+        const lines = readable(engine.act(action).events).map((l) => l.text).filter((t) => !/ vs .*: \{/.test(t));   // drop the text game's compare dump
+        updateHud();
+        return lines.join(' ');
+    }
+    function statusHtml(p, s) {
         const map = WORLD.maps[session.mapId];
-        const branch = s.progression.branch ? ` · ${s.progression.evolutionName}` : '';
-        const other = p.inventory.filter((i) => !DATA.itemDefinitions[i]);
+        const cls = (DATA.basePlayerClasses[p.className] || {}).name || p.className;
+        const eq = MM.slotsView(engine.getEquipment());
+        return `<div class="mm-status">
+                <canvas class="mm-sprite" width="32" height="36" aria-hidden="true"></canvas>
+                <div class="mm-who"><div class="u-name">${esc(p.name)}</div>
+                    <div class="mm-dim">${esc(cls)}${s.progression.branch ? ` · ${esc(s.progression.evolutionName)}` : ''} · Lv ${p.level}</div>
+                    <div class="mm-dim">${esc(map.name)} · ${esc(WORLD.zones[map.zoneId].name)}</div></div>
+            </div>
+            <div class="mm-bars">
+                <div class="stat"><span class="k">HP</span>${bar(p.hp, p.maxHp, 'hp')}<span class="v">${p.hp}<small>/${p.maxHp}</small></span></div>
+                <div class="stat"><span class="k">${esc(p.resource.type)}</span>${bar(p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
+                <div class="stat"><span class="k">XP</span>${bar(p.xp, p.xpToNext, 'xp')}<span class="v">${p.xp}<small>/${p.xpToNext}</small></span></div>
+            </div>
+            ${statsHtml(p, null)}
+            <ul class="mm-gear">${eq.map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item || '—')}</li>`).join('')}<li><span class="mm-dim">Gold</span> ${p.gold || 0}</li></ul>`;
+    }
+    /** The stat block; with a candidate's diff it becomes the comparison (▲ better, ▼ worse, never colour alone). */
+    function statsHtml(p, diff) {
+        return `<dl class="mm-stats">${MM.statPreview(p, diff).map((r) => `<div class="${r.delta > 0 ? 'up' : r.delta < 0 ? 'down' : ''}"><dt>${r.label}</dt><dd>${r.value}${r.delta ? ` <span class="arrow">${r.delta > 0 ? '▲' : '▼'}</span> ${r.after}` : ''}</dd></div>`).join('')}</dl>`;
+    }
+    function renderMain() {
+        const s = engine.getState(), p = s.player;
+        const tab = MM_TABS[mm.tab].id;
+        const inList = mm.focus === 'list';
+        const tabsHtml = `<ul class="menu mm-tabs" role="tablist" aria-label="Menu">${MM_TABS.map((t, i) => {
+            const cls = !inList && i === menu.index ? 'selected' : i === mm.tab ? 'active' : '';
+            return `<li role="tab" data-tab="${i}" aria-selected="${i === mm.tab}" class="${cls}"><span class="m-label">${esc(t.label)}</span></li>`;
+        }).join('')}</ul>`;
+        const list = inList ? commandHtml(menu).replace('b-commands', 'mm-list') : '';
+        let page = '';
+        if (tab === 'status') page = statusHtml(p, s);
+        if (tab === 'items') {
+            const v = MM.itemsView(engine.getAvailableActions(), p.inventory, DATA.itemDefinitions);
+            page = `<h3>Use</h3>${inList ? list : v.usable.length ? `<ul class="mm-plain">${v.usable.map((u) => `<li>${esc(u.item)}${u.count > 1 ? ` ×${u.count}` : ''}</li>`).join('')}</ul>` : '<p class="mm-dim">Nothing to use.</p>'}
+                ${v.carrying.length ? `<h3>Carrying</h3><ul class="mm-plain mm-dim">${v.carrying.map((c) => `<li>${esc(c.item)}${c.count > 1 ? ` ×${c.count}` : ''}</li>`).join('')}</ul>` : ''}`;
+        }
+        if (tab === 'equipment') {
+            const hl = inList && menu.items[menu.index];
+            const slotLabel = mm.slot ? MM.SLOTS.find((x) => x.slot === mm.slot).label : null;
+            page = `<div class="mm-cols"><div><h3>${slotLabel ? esc(slotLabel) : 'Gear'}</h3>${inList ? list : `<ul class="mm-plain">${MM.slotsView(engine.getEquipment()).map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item || '—')}</li>`).join('')}</ul>`}</div>
+                <div><h3>${hl && hl.diff ? 'If you wear it' : 'Stats'}</h3>${statsHtml(p, hl && hl.diff)}</div></div>`;
+        }
+        if (tab === 'journal') page = journalHtml() || '<p class="mm-dim">No journal in this game.</p>';
+        if (tab === 'settings') {
+            page = `<h3>Display</h3>${inList ? list : `<p>${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p>`}
+                <h3>Controls</h3><ul class="mm-plain"><li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li></ul>
+                <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
+        }
+        if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(MM_TABS[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
+        const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'settings'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+        els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
-            <h2>Paused</h2>
-            <div class="pause-cols">
-                <div>
-                    <section><h3>${esc(map.name)}</h3><p>${esc(WORLD.zones[map.zoneId].name)}</p></section>
-                    <section><h3>${esc(p.name)}${esc(branch)}</h3>
-                        <p>Level ${p.level} · XP ${p.xp}/${p.xpToNext}</p>
-                        <p>HP ${p.hp}/${p.maxHp} · ${esc(p.resource.type)} ${p.resource.current}/${p.resource.max}</p>
-                        <p>STR ${p.strength} · INT ${p.intelligence} · AGI ${p.agility} · DEF ${p.def}</p>
-                        ${other.length ? `<p>Also carrying: ${esc(other.join(', '))}</p>` : ''}</section>
-                    ${journalHtml()}
-                    <section><h3>Run seed</h3>
-                        <p>${engine.seed} · to replay this run, open <code>world.html?seed=${engine.seed}</code> and make the same moves</p></section>
-                    <section><h3>Controls</h3>
-                        <p>Arrows / WASD: walk · E, Enter, Space: inspect, pick up, climb · Esc: this menu · Walk into an enemy to fight it</p></section>
-                </div>
-                <div>${menuHtml(menu)}${note ? `<p class="note">${esc(note)}</p>` : ''}</div>
-            </div>`;
+            <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
+            <section class="mm-page" aria-live="polite"><h2>${esc(MM_TABS[mm.tab].label)}</h2>${page}</section>
+            <footer class="mm-foot">${mm.note ? `<p class="note">${esc(mm.note)}</p>` : inList ? '' : `<p class="b-help">${esc(MM_TABS[mm.tab].sub)}</p>`}<p class="keys">${keys}</p></footer>`;
         els.pause.hidden = false;
-        bindMenuClicks(els.pause, menu);
+        els.pause.querySelectorAll('.mm-tabs li').forEach((li) => li.addEventListener('click', () => { mm.tab = +li.dataset.tab; focusTabs(); runTab(MM_TABS[mm.tab].id); }));
+        if (inList) bindMenuClicks(els.pause.querySelector('.mm-page'), menu);
+        const sel = els.pause.querySelector('.mm-list li.selected'); if (sel) sel.scrollIntoView({ block: 'nearest' });
+        const sprite = els.pause.querySelector('canvas.mm-sprite');
+        if (sprite) {
+            const g = sprite.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sprite.width, sprite.height);
+            ENSO.sprites.drawCharacter(g, 16, 34, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
+        }
+    }
+    /** ← leaves a list, → opens the highlighted tab (keyboard and pad). */
+    function mainMenuSideways(dir) {
+        if (dir === 'left' && mm.focus === 'list') { menu.back(); return true; }
+        if (dir === 'right' && mm.focus === 'tabs') { const t = MM_TABS[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
+        return false;
     }
     /** The engine's journal: active quests with their current objective, then what's done. */
     function journalHtml() {
@@ -528,12 +624,7 @@
             ${active.map((q) => `<p class="j-quest"><b>${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>'}
             ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
     }
-    function useItem(item) {
-        const lines = readable(engine.act({ type: 'use_item', item }).events).map((l) => l.text);
-        updateHud();
-        openPause(lines.join(' '));
-    }
-    function closePause() { els.pause.hidden = true; els.hud.hidden = false; modal = null; menu = null; muteHeldKeys(); }
+    function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; menu = null; muteHeldKeys(); }
 
     // ---------------------------------------------------------------------
     // Evolution: the engine asks for a branch at level 3
@@ -552,6 +643,7 @@
         renderBranch();
     }
     function renderBranch() {
+        els.pause.className = 'panel win';
         els.pause.innerHTML = `<h2>A surge of new power</h2><p>It's time to specialise. Choose your path:</p>${menuHtml(menu)}<p class="keys">↑ ↓ choose · Enter confirm</p>`;
         els.pause.hidden = false;
         bindMenuClicks(els.pause, menu);
@@ -893,6 +985,8 @@
         down.add(ev.key);
         if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
+            if (modal === 'pause' && menu && (dir === 'left' || dir === 'right') && !ev.repeat && mainMenuSideways(dir)) return;
+            if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
             if (menu) menuKey(menu, ev, dir);
             return;
         }
