@@ -344,7 +344,7 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,canvas.width,canvas.height);
             ctx.imageSmoothingEnabled = false;
-            ENSO.sprites.drawCharacter(ctx, 96, 183, { appearance, cosmetics: cosmetic, className, facing, anim: 'idle', scale: 5 }, 0);
+            ENSO.sprites.drawCharacter(ctx, 96, 183, { appearance, cosmetics: cosmetic, className, facing, anim: 'idle', scale: 5, basePlayer: true }, 0);
         }
         els.title.querySelectorAll('[data-style-preview]').forEach(tile => {
             const g = tile.getContext('2d');

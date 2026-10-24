@@ -16,7 +16,9 @@
     const rows = { down: 0, left: 1, right: 2, up: 3 };
     const cache = {};
     function draw(g, x, y, opts = {}, time = 0) {
-        if (opts.character && opts.character !== ENSO.spriteManifest.player) return false;
+        // Shared drawCharacter also renders villagers, enemy portraits and cosmetic thumbnails.
+        // Only the actual protagonist opts into the naked body art.
+        if (opts.basePlayer !== true || (opts.character && opts.character !== ENSO.spriteManifest.player)) return false;
         const anim = opts.anim === 'walk' || opts.anim === 'run' ? opts.anim
             : opts.anim === 'death' ? 'death' : opts.anim === 'hit' ? 'hit' : 'idle';
         const clip = clips[anim], url = (ENSO.baseSpriteData && ENSO.baseSpriteData[clip.file]) || prefix + clip.file;
