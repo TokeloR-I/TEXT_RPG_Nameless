@@ -4,11 +4,11 @@
  * tiles becomes a 16 px map by turning every cell into a 2×2 block: tiles repeat, coordinates double, and
  * anything that covers an area (boundaries, light radii) doubles in size. The map then looks and plays the
  * same at half the tile size. Pure functions, no DOM; tools/convert-maps-16.js runs them over the world.
- *   doubleMap(map)      one map (returns a new object; tileSize: 16)
+ *   doubleMap(map)      one map (returns a new object; tileSize: 16, source32: the original, for the painters)
  *   doubleWorld(world)  every map in a world, plus the start
  *   doubleStory(story)  quest objective markers ({ map, x, y }) in the story data
  * Step and interact exits are copied onto all four cells of their block (ids `<id>`, `<id>__2..4`, one
- * `group`), so a doorway is still one doorway wide. Objects stay on one cell: the top-left of their block, or, on a solid tile,
+ * `group`; the plain id goes on the cell nearest a spawn), so a doorway is still one doorway wide. Objects stay on one cell: the top-left of their block, or, on a solid tile,
  * the cell of the block that faces open ground. A spawn beside a doorway lands on the cell touching it.
  * ========================================================================= */
 (function (global) {
@@ -22,7 +22,8 @@
      *  block that faces open ground, so it can still be reached. Without it, objects go to the top-left cell. */
     function doubleMap(map, tileset = {}) {
         if (map.tileSize === 16) return map;
-        const out = { ...map, tileSize: 16 };
+        const out = { ...map, tileSize: 16, source32: map };
+        if (map.ambient && map.ambient.lantern) out.ambient = { ...map.ambient, lantern: map.ambient.lantern * 2 };   // light radii are in tiles
         out.tiles = [];
         for (const row of map.tiles) { const r = [...row].map((c) => c + c).join(''); out.tiles.push(r, r); }
         const solid = (x, y) => {
@@ -46,7 +47,13 @@
             return { ...s, x: s.x * 2 + (e && e.x > s.x ? 1 : 0), y: s.y * 2 + (e && e.y > s.y ? 1 : 0) };
         };
         if (map.spawns) out.spawns = Object.fromEntries(Object.entries(map.spawns).map(([k, s]) => [k, spawn(s)]));
-        if (map.exits) out.exits = map.exits.flatMap((e) => BLOCK.map(([dx, dy], i) => ({ ...e, id: i ? `${e.id}__${i + 1}` : e.id, group: e.group || e.id, x: e.x * 2 + dx, y: e.y * 2 + dy })));
+        // The exit keeps its own id on the cell nearest a spawn (the side you walk in from); the rest get suffixes.
+        const spawns = Object.values(out.spawns || {});
+        const near = (x, y) => Math.min(Infinity, ...spawns.map((p) => Math.abs(p.x - x) + Math.abs(p.y - y)));
+        if (map.exits) out.exits = map.exits.flatMap((e) => BLOCK
+            .map(([dx, dy]) => [e.x * 2 + dx, e.y * 2 + dy])
+            .sort((a, b) => near(a[0], a[1]) - near(b[0], b[1]))
+            .map(([x, y], i) => ({ ...e, id: i ? `${e.id}__${i + 1}` : e.id, group: e.group || e.id, x, y })));
         for (const k of ['interactables', 'encounters']) if (map[k]) out[k] = map[k].map(place);
         if (map.boundaries) out.boundaries = map.boundaries.map((b) => ({ ...at2(b), w: (b.w || 1) * 2, h: (b.h || 1) * 2 }));
         if (map.lights) out.lights = map.lights.map((l) => ({ ...at2(l), radius: l.radius * 2 }));

@@ -83,8 +83,8 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         }
         return false;
     };
-    const objAt = (mapId, id) => page.evaluate(([m, id]) => { const map = ENSO.world.zone1.maps[m]; return [...(map.interactables || []), ...(map.encounters || [])].find((o) => o.id === id); }, [mapId, id]);
-    const exitOf = (mapId, id) => page.evaluate(([m, id]) => ENSO.world.zone1.maps[m].exits.find((e) => e.id === id), [mapId, id]);
+    const objAt = (mapId, id) => page.evaluate(([m, id]) => { const map = ensoDebug.world.maps[m]; return [...(map.interactables || []), ...(map.encounters || [])].find((o) => o.id === id); }, [mapId, id]);
+    const exitOf = (mapId, id) => page.evaluate(([m, id]) => ensoDebug.world.maps[m].exits.find((e) => e.id === id), [mapId, id]);
     const press = async (k, wait = 150) => { await page.keyboard.press(k); await sleep(wait); };
 
     // ------------------------------------------------------------------ B1 load
@@ -191,7 +191,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     // ------------------------------------------------------------------ B9 encounter: overlay, input focus, flee, no instant re-fight
     {
         await goto('grounds', 'from_house');
-        const enc = await page.evaluate(() => ENSO.world.zone1.maps.grounds.encounters[0]);
+        const enc = await page.evaluate(() => ensoDebug.world.maps.grounds.encounters[0]);
         await page.evaluate(() => { enso.player.hp = enso.player.maxHp = 9999; });
         // walk up to it and then into it
         let ok = false;
@@ -252,7 +252,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     // ------------------------------------------------------------------ B11 road boundary notice, can turn back
     {
         await goto('road', 'from_grounds');
-        const b = await page.evaluate(() => ENSO.world.zone1.maps.road.boundaries && ENSO.world.zone1.maps.road.boundaries[0]);
+        const b = await page.evaluate(() => ensoDebug.world.maps.road.boundaries && ensoDebug.world.maps.road.boundaries[0]);
         let txt = '', turned = false;
         if (b) {
             // walk to the nearest tile of the boundary rectangle
@@ -274,7 +274,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     {
         await goto('road', 'from_grounds');
         await page.evaluate(() => { enso.player.hp = 1; enso.player.def = 0; });
-        const w = await page.evaluate(() => ENSO.world.zone1.maps.road.encounters[0]);
+        const w = await page.evaluate(() => ensoDebug.world.maps.road.encounters[0]);
         for (const [d, dx, dy] of [['down', 0, -1], ['up', 0, 1], ['right', -1, 0], ['left', 1, 0]]) {
             const r = await route(w.x + dx, w.y + dy);
             if (r) { for (const s of r) await step(s); await step(d); break; }

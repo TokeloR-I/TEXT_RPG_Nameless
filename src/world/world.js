@@ -372,12 +372,18 @@
             return { type: 'transition', exit: null, anchor: anchorId, from, to: this.mapId, text: null, events };
         }
 
-        getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
+        getState() {
+            const st = { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown };
+            if (this.map.tileSize) st.tile = this.map.tileSize;   // 16 px maps (Keel rev 2) say so, so older saves can be converted
+            return st;
+        }
 
         /** Put the player back where a save says (getState() shape). Anything that doesn't fit the map
          *  (unknown map, out of bounds, in a wall, on an exit) falls back to the world's start. */
         restorePosition(st) {
             const map = st && this.world.maps[st.map];
+            const k = map ? (map.tileSize || 32) / (st.tile || 32) : 1;          // a save from 32 px tiles, loaded on 16 px tiles
+            if (map && k !== 1 && Number.isInteger(st.x) && Number.isInteger(st.y)) st = { ...st, x: Math.floor(st.x / k), y: Math.floor(st.y / k), tile: map.tileSize || 32 };
             const ok = map && Number.isInteger(st.x) && Number.isInteger(st.y) && inBounds(map, st.x, st.y)
                 && !isSolidTile(this.world, map, st.x, st.y) && !(map.exits || []).some((e) => e.x === st.x && e.y === st.y);
             if (!ok) { this.place(this.world.start.map, this.world.start.spawn); return false; }
