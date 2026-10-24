@@ -701,7 +701,7 @@
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
             ENSO.sprites.drawCharacter(g, cx, base, {
                 appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
-                basePlayer: true, facing: view.facing, anim: view.moving ? 'walk' : 'idle'
+                facing: view.facing, anim: view.moving ? 'walk' : 'idle'
             }, time);
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
             const hands = view.facing === 'left' || view.facing === 'right' ? [cx + (view.facing === 'left' ? -1 : 1)] : [cx - 5, cx + 5];

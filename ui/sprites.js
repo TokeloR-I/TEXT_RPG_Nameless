@@ -208,7 +208,6 @@
     // ---------------------------------------------------------------------
     const cache = new Map();
     function drawCharacter(g, x, y, opts, time) {
-        if (ENSO.basePlayerSprite && ENSO.basePlayerSprite.draw(g, x, y, opts, time)) return;
         const character = opts.character || manifest.player;
         const o = { ...opts, time, character };
         const { layers, oy } = characterLayers(o);
