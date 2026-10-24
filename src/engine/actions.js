@@ -118,11 +118,13 @@
             const c = this.combat;
             const p = this.player;
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
+            if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)
             if (c.awaitingContinue) {
                 if (a.type === 'continue') this.doContinue();
                 else this.refuse('WRONG_MODE', "You can't act this turn. Continue first.");
                 return;
             }
+            if (c.controlledActorId) { this.performControl(a); return; }   // N-5 (src/engine/control.js)
             const ids = Array.isArray(a.targetIds) ? a.targetIds : a.targetId != null ? [a.targetId] : null;
             switch (a.type) {
                 case 'attack':
@@ -141,6 +143,8 @@
                     return;
                 case 'flee': this.doFlee(); return;
                 case 'continue': this.refuseCombat('WRONG_MODE', 'There is nothing to continue; it is your turn.'); return;
+                case 'control': this.refuseCombat('WRONG_MODE', "You aren't controlling anyone right now."); return;
+                case 'turn_order': this.refuseCombat('WRONG_MODE', 'The turn order can only be set at the start of a round, while Eternal Architect is active.'); return;
                 default: this.refuseCombat('WRONG_MODE', `You can't do '${a.type}' in a fight.`);
             }
         }
@@ -299,7 +303,14 @@
                 out.actions = this.exploreAvailability();
             } else if (mode === 'combat') {
                 const c = this.combat;
-                if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
+                if (c.awaitingPlayer && this.turnOrderPending()) {
+                    out.awaiting = 'turn_order';                  // D-09: choose this round's order
+                    out.actions = this.turnOrderOptions();
+                } else if (c.awaitingPlayer && c.awaitingContinue) { out.awaiting = 'continue'; out.actions = [{ type: 'continue', enabled: true }]; } else if (c.awaitingPlayer && c.controlledActorId) {
+                    out.awaiting = 'control';                     // N-5: the controlled actor's own moves
+                    out.controlledActorId = c.controlledActorId;
+                    out.actions = this.controlOptions(this.controlledActor());
+                } else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
             } else {
                 out.actions = [{ type: 'restart', enabled: true }];
             }
@@ -361,7 +372,7 @@
             if (kind === 'enemy_multiple') {
                 const n = this.multiTargetCount ? this.multiTargetCount() : 2;
                 opt.pick = { min: n, max: n };
-                opt.targets = living.map((e) => ({ id: e.id, enabled: true }));
+                opt.targets = this.notedTargets(skill, living);
                 if (living.length < n) return fail('INVALID_TARGET', this.invalidTargetMessage(skill, name, { ids: [] }));
                 const problem = this.requirementProblem(skill, living.slice(0, n));
                 if (problem) return fail('REQUIREMENT_FAILED', problem);
@@ -370,7 +381,7 @@
             }
             if (NO_CHOICE.has(kind) || (kind === 'ally_single' && !skill.base_damage)) {
                 const affected = this.pickTargets(skill, null) || [];
-                opt.targets = affected.map((t) => ({ id: t.id, enabled: true }));
+                opt.targets = this.notedTargets(skill, affected);
                 const problem = this.requirementProblem(skill, affected);
                 if (problem) return fail('REQUIREMENT_FAILED', problem);
                 opt.enabled = true;
@@ -407,7 +418,24 @@
             if ((skill.effects || []).some((e) => e.shieldBashRecovery) && target.shieldBashRecovery) {
                 return [{ code: 'STUN_NOT_ELIGIBLE', message: `No stun: ${target.name} is still recovering from the last one.` }];
             }
-            return [];
+            // Package 2: what Control Resistance will do on a hit. An outcome, never a refusal (matrix 11).
+            const notes = [];
+            for (const e of skill.effects || []) {
+                const applies = this.effects[e.type] && this.effects[e.type].applies;
+                const note = applies && this.controlPreview(target, applies.name, applies.type, e.duration);
+                if (note && !notes.some((n) => n.message === note.message)) notes.push(note);
+            }
+            return notes;
+        }
+
+        /** Target entries with their non-blocking notes. */
+        notedTargets(skill, list) {
+            return list.map((t) => {
+                const entry = { id: t.id, enabled: true };
+                const tn = t.isPlayer || t.isMinion ? [] : this.targetNotes(skill, t);
+                if (tn.length) entry.notes = tn;
+                return entry;
+            });
         }
 
         // =====================================================================

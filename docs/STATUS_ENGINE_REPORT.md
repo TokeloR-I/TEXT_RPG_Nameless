@@ -16,9 +16,7 @@ those tests fail if the rules are broken.
 |---|---|---|---|
 | 1 | Tactical, data-driven status system | ✅ Built | Every status has an entry in `statusDefinitions` (data). All application goes through one function, `applyStatus` |
 | 2 | Intensity stacking | ✅ Built | One instance per status per target. Re-applying adds stacks up to the status's cap and **refreshes duration to full**. Statuses without an approved cap refresh only |
-| 3 | CR meter; the control reaching 100 still succeeds | ✅ Built · ⏸ off | Only `control: 'hard'` statuses with a `crGain` build CR. The application that reaches 100 lands; immunity applies from the next one |
-| 4 | Gradual CR recovery | ✅ Built · ⏸ off | CR drops by `recoveryPerRound` each round. Immunity ends when CR falls below `releaseThreshold` |
-| 5 | Enemy-tier CR scaling | ✅ Built · ⏸ off | CR gain × tier multiplier (regular / elite / boss, plus player / summon). A boss's first control is never pre-blocked |
+| 3–5 | Control Resistance | ✅ Built · ✅ on | **Replaced by Vaelis Package 2** (`docs/design/VAELIS_PACKAGE_2_CONTROL_RESISTANCE.md`, 2026-10-23). Fight-local CR 0–100, starting by tier (regular/player/summon 0, elite 25, boss 60). A successful hard control adds 35, soft adds 20 (one cast: one largest gain per target). Before application: CR 50–79 caps duration at 1; CR 80+ resists hard and binary soft control, and applies other soft control at half strength for 1 turn. −10 at the end of each holder opportunity with no successful control since the last one. Bosses can't lose two normal opportunities in a row to hard control. The old per-round recovery / tier-multiplier / immunity-flag model never shipped and is gone. Tests: `tests/25-control-resistance.test.js` |
 | 6 | Individual affinities | ✅ Built (immune) · ⏸ resist/vulnerable | `statusAffinities: { Bleed: 'immune' }` on an enemy blocks it. Resist/vulnerable support a `durationMult` once their effect is approved |
 | 7 | Overflow at max stacks | ✅ Built · ⏸ off | Re-applying a capped DoT always refreshes duration and rolls for an Overflow Burst. Stacks never exceed the cap |
 | 8 | Overflow luck protection | ✅ Built · ⏸ off | Each failed roll adds `chanceStep` (up to `maxChance`). A burst resets to `baseChance` |
@@ -58,11 +56,7 @@ those tests fail if the rules are broken.
 
 ## 4. Pending decisions (live list: `node tools/pending-decisions.js`)
 
-**Control Resistance** (stays off until all are set; threshold 100 is approved)
-- Which statuses are **hard** vs **soft** control: Stun, Frozen in time, Confused, Entranced, Silence, Slow, Blind, Pin.
-- `crGain` per hard-control status.
-- `recoveryPerRound`, `releaseThreshold`.
-- Tier multipliers: regular, elite, boss, **and player and summon**. The handoff covers enemy tiers; rule 10 makes players and summons subject to CR too, so they need values (or a "don't build CR" decision).
+**Control Resistance**: decided (Vaelis Package 2, see §1 rows 3–5). Open question for Vaelis: does decay stop at the tier's starting value (`decayFloor` in data, currently 0 as written)?
 
 **Stacking & DoTs**
 - Caps for Bleed and Poison (refresh-only until set).
@@ -116,9 +110,8 @@ statusReactions: [
 
 ## 6. Tests added for the handoff's invariants
 Stack cap never exceeded · duration refresh on re-apply · refresh-only for uncapped statuses · overflow off by default ·
-overflow chance rises on failure, caps at max, resets on burst · burst = tick × multiplier · CR off by default ·
-**the control that reaches 100 succeeds, the next is resisted** · gradual CR recovery and release below the threshold ·
-boss's first control still lands while building CR faster · soft control and DoTs build no CR · immune affinity blocks ·
+overflow chance rises on failure, caps at max, resets on burst · burst = tick × multiplier ·
+Control Resistance (Package 2 acceptance matrix, `tests/25-control-resistance.test.js`) · immune affinity blocks ·
 **same number of DoT ticks whether the applier is faster or slower than the target** · bonus turns don't consume duration ·
 enemy skills apply statuses to the player · player loses exactly one turn to a stun · enemies can mark the player ·
 selective cleanse by category and by name, with no default · cleanse as a skill · reactions only on application of a

@@ -20,6 +20,8 @@
  *   world.js          World intents (graphical Zone 1): pickups, encounters, run flags
  *   actions.js        Structured actions: getAvailableActions(), act() (Phase 1 spec §4)
  *   timers.js         Turn-opportunity hooks and combat timers (T-0)
+ *   control.js        Player-controlled enemy turns (Possession, N-5)
+ *   turn-order.js     Player-set turn order (Eternal Architect, D-09)
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -149,6 +151,7 @@
                     inventory: [...p.inventory],
                     traits: clone(p.traits),
                     statusEffects: clone(p.statusEffects),
+                    cr: c ? this.crValue(p) : 0,
                     isHollowKing: p.isHollowKing,
                     skills: p.skills.map((name) => this.describeSkill(name))
                 },
@@ -156,8 +159,8 @@
                     round: c.round,
                     corpses: c.corpses,
                     awaitingContinue: !!c.awaitingContinue,
-                    enemies: c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp, tier: this.tierOf(e), cr: e.cr ? { ...e.cr } : null, statusEffects: clone(e.statusEffects) })),
-                    minions: c.minions.filter((m) => m.hp > 0).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp }))
+                    enemies: c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp, tier: this.tierOf(e), cr: this.crValue(e), statusEffects: clone(e.statusEffects) })),
+                    minions: c.minions.filter((m) => m.hp > 0).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp, cr: this.crValue(m) }))
                 }
             };
         }
@@ -255,7 +258,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

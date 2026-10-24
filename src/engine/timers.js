@@ -43,6 +43,7 @@
         // The two hooks
         // =====================================================================
         beginOpportunity(actor, { skipped = false } = {}) {
+            this.crBeginOpportunity(actor, skipped); // Package 2: boss "no two hard skips in a row"
             if (skipped) {
                 // QA-2: the skip a Shield Bash stun caused; the target now owes one unstunned turn.
                 if (actor.shieldBashRecovery === 'await_skip') actor.shieldBashRecovery = 'await_recovery';
@@ -57,6 +58,8 @@
             if (!skipped) this.endNormalTurn(actor);  // QA-1 windows: actionable turns only
             this.tickTimers(actor, { skipped });
             if (!skipped && actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
+            this.crEndOpportunity(actor, skipped);   // Package 2: CR decay, protection ends
+            this.possessionEndOpportunity(actor, skipped); // N-5: Possession lasts one holder opportunity
         }
 
         // =====================================================================

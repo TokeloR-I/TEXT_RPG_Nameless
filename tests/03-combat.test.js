@@ -1,5 +1,5 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: combat).
-const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
+const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
 test('QA-18: Shield Discipline\'s Guard value comes from data, not engine code', () => {
     const stage = (d) => d.evolutionPaths.warrior.branches.vanguard.stages.find((s) => s.trait === 'Shield Discipline');
@@ -197,10 +197,10 @@ test('multi-hit skills hit the right number of times', () => {
 
 test('unimplemented skills are refused and do not waste the turn', () => {
     const g = newGame().do('necromancer', 'n', 'engage');
-    g.player.skills.push('Possession');
+    g.player.skills.push('Worldflame');
     const se = g.player.resource.current = 5;
     const round = g.combat.round;
-    g.do('possession 1');
+    g.do('worldflame 1');
     assert.match(g.text(), /isn't implemented yet/);
     assert.strictEqual(g.player.resource.current, se);
     assert.strictEqual(g.combat.round, round);

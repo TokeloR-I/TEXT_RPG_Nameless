@@ -190,7 +190,11 @@ Death or Expose dies mid-fight, the mark keeps working until the end of that rou
 save it). Evasion, Riposte and Taunt are unchanged.
 One instance per status per target: stackable statuses gain intensity up to a cap (only Infection: 2 dmg/stack, cap 3,
 3 turns), and re-applying always refreshes the duration. DoTs deal damage at the start of the holder's turn and ignore armor.
-Control Resistance, overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.
+**Control Resistance** (Vaelis Package 2) is on: each fighter has a fight-local CR (0 for regular enemies, the player and
+summons, 25 elite, 60 boss). A landed hard control (stun, freeze, a confuse that skips) adds 35, soft control (silence, slow)
+adds 20, once per cast. At CR 50+ control lasts at most 1 turn; at 80+ hard control and silence are resisted and slow works at
+half strength. CR drops by 10 after each of the holder's turns with no new control. A boss can't lose two turns in a row.
+Overflow bursts, affinities, cleansing and reactions are built, but switched off until their values are approved.
 
 ### Other mechanics
 - **Dodge** (Evasion 50%, Mirror Image 100%): the next attack against you rolls to miss. Consumed either way.
@@ -287,7 +291,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Chronomancer L5 | slow | 2 Time Charges | Enemy loses next turn. | ✅ works |
 | Chronomancer L8 | revertHp | 3 Time Charges | Revert ally to HP they had 2 turns ago. | ✅ works |
 | Chronomancer L11 | freezeTime | 5 Time Charges | Enemies can’t act for 1 turn. | ✅ works |
-| Chronomancer L14 (Ascended) | rearrangeTurnOrder | all Time Charges | Rearrange entire turn order for 3 turns. | ❌ not implemented (rearrange_turn_order) |
+| Chronomancer L14 (Ascended) | rearrangeTurnOrder | all Time Charges | Rearrange entire turn order for 3 turns. | ✅ works (D-09): you set the order at the start of each of the next 3 rounds; everyone still acts once |
 
 #### Rogue
 
@@ -331,7 +335,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Plaguecaller L14 (Ascended) | Plague of Ages | all Soul Energy | All enemies instantly gain max Infection stacks; infections deal true dmg. | ❌ not implemented (apply_max_infection_aoe, infections_true_damage) |
 | Soulbinder L3 | Soul Chain | 1 Soul Energy | Link 2 targets; dmg to one hits both. | ❌ not implemented (link_targets) |
 | Soulbinder L5 | Soul Chain | 1 Soul Energy | Link 2 targets; dmg to one hits both. | ❌ not implemented (link_targets) |
-| Soulbinder L8 | Possession | 3 Soul Energy | Control an enemy for 1 turn. | ❌ not implemented (control_enemy) |
+| Soulbinder L8 | Possession | 3 Soul Energy | Control an enemy for 1 turn. | ✅ works (N-5): you choose the enemy's next move against its allies; not bosses or 75+ CR |
 | Soulbinder L11 | Soul Feast | 2 Soul Energy | Drain 2 HP/turn from all linked enemies for 3 turns. | ❌ not implemented (drain_hp_from_linked) |
 | Soulbinder L14 (Ascended) | Unmake | 5 Hollow Will | Remove a target from the fight permanently. | ✅ works |
 

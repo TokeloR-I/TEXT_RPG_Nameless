@@ -353,7 +353,7 @@ engine.input(text)                    // unchanged signature; parses text -> act
 ```js
 {
   mode: 'combat',                         // class_select | explore | branch_select | combat | game_over | won
-  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | 'control' | 'turn_order' | null
+  awaiting: 'action',                     // 'action' | 'continue' | 'choice' | 'control' (N-5, + controlledActorId) | 'turn_order' (D-09) | null
   actions: [
     { type: 'attack', skillId: 'Basic Attack', targeting: 'enemy_single', enabled: true,
       targets: [{ id: 'enemy_1', enabled: true }, { id: 'enemy_2', enabled: true }] },
@@ -387,8 +387,8 @@ engine.input(text)                    // unchanged signature; parses text -> act
 | `{ type: 'skill', skillId, targetId? }` or `{ type: 'skill', skillId, targetIds }` for `enemy_multiple` | `combat` | `grave bolt 2`, `gb 2`, `soul chain 1 3` *(new)* |
 | `{ type: 'flee' }` | `combat` | `flee` |
 | `{ type: 'continue' }` | `combat`, awaiting `continue` | any input after a skipped turn |
-| `{ type: 'control', actorId, skillId, targetId }` | `combat`, awaiting `control` (N-5 Possession) | `<enemy skill> <n>` while controlling |
-| `{ type: 'turn_order', order: [ids] \| null }` | `combat`, awaiting `turn_order` (Eternal Architect) | `order 3 1 2 4`, or `order` to keep the default |
+| `{ type: 'control', actorId, skillId, targetId? }` *(N-5, Keel review §3.1)* | `combat`, awaiting `control` (a possessed enemy's turn); anything else is `WRONG_MODE` | `test hit 2` (the controlled actor's move; numbers index the list printed for it) |
+| `{ type: 'turn_order', order: [ids] \| null }` *(D-09, Keel review §3.2)* | `combat`, awaiting `turn_order` (round start inside an Eternal Architect window). `order` must be an exact permutation of the living combatant ids, else `INVALID_ORDER` at no cost; `null` keeps the speed order | `order 3 1 2 4` (positions in the printed list), `order` |
 | `{ type: 'describe', subject: 'room' \| 'inventory' \| 'help' \| 'class_tree' }` | any (text output only) | `look`, `i`, `help`, `cl` |
 | `{ type: 'restart' }` | any | `start` |
 | `{ type: 'quit' }` | `explore` | `quit` |
@@ -413,6 +413,7 @@ Each comes from a current message, so text output is unchanged. Unless noted, th
 | `ONCE_PER_FIGHT` | already used this fight |
 | `NOT_ENOUGH_RESOURCE` | cost above current resource |
 | `INVALID_TARGET` | target missing or not alive |
+| `INVALID_ORDER` | D-09: a `turn_order` that isn't an exact permutation of the living combatants (no cost; the round keeps waiting) |
 | `ALREADY_COLLECTED` / `ALREADY_DEFEATED` | world intents (§6A): `'There is nothing left here.'` / `'Nothing stirs here any more.'` |
 | `REQUIREMENT_FAILED` | any `requires()` refusal (no corpse, too healthy, traps full, minion cap…) |
 | `NO_ITEM` / `ITEM_NO_USE` / `FULL_HEALTH` | `useItem()` / `applyItem()` |

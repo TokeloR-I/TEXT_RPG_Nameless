@@ -89,6 +89,15 @@
         }
 
         castSkill(caster, skill, targets) {
+            // One cast = one castId (Phase 1 spec §2.1). Control Resistance uses it for "one gain per cast".
+            const c = this.combat;
+            const outerCast = c ? c.currentCastId : null;
+            if (c) { c.nextCastId = (c.nextCastId || 0) + 1; c.currentCastId = `c${c.nextCastId}`; }
+            this.castSkillEffects(caster, skill, targets);
+            if (c) c.currentCastId = outerCast;
+        }
+
+        castSkillEffects(caster, skill, targets) {
             const entries = (skill.effects || []).map((effect) => ({ effect, handler: this.effects[effect.type] }));
             const active = entries.filter((x) => x.handler);
             const base = { engine: this, caster, targets, skill };

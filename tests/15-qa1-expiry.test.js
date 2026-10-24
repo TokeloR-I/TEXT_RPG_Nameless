@@ -1,5 +1,5 @@
 // Tests moved verbatim from the old tests/run-tests.js (section: QA-1: opportunity-based expiry (approved Option A; handoff test matrix 1–14)).
-const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, TEST_CR, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
+const { test, tests, assert, GameEngine, data, newGame, assertHealthy, fightOut, warden, dummyHit, mark, newtonFight, tanky, hallway, boneWallFight, armBoneWall, incomingBoneWallHit, botRun, gameWith, stun, riderFight, RIDERS, since, cellar, mfd, guardFight, hitsFor } = require('./helpers.js'); // eslint-disable-line no-unused-vars
 
 test('QA-1 #1: repro A — Marked for Death on a slower target survives to the Rogue\'s next attack', () => {
     const g = newGame(1).do('rogue', 'e', 'engage');

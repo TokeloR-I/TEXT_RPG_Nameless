@@ -289,7 +289,7 @@
             'slow': { description: 'Enemy loses next turn.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
             'revertHp': { description: 'Revert ally to HP they had 2 turns ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
             'freezeTime': { description: 'Enemies can’t act for 1 turn.', cost: 5, resource: 'Time Charges', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'all_enemies' },
-            'rearrangeTurnOrder': { description: 'Rearrange entire turn order for 3 turns.', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3 }], target: 'all_combatants' },
+            'rearrangeTurnOrder': { description: 'Rearrange entire turn order for 3 turns.', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
 
 
             // Ascended Overdrives (Special Skills at max evolution)
@@ -656,8 +656,9 @@
         //
         //   category   used by selective cleansing (taxonomy is PROVISIONAL — see pending list)
         //   maxStacks  intensity cap; null -> statusRules.defaultMaxStacks (1 = refresh only, today's behaviour)
-        //   control    'hard' | 'soft' | null   (which effects are hard control: PENDING)
-        //   crGain     CR added per successful application (PENDING)
+        //   control    'hard' | 'soft' | false  Control Resistance class (Vaelis Package 2, CR-01/CR-03).
+        //              A status that skips a turn (type 'skip_turn') always counts as hard, whatever this says.
+        //   binary     soft control with no strength to halve (Silence): resisted outright at CR 80+
         //   overflow   { baseChance, chanceStep, maxChance, burstMultiplier } — all PENDING; null = no overflow
         // ===================================================================
         const statusDefinitions = {
@@ -668,15 +669,16 @@
             'Soul Feast':       { category: 'dot' },
             'Soul Chain':       { category: 'debuff' },
             // --- turn denial / control
-            'Stun':             { category: 'control', control: null, crGain: null },
-            'Frozen in time':   { category: 'control', control: null, crGain: null },
-            'Confused':         { category: 'control', control: null, crGain: null },
-            'Entranced':        { category: 'control', control: null, crGain: null },
-            'Silence':          { category: 'control', control: null, crGain: null },
-            'Slow':             { category: 'debuff',  control: null, crGain: null },
-            'Blind':            { category: 'debuff',  control: null, crGain: null },
+            'Stun':             { category: 'control', control: 'hard' },
+            'Frozen in time':   { category: 'control', control: 'hard' },   // Freeze Time: hard per affected target
+            'Confused':         { category: 'control', control: 'hard' },   // only applied when the roll skips the turn
+            'Entranced':        { category: 'control', control: 'hard' },
+            'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
+            'Slow':             { category: 'debuff',  control: 'soft' },   // speed only, never skips a turn (Keel §2)
+            'Blind':            { category: 'debuff',  control: false },    // a hit-chance debuff, not control
+            'Possessed':        { category: 'control', control: 'hard', refuseTiers: ['boss'], refuseAtCr: 75 }, // N-5: refused before cost for bosses and at 75+ CR
             // --- marks
-            'Pin':              { category: 'mark', control: null, crGain: null },
+            'Pin':              { category: 'mark', control: false },       // an ordinary mark (CR-03)
             'Expose':           { category: 'mark', expiry: { type: 'applier_turns', onApplierDeath: 'end_of_round' } },             // QA-1 (approved Option A + applier-death ruling)
             'Weaken':           { category: 'mark' },
             'Marked for Death': { category: 'mark', expiry: { type: 'applier_turns', consumeOn: 'positive_allied_hit', onApplierDeath: 'end_of_round' } }, // QA-1
@@ -697,11 +699,19 @@
 
         const statusRules = {
             defaultMaxStacks: 1,              // statuses without an approved cap don't stack (refresh only)
+            // Control Resistance: Vaelis Package 2 (docs/design/VAELIS_PACKAGE_2_CONTROL_RESISTANCE.md), approved 2026-10-23.
+            // Fight-local integer per combatant. Engine: src/statuses.js, "Control Resistance".
             controlResistance: {
-                threshold: 100,               // APPROVED: the application that reaches 100 still succeeds
-                recoveryPerRound: null,       // PENDING
-                releaseThreshold: null,       // PENDING: immunity ends when CR drops below this
-                tierMultipliers: { regular: null, elite: null, boss: null, player: null, summon: null } // PENDING
+                max: 100,
+                start: { regular: 0, elite: 25, boss: 60, player: 0, summon: 0 },   // CR-01: by tier, reset every fight
+                gain: { hard: 35, soft: 20 },   // after a successful application; one cast gives one target its largest gain once
+                capAt: 50,                      // CR 50–79 before application: duration capped at capTurns
+                resistAt: 80,                   // CR 80+: hard resisted; soft at softStrength for capTurns; binary soft resisted
+                capTurns: 1,
+                softStrength: 0.5,              // rounded toward zero
+                decayPerOpportunity: 10,        // end of a holder opportunity (skipped ones too) with no successful control since the last
+                decayFloor: 0,
+                noConsecutiveHardSkip: ['boss'] // tiers that can't lose two normal opportunities in a row to hard control
             },
             // Affinity effects: 'immune' blocks the status (unambiguous). What resist / vulnerable DO is PENDING,
             // e.g. { durationMult: 0.5 } — the engine supports durationMult once a value is approved.

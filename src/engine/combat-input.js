@@ -22,10 +22,12 @@
             this.say(`> ${raw}`);
 
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
+            if (this.turnOrderPending()) { const t = this.parseCombatInput(raw); this.turnOrderCommand(t.command, t.targetNum); return; } // D-09
             // The player's turn was skipped (stun etc.): any input just moves on.
             if (c.awaitingContinue) { this.doContinue(); return; }
 
             const { command, targetNum } = this.parseCombatInput(raw);
+            if (c.controlledActorId) { this.controlCommand(command, targetNum); return; }   // N-5 (control.js)
 
             if (command === 'use' || command.startsWith('use ')) {
                 const name = command.slice(3).trim();
@@ -135,6 +137,8 @@
 
         showCombatState() {
             const c = this.combat;
+            if (this.turnOrderPending()) { this.showTurnOrderState(); return; }
+            if (c.controlledActorId) { this.showControlState(); return; }
             this.say('--- Enemies ---', { important: true });
             this.alive(c.enemies).forEach((e, i) => this.say(`${i + 1}. ${e.name} (${e.hp}/${e.maxHp} HP)${this.statusTag(e)}`));
             const minions = this.alive(c.minions);
@@ -171,8 +175,10 @@
         }
 
         statusTag(c) {
-            return c.statusEffects.length
-                ? ` [${c.statusEffects.map((s) => `${s.name}${s.stacks > 1 ? ` x${s.stacks}` : ''}${typeof s.duration === 'number' ? ` ${s.duration}` : ''}`).join(', ')}]` + (c.cr && c.cr.value > 0 ? ` (CR ${Math.round(c.cr.value)}${c.cr.immune ? ' IMMUNE' : ''})` : '') : '';
+            const statuses = c.statusEffects.length
+                ? ` [${c.statusEffects.map((s) => `${s.name}${s.stacks > 1 ? ` x${s.stacks}` : ''}${typeof s.duration === 'number' ? ` ${s.duration}` : ''}`).join(', ')}]` : '';
+            const cr = this.crValue(c);
+            return statuses + (cr > 0 ? ` (CR ${cr})` : '');
         }
     }
 
