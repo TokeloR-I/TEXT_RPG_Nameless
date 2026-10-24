@@ -578,16 +578,35 @@
             const bob = view.moving ? Math.sin(time / 60) * 1.2 : 0;
             const cx = px + T / 2, base = py + T - 4;
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base, 9, 3.5, 0, 0, Math.PI * 2); g.fill();
-            const body = CLASS_COLOURS[view.className] || '#6a6a6a';
+            const cosmetic = view.cosmetics || {};
+            const cloth = [
+                CLASS_COLOURS[view.className] || '#6a6a6a',
+                '#514c49', '#747477', '#674665'
+            ];
+            const body = cloth[cosmetic.outfit] || cloth[0];
+            const hairColors = ['#2b2320', '#6b4530', '#a3a0a1', '#b05b36'];
+            const hair = hairColors[cosmetic.hairColor] || hairColors[0];
             const step = view.moving ? (Math.floor(time / 110) % 2 ? 2 : -2) : 0;
             rect(g, cx - 5, base - 7 + Math.max(0, step), 4, 6, '#2a2420');   // legs
             rect(g, cx + 1, base - 7 + Math.max(0, -step), 4, 6, '#2a2420');
             g.fillStyle = body;                                                   // cloak
             g.beginPath(); g.moveTo(cx - 8, base - 6 + bob); g.lineTo(cx + 8, base - 6 + bob); g.lineTo(cx + 6, base - 19 + bob); g.lineTo(cx - 6, base - 19 + bob); g.closePath(); g.fill();
             circle(g, cx, base - 23 + bob, 6, SKINS[view.appearance] || SKINS[0]);   // head (appearance preset)
-            g.fillStyle = '#2b2320';                                              // hair, by facing
-            if (view.facing === 'up') { g.beginPath(); g.arc(cx, base - 23 + bob, 6, 0, Math.PI * 2); g.fill(); }
-            else { g.beginPath(); g.arc(cx, base - 24 + bob, 6, Math.PI, Math.PI * 2); g.fill(); }
+            g.fillStyle = hair;
+            const style = cosmetic.hairStyle || 0;
+            // Distinct pixel silhouettes, including a shaved head; all show on the world sprite.
+            if (style !== 3) {
+                if (view.facing === 'up') { g.beginPath(); g.arc(cx, base - 23 + bob, 6, 0, Math.PI * 2); g.fill(); }
+                else { g.beginPath(); g.arc(cx, base - 24 + bob, 6, Math.PI, Math.PI * 2); g.fill(); }
+                if (style === 1) {
+                    rect(g, cx - 7, base - 23 + bob, 3, 12, hair);
+                    rect(g, cx + 4, base - 23 + bob, 3, 12, hair);
+                } else if (style === 2) {
+                    for (const dx of [-5, -2, 1, 4]) rect(g, cx + dx, base - 27 + bob, 2, 9, hair);
+                    rect(g, cx - 6, base - 19 + bob, 2, 9, hair);
+                    rect(g, cx + 4, base - 19 + bob, 2, 9, hair);
+                }
+            }
             if (view.facing === 'down') { rect(g, cx - 3, base - 23 + bob, 2, 2, '#1a1412'); rect(g, cx + 1, base - 23 + bob, 2, 2, '#1a1412'); }
             if (view.facing === 'left') rect(g, cx - 4, base - 23 + bob, 2, 2, '#1a1412');
             if (view.facing === 'right') rect(g, cx + 2, base - 23 + bob, 2, 2, '#1a1412');
