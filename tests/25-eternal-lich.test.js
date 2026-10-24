@@ -76,3 +76,19 @@ test('QA-31 unmake command resolves to Lich variant without changing Hollow King
  assert.strictEqual(g.resolveSkillName('unmake'),'Eternal Lich Unmake');
  assert.strictEqual(g.data.skillDefinitions.Unmake.resource,'Hollow Will');
 });
+
+test('QA-30 end-to-end: a lethal one-round Poison ticks once and does not defeat a revived Lich',()=>{
+ const g=lich();
+ g.player.skills.push('Guard');
+ g.player.hp=10;g.player.maxHp=10;
+ g.player.def=999;
+ const enemy=g.combat.enemies[0];
+ g.applyDot(enemy,g.player,{name:'Poison',value:50,duration:1});
+ g.log=[];
+ g.do('guard');
+ const text=g.text();
+ assert.strictEqual((text.match(/suffers 50 Poison/g)||[]).length,1,'one-round poison must tick exactly once');
+ assert.match(text,/Undying Will restores/);
+ assert.strictEqual(g.mode,'combat','a second poison tick must not kill the revived Lich');
+ assert.strictEqual(g.combat.undyingWillUsed,true);
+});
