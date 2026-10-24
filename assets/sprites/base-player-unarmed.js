@@ -19,7 +19,7 @@
         if (opts.character && opts.character !== ENSO.spriteManifest.player) return false;
         const anim = opts.anim === 'walk' || opts.anim === 'run' ? opts.anim
             : opts.anim === 'death' ? 'death' : opts.anim === 'hit' ? 'hit' : 'idle';
-        const clip = clips[anim], url = prefix + clip.file;
+        const clip = clips[anim], url = (ENSO.baseSpriteData && ENSO.baseSpriteData[clip.file]) || prefix + clip.file;
         let image = cache[url];
         if (!image && typeof Image !== 'undefined') {
             image = new Image();
