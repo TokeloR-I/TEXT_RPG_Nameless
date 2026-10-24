@@ -1,0 +1,39 @@
+{
+  "package": "ENSO Production Art 001",
+  "artist": "Vesper",
+  "status": "WIP; assets not yet uploaded to GitHub",
+  "current_frame": {
+    "width": 24,
+    "height": 32
+  },
+  "anchor": {
+    "x": 12,
+    "y": 30
+  },
+  "facings": [
+    "down",
+    "up",
+    "left",
+    "right"
+  ],
+  "poses": [
+    "stand",
+    "stepA",
+    "stepB"
+  ],
+  "layers": [
+    "body",
+    "outfit",
+    "hairBack",
+    "hairFront"
+  ],
+  "hairstyles": 2,
+  "outfits": 2,
+  "existing_offline_artifact": "ENSO_Production_Art_001_Vesper_WIP.zip",
+  "upscaled_redesign": {
+    "proposed_width": 48,
+    "proposed_height": 64,
+    "status": "not implemented"
+  },
+  "issue": 136
+}
