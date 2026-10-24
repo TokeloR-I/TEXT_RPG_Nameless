@@ -25,7 +25,7 @@
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const FACINGS = Object.keys(DIRS);
     const TRIGGERS = ['step', 'interact'];
-    const OBJECT_KINDS = ['inspect', 'pickup'];
+    const OBJECT_KINDS = ['inspect', 'pickup', 'npc'];
 
     // ---------------------------------------------------------------------
     // Map geometry
@@ -46,9 +46,10 @@
     const isEncounter = (map, o) => (map.encounters || []).includes(o);
     const inRect = (r, x, y) => x >= r.x && y >= r.y && x < r.x + (r.w || 1) && y < r.y + (r.h || 1);
 
-    /** Tiles reachable on foot from (x, y), treating every placed object as an obstacle. */
+    /** Tiles reachable on foot from (x, y), treating every placed object as an obstacle, except an encounter
+     *  marked `gate: true`: a required fight that holds the only way on (Chapter One), gone once it's beaten. */
     function reachable(world, map, x, y) {
-        const blocked = new Set(placed(map).map((o) => `${o.x},${o.y}`));
+        const blocked = new Set(placed(map).filter((o) => !(o.gate && isEncounter(map, o))).map((o) => `${o.x},${o.y}`));
         const seen = new Set([`${x},${y}`]);
         const queue = [[x, y]];
         while (queue.length) {
@@ -66,7 +67,7 @@
     // ---------------------------------------------------------------------
     // Validation (§5 required invariants). Returns a list of problems; [] = valid.
     // ---------------------------------------------------------------------
-    function validateWorld(world, gameData) {
+    function validateWorld(world, gameData, storyData) {
         const errors = [];
         const err = (msg) => errors.push(msg);
         const ids = new Map(); // global object ids: zones, maps, exits, objects
@@ -116,6 +117,11 @@
                     continue;
                 }
                 if (!OBJECT_KINDS.includes(o.kind)) err(`${where}: object ${o.id} has unknown kind '${o.kind}'`);
+                if (o.kind === 'npc') {           // Chapter One people: dialogue lives in the story data (src/story/)
+                    if (!o.npc) err(`${where}: npc ${o.id} needs an npc id`);
+                    else if (storyData && !storyData.npcs[o.npc]) err(`${where}: npc ${o.id} uses unknown story npc '${o.npc}'`);
+                    continue;
+                }
                 if (!o.text) err(`${where}: object ${o.id} has no text`);
                 if (o.kind === 'pickup' && (!o.item || (gameData && !gameData.itemDefinitions[o.item]))) err(`${where}: pickup ${o.id} has unknown item '${o.item}'`);
             }
@@ -134,6 +140,7 @@
                 if (!TRIGGERS.includes(e.trigger)) err(`${where}: exit ${e.id} has unknown trigger '${e.trigger}'`);
                 if (e.trigger === 'step' && isSolidTile(world, map, e.x, e.y)) err(`${where}: step exit ${e.id} is on a solid tile`);
                 if (e.trigger === 'interact' && !e.prompt) err(`${where}: interact exit ${e.id} needs a prompt (what pressing E does)`);
+                if (e.requires && !e.lockedText) err(`${where}: locked exit ${e.id} needs lockedText (why it won't open yet)`);
                 const dest = world.maps[e.toMap];
                 if (!dest) err(`${where}: exit ${e.id} goes to unknown map '${e.toMap}'`);
                 else if (!(dest.spawns || {})[e.toSpawn]) err(`${where}: exit ${e.id} goes to unknown spawn '${e.toMap}.${e.toSpawn}'`);
@@ -206,7 +213,12 @@
         isCollected(id) { return this.engine ? this.engine.isCollected(id) : this.local.collected.includes(id); }
         isDefeated(id) { return this.engine ? this.engine.isDefeated(id) : this.local.defeated.includes(id); }
         /** Is this placed thing still on the map? (collected pickups and beaten enemies are gone) */
-        present(o) { return isEncounter(this.map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id)); }
+        present(o) {
+            if (o.when && !this.allows(o.when)) return false;      // story-conditional people and enemies
+            return isEncounter(this.map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id));
+        }
+        /** Story conditions are the engine's (src/engine/story.js). Without an engine, everything is open. */
+        allows(cond) { return !cond || !this.engine || !this.engine.story || this.engine.storyAllows(cond); }
         /** Objects and enemies still on the current map. */
         visibleObjects() { return placed(this.map).filter((o) => this.present(o)).map((o) => ({ ...o, kind: isEncounter(this.map, o) ? 'encounter' : o.kind })); }
 
@@ -240,6 +252,8 @@
                 return this.engage(obj);
             }
             if (this.isBlocked(nx, ny)) return { type: 'blocked', x: nx, y: ny };
+            const gate = this.exitAt(nx, ny, 'step');    // a locked way on (story gate): you stay put and are told why
+            if (gate && !this.allows(gate.requires)) return { type: 'locked', id: gate.id, x: this.x, y: this.y, text: gate.lockedText };
             const wasIn = this.boundaryAt(this.x, this.y);
             this.x = nx;
             this.y = ny;
@@ -276,6 +290,10 @@
             const [fx, fy] = this.facingTile();
             const obj = this.objectAt(fx, fy);
             if (obj && isEncounter(this.map, obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text || 'It hasn\'t noticed you yet. Walk into it to fight.' };
+            if (obj && obj.kind === 'npc') {
+                const events = this.engine ? this.engine.act({ type: 'talk', npcId: obj.npc }).events : [];
+                return { type: 'talk', id: obj.id, npc: obj.npc, title: obj.name || null, events };
+            }
             if (obj && obj.kind === 'pickup') {
                 let events = [];
                 if (this.engine) events = this.engine.worldPickup(obj.id, obj.item);
@@ -283,8 +301,12 @@
                 if (!this.isCollected(obj.id)) return { type: 'nothing', events };
                 return { type: 'pickup', id: obj.id, item: obj.item, title: obj.name || null, text: obj.text, events };
             }
-            if (obj) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text };
+            if (obj) {
+                const events = this.engine && this.engine.story ? this.engine.act({ type: 'world_inspect', objectId: obj.id }).events : [];
+                return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text, events };
+            }
             const exit = this.exitAt(fx, fy, 'interact');
+            if (exit && !this.allows(exit.requires)) return { type: 'message', id: exit.id, title: null, text: exit.lockedText };
             if (exit) return this.transition(exit);
             return { type: 'nothing' };
         }
@@ -295,6 +317,7 @@
             const obj = this.objectAt(fx, fy);
             if (obj && isEncounter(this.map, obj)) return { verb: this.cooldown === obj.id ? 'Step away first' : 'Walk into it to fight', name: obj.name || 'Enemy', kind: 'encounter' };
             if (obj && obj.kind === 'pickup') return { verb: 'Pick up', name: obj.name || obj.item, kind: 'pickup' };
+            if (obj && obj.kind === 'npc') return { verb: 'Talk to', name: obj.name || (this.engine ? this.engine.npcName(obj.npc) : obj.npc), kind: 'npc' };
             if (obj) return { verb: 'Inspect', name: obj.name || 'something', kind: 'inspect' };
             const exit = this.exitAt(fx, fy, 'interact');
             if (exit) return { verb: exit.prompt, name: null, kind: 'exit' };
@@ -304,10 +327,26 @@
         transition(exit) {
             const from = this.mapId;
             this.place(exit.toMap, exit.toSpawn);
-            return { type: 'transition', exit: exit.id, from, to: this.mapId, text: exit.text || null };
+            // Arriving is a story event (quests like "reach Shamefield"). Walking itself never calls the engine.
+            const events = this.engine && this.engine.story ? this.engine.act({ type: 'world_enter', mapId: this.mapId }).events : [];
+            return { type: 'transition', exit: exit.id, from, to: this.mapId, text: exit.text || null, events };
         }
 
         getState() { return { map: this.mapId, x: this.x, y: this.y, facing: this.facing, steps: this.steps, cooldown: this.cooldown }; }
+
+        /** Put the player back where a save says (getState() shape). Anything that doesn't fit the map
+         *  (unknown map, out of bounds, in a wall, on an exit) falls back to the world's start. */
+        restorePosition(st) {
+            const map = st && this.world.maps[st.map];
+            const ok = map && Number.isInteger(st.x) && Number.isInteger(st.y) && inBounds(map, st.x, st.y)
+                && !isSolidTile(this.world, map, st.x, st.y) && !(map.exits || []).some((e) => e.x === st.x && e.y === st.y);
+            if (!ok) { this.place(this.world.start.map, this.world.start.spawn); return false; }
+            this.mapId = st.map; this.x = st.x; this.y = st.y;
+            this.facing = FACINGS.includes(st.facing) ? st.facing : 'down';
+            this.steps = Number.isInteger(st.steps) ? st.steps : 0;
+            this.cooldown = typeof st.cooldown === 'string' ? st.cooldown : null;
+            return true;
+        }
     }
 
     const api = { WorldSession, validateWorld, tileAt, reachable, DIRS };

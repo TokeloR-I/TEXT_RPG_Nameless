@@ -37,11 +37,15 @@ function takeExit(s, exitId) {
     s.move(Object.keys(DIRS).find((d) => ax + DIRS[d][0] === e.x && ay + DIRS[d][1] === e.y));
     return s.interact();
 }
+/** A free tile next to (x, y) that you can actually walk to from here, and the way to face from it. */
+function besideReachable(s, x, y) {
+    return [[x, y + 1, 'up'], [x, y - 1, 'down'], [x - 1, y, 'right'], [x + 1, y, 'left']]
+        .find(([nx, ny]) => { if (s.isBlocked(nx, ny) || s.exitAt(nx, ny, 'step')) return false; try { pathTo(s, nx, ny); return true; } catch (e) { return false; } });
+}
 /** Face an object (standing next to it) and interact. */
 function inspect(s, id) {
     const o = s.map.interactables.find((x) => x.id === id);
-    const spot = [[o.x, o.y + 1, 'up'], [o.x, o.y - 1, 'down'], [o.x - 1, o.y, 'right'], [o.x + 1, o.y, 'left']]
-        .find(([x, y]) => !s.isBlocked(x, y) && !s.exitAt(x, y, 'step'));
+    const spot = besideReachable(s, o.x, o.y);
     walkTo(s, spot[0], spot[1]);
     s.move(spot[2]); // turn to face it (blocked by the object, so no step)
     return s.interact();
@@ -50,8 +54,7 @@ function inspect(s, id) {
 /** Walk up to a visible enemy and into it. Returns the result of that last step. */
 function contact(s, id) {
     const e = s.map.encounters.find((x) => x.id === id);
-    const spot = [[e.x, e.y + 1, 'up'], [e.x, e.y - 1, 'down'], [e.x - 1, e.y, 'right'], [e.x + 1, e.y, 'left']]
-        .find(([x, y]) => !s.isBlocked(x, y) && !s.exitAt(x, y, 'step'));
+    const spot = besideReachable(s, e.x, e.y);
     walkTo(s, spot[0], spot[1]);
     return s.move(spot[2]);
 }

@@ -467,7 +467,8 @@ GameEngine.fromSave(save, options)          // -> new engine with that save load
 ```
 - **`state`** has exactly the fields `snapshot()` in `src/engine.js` already captures, so the transaction and the save share one definition of "everything a command can change". With Zone 1 Phase B that includes `world`, the engine-owned run flags, which is `null` in the text game. `combat.nextCastId` and the minion `key` live inside `state.combat`.
 - **`attachments`** is opaque front-end state the engine stores and returns untouched, so it's never validated as game rules. The world front end puts the `WorldSession` position there (`session.getState()`). Space stays out of the engine, matching the AGENTS.md rule that the world owns space, but one save file still restores the whole game. `load()` returns `attachments` in its result.
-- **`data.hash`** is a deterministic, dependency-free string hash of `JSON.stringify(data)` (e.g. FNV-1a or cyrb53).
+- **`data.hash`** is a deterministic, dependency-free string hash of `JSON.stringify(data)` (e.g. FNV-1a or cyrb53). *(Implemented: cyrb53 of the game data plus the chapter's story content, `src/engine/save.js`.)*
+- **`state.story`** *(Chapter One)*: the chapter's quests, flags and claims (`src/engine/story.js`); `null` in the text game, like `world`.
 - **`engine.version`** comes from `package.json`, injected as a constant.
 
 ### 5.3 Randomness

@@ -22,6 +22,8 @@
  *   timers.js         Turn-opportunity hooks and combat timers (T-0)
  *   control.js        Player-controlled enemy turns (Possession, N-5)
  *   turn-order.js     Player-set turn order (Eternal Architect, D-09)
+ *   story.js          Chapter story: quests, flags, journal, NPC dialogue, identity (CH1-01)
+ *   save.js           Save/load: serialize(), load(), GameEngine.fromSave() (Phase 1 spec §5)
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -30,6 +32,7 @@
     const ENSO = global.ENSO || (global.ENSO = {});
     const DATA = isNode ? require('./data.js') : ENSO.data;
     const EFFECTS = isNode ? require('./effects.js') : ENSO.effects;
+    const STORY = isNode ? require('./story/chapter1.js') : (ENSO.story && ENSO.story.chapter1) || null;
     const UTIL = isNode ? require('./engine/util.js') : ENSO.engineUtil;
     const { mulberry32, clone, cap, mixin } = UTIL;
     const DIRECTIONS = { n: 'north', s: 'south', e: 'east', w: 'west' };
@@ -44,6 +47,8 @@
         quit: () => ({ type: 'quit' }),
         engage: () => ({ type: 'engage' }), fight: () => ({ type: 'engage' }),
         class_lore: () => ({ type: 'describe', subject: 'class_tree' }), cl: () => ({ type: 'describe', subject: 'class_tree' }),
+        journal: () => ({ type: 'describe', subject: 'journal' }), j: () => ({ type: 'describe', subject: 'journal' }),
+        talk: (arg) => ({ type: 'talk', npcId: arg }),
         // dev cheats
         add_xp: (arg) => ({ type: 'cheat', cheat: 'add_xp', amount: arg }),
         become_hollow_king: () => ({ type: 'cheat', cheat: 'become_hollow_king' }),
@@ -54,6 +59,7 @@
         constructor(options = {}) {
             this.data = options.data || DATA;
             this.effects = options.effects || EFFECTS.registry;
+            this.storyData = options.storyData !== undefined ? options.storyData : STORY; // Chapter One content (src/story/)
             // Always seeded (spec R1, tech review F3): without a seed, pick one once and keep it, so any
             // run (including a browser playtest) can be replayed from its reported seed.
             this.seed = options.seed != null ? options.seed >>> 0 : Math.floor(Math.random() * 4294967296);
@@ -115,7 +121,7 @@
             const state = {
                 rooms: this.rooms, currentRoom: this.currentRoom, mode: this.mode, player: this.player,
                 combat: this.combat, pendingBranchChoice: this.pendingBranchChoice, flags: this.flags,
-                stats: this.stats, progression: this.progression, world: this.world
+                stats: this.stats, progression: this.progression, world: this.world, story: this.story
             };
             return {
                 json: JSON.stringify(state),
@@ -142,6 +148,7 @@
                 room: this.currentRoom,
                 progression: { ...this.progression },
                 world: this.world && clone(this.world),
+                story: this.storyState(),                   // undefined in the text game, so its state is unchanged
                 player: p && {
                     name: p.name, className: p.className, level: p.level,
                     hp: p.hp, maxHp: p.maxHp, def: p.def, spd: p.spd,
@@ -151,6 +158,7 @@
                     inventory: [...p.inventory],
                     traits: clone(p.traits),
                     statusEffects: clone(p.statusEffects),
+                    appearance: p.appearance,               // CH1-02 cosmetic preset (absent in the text game)
                     cr: c ? this.crValue(p) : 0,
                     isHollowKing: p.isHollowKing,
                     skills: p.skills.map((name) => this.describeSkill(name))
@@ -188,6 +196,7 @@
             this.stats = { fights: 0, kills: 0, rounds: 0, credited: [] };
             this.progression = { baseClass: null, branch: null, evolutionName: null, stageIndex: -1 };
             this.world = null; // graphical world run flags (src/engine/world.js); null in the text game
+            this.story = null; // Chapter One story state (src/engine/story.js); null in the text game
         }
 
         createPlayer(className) {
@@ -221,6 +230,17 @@
             // A text translator onto the action rules (src/engine/actions.js): parse, then perform().
             if (lower === 'start') { this.perform({ type: 'restart' }); return; }
             if (this.mode === 'combat') { this.combatCommand(text); return; }
+            if (this.story && this.story.dialogue) {     // a conversation: '2' picks a choice, 'bye' is a normal goodbye
+                this.clear();
+                this.say(`> ${text}`);
+                const n = parseInt(lower, 10);
+                const choices = this.dialogueChoices();
+                if (/^(bye|leave|goodbye|exit)$/.test(lower)) this.perform({ type: 'dialogue_leave' });
+                else if (String(n) === lower && n >= 1 && n <= choices.length) this.perform({ type: 'dialogue_choice', choiceId: choices[n - 1].choiceId });
+                else if (/^(journal|j)$/.test(lower)) this.perform({ type: 'describe', subject: 'journal' });
+                else { this.refuse('INVALID_CHOICE', `Type a number from 1 to ${choices.length}, or 'bye'.`); this.showDialogueChoices(); }
+                return;
+            }
             if (this.mode === 'game_over' || this.mode === 'won') { this.perform({ type: 'describe' }); return; }
 
             this.clear();
@@ -250,6 +270,7 @@
             let arg = parts.slice(1).join(' ');
             if (DIRECTIONS[cmd] || Object.values(DIRECTIONS).includes(cmd)) { arg = cmd; cmd = 'go'; }
 
+            if (cmd === 'name') { this.perform({ type: 'set_identity', name: text.trim().slice(4) }); return; } // keep the player's capitals
             const build = Object.prototype.hasOwnProperty.call(TEXT_COMMANDS, cmd) ? TEXT_COMMANDS[cmd] : null;
             if (!build) { this.say("I don't understand that command. Type 'help' for a list."); return; }
             this.perform(build(arg));
@@ -275,7 +296,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);
@@ -283,6 +304,15 @@
 
     const installStatusSystem = isNode ? require('./statuses.js') : ENSO.installStatusSystem;
     installStatusSystem(GameEngine);
+
+    /** A new engine with `save` loaded (spec §5.1). Throws if the save can't be loaded; use load() to inspect why. */
+    GameEngine.fromSave = function (save, options = {}) {
+        const g = new GameEngine({ ...options, seed: save && save.rng ? save.rng.seed : options.seed });
+        const r = g.load(save, options);
+        if (!r.ok) throw new Error(`Can't load save: ${r.error.code}: ${r.error.message}`);
+        g.lastLoad = r;
+        return g;
+    };
 
     ENSO.GameEngine = GameEngine;
     if (isNode) module.exports = { GameEngine, mulberry32 };
