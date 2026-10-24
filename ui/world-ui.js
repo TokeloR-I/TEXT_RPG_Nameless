@@ -879,6 +879,7 @@
     }
     /** Draw the battle sprite; called every frame while the battle overlay is up. */
     function drawActor(now) {
+        if (ENSO.battleHD) els.combat.querySelectorAll('.foe canvas[data-key]').forEach((f) => ENSO.worldRender.drawCreature(f, f.dataset.key, now));   // HD foes breathe
         const c = els.combat.querySelector('canvas.me-sprite');
         if (!c) return;
         const S = ENSO.sprites, P = S.manifest.player;
@@ -1031,7 +1032,7 @@
                     const aimed = battle.targetIds.includes(e.id);
                     return `<figure class="unit foe ${aimed ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
                         <span class="b-cursor" aria-hidden="true">${aimed ? '▼' : ''}</span>
-                        <canvas width="64" height="64" data-key="${esc(e.key)}"></canvas>
+                        <canvas width="128" height="128" data-key="${esc(e.key)}"></canvas>
                         <figcaption class="plate"><span class="u-name">${esc(name(e))}</span>${hpBar(e.id, e.hp, e.maxHp, 'enemy')}<span class="u-hp">${e.hp}/${e.maxHp}</span>
                             <span class="chips">${chips(e.statusEffects)}</span></figcaption></figure>`;
                 }).join('')}</div>
@@ -1243,8 +1244,9 @@
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
         const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
-        const dim = screen === 'combat' || screen === 'over' ? 0.7 : view.fade;   // the map stays visible as the battle's backdrop
-        renderer.draw({ ...view, fade: Math.max(dim, view.fade) }, objects, now);
+        const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
+        const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
+        renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }
 
