@@ -826,7 +826,7 @@
             T = PT;
             for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
                 const name = nameAt(src, x, y);
-                if (OVERHANGS[name]) OVERHANGS[name](g, x * PT, y * PT, PT, { tx: x, ty: y, time });
+                if (OVERHANGS[name]) OVERHANGS[name](g, x * PT, y * PT, PT, { tx: x, ty: y, time, above: nameAt(src, x, y - 1) });
                 if (src.art) drawArt(g, artCells(src, x, y, ['overhead']), x * PT, y * PT);
             }
             T = cellOf(map);
