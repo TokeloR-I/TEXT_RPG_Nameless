@@ -46,7 +46,7 @@
    frame with a lit inner edge, and notched pixel corners. Scales by font size, so it stays crisp. */
 /* Pixel-art 9-slice frame (12×12 art, 3 px slices drawn at 2×): dark outline, lit top-left edge, shaded
    bottom-right, a dark inner rim and notched corners. Colours: --c-frame-lo, --c-frame-hi, --c-frame, --c-win-lo. */
-.win, .dialog, .panel, .hud, .prompt, .toast {
+.win, .dialog, .panel, .prompt, .toast {
     border: 6px solid transparent;
     border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' shape-rendering='crispEdges'%3E%3Cpath fill='%232a2620' d='M2 0h8v1H2zM0 2h1v8H0zM11 2h1v8h-1zM2 11h8v1H2zM1 1h1v1H1zM10 1h1v1h-1zM1 10h1v1H1zM10 10h1v1h-1z'/%3E%3Cpath fill='%23d8c690' d='M2 1h8v1H2zM1 2h1v8H1zM2 2h1v1H2z'/%3E%3Cpath fill='%238a7a58' d='M10 2h1v8h-1zM2 10h8v1H2zM9 9h1v1H9z'/%3E%3Cpath fill='%2313111b' d='M3 2h6v1H3zM2 3h1v6H2zM9 3h1v6H9zM3 9h6v1H3z'/%3E%3C/svg%3E") 3 / 6px stretch;
     image-rendering: pixelated;
@@ -95,23 +95,31 @@ body {
 .world-help { color: var(--ink-dim); font-size: 13px; text-align: center; margin: 10px 0 0; }
 .world-help a { color: var(--accent); }
 
-/* ---------- HUD ---------- */
+/* ---------- HUD (HD-2D pass): no boxes over the lit scene ---------- */
 .hud {
-    position: absolute; top: 2cqw; left: 2cqw;
-    background: var(--panel); padding: 1cqw 1.4cqw;
-    font-size: clamp(10px, 1.7cqw, 16px); min-width: 26cqw;
+    position: absolute; inset: 1.6cqw 2cqw auto 2cqw; display: flex; justify-content: space-between; align-items: flex-start; gap: 2cqw;
+    font-size: clamp(10px, 1.6cqw, 15px); pointer-events: none; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
 }
-.hud-name { font-weight: bold; margin-bottom: 0.4em; }
-.hud-name span { color: var(--ink-dim); font-weight: normal; margin-left: 0.5em; }
-.hud-row { display: flex; align-items: center; gap: 0.6em; white-space: nowrap; }
-.hud-row + .hud-row { margin-top: 0.25em; }
-.bar { flex: 1; height: 0.6em; background: #26232b; border: 1px solid #3a3540; min-width: 6em; }
-.bar > span { display: block; height: 100%; }
-.bar.hp > span { background: var(--hp); }
-.bar.res > span { background: var(--res); }
+.hud-me { display: flex; align-items: center; gap: 1.1cqw; padding: 0.35em 2.6em 0.4em 0.4em;
+    background: linear-gradient(90deg, rgba(10, 9, 16, 0.7) 0, rgba(10, 9, 16, 0.5) 80%, rgba(10, 9, 16, 0) 100%); }
+.hud-me .dia { flex: none; width: 4.6cqw; height: 4.6cqw; margin: 0.6cqw; transform: rotate(45deg); overflow: hidden; display: grid; place-items: center;
+    background: var(--c-win-hi); border: 2px solid var(--c-frame-hi); box-shadow: 0 0 0 2px var(--c-frame-lo); }
+.hud-me .dia .face { transform: rotate(-45deg) scale(1.35); width: 4.6cqw; height: 4.6cqw; }
+.hud-stats { min-width: 21cqw; }
+.hud-name { margin-bottom: 0.15em; }
+.hud-name span { color: var(--c-ink-dim); margin-left: 0.5em; font-size: 0.85em; }
+.hud-name .hud-place { color: var(--c-accent); }
+.hud-row { display: grid; grid-template-columns: 4.6em minmax(0, 1fr) auto; align-items: center; gap: 0.5em; white-space: nowrap; }
+.hud-row .bar { min-width: 0; }
+.hud-row .k { color: var(--c-frame-hi); font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; }
+.hud-row .v { font-variant-numeric: tabular-nums; min-width: 3.6em; text-align: right; }
+.hud-row .v small { color: var(--c-ink-dim); font-size: 0.75em; }
+.bar { flex: 1; height: 0.4em; background: var(--c-bar-bg); box-shadow: 0 0 0 1px #000; min-width: 6em; }
+.bar > span { display: block; height: 100%; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.bar.hp > span { background: linear-gradient(90deg, #7fbf5a, #a8dc6c); }
+.bar.res > span { background: linear-gradient(90deg, #3f6fb0, var(--c-st-control)); }
 .bar.enemy > span { background: #8f6a3a; }
-
-.hud-place { color: var(--accent); font-size: 0.8em; letter-spacing: 0.08em; margin-bottom: 0.2em; }
+.hud-place { color: var(--accent); font-size: 0.8em; letter-spacing: 0.08em; }
 
 /* ---------- "E: Inspect ..." hint ---------- */
 .prompt {
@@ -409,7 +417,7 @@ body {
     border: 2px solid var(--edge); padding: 0.45em 0.6em;
 }
 .title-screen .name-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 12px rgba(159, 232, 207, 0.25); }
-.hud-obj { margin-top: 0.5em; max-width: 34cqw; white-space: normal; color: #e8c860; font-size: 0.92em; line-height: 1.35; }
+.hud-obj { margin-top: 0.3em; max-width: 34cqw; white-space: normal; color: var(--c-gold); font-size: 0.92em; line-height: 1.35; text-align: right; padding: 0.35em 0.4em 0.4em 1.6em; background: linear-gradient(270deg, rgba(10, 9, 16, 0.7) 0, rgba(10, 9, 16, 0.45) 70%, rgba(10, 9, 16, 0) 100%); }
 .hud-quest { display: block; color: var(--ink-dim); font-size: 0.85em; letter-spacing: 0.04em; }
 .hud-where { color: var(--ink-dim); }
 .dialog-role { color: var(--ink-dim); font-weight: normal; font-size: 0.85em; margin-left: 0.4em; }
@@ -453,6 +461,8 @@ body {
     .dialog:has(.talk-choices) { left: 2cqw; right: 2cqw; bottom: 2cqw; max-height: 94%; }
     .dialog:has(.talk-choices) .talk-choices { max-height: 38%; }
     .hud-obj { max-width: 50cqw; }
+    .hud-stats { min-width: 36cqw; }
+    .hud-row { grid-template-columns: 4em minmax(0, 1fr) auto; }
 }
 
 /* Character creator: a compact, navigable twelve-style catalogue.

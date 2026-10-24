@@ -426,12 +426,18 @@
     function updateHud() {
         const p = engine.getState().player;
         const place = session ? WORLD.maps[session.mapId].name : '';
+        // Compact HUD (HD-2D pass): face, name and slim gauges top left, the quest tracker top right, no boxes.
         els.hud.innerHTML = `
-            <div class="hud-place">${esc(place)}</div>
-            <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span></div>
-            <div class="hud-row">HP ${bar(p.hp, p.maxHp, 'hp')} <span>${p.hp}/${p.maxHp}</span></div>
-            <div class="hud-row">${esc(p.resource.type)} ${bar(p.resource.current, p.resource.max, 'res')} <span>${p.resource.current}/${p.resource.max}</span></div>
+            <div class="hud-me">
+                <span class="dia"><canvas class="face" width="32" height="32" data-face="player" aria-hidden="true"></canvas></span>
+                <div class="hud-stats">
+                    <div class="hud-name">${esc(p.name)} <span>Lv ${p.level}</span><span class="hud-place">${esc(place)}</span></div>
+                    <div class="hud-row"><span class="k">HP</span>${bar(p.hp, p.maxHp, 'hp')}<span class="v">${p.hp}<small>/${p.maxHp}</small></span></div>
+                    <div class="hud-row"><span class="k">${esc(p.resource.type)}</span>${bar(p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
+                </div>
+            </div>
             ${objectiveHtml()}`;
+        const face = els.hud.querySelector('canvas.face'); if (face && view.className) drawFace(face);
         const obj = engine.story ? engine.trackedObjective() : null;
         view.marker = obj && obj.marker && session && obj.marker.map === session.mapId ? { x: obj.marker.x, y: obj.marker.y } : null;
     }

@@ -132,3 +132,8 @@ References: Octopath Traveler and Sea of Stars battle and town shots (owner-supp
 - *Pixel font:* DotGothic16 (SIL OFL, `assets/fonts/`). Pixelify Sans was tried and dropped: its 5/S, B/8 and fi
   glyphs misread at UI sizes. It has a single weight, so fake bold is off (`font-synthesis: none`). The
   single-file build inlines the font.
+
+## Compact exploration HUD (HD-2D pass, on Wren's lit scenes from #132)
+- *The boxed HUD panel became an unboxed strip.* Top left holds your face in a diamond, your name, level and place,
+  and slim HP and resource gauges. Top right holds the quest tracker. Each sits on a fading dark gradient with
+  outlined text, so it stays readable over lit or dark scenes and covers less of the map.
