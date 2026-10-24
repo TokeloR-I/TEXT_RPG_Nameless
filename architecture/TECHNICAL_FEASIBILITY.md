@@ -3,6 +3,7 @@
 **Author:** Technical Director & Game Systems Architect
 **Date:** 2026-10-22
 **For:** Creative Director (approval) · cc Lead Game Designer, Developer, QA & Balance, Documentation & Lore
+**Superseded on the engine choice (2026-10-24):** see [ENGINE_DECISION.md](ENGINE_DECISION.md). The project stays on its own Canvas renderer; Phaser is not adopted. The rest of this assessment stands.
 **Status:** Assessment only. No code, data, dependencies or project structure were changed.
 **Build reviewed:** `main` @ `14033bf` (merge of PR #4, 2026-10-22 18:35), which matches **BUILD_MANIFEST 2026-10-22.1** byte for byte (13/13 code hashes checked; 92/92 tests). **Re-checked against `main` @ `2ef13b2`** (PRs #5–#7: QA-3/4/5/6/7/9/10 fixes and the QA retest kit). `npm test`: **100/100 passed** on Node 22. Findings below reflect `2ef13b2`.
 
