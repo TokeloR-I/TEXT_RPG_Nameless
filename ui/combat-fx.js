@@ -191,7 +191,18 @@
         return { push, draw, clear() { effects = []; g.clearRect(0, 0, canvas.width, canvas.height); }, get active() { return effects.length; } };
     }
 
-    const api = { eventsFromStates, frame, schedule, createFx, STYLE, PLAYER };
+    /**
+     * Where a battle unit is, for HUD plates, damage pops and the battle camera: the centre of the
+     * [data-unit-id] element (its sprite canvas if it has one), in px relative to `root`'s box. Null if absent.
+     */
+    function battleAnchor(root, unitId) {
+        const el = root && root.querySelector(`[data-unit-id="${String(unitId).replace(/["\\]/g, '\\$&')}"]`);
+        if (!el) return null;
+        const box = root.getBoundingClientRect(), r = (el.querySelector('canvas') || el).getBoundingClientRect();
+        return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2, w: r.width, h: r.height };
+    }
+
+    const api = { battleAnchor, eventsFromStates, frame, schedule, createFx, STYLE, PLAYER };
     ENSO.combatFx = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

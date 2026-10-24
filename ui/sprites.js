@@ -274,7 +274,29 @@
         return errs;
     }
 
-    const api = { paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
+    /**
+     * Head-and-shoulders portrait (HD-2D HUD: turn bar, party plates). Draws the same composition as the
+     * walking character, facing the camera, and crops the top of it into a size x size square at (x, y).
+     * opts are drawCharacter's ({ appearance, cosmetics, className }).
+     */
+    function drawPortrait(g, x, y, opts, size = 32) {
+        const character = opts.character || manifest.player;
+        const { w, h } = character.frame;
+        const tmp = document.createElement('canvas');
+        tmp.width = w; tmp.height = h;
+        const tg = tmp.getContext('2d');
+        drawCharacter(tg, character.anchor.x, character.anchor.y, { ...opts, facing: 'down', anim: 'idle', scale: 1 }, 0);
+        const px = tg.getImageData(0, 0, w, h).data;
+        let top = 0;
+        while (top < h && ![...Array(w).keys()].some((i) => px[(top * w + i) * 4 + 3] > 0)) top++;
+        const crop = Math.min(w, 20), sx = Math.round((w - crop) / 2), sy = Math.max(0, Math.min(h - crop, top + 2));
+        const prev = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(tmp, sx, sy, crop, crop, Math.round(x), Math.round(y), size, size);
+        g.imageSmoothingEnabled = prev;
+    }
+
+    const api = { drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
     ENSO.sprites = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
