@@ -777,7 +777,7 @@
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')
     window.ensoDebug = {
         goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
-        start(cls, name, look) { startGame(cls || 'warrior', name, look); advanceDialog(true); },
+        start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); },
         state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
     };
 

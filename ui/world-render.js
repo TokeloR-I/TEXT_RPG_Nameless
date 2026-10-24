@@ -1,7 +1,7 @@
 /* =========================================================================
- * Enso's Last Stand — WORLD RENDERER (canvas, no assets)
- * Draws a map, its objects, the player and lighting from plain shapes, so the
- * game stays double-click playable with no image files. Tiles are painted by
+ * Enso's Last Stand — WORLD RENDERER (canvas, no external files)
+ * Draws a map, its objects and lighting from plain shapes, and the player from
+ * layered sprite sheets (ui/sprites.js), so the game stays double-click playable. Tiles are painted by
  * name (see `tileset` in src/world/zone1.js); a map's static tiles are cached
  * on an offscreen canvas and only animated tiles are redrawn each frame.
  * Presentation only: it reads positions, it never changes game state.
@@ -18,7 +18,6 @@
     const ANIMATED = new Set(['water', 'tall_weeds', 'fireplace', 'rope', 'seal_door']);
     const WALLS = new Set(['stone_wall', 'wood_wall']);
     const EXTERIOR = new Set(['house_wall', 'house_window', 'roof', 'shed_wall', 'shed_roof', 'shed_door_shut']);
-    const CLASS_COLOURS = { warrior: '#8a3b2e', mage: '#35548a', rogue: '#3d6640', necromancer: '#5a3b7a' };
 
     function rect(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); }
     function circle(g, x, y, r, c) { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
@@ -435,7 +434,6 @@
         warden_npc: { cloak: '#2a2a32', helm: '#3a3a42', prop: 'halberd', crows: true },
         mason: { cloak: '#6a6a5a', hair: '#5a4a3a', belt: '#4a3a2a', prop: 'hammer' }
     };
-    const SKINS = ['#d9c3a5', '#c69072', '#8a5a40', '#efd9c4'];   // player appearance presets (cosmetic)
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
             const b = Math.sin(t / 180) * 0.8;
@@ -574,88 +572,22 @@
             return c;
         }
 
+        /** The player: layered sprite sheets via ENSO.sprites (ui/sprites.js, docs/SPRITES.md). The creator
+         *  preview goes through here too, so the preview and the walking character are the same composition. */
         function drawPlayer(px, py, view, time) {
-            const bob = view.moving ? Math.sin(time / 60) * 1.2 : 0;
-            const cx = px + T / 2, base = py + T - 4;
-            g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base, 9, 3.5, 0, 0, Math.PI * 2); g.fill();
-            const cosmetic = view.cosmetics || {};
-            const cloth = [
-                CLASS_COLOURS[view.className] || '#6a6a6a',
-                '#514c49', '#747477', '#674665'
-            ];
-            const body = cloth[cosmetic.outfit] || cloth[0];
-            const hairColors = ['#2b2320', '#6b4530', '#a3a0a1', '#b05b36'];
-            const hair = hairColors[cosmetic.hairColor] || hairColors[0];
-            const step = view.moving ? (Math.floor(time / 110) % 2 ? 2 : -2) : 0;
-            rect(g, cx - 5, base - 7 + Math.max(0, step), 4, 6, '#2a2420');   // legs
-            rect(g, cx + 1, base - 7 + Math.max(0, -step), 4, 6, '#2a2420');
-            g.fillStyle = body;                                                   // cloak
-            g.beginPath(); g.moveTo(cx - 8, base - 6 + bob); g.lineTo(cx + 8, base - 6 + bob); g.lineTo(cx + 6, base - 19 + bob); g.lineTo(cx - 6, base - 19 + bob); g.closePath(); g.fill();
-            circle(g, cx, base - 23 + bob, 6, SKINS[view.appearance] || SKINS[0]);   // head (appearance preset)
-            // Layered hairstyle silhouettes: rear lengths, crown, fringe, accessories.
-            // All twelve cuts are drawn for the actual map character, not a creator-only mockup.
-            const style = Number.isInteger(cosmetic.hairStyle) ? cosmetic.hairStyle : 0;
-            const headY = base - 23 + bob;
-            const top = headY - 6;
-            const back = () => {
-                if ([4, 6, 9].includes(style)) {
-                    rect(g, cx - 8, headY - 1, 3, 13, hair);
-                    rect(g, cx + 5, headY - 1, 3, 13, hair);
-                }
-                if (style === 10) {
-                    rect(g, cx - 8, headY, 3, 15, hair); rect(g, cx + 5, headY, 3, 15, hair);
-                    for (const y of [headY + 4, headY + 9, headY + 13]) {
-                        rect(g, cx - 8, y, 3, 1, '#b7a48e'); rect(g, cx + 5, y, 3, 1, '#b7a48e');
-                    }
-                }
-                if (style === 11) {
-                    rect(g, cx + 5, top - 3, 5, 7, hair);
-                    rect(g, cx + 8, headY - 1, 4, 15, hair);
-                    rect(g, cx + 9, headY + 10, 3, 4, hair);
-                }
-            };
-            // Rear hair is behind the face, but over the cloak.
-            back();
-            g.fillStyle = hair;
-            if (style === 7) {
-                rect(g, cx - 4, top + 1, 8, 2, hair);
-            } else {
-                g.beginPath(); g.arc(cx, headY - 1, style === 1 ? 7 : 6, Math.PI, 2 * Math.PI); g.fill();
-                rect(g, cx - 6, headY - 2, 2, 4, hair); rect(g, cx + 4, headY - 2, 2, 4, hair);
-                if (style === 0) { // red reference: tousled, uneven short spikes
-                    for (const [dx,dy] of [[-6,-6],[-2,-8],[2,-7],[5,-6]]) rect(g,cx+dx,headY+dy,3,4,hair);
-                } else if (style === 1) { // full round crop
-                    rect(g,cx-7,headY-3,14,3,hair);
-                } else if (style === 2) { // high spiky silhouette
-                    for (const [dx,dy] of [[-6,-8],[-2,-10],[2,-9],[6,-7]]) rect(g,cx+dx,headY+dy,2,5,hair);
-                } else if (style === 3) { // straight, deliberate fringe
-                    rect(g,cx-5,headY-3,10,4,hair);
-                } else if (style === 4) {
-                    rect(g,cx-5,headY-3,7,4,hair);
-                } else if (style === 5) { // side sweep
-                    rect(g,cx-6,headY-3,11,3,hair);rect(g,cx+3,headY-1,4,4,hair);
-                } else if (style === 6) {
-                    for (const x of [-6,-2,2,5]) rect(g,cx+x,headY-4,3,4,hair);
-                } else if (style === 8) {
-                    rect(g,cx-6,headY-3,4,4,hair);rect(g,cx+1,headY-3,5,2,hair);
-                } else if (style === 9) {
-                    rect(g,cx-5,headY-4,10,3,hair);rect(g,cx-5,headY-2,3,6,hair);
-                } else if (style === 10) { // braided crown / part
-                    for (const x of [-5,-2,1,4]) rect(g,cx+x,headY-5,2,7,hair);
-                } else if (style === 11) {
-                    rect(g,cx-4,headY-4,8,4,hair);
-                    rect(g,cx+4,top-4,4,4,hair);
-                }
-            }
-            if (view.facing === 'down') { rect(g, cx - 3, base - 23 + bob, 2, 2, '#1a1412'); rect(g, cx + 1, base - 23 + bob, 2, 2, '#1a1412'); }
-            if (view.facing === 'left') rect(g, cx - 4, base - 23 + bob, 2, 2, '#1a1412');
-            if (view.facing === 'right') rect(g, cx + 2, base - 23 + bob, 2, 2, '#1a1412');
+            const cx = px + T / 2, base = py + T - 2;
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
+            ENSO.sprites.drawCharacter(g, cx, base, {
+                appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
+                facing: view.facing, anim: view.moving ? 'walk' : 'idle'
+            }, time);
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
-            for (const hx of [cx - 8, cx + 8]) {
-                const grad = g.createRadialGradient(hx, base - 11 + bob, 0, hx, base - 11 + bob, 6);
+            const hands = view.facing === 'left' || view.facing === 'right' ? [cx + (view.facing === 'left' ? -1 : 1)] : [cx - 5, cx + 5];
+            for (const hx of hands) {
+                const hy = base - 8;
+                const grad = g.createRadialGradient(hx, hy, 0, hx, hy, 6);
                 grad.addColorStop(0, `rgba(160, 255, 220, ${glow})`); grad.addColorStop(1, 'rgba(160, 255, 220, 0)');
-                g.fillStyle = grad; g.fillRect(hx - 6, base - 17 + bob, 12, 12);
-                rect(g, hx - 1, base - 12 + bob, 2, 2, '#c9fff0');
+                g.fillStyle = grad; g.fillRect(hx - 6, hy - 6, 12, 12);
             }
         }
 
