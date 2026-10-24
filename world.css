@@ -263,3 +263,21 @@ body {
     .dialog:has(.talk-choices) .talk-choices { max-height: 38%; }
     .hud-obj { max-width: 50cqw; }
 }
+
+/* Character creator: a compact, navigable twelve-style catalogue.
+   The highlighted entry previews immediately in the actual world canvas. */
+.title-screen .hairstyle-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 0.35em; width: min(100%, 640px); max-height: 57%;
+    overflow-y: auto; padding: 0.15em;
+}
+.title-screen .hairstyle-grid li {
+    padding: 0.4em 0.4em 0.4em 1.3em; min-width: 0;
+    border: 1px solid var(--edge);
+}
+.title-screen .hairstyle-grid .m-label { font-size: 0.95em; }
+.title-screen .hairstyle-grid .m-sub { display: none; }
+.title-screen .hairstyle-grid li.selected { border-color: var(--accent); }
+@media (max-width: 520px) {
+    .title-screen .hairstyle-grid { grid-template-columns: repeat(2,minmax(0,1fr)); max-height: 64%; }
+}

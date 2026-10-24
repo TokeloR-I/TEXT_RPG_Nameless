@@ -578,16 +578,75 @@
             const bob = view.moving ? Math.sin(time / 60) * 1.2 : 0;
             const cx = px + T / 2, base = py + T - 4;
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base, 9, 3.5, 0, 0, Math.PI * 2); g.fill();
-            const body = CLASS_COLOURS[view.className] || '#6a6a6a';
+            const cosmetic = view.cosmetics || {};
+            const cloth = [
+                CLASS_COLOURS[view.className] || '#6a6a6a',
+                '#514c49', '#747477', '#674665'
+            ];
+            const body = cloth[cosmetic.outfit] || cloth[0];
+            const hairColors = ['#2b2320', '#6b4530', '#a3a0a1', '#b05b36'];
+            const hair = hairColors[cosmetic.hairColor] || hairColors[0];
             const step = view.moving ? (Math.floor(time / 110) % 2 ? 2 : -2) : 0;
             rect(g, cx - 5, base - 7 + Math.max(0, step), 4, 6, '#2a2420');   // legs
             rect(g, cx + 1, base - 7 + Math.max(0, -step), 4, 6, '#2a2420');
             g.fillStyle = body;                                                   // cloak
             g.beginPath(); g.moveTo(cx - 8, base - 6 + bob); g.lineTo(cx + 8, base - 6 + bob); g.lineTo(cx + 6, base - 19 + bob); g.lineTo(cx - 6, base - 19 + bob); g.closePath(); g.fill();
             circle(g, cx, base - 23 + bob, 6, SKINS[view.appearance] || SKINS[0]);   // head (appearance preset)
-            g.fillStyle = '#2b2320';                                              // hair, by facing
-            if (view.facing === 'up') { g.beginPath(); g.arc(cx, base - 23 + bob, 6, 0, Math.PI * 2); g.fill(); }
-            else { g.beginPath(); g.arc(cx, base - 24 + bob, 6, Math.PI, Math.PI * 2); g.fill(); }
+            // Layered hairstyle silhouettes: rear lengths, crown, fringe, accessories.
+            // All twelve cuts are drawn for the actual map character, not a creator-only mockup.
+            const style = Number.isInteger(cosmetic.hairStyle) ? cosmetic.hairStyle : 0;
+            const headY = base - 23 + bob;
+            const top = headY - 6;
+            const back = () => {
+                if ([4, 6, 9].includes(style)) {
+                    rect(g, cx - 8, headY - 1, 3, 13, hair);
+                    rect(g, cx + 5, headY - 1, 3, 13, hair);
+                }
+                if (style === 10) {
+                    rect(g, cx - 8, headY, 3, 15, hair); rect(g, cx + 5, headY, 3, 15, hair);
+                    for (const y of [headY + 4, headY + 9, headY + 13]) {
+                        rect(g, cx - 8, y, 3, 1, '#b7a48e'); rect(g, cx + 5, y, 3, 1, '#b7a48e');
+                    }
+                }
+                if (style === 11) {
+                    rect(g, cx + 5, top - 3, 5, 7, hair);
+                    rect(g, cx + 8, headY - 1, 4, 15, hair);
+                    rect(g, cx + 9, headY + 10, 3, 4, hair);
+                }
+            };
+            // Rear hair is behind the face, but over the cloak.
+            back();
+            g.fillStyle = hair;
+            if (style === 7) {
+                rect(g, cx - 4, top + 1, 8, 2, hair);
+            } else {
+                g.beginPath(); g.arc(cx, headY - 1, style === 1 ? 7 : 6, Math.PI, 2 * Math.PI); g.fill();
+                rect(g, cx - 6, headY - 2, 2, 4, hair); rect(g, cx + 4, headY - 2, 2, 4, hair);
+                if (style === 0) { // red reference: tousled, uneven short spikes
+                    for (const [dx,dy] of [[-6,-6],[-2,-8],[2,-7],[5,-6]]) rect(g,cx+dx,headY+dy,3,4,hair);
+                } else if (style === 1) { // full round crop
+                    rect(g,cx-7,headY-3,14,3,hair);
+                } else if (style === 2) { // high spiky silhouette
+                    for (const [dx,dy] of [[-6,-8],[-2,-10],[2,-9],[6,-7]]) rect(g,cx+dx,headY+dy,2,5,hair);
+                } else if (style === 3) { // straight, deliberate fringe
+                    rect(g,cx-5,headY-3,10,4,hair);
+                } else if (style === 4) {
+                    rect(g,cx-5,headY-3,7,4,hair);
+                } else if (style === 5) { // side sweep
+                    rect(g,cx-6,headY-3,11,3,hair);rect(g,cx+3,headY-1,4,4,hair);
+                } else if (style === 6) {
+                    for (const x of [-6,-2,2,5]) rect(g,cx+x,headY-4,3,4,hair);
+                } else if (style === 8) {
+                    rect(g,cx-6,headY-3,4,4,hair);rect(g,cx+1,headY-3,5,2,hair);
+                } else if (style === 9) {
+                    rect(g,cx-5,headY-4,10,3,hair);rect(g,cx-5,headY-2,3,6,hair);
+                } else if (style === 10) { // braided crown / part
+                    for (const x of [-5,-2,1,4]) rect(g,cx+x,headY-5,2,7,hair);
+                } else if (style === 11) {
+                    rect(g,cx-4,headY-4,8,4,hair);
+                    rect(g,cx+4,top-4,4,4,hair);
+                }
+            }
             if (view.facing === 'down') { rect(g, cx - 3, base - 23 + bob, 2, 2, '#1a1412'); rect(g, cx + 1, base - 23 + bob, 2, 2, '#1a1412'); }
             if (view.facing === 'left') rect(g, cx - 4, base - 23 + bob, 2, 2, '#1a1412');
             if (view.facing === 'right') rect(g, cx + 2, base - 23 + bob, 2, 2, '#1a1412');
