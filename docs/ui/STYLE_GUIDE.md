@@ -50,7 +50,7 @@ They go away once every screen is on the new tokens.
 - Numbers that change (HP, resource) use `font-variant-numeric: tabular-nums` so they don't jitter.
 
 ## Window frame (`.win`)
-- Banded fill in three hard steps (no smooth gradients), a 2 px frame in `--c-frame`, a 1 px inner shadow,
+- Banded fill in three hard steps of 1.6em each at the top, so tall windows get header shading rather than stripes (no smooth gradients), a 2 px frame in `--c-frame`, a 1 px inner shadow,
   a faint lit top edge and notched pixel corners (`clip-path`). Padding `0.55em 0.8em`.
 - Every menu, status and message window uses `.win`. Floating labels (name plates, the round tag) use a
   plain 1 px frame on a dark fill instead, so windows stay the strongest shape on screen.

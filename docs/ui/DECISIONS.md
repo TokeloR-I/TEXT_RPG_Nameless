@@ -67,3 +67,26 @@ One entry per change to an existing screen: what was kept, what was replaced, an
 
 **Kept**
 - The log still prints the engine's "Battle Order" text; the strip is the at-a-glance version.
+
+## 2026-10-24 · Main menu with Items, Equipment and Settings (UI-3 / UI-6)
+
+**Replaced**
+- *One long pause scroll → tabbed main menu.* Esc opens tabs on the left (Status, Items, Equipment, Journal,
+  Settings, then Save and Quit set apart) and the tab's page on the right. Moving through the tabs previews each
+  page; Enter or → goes into its list; Esc or ← comes back. PageUp/PageDown scroll a long page (the journal).
+- *"Use Roadworn Blade · Heals undefined" → a Use list of consumables.* The old menu offered every item that has
+  a definition, including gear and materials. The Use list now shows only the engine's `use_item` options for
+  items that have a `use`, with the engine's reason when one can't be used (e.g. full health). Everything else is
+  listed under Carrying.
+- *No equipment screen → Equipment tab* on Wren's `getEquipment()` (#118): each slot, what fits it, and a stat
+  comparison for the highlighted choice (▲/▼ plus colour, never colour alone). It sends the engine's `equip` and
+  `unequip` actions.
+- *Seed and controls in the main scroll → Settings tab,* with Display (UI-2) and a controls list.
+
+**Kept**
+- The evolution (branch) choice keeps its own panel; it now uses the same window frame.
+
+**For Wren**
+- `getAvailableActions()` in exploration lists `use_item` as *enabled* for items without a `use` (gear,
+  Wild Herbs), and `act()` then does nothing. The menu no longer offers them, but the engine probably should
+  report them as disabled (e.g. `NOT_USABLE`) so every front end agrees.
