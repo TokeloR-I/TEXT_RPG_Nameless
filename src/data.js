@@ -369,8 +369,8 @@
                     identity: "Knowledge, control, raw magical power."
                 },
                 startingItems: ['wooden staff', 'spellbook', 'old key'],
-                startingResource: { type: 'Mana', initial: 8, max: 20, regen: 3 },
-                baseStats: { hp: 90, strength: 6, intelligence: 12, agility: 7, def: 3, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
+                startingResource: { type: 'Mana', initial: 6, max: 20, regen: 2 },
+                baseStats: { hp: 70, strength: 6, intelligence: 10, agility: 7, def: 2, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
                 startingSkills: ['Arcane Bolt', 'Focus', 'Mana Burst'],
                 startingTraits: []
             },
@@ -384,7 +384,7 @@
                 },
                 startingItems: ['short sword', 'lockpicks', 'old key'],
                 startingResource: { type: 'Energy', initial: 6, max: 15, regen: 3 },
-                baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, def: 4, critChance: 0.2, critMultiplier: 2.0, baseDamageMin: 5, baseDamageMax: 9 },
+                baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, def: 3, critChance: 0.2, critMultiplier: 2.0, baseDamageMin: 5, baseDamageMax: 9 },
                 startingSkills: ['Backstab', 'Evasion', 'Quick Slash'],
                 startingTraits: []
             },
@@ -397,8 +397,8 @@
                     identity: "You walk between realms, plucking secrets from cold lips. The living fear you; the dead obey."
                 },
                 startingItems: ['cracked bone staff', 'small black journal'],
-                startingResource: { type: 'Soul Energy', initial: 3, max: 10 },
-                baseStats: { hp: 110, strength: 6, intelligence: 12, agility: 6, def: 6, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
+                startingResource: { type: 'Soul Energy', initial: 1, max: 10 },
+                baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, def: 4, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
                 startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech'],
                 startingTraits: []
             }
@@ -645,17 +645,17 @@
             'Momentum':         { startOfFight: 1 },               // Warrior "Battle-Ready"
             'Mana':             { startOfFight: 6 },
             'Energy':           { startOfFight: 6 },
-            'Soul Energy':      { startOfFight: 3, regen: 1 },
+            'Soul Energy':      { startOfFight: 1 },
             'Hollow Will':      { startOfFight: 0 },
             // branches
             'Oath Points':      { startOfFight: 1, regen: 0, onGuard: 1 },          // (*) no gain rule in design
             'Sin Marks':        { startOfFight: 0, regen: 0, onKill: 1 },           // (*) no gain rule in design
             'Fury Gauge':       { startOfFight: 0, regen: 0, onDamageTaken: 1 },    // (*) no gain rule in design
             'Vigil':            { startOfFight: 1, regen: 0, onMarkedHitRound: 1 },
-            'Stealth Tokens':   { startOfFight: 1, regen: 1, onDodge: 1, onKill: 1 },
-            'Combo Points':     { startOfFight: 0, regen: 1, onBasicAttack: 1 },
+            'Stealth Tokens':   { startOfFight: 1, regen: 0, onDodge: 1, onKill: 1 },
+            'Combo Points':     { startOfFight: 0, regen: 0, onBasicAttack: 1 },
             'Trap Charges':     { startOfFight: 3 },                                // (*) keeps Rogue regen
-            'Deception Tokens': { startOfFight: 1, regen: 2, onDodge: 1 },
+            'Deception Tokens': { startOfFight: 1, regen: 0, onDodge: 1 },
             'Time Charges':     { startOfFight: 1, regen: 1 }
         };
 
