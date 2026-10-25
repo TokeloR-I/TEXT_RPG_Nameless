@@ -256,7 +256,11 @@
             const dt = STEP / 1000;
             const stunned = !!(this.pview && this.pview.stunned);
             const slow = this.pview ? this.pview.speedMult : 1;
-            if (inp.aim) p.angle = angleTo(p, inp.aim);
+            // Commit an action's direction before starting its cast. Walking must not rotate a swing.
+            if (!stunned && (p.state === 'idle' || p.state === 'move')) {
+                if (inp.aim) p.angle = angleTo(p, inp.aim);
+                else if (inp.move.x || inp.move.y) p.angle = Math.atan2(inp.move.y, inp.move.x);
+            }
 
             // stamina
             if (this.now >= p.staminaAt) p.stamina = Math.min(st.max || 100, p.stamina + (st.regenPerSec || 30) * dt);
@@ -316,7 +320,6 @@
                     if (p.guarding) speed *= (R.guard || {}).moveMult || 0.45;
                     speed *= slow;
                     vx = (m.x / Math.max(1, len)) * speed; vy = (m.y / Math.max(1, len)) * speed;
-                    if (!inp.aim) p.angle = Math.atan2(m.y, m.x);
                 }
             }
             p.moving = !!(vx || vy);
