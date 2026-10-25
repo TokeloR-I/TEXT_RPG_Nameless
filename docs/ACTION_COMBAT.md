@@ -94,6 +94,8 @@ WASD move and face (8 directions, sub-tile) · LMB aims a basic attack · 1 atta
 Q guards forward / RMB aims guard (tap at the right moment = parry) · E interact / talk / collect · Tab cycle target lock · I / J / Esc.
 Keyboard/HUD actions use facing unless Tab lock is explicitly active. Passive mouse motion does not turn the player.
 The compact player portrait, name, level, HP and resource stay at top left; the quest tracker is top right. Empty skill slots collapse while exploring.
+Skill buttons use compact original pictograms (32–52 CSS pixels), with names and costs on hover or keyboard focus.
+The action HUD hides and becomes inert during dialogue, shops, menus and story transitions, then returns on close.
 The arrow keys still walk. Touch pad: unchanged walk buttons plus attack and dodge.
 
 ## Delivery team (direction §12: phases A–E are a planning aid, not gates)

@@ -786,7 +786,7 @@ body {
     text-shadow: 0 var(--ap) 0 #000, var(--ap) 0 0 #000, calc(var(--ap) * -1) 0 0 #000, 0 calc(var(--ap) * -1) 0 #000;
 }
 .world-stage.tall .ahud { --ap: calc(100cqw / 288); }
-.ahud [hidden] { display: none !important; }
+.ahud[hidden], .ahud [hidden] { display: none !important; }
 .ahud kbd { font: inherit; font-size: 0.75em; color: var(--c-accent); padding: 0 calc(var(--ap) * 2);
     border: var(--ap) solid var(--c-ink-dim); border-bottom-width: calc(var(--ap) * 2); background: rgba(0, 0, 0, 0.55); text-shadow: none; }
 
@@ -834,41 +834,41 @@ body {
 .ahud-chip.ending { animation: ahud-blink 0.5s steps(2) infinite; }
 
 /* ---- bottom-centre: skill bar ---- */
-.ahud-centre { position: absolute; left: 50%; bottom: calc(var(--ap) * 8); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
-.ahud-skills { display: flex; align-items: flex-end; gap: calc(var(--ap) * 3); padding: calc(var(--ap) * 3); pointer-events: auto;
+.ahud-centre { --slot-size: clamp(32px, calc(var(--ap) * 20), 52px); position: absolute; left: 50%; bottom: calc(var(--ap) * 8); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
+.ahud-skills { display: flex; align-items: flex-end; gap: clamp(2px, calc(var(--ap) * 2), 5px); padding: calc(var(--ap) * 2); pointer-events: auto;
     background: rgba(13, 12, 19, 0.82); box-shadow: 0 0 0 var(--ap) var(--c-frame), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.25); }
 .ahud-sep { width: var(--ap); align-self: stretch; margin: calc(var(--ap) * 2) var(--ap); background: var(--c-frame); }
-.ahud-slot { position: relative; width: calc(var(--ap) * 26); height: calc(var(--ap) * 26); cursor: pointer; overflow: hidden;
+.ahud-slot { position: relative; flex: 0 0 auto; width: var(--slot-size); height: var(--slot-size); cursor: pointer; touch-action: manipulation; overflow: hidden;
     background: linear-gradient(180deg, #2a2638 0 50%, #1d1a29 50% 100%);
     box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) #4a4258, inset 0 calc(var(--ap) * 3) 0 rgba(255, 255, 255, 0.06); }
-.ahud-slot.basic { width: calc(var(--ap) * 30); height: calc(var(--ap) * 30);
+.ahud-slot.basic { width: var(--slot-size); height: var(--slot-size);
     box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-frame-hi), inset 0 calc(var(--ap) * 3) 0 rgba(255, 255, 255, 0.08); }
-.ahud-slot .abbr { position: absolute; inset: 0; display: grid; place-items: center; padding-top: calc(var(--ap) * 2); color: var(--c-ink); }
-.ahud-slot.basic .abbr { font-size: 1em; }
-.ahud-slot .glyph { position: absolute; left: calc(var(--ap) * 3); top: calc(var(--ap) * 2); font-size: 0.75em; color: var(--c-accent); }
-.ahud-slot .key { position: absolute; right: calc(var(--ap) * 3); top: calc(var(--ap) * 2); font-size: 0.75em; color: var(--ah-gold); }
-.ahud-slot .cost { position: absolute; right: calc(var(--ap) * 2); bottom: calc(var(--ap) * 2); min-width: calc(var(--ap) * 5); padding: 0 var(--ap); font-size: 0.75em; line-height: 1;
+.ahud-slot .skill-icon { position: absolute; inset: 14% 16% 18%; display: grid; place-items: center; color: var(--c-accent); pointer-events: none; }
+.ahud-slot .skill-icon svg { width: 100%; height: 100%; display: block; }
+.ahud-skill-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(78cqw, 360px); padding: 7px 9px; background: var(--c-win-lo); border: 1px solid var(--c-frame-hi); color: var(--c-ink); font-size: clamp(11px, calc(var(--ap) * 6), 15px); line-height: 1.4; overflow-wrap: anywhere; text-align: center; }
+.ahud-slot .key { position: absolute; right: calc(var(--ap) * 3); top: calc(var(--ap) * 2); font-size: clamp(10px, calc(var(--ap) * 5), 14px); line-height: 1; color: var(--ah-gold); background: var(--c-win-lo); }
+.ahud-slot .cost { position: absolute; right: calc(var(--ap) * 2); bottom: calc(var(--ap) * 2); min-width: calc(var(--ap) * 5); padding: 0 var(--ap); font-size: clamp(10px, calc(var(--ap) * 5), 14px); line-height: 1;
     text-align: center; color: #fff; background: var(--ah-mana); box-shadow: 0 0 0 var(--ap) #000; text-shadow: none; }
 .ahud-slot .shutter { position: absolute; left: calc(var(--ap) * 2); right: calc(var(--ap) * 2); bottom: calc(var(--ap) * 2); height: 0; background: rgba(4, 4, 8, 0.72);
     box-shadow: 0 calc(var(--ap) * -1) 0 rgba(159, 232, 207, 0.55); }
 .ahud-slot .sweep { position: absolute; inset: calc(var(--ap) * 2); --sweep: 0;
     background: conic-gradient(rgba(4, 4, 8, 0.55) calc(var(--sweep) * 360deg), transparent 0); }
-.ahud-slot .secs { position: absolute; inset: 0; display: grid; place-items: center; padding-top: calc(var(--ap) * 2); color: #fff; font-variant-numeric: tabular-nums; }
+.ahud-slot .secs { position: absolute; inset: 0; display: grid; place-items: center; padding-top: calc(var(--ap) * 2); color: #fff; font-size: clamp(11px, calc(var(--ap) * 7), 18px); font-variant-numeric: tabular-nums; }
 .ahud-slot .secs:empty { display: none; }
-.ahud-slot.is-cooldown .abbr { opacity: 0.3; }
+.ahud-slot.is-cooldown .skill-icon { opacity: 0.3; }
 .ahud-slot .secs:not(:empty) ~ .key { color: var(--c-ink-dim); }
-.ahud-slot.is-cooldown:has(.secs:not(:empty)) .abbr { visibility: hidden; }
-.ahud-slot.is-nores .abbr { color: var(--c-ink-mute); }
+.ahud-slot.is-cooldown:has(.secs:not(:empty)) .skill-icon { opacity: .2; }
+.ahud-slot.is-nores .skill-icon { color: var(--c-ink-mute); filter: saturate(.25) brightness(.7); }
 .ahud-slot.is-nores .cost { background: var(--c-hp-low); }
-.ahud-slot.is-disabled .abbr, .ahud-slot.is-disabled .glyph { color: var(--c-ink-mute); }
+.ahud-slot.is-disabled .skill-icon { color: var(--c-ink-mute); filter: grayscale(1) brightness(.6); opacity: .6; }
 .ahud-slot.is-disabled { background: repeating-linear-gradient(135deg, #1a1822 0 calc(var(--ap) * 2), #15131c calc(var(--ap) * 2) calc(var(--ap) * 4)); }
 .ahud-slot.empty { cursor: default; background: rgba(20, 18, 28, 0.6); box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) #2c2836; }
 .ahud-slot.empty .key { color: var(--c-ink-mute); }
 .ahud-slot.is-ready:not(.empty):hover { box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-accent); }
 .ahud-skills.guarding .ahud-slot.basic { box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-st-control); }
-.ahud-slot.dodge { width: calc(var(--ap) * 18); height: calc(var(--ap) * 18); cursor: default; align-self: center; }
-.ahud-slot.dodge .glyph { left: 0; right: 0; top: calc(var(--ap) * 3); text-align: center; font-size: 1em; color: var(--ah-stam-hi); }
-.ahud-slot.dodge .key { left: 0; right: 0; top: auto; bottom: calc(var(--ap) * 1); text-align: center; font-size: 0.6em; color: var(--c-ink-dim); }
+.ahud-slot.dodge { width: clamp(24px, calc(var(--ap) * 14), 36px); height: clamp(24px, calc(var(--ap) * 14), 36px); cursor: default; align-self: center; }
+.ahud-slot.dodge .glyph { position: absolute; left: 0; right: 0; top: calc(var(--ap) * 3); text-align: center; font-size: 1em; color: var(--ah-stam-hi); }
+.ahud-slot.dodge .key { left: 0; right: 0; top: auto; bottom: calc(var(--ap) * 1); text-align: center; font-size: clamp(10px, calc(var(--ap) * 5), 12px); color: var(--c-ink-dim); }
 .ahud-slot.dodge.is-cooldown .glyph { color: var(--c-ink-mute); }
 
 /* ---- whole-bar refusal note (stunned, silenced) ---- */
