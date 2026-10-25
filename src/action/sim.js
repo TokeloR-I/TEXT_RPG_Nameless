@@ -57,6 +57,7 @@
             this.rng = mulberry32(hash(`${seed}:sim`));
             this.acc = 0;
             this.now = 0;
+            this.steps = 0;
             this.input = {};
             this.fx = []; this.engineEvents = []; this.worldResults = [];
             this.enterMap();
@@ -97,6 +98,7 @@
 
         solidAt(tx, ty) { return tx < 0 || ty < 0 || tx >= this.w || ty >= this.h || this.solid[ty * this.w + tx] === 1; }
         solidPx(x, y) { return this.solidAt(Math.floor(x / this.T), Math.floor(y / this.T)); }
+        solidPxFor(x, y, ignore) { const tx = Math.floor(x / this.T), ty = Math.floor(y / this.T); return this.solidAt(tx, ty) && !(ignore && ignore(tx, ty)); }
         /** A circle body overlaps a solid cell? (Checks the cells its box touches.) */
         bodyBlocked(x, y, r, ignoreGate = null) {
             const T = this.T;
@@ -167,6 +169,22 @@
             this.separate();
             this.checkDrops();
             if (this.input.interact) { this.input.interact = false; this.interact(); }
+            if (++this.steps % 15 === 0) this.syncEncounters();
+        }
+
+        /** A story flag can show or hide an encounter mid-map (the Warden after "Stand aside"): match the sim to it. */
+        syncEncounters() {
+            const visible = this.session.visibleObjects().filter((o) => o.kind === 'encounter');
+            let solids = false;
+            for (const enc of visible) if (!this.groups[enc.id] && !this.engine.isDefeated(enc.id)) { this.addGroup(enc); solids = solids || !!enc.gate; }
+            const ids = new Set(visible.map((o) => o.id));
+            for (const g of Object.values(this.groups)) {
+                if (ids.has(g.encounterId) || g.engaged || g.cleared) continue;
+                delete this.groups[g.encounterId];
+                this.actors = this.actors.filter((a) => a.encounterId !== g.encounterId);
+                solids = solids || g.gate;
+            }
+            if (solids) this.buildSolids();
         }
 
         collect(events) {
@@ -326,7 +344,7 @@
             if (p.state === 'idle' && p.moving) p.state = 'move';
             if (p.state === 'move' && !p.moving) p.state = 'idle';
             const bx = p.x, by = p.y;
-            this.moveBody(p, vx * dt, vy * dt);
+            this.moveBody(p, vx * dt, vy * dt, null, (R.player || {}).cornerSlidePx ?? 6);
             p.vx = (p.x - bx) / dt; p.vy = (p.y - by) / dt;   // for leading ground attacks
             p.facing = facingOf(p.angle);
             this.playerTile();
@@ -350,9 +368,22 @@
             if (r.type === 'transition') this.enterMap();
         }
 
-        moveBody(b, dx, dy, ignore = null) {
-            if (dx && !this.bodyBlocked(b.x + dx, b.y, b.r, ignore)) b.x += dx;
-            if (dy && !this.bodyBlocked(b.x, b.y + dy, b.r, ignore)) b.y += dy;
+        /** Axis by axis. `slide` px: a move blocked by a corner it only clips slips around it (walking along walls). */
+        moveBody(b, dx, dy, ignore = null, slide = 0) {
+            if (dx) { if (!this.bodyBlocked(b.x + dx, b.y, b.r, ignore)) b.x += dx; else if (!dy && slide) this.slideAround(b, dx, 0, ignore, slide); }
+            if (dy) { if (!this.bodyBlocked(b.x, b.y + dy, b.r, ignore)) b.y += dy; else if (!dx && slide) this.slideAround(b, 0, dy, ignore, slide); }
+        }
+
+        /** Find the nearest perpendicular offset (up to `max` px) that clears the corner and step toward it. */
+        slideAround(b, dx, dy, ignore, max) {
+            const step = Math.abs(dx || dy);
+            for (let k = 1; k <= max; k++) for (const sgn of [-1, 1]) {
+                const ox = dy ? sgn * k : 0, oy = dx ? sgn * k : 0;
+                if (this.bodyBlocked(b.x + ox + dx, b.y + oy + dy, b.r, ignore)) continue;
+                const m = Math.min(step, k), nx = b.x + Math.sign(ox) * m, ny = b.y + Math.sign(oy) * m;
+                if (!this.bodyBlocked(nx, ny, b.r, ignore)) { b.x = nx; b.y = ny; }
+                return;
+            }
         }
 
         startAttack(slot) {
@@ -758,10 +789,10 @@
         lineOfSight(a, b, wide = false) {
             const d = dist(a, b);
             const n = Math.ceil(d / 4);
-            const gate = wide && a.encounterId ? this.gateCellOf(a) : null;
+            const gate = a.encounterId ? this.gateCellOf(a) : null;   // a gate's guards see and shoot out of their own gate
             for (let i = 1; i < n; i++) {
                 const x = a.x + (b.x - a.x) * i / n, y = a.y + (b.y - a.y) * i / n;
-                if (wide ? this.bodyBlocked(x, y, a.r || 4, gate) : this.solidPx(x, y)) return false;
+                if (wide ? this.bodyBlocked(x, y, a.r || 4, gate) : this.solidPxFor(x, y, gate)) return false;
             }
             return true;
         }
@@ -775,7 +806,7 @@
             for (const pj of this.projectiles) {
                 const step = pj.speed * dt;
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
-                const wall = this.solidPx(pj.x, pj.y);
+                const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? null : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
                     if (hit) { this.resolve(pj.castId, [hit]); continue; }
