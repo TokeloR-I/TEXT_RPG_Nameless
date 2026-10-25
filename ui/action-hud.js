@@ -118,6 +118,9 @@
         const actions = (inCombat && avail && avail.actions) || [];
         const opt = new Map(actions.filter((a) => a.type === 'skill' && !a.isBasic).map((a) => [a.skillId, a]));
         const known = new Map((p.skills || []).map((s) => [s.name, s]));
+        // Public skill summaries omit effect and damage metadata used only for icon art.
+        const iconDefinition = (id) => (engine.data && engine.data.skillDefinitions && engine.data.skillDefinitions[id])
+            || (ENSO.data && ENSO.data.skillDefinitions && ENSO.data.skillDefinitions[id]) || known.get(id);
         const bar = (typeof engine.getSkillBar === 'function' ? engine.getSkillBar() : null) || (avail && avail.skillBar) || (rt && rt.skillBar) || [];
         const res = p.resource || { type: '', current: 0, max: 0 };
         const gcd = inCombat && rt ? timer(rt.gcd) : null;
@@ -143,7 +146,7 @@
             const costText = cost ? `${cost} ${resource}` : 'free';
             const cdText = o && num(o.cooldownMs) ? ` · ${secondsText(o.cooldownMs)}s cooldown` : '';
             return {
-                slot, key, skillId: id, empty: false, state, enabled, reason, cost: cost || null, resource,
+                slot, key, skillId: id, definition: iconDefinition(id), empty: false, state, enabled, reason, cost: cost || null, resource,
                 abbr: abbrev(id), glyph: TARGET_GLYPH[targeting] || '✦', cd, gcd: state === 'cooldown' ? null : gcd,
                 title: `${key} · ${id} · ${costText}${cdText}${reason ? ` — ${reason.message}` : ''}`
             };
@@ -155,7 +158,7 @@
         const basicReason = atk && !atk.enabled ? (atk.reason || null) : null;
         const swing = inCombat && rt ? timer(rt.basic) : null;
         const basic = {
-            key: BASIC_KEY, skillId: basicName, abbr: abbrev(basicName), glyph: '⚔', swing,
+            key: BASIC_KEY, skillId: basicName, definition: iconDefinition(basicName), abbr: abbrev(basicName), glyph: '⚔', swing,
             enabled: !basicReason, reason: basicReason,
             state: basicReason ? (swing ? 'cooldown' : 'disabled') : 'ready',
             title: `LMB / ${BASIC_KEY} · ${basicName} · free${basicReason ? ` — ${basicReason.message}` : ''}`
@@ -274,15 +277,18 @@
             const s = h('div', `ahud-slot${isBasic ? ' basic' : ''}`, barEl);
             s.setAttribute('role', 'button');
             s.tabIndex = 0;
-            const glyph = h('span', 'glyph', s);
-            const ab = h('span', 'abbr', s);
+            const icon = h('span', 'skill-icon', s);
+            icon.setAttribute('aria-hidden', 'true');
             const shutter = h('span', 'shutter', s);
             const sweep = h('span', 'sweep', s);
             const secs = h('span', 'secs', s);
             const key = h('span', 'key', s);
             const cost = h('span', 'cost', s);
-            return { s, glyph, ab, shutter, sweep, secs, key, cost };
+            return { s, icon, shutter, sweep, secs, key, cost };
         };
+        const tooltip = h('div', 'ahud-skill-tooltip', centre);
+        tooltip.hidden = true;
+        let tooltipSlot = null;
         const basicEl = mkSlot(true);
         h('span', 'ahud-sep', barEl);
         const slotEls = SLOT_KEYS.map(() => mkSlot(false));
@@ -290,6 +296,14 @@
         const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
         basicEl.s.addEventListener('pointerdown', (e) => { stop(e); attackFns.forEach((f) => f()); });
         slotEls.forEach((el, i) => el.s.addEventListener('pointerdown', (e) => { stop(e); slotFns.forEach((f) => f(i)); }));
+        [basicEl, ...slotEls].forEach((el) => {
+            const reveal = () => { tooltipSlot = el; text(tooltip, el.s.getAttribute ? el.s.getAttribute('aria-label') : el.label); show(tooltip, true); };
+            const dismiss = () => { if (tooltipSlot === el) { tooltipSlot = null; show(tooltip, false); } };
+            el.s.addEventListener('pointerenter', reveal);
+            el.s.addEventListener('focus', reveal);
+            el.s.addEventListener('pointerleave', dismiss);
+            el.s.addEventListener('blur', dismiss);
+        });
         [basicEl, ...slotEls].forEach((el, i) => el.s.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             stop(e);
@@ -320,8 +334,17 @@
 
         function paintSlot(el, s, isBasic) {
             text(el.key, isBasic ? '1' : s.key);
-            text(el.ab, s.abbr);
-            text(el.glyph, s.glyph || '');
+            // The provider owns safe, decorative markup; skill names only enter text/attributes.
+            const icons = global.EnsoSkillIcons;
+            const changedId = put(el.icon, 'skillId', s.empty ? null : s.skillId);
+            const changedDefinition = put(el.icon, 'definition', s.definition);
+            const changedProvider = put(el.icon, 'provider', icons);
+            if (changedId || changedDefinition || changedProvider) {
+                const markup = !s.empty && icons ? icons.svg(s.skillId, s.definition) : '';
+                if (put(el.icon, 'svg', markup)) el.icon.innerHTML = markup;
+            }
+            el.label = s.title;
+            if (tooltipSlot === el) text(tooltip, s.title);
             attr(el.s, 'title', s.title);
             attr(el.s, 'aria-label', s.title);
             attr(el.s, 'aria-disabled', String(!s.enabled));
@@ -330,7 +353,7 @@
             for (const st of ['ready', 'cooldown', 'gcd', 'nores', 'disabled']) cls(el.s, `is-${st}`, s.state === st);
             const t = isBasic ? s.swing : s.cd;
             height(el.shutter, t ? qpct(t.frac, isBasic ? 26 : 22) : '0%');
-            text(el.secs, t && t.remainingMs >= 1000 ? secondsText(t.remainingMs) : '');
+            text(el.secs, t ? secondsText(t.remainingMs) : '');
             const g = !isBasic && s.gcd && !s.empty ? s.gcd.frac : 0;
             cssVar(el.sweep, '--sweep', `${Math.round(g * 16) / 16}`);
             show(el.cost, !isBasic && !!s.cost);

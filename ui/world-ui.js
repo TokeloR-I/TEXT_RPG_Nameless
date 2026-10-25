@@ -170,7 +170,7 @@
     const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0, hat: 0, weapon: 0, shield: SHIELDS.length > 1 ? 1 : 0 });
     function showTitle() {
         screen = 'title';
-        modal = 'creator';                    // the creation steps (Enter, Enter, Enter starts with the defaults)
+        modal = 'creator'; syncActionHudVisibility();                    // the creation steps (Enter, Enter, Enter starts with the defaults)
         for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
@@ -412,7 +412,7 @@
         view.appearance = look;
         view.cosmetics = cosmetics;
         screen = 'explore';
-        modal = null;
+        modal = null; syncActionHudVisibility();
         menu = null;
         els.title.hidden = true;
         els.hud.hidden = false;
@@ -487,7 +487,7 @@
     function openDialog(pages, title, onClose) {
         dialog = { pages: [].concat(pages).filter(Boolean), title, onClose: onClose || null };
         if (!dialog.pages.length) { dialog = null; if (onClose) onClose(); return; }
-        modal = 'dialog';
+        modal = 'dialog'; syncActionHudVisibility();
         muteHeldKeys();
         renderDialog();
     }
@@ -501,7 +501,7 @@
         if (all) dialog.pages = []; else dialog.pages.shift();
         if (dialog.pages.length) { renderDialog(); return; }
         els.dialog.hidden = true;
-        modal = null;
+        modal = null; syncActionHudVisibility();
         muteHeldKeys();
         const cb = dialog.onClose; dialog = null;
         if (cb) cb();
@@ -530,7 +530,7 @@
     // Esc is a normal goodbye (so Shane still says his line); the engine decides what that means.
     // ---------------------------------------------------------------------
     function openTalk(events) {
-        modal = 'talk';
+        modal = 'talk'; syncActionHudVisibility();
         muteHeldKeys();
         els.prompt.hidden = true;
         renderTalk(events);
@@ -601,7 +601,7 @@
     }
     function closeTalk(events) {
         els.dialog.hidden = true;
-        modal = null;
+        modal = null; syncActionHudVisibility();
         menu = null;
         updateHud();
         const lines = readable(events).map((l) => l.text);
@@ -634,7 +634,7 @@
     let mmTabs = MM_TABS_ALL;
     let mm = { tab: 0, focus: 'tabs', slot: null, note: '', fly: null };
     function openPause(note) {
-        modal = 'pause';
+        modal = 'pause'; syncActionHudVisibility();
         muteHeldKeys();
         els.hud.hidden = true;
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
@@ -833,7 +833,7 @@
             ${active.map((q) => `<p class="j-quest"><b>${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>'}
             ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
     }
-    function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; menu = null; muteHeldKeys(); }
+    function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; syncActionHudVisibility(); menu = null; muteHeldKeys(); }
 
     // ---------------------------------------------------------------------
     // The crow (Nahemoth's first aspect, docs/design/ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md).
@@ -900,7 +900,7 @@
     // Evolution: the engine asks for a branch at level 3
     // ---------------------------------------------------------------------
     function openBranchMenu() {
-        modal = 'branch';
+        modal = 'branch'; syncActionHudVisibility();
         muteHeldKeys();
         els.hud.hidden = true;
         const tree = DATA.evolutionPaths[engine.getState().player.className];
@@ -923,7 +923,7 @@
         els.pause.hidden = true;
         els.hud.hidden = false;
         menu = null;
-        modal = null;
+        modal = null; syncActionHudVisibility();
         updateHud();
         if (engine.mode === 'branch_select') { openBranchMenu(); return; }
         openDialog([lines.join('\n')], 'Evolution');
@@ -943,7 +943,7 @@
 
     function beginBattle(result) {
         screen = 'combat';
-        modal = null;
+        modal = null; syncActionHudVisibility();
         muteHeldKeys();
         els.hud.hidden = true;
         els.banner.hidden = true; clearTimeout(bannerTimer);   // the map name never shows through the battle
@@ -1479,6 +1479,14 @@
         while (notices.length > 6) notices.shift();
     }
 
+    function syncActionHudVisibility() {
+        if (!hud) return;
+        const blocked = screen !== 'explore' || !!modal || !!fade || !!flash || !!feathering;
+        hud.el.hidden = blocked;
+        hud.el.inert = blocked;
+        hud.el.setAttribute('aria-hidden', String(blocked));
+    }
+
     function actionFrame(now) {
         if (!sim) return;
         const dt = lastActionFrame ? Math.min(100, now - lastActionFrame) : 0;
@@ -1508,7 +1516,7 @@
         els.hud.hidden = true;
         els.prompt.hidden = true;
         if (hud) {
-            hud.el.hidden = screen !== 'explore' || modal === 'pause';
+            syncActionHudVisibility();
             hud.update(ENSO.actionHud.viewModel(engine, hudView(now), now), now);
         }
     }
