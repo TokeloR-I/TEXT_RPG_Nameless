@@ -193,6 +193,8 @@
             }
             if (!target) return;
             for (let guard = 0; guard < 200; guard++) {
+                // Starting a quest can catch it up by itself, so stop as soon as the target has started (QA-41).
+                if (this.story.quests[target].state === 'active' || this.story.quests[target].state === 'complete') return;
                 const cur = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
                 if (!cur || cur === target) return;
                 this.advanceQuest(cur);
