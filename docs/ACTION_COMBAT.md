@@ -71,7 +71,7 @@ collected once; reloading, retreating or re-entering a map never duplicates it.
 
 ## Enemy patterns (the sim)
 
-Action-only tuning (Gauge) lives in the tables, not the engine: `bosses[key].hpMult` multiplies a boss's HP when an action fight engages it (the Warden ×2.5), and an attack's `damageMult` scales that blow (Summon Crows ×3, Murder of Crows ×6). Turn and v2 fights never read either.
+Action-only tuning (Gauge) lives in the tables, not the engine: `bosses[key].hpMult` multiplies a boss's HP when an action fight engages it (the Warden ×2.5), and an attack's `damageMult` scales that blow (Summon Crows ×3, Murder of Crows ×6). `defence.minDamageShare` (0.35) is a floor on blows that land on the player: DEF never blocks more than 65% of one, so Chapter One trash still hurts a DEF 8 Warrior (applied in `rollDamage`, before guard). Turn and v2 fights never read any of them.
 
 Each enemy fights from its attack table: `actionRules.enemies[key].attacks[]` (skill, shape `arc` / `line` /
 `circle` / `projectile` / `ground`, reach, arc, width, lunge, wind-up / active / recovery, cooldown, `useAt`

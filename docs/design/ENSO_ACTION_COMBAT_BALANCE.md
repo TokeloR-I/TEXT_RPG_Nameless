@@ -72,7 +72,7 @@ edge is elsewhere, so I left them alone. Tally: please confirm the per-branch nu
 
 ### 1.4 What's left (not a timing problem)
 - **The Warrior's 100%** comes from DEF 8 against the Warden's damage ranges. Fixing it means changing enemy damage
-  or Warrior DEF, which changes turn mode and the golden replay. That's a separate, owner-approved PR, not this one.
+  or Warrior DEF, which changes turn mode and the golden replay. That's a separate, owner-approved PR, not this one. (Tokelo, 2026-10-25: v2 stays as it is; action fights got a defence floor instead, 2.4.1.)
 - **Chronomancer (65%)**: `haste` ("extra turn") has no real-time meaning yet. That's open question 6 in REALTIME_COMBAT.md, for Thorne.
 - **Soulbinder (65%)**: Soul Chain links 2 enemies, and a solo boss gives it nothing to link. It's a design matter, not a number.
 - **Plaguecaller (100%)**: 99-stack DoTs (open question 1). They're fine in Chapter One and will be a problem later.
@@ -127,32 +127,70 @@ feel, so I didn't.
 130 s for the necromancer. That last figure is why the necromancer also needs §2.5.
 
 ### 2.4 Enemy damage per hit (unguarded / guarded by that class's guard) and per second at the attack cycle
-Level 3. Cycle = wind-up + active + recovery + max(cooldown, boss attack gap).
+Level 3. Cycle = wind-up + active + recovery + max(cooldown, boss attack gap). Live values: crow `damageMult` 3 / 6 and
+the action-only defence floor `actionRules.defence.minDamageShare` **0.35** (2.4.1). Before → after the floor in the
+columns that changed; the rest are unchanged.
 
 | Attack (damage) | Cycle ms | Warrior (DEF 8, 140 HP) | Mage (DEF 4, 90) | Rogue (DEF 5, 105) | Necro (DEF 6, 100) |
 |---|---:|---|---|---|---|
-| Rat Corroding Bite (3–5) | 1760 | 0 / 0 | 0.5 / 0.3 | 0.1 / — | 0 / 0 |
-| Wolf Lunge Bite (7–10) | 3530 | 1.8 / 0.5 · 0.5/s | 5.6 / 3.4 · 1.6/s | 4.6 / — · 1.3/s | 3.6 / 1.8 · 1.0/s |
-| Wolf Snap (7–10) | 1660 | 1.8 / 0.5 · 1.1/s | 5.6 / 3.4 · 3.4/s | 4.6 / — · 2.8/s | 3.6 / 1.8 · 2.2/s |
-| Goblin Slash (5–8) | 2230 | 0.2 / 0 | 2.8 / 1.7 · 1.3/s | 1.8 / — · 0.8/s | 1.0 / 0.5 · 0.5/s |
-| Gnawer Ankle Snap (6–9) | 2000 | 0.5 / 0.1 | 3.9 / 2.3 · 1.9/s | 2.9 / — · 1.4/s | 1.9 / 0.9 · 0.9/s |
-| Acolyte Hexing Blade (7–11) | 2600 | 1.7 / 0.4 | 5.5 / 3.3 · 2.1/s | 4.5 / — · 1.7/s | 3.5 / 1.8 · 1.4/s |
-| Constable Truncheon (4–7) | 2500 | 0 / 0 | 1.6 / 1.0 | 0.9 / — | 0.3 / 0.2 |
-| Ghoul Frenzied Bite, 2 hits (9–14) | 3750 | 9.0 / 2.2 · 2.4/s | 16.9 / 10.2 · 4.5/s | 15.0 / — · 4.0/s | 13.0 / 6.5 · 3.5/s |
-| **Warden Halberd Sweep (15–20)** | 2750 | 11.9 / 3.0 · 4.3/s | 15.9 / 9.5 · 5.8/s | 14.9 / — · 5.4/s | 13.9 / 6.9 · 5.0/s |
-| Warden Reaping Thrust (15–20) | 2770 | 11.9 / 3.0 · 4.3/s | 15.9 / 9.5 · 5.7/s | 14.9 / — · 5.4/s | 13.9 / 6.9 · 5.0/s |
-| Warden Chain Lock (10–12) | 2600 | 4.5 / 1.1 | 8.5 / 5.1 | 7.5 / — | 6.5 / 3.2 |
-| Warden Summon Crows / Murder of Crows (5–8) | 11200 / 17920 | 0.5 (unguardable) | 3.3 | 2.3 | 1.5 |
+| Rat Corroding Bite (3–5) | 1760 | **0 → 1.1** / 0 | 0.5 → 1.1 / 0.4 | 0.1 → 1.1 | 0 → 1.1 / 0.1 |
+| Wolf Lunge Bite (7–10) | 3530 | 1.8 → 3.2 / 0.2 · 0.9/s | 5.6 / 2.9 · 1.6/s | 4.6 · 1.3/s | 3.6 → 3.8 / 1.7 · 1.1/s |
+| Wolf Snap (7–10) | 1660 | 1.8 → 3.2 / 0.2 · 1.9/s | 5.6 / 2.9 · 3.4/s | 4.6 · 2.8/s | 3.6 → 3.8 / 1.7 · 2.3/s |
+| Goblin Slash (5–8) | 2230 | **0.2 → 1.9** / 0 · 0.8/s | 2.8 / 1.4 · 1.3/s | 1.8 → 2.3 · 1.0/s | 1.0 → 2.0 / 0.9 · 0.9/s |
+| Gnawer Ankle Snap (6–9) | 2000 | 0.5 → 2.4 / 0.1 · 1.2/s | 3.9 / 2.0 · 1.9/s | 2.9 → 3.1 · 1.5/s | 1.9 → 2.5 / 1.1 · 1.3/s |
+| Acolyte Hexing Blade (7–11) | 2600 | 1.7 → 2.9 / 0.1 · 1.1/s | 5.5 / 2.9 · 2.1/s | 4.5 · 1.7/s | 3.5 → 3.7 / 1.6 · 1.4/s |
+| Constable Truncheon (4–7) | 2500 | **0 → 1.6** / 0 | 1.6 → 1.9 / 0.8 | 0.9 → 1.6 | 0.3 → 1.6 / 0.5 |
+| Ghoul Frenzied Bite, 2 hits (9–14) | 3750 | 9.0 → 9.8 / 1.5 · 2.6/s | 16.9 / 9.5 · 4.5/s | 15.0 · 4.0/s | 13.0 / 6.0 · 3.5/s |
+| **Warden Halberd Sweep (15–20)** | 2750 | 11.9 / 2.6 · 4.3/s | 15.9 / 9.1 · 5.8/s | 14.9 · 5.4/s | 13.9 / 6.7 · 5.0/s |
+| Warden Reaping Thrust (15–20) | 2770 | 11.9 / 2.6 · 4.3/s | 15.9 / 9.1 · 5.7/s | 14.9 · 5.4/s | 13.9 / 6.7 · 5.0/s |
+| Warden Chain Lock (10–12) | 2600 | 4.5 → 4.7 / 0.7 | 8.5 / 4.5 | 7.5 | 6.5 / 3.1 |
+| Warden Summon Crows (5–8 ×3, unguardable) | 11200 | **1.5 → 7.4** | 9.9 → 10.3 | 6.9 → 8.7 | 4.5 → 8.0 |
+| Warden Murder of Crows (5–8 ×6, unguardable) | 17920 | **3.0 → 14.9** | 19.8 → 20.6 | 13.8 → 17.4 | 9.0 → 16.0 |
+
+The guarded column uses each class's guard from `classes[*].guard.damageTaken` (Warrior 0.25, mage 0.6, necro 0.5);
+the rogue only parries. The engine applies guard after the floor, so a guarded trash blow can still be 0: holding
+guard against a rat stays the Warrior's right answer.
 
 Reading it:
 - **Warden hits to kill the player, all unguarded: Warrior 12, Mage 6, Rogue 7, Necro 7.** At one landed hit per
-  cycle (2.75 s) that's 16–33 s. A player who avoids half the attacks has 35–65 s, the same order as the target TTK
+  cycle (2.75 s) that's 16–33 s. A player who avoids half the attacks has 35–65 s, the same order as the 68–75 s TTK
   with `hpMult`. That's tense but fair.
-- **Murder of Crows, the phase-2 "big" move, deals 0.5–3.3**, because both crow attacks use Summon Crows' 5–8 damage.
-  Thorne's design calls it dangerous. It needs its own damage (an engine skill entry or a per-attack `damageMult`),
-  so it's Wren's and Thorne's call. Until then it's a free dodge test.
-- Against the Warrior (DEF 8), the rat, goblin and constable deal **0**. That's the same DEF problem as 1.4. Action combat
-  doesn't make it worse, but a Warrior can ignore every trash telegraph in Chapter One. Fixing it is a stats PR.
+- **Every Chapter One blow now hurts every class: at least 1 per landed hit.** DEF still orders the classes (the
+  Warrior takes the least from everything except the rat, where all four take the floor), so his identity holds.
+- **The crows land on everyone.** They were 5–8 raw against DEF 4–8, so DEF used to erase most of them before
+  `damageMult`; now Murder of Crows is a 15–21 hit for every class and Summon Crows 7–10. That's Thorne's "dangerous".
+
+#### 2.4.1 Defence floor (action fights only)
+`actionRules.defence.minDamageShare: 0.35`. A blow that lands on the player in an action fight deals
+`max(raw − DEF, raw × 0.35)`, then guard and `damageMult` as before. Turn and v2 fights never read it (golden unchanged).
+- **Why a floor and not a DEF multiplier.** A floor only touches blows DEF would mostly erase, so it reaches the
+  Warrior against trash and everyone against the crows, and leaves big hits (sweep, thrust, ghoul) alone. A player DEF
+  ×0.75 also hurt the Warrior's Warden odds (98 → 90 in the model below), but it cost the mage 10 points and the rogue
+  15, so I rejected it.
+- **Why 0.35.** The weakest Chapter One blow is the rat's 3. 3 × 0.35 = 1.05, so every landed hit deals ≥ 1. It's
+  the smallest round share that does, and it keeps the Warrior's DEF worth something (he takes 1.9 per goblin slash
+  against the mage's 2.8). At 0.5 every class takes the same from trash (goblin 3.2 / 3.3 / 3.2 / 3.2), which erases
+  DEF as a class trait.
+- **Comparable systems.** Elden Ring and Dark Souls 3 give a hit at least about 10% of its attack whatever the defence;
+  Path of Exile caps armour at 90% physical reduction. ENSO's numbers are small (3–20 per blow), so 10% floors to 0;
+  a third is the ENSO-scale version of "armour never makes you immune".
+
+Crow Warden win estimate (`action_model.js`: 2000 seeded fights per class, the player avoids `--avoid` of the blows,
+deals the §2.3 DPS at 40% basic uptime; no guard, potions or respawns, so caster numbers read low: compare rows, don't
+quote them):
+
+| Class | avoid 0.6: before → after | **avoid 0.7: before → after** | avoid 0.8: before → after | Median fight s |
+|---|---|---|---|---:|
+| Warrior | 89 → 76 | **98 → 94** | 100 → 100 | 77 |
+| Mage | 7 → 6 | **31 → 30** | 71 → 70 | 59 |
+| Rogue | 20 → 15 | **54 → 50** | 86 → 84 | 72 |
+| Necromancer | 0 → 0 | **6 → 3** | 41 → 33 | 81 |
+
+The floor takes the Warrior off certain victory (a sloppy Warrior at 0.6 now loses one fight in four) and costs the
+casters 1–5 points, all of it from the crows doing their job. The Warrior still leads, as the starter class may (1.4).
+The rest of his edge is the sweep (11.9 against the mage's 15.9), which no floor below 0.6 touches.
+The necromancer's low numbers are his 129 s TTK (§2.3), not his defence: the skeleton's aggro and Soul Energy are
+what §2.6 item 7 must measure.
 
 ### 2.5 Stamina budget
 Pool 100, regen 40/s after a 600 ms delay (×0.3 while guard is held).
@@ -197,13 +235,12 @@ In priority order. Each item has a scenario and an expected range. The bot shoul
 ---
 
 ## 3. Open questions
-1. **Warden action-mode HP** (`hpMult` 2.5, a new key): Wren, please add the read. Otherwise the boss lasts 22–30 s
-   in action mode.
-2. **Murder of Crows / Summon Crows damage**: both use the 5–8 Summon Crows skill. Thorne and Wren: give Murder its
-   own engine skill (e.g. 14–20) or a per-attack `damageMult`?
-3. **Warrior DEF against Chapter One damage** (v2 Warrior at 100%; trash does 0 to him): a stats PR that changes turn
-   mode and the golden replay. Owner's OK needed. I'd propose Wooden Shield DEF 1 → 0 with Guard's 25% kept, or +2
-   on the Warden's Halberd Sweep and Chain Lock. To be measured.
+1. ~~**Warden action-mode HP**~~ **Done:** `hpMult` 2.5 is read on action engage (375 HP, TTK 68–75 s; necro 129 s).
+2. ~~**Murder of Crows / Summon Crows damage**~~ **Done:** per-attack `damageMult` (Summon Crows 3, Murder 6), after DEF.
+3. ~~**Warrior DEF against Chapter One damage**~~ **Closed (Tokelo: fix it in action combat only).** Action fights
+   now have a defence floor, `actionRules.defence.minDamageShare` 0.35 (2.4.1): trash deals ≥ 1 per landed hit to the
+   Warrior, and the crows hurt every class. Turn mode and v2 are untouched, golden `943ad668152bffad` unchanged.
+   Estimated Warrior Warden win at avoid 0.7: 98 → 94%. Tally: confirm with the sim bot (§2.6 item 2).
 4. **Thorne's Q2 (caster basic attack as magic/INT):** the balance impact is small. At level 3 the mage gains +1 per
    spark (INT 12 → +3 against STR 8 → +2), and the necromancer gains 0 (INT 11 and STR 8 both give +2). Against the
    Warden (DEF 8) both still do ~1–2. I have no balance objection. It doesn't fix caster damage against high DEF;

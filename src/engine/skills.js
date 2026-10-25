@@ -64,6 +64,8 @@
             } else {
                 const def = (target.def || 0) * (1 - hit.armorIgnore);
                 final = Math.max(0, dmg - def);
+                // Action fights only: DEF blocks at most (1 - minDamageShare) of a blow that lands on the player (Gauge).
+                if (target.isPlayer && this.combat && this.combat.action) final = Math.max(final, dmg * ((this.actionRules().defence || {}).minDamageShare || 0));
                 for (const s of target.statusEffects) if (s.type === 'damage_reduction') final *= (1 - s.value);
                 if (target.isPlayer && this.progression.branch === 'bone_warden') {
                     const cap = target.traits.some((t) => t.name === 'Bone Fortress') ? 0.15 : 0.10;

@@ -182,3 +182,21 @@ test('Action: a boss hpMult and an attack damageMult apply in action fights only
     assert.ok(sum(heavy) > sum(plain) * 3, `heavy ${heavy} vs plain ${plain}`);
     assert.ok(!g.player.statusEffects.some((s) => s.name === 'Heavy Blow'), 'the multiplier is not left on the player');
 });
+
+test('Action: DEF blocks at most part of a blow on the player in action fights; the same blow in turn mode is unchanged', () => {
+    const bites = (g) => {
+        g.player.def = 8;   // the level-3 Warrior with his Wooden Shield
+        const rat = g.combat.enemies.find((e) => e.key === 'rust_rat'), bite = rat.skills[0], out = [];
+        for (let i = 0; i < 40; i++) out.push(g.rollDamage(rat, g.player, bite, g.newHit(g.player)).damage);
+        return out;
+    };
+    const g = actionGame('warrior', 60);
+    rats(g);
+    const action = bites(g);
+    assert.ok(action.every((d) => d >= 1), `a rat bite always hurts: ${action}`);
+    const t = new GameEngine({ seed: 60 });
+    t.start(); t.input('warrior');
+    t.startCombat(['rust_rat']);
+    assert.ok(t.combat && !t.combat.action);
+    assert.deepStrictEqual(bites(t), action.map(() => 0), 'turn mode: DEF 8 still blocks the whole 3-5 (crit 7) bite');
+});
