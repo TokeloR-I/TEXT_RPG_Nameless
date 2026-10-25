@@ -303,6 +303,32 @@
             return { type: 'moved', x: nx, y: ny };
         }
 
+        /** Combat v3 (src/action/sim.js): is this cell solid for free movement? Walls, objects, gate enemies
+         *  (they hold their passage until beaten) and locked ways. Other enemies are bodies in the sim, not cells. */
+        solidForAction(x, y) {
+            if (isSolidTile(this.world, this.map, x, y)) return true;
+            const o = this.objectAt(x, y);
+            if (o && (!isEncounter(this.map, o) || o.gate)) return true;
+            const gate = this.exitAt(x, y, 'step');
+            return !!(gate && !this.allows(gate.requires));
+        }
+
+        /** Combat v3: free movement carried the player's feet into tile (nx, ny). The same results move()
+         *  gives after a step: an exit, a boundary, or just moved. */
+        enterTile(nx, ny, facing = this.facing) {
+            if (FACINGS.includes(facing)) this.facing = facing;
+            if (nx === this.x && ny === this.y) return { type: 'none' };
+            const wasIn = this.boundaryAt(this.x, this.y);
+            this.x = nx;
+            this.y = ny;
+            this.steps++;
+            const exit = this.exitAt(nx, ny, 'step');
+            if (exit && this.allows(exit.requires)) return this.transition(exit);
+            const edge = this.boundaryAt(nx, ny);
+            if (edge && edge !== wasIn) return { type: 'boundary', id: edge.id, title: edge.title || null, text: edge.text, x: nx, y: ny };
+            return { type: 'moved', x: nx, y: ny };
+        }
+
         /** Contact with a visible enemy: the engine starts a normal fight. */
         engage(enc) {
             const events = this.engine ? this.engine.worldEncounter(enc.id, enc.enemies, enc.loot) : [];

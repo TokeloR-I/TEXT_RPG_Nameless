@@ -767,3 +767,169 @@ body {
 .shop-goods .m-sub { color: var(--ink-dim); font-size: .85em; }
 .shop-detail { margin-top: .5em; overflow-wrap: anywhere; }
 .shop-message { color: var(--accent); min-height: 1.3em; }
+
+/* =====================================================================
+   ACTION HUD (Pixie, UI/UX lead; combat v3) — ui/action-hud.js
+   One persistent interface for exploring and fighting (direction doc §9).
+   Sized in art pixels of the 480×270 stage (--ap), so it scales with the stage
+   like the world does. Base text is 8 art px (2×16 px DotGothic16 at 4×).
+   Only the skill bar takes the pointer.
+   ===================================================================== */
+.ahud {
+    --ap: calc(100cqw / 480);
+    --ah-gold: var(--c-gold); --ah-hp: #c4503f; --ah-hp-hi: #e8705a; --ah-chip: #f2e6c4;
+    --ah-mana: #4f7fb8; --ah-mana-hi: #7fb4e8; --ah-rage: #b8443a; --ah-rage-hi: #e07a52;
+    --ah-energy: #c89a3a; --ah-energy-hi: #ecd070; --ah-soul: #8a5ab8; --ah-soul-hi: #b890e0;
+    --ah-stam: #7fbf5a; --ah-stam-hi: #b4e07c;
+    position: absolute; inset: 0; pointer-events: none; z-index: 3;
+    font-size: max(10px, calc(var(--ap) * 8)); line-height: 1.15; color: var(--c-ink);
+    text-shadow: 0 var(--ap) 0 #000, var(--ap) 0 0 #000, calc(var(--ap) * -1) 0 0 #000, 0 calc(var(--ap) * -1) 0 #000;
+}
+.world-stage.tall .ahud { --ap: calc(100cqw / 288); }
+.ahud [hidden] { display: none !important; }
+.ahud kbd { font: inherit; font-size: 0.75em; color: var(--c-accent); padding: 0 calc(var(--ap) * 2);
+    border: var(--ap) solid var(--c-ink-dim); border-bottom-width: calc(var(--ap) * 2); background: rgba(0, 0, 0, 0.55); text-shadow: none; }
+
+/* ---- bars: 1 px black rim, hard-stepped highlight, trailing damage chip ---- */
+.ahud-bar { position: relative; height: calc(var(--ap) * 5); background: var(--c-bar-bg); overflow: hidden;
+    box-shadow: 0 0 0 var(--ap) #000, inset 0 calc(var(--ap) * -1) 0 rgba(0, 0, 0, 0.5); }
+.ahud-bar > .fill, .ahud-bar > .chipfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; }
+.ahud-bar > .fill { background: linear-gradient(180deg, var(--hi) 0 40%, var(--base) 40% 100%); }
+.ahud-bar > .chipfill { background: var(--ah-chip); transition: width 260ms steps(6) 380ms; }
+.ahud-bar.hp, .ahud-boss-bar, .ahud-lock-bar { --base: var(--ah-hp); --hi: var(--ah-hp-hi); }
+.ahud-row.res .ahud-bar { --base: var(--ah-mana); --hi: var(--ah-mana-hi); height: calc(var(--ap) * 4); }
+.ahud-row.res[data-res="rage"] .ahud-bar { --base: var(--ah-rage); --hi: var(--ah-rage-hi); }
+.ahud-row.res[data-res="energy"] .ahud-bar { --base: var(--ah-energy); --hi: var(--ah-energy-hi); }
+.ahud-row.res[data-res="soul"] .ahud-bar { --base: var(--ah-soul); --hi: var(--ah-soul-hi); }
+.ahud-row.res .chipfill { background: rgba(242, 230, 196, 0.5); }
+
+/* ---- bottom-left: vitals ---- */
+.ahud-left { position: absolute; left: calc(var(--ap) * 8); bottom: calc(var(--ap) * 8); display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--ap) * 4); }
+.ahud-vitals { padding: calc(var(--ap) * 3) calc(var(--ap) * 5) calc(var(--ap) * 4); display: grid; gap: calc(var(--ap) * 3);
+    background: linear-gradient(180deg, rgba(29, 27, 41, 0.86) 0 calc(var(--ap) * 11), rgba(19, 17, 27, 0.86) calc(var(--ap) * 11) 100%);
+    box-shadow: 0 0 0 var(--ap) var(--c-frame), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.3); }
+.ahud-name { display: flex; justify-content: space-between; gap: calc(var(--ap) * 6); color: var(--c-ink); }
+.ahud-name .lv { color: var(--ah-gold); font-size: 0.75em; align-self: flex-end; }
+.ahud-row { display: grid; grid-template-columns: calc(var(--ap) * 64) auto; grid-template-areas: "k v" "b b"; align-items: end; column-gap: calc(var(--ap) * 4); row-gap: calc(var(--ap) * 1); }
+.ahud-row .k { grid-area: k; color: var(--c-frame-hi); font-size: 0.75em; letter-spacing: 0.04em; }
+.ahud-row .v { grid-area: v; font-size: 0.75em; text-align: right; font-variant-numeric: tabular-nums; color: var(--c-ink); }
+.ahud-row .ahud-bar { grid-area: b; width: calc(var(--ap) * 64); }
+.ahud-row.hp.mid .ahud-bar { --base: #c8802f; --hi: #e8a850; }
+.ahud-row.hp.low .ahud-bar { --base: #d8402c; --hi: #ff6a48; }
+.ahud-row.hp.low .v { color: var(--c-hp-low); }
+.ahud-bar.stam { --base: var(--ah-stam); --hi: var(--ah-stam-hi); width: calc(var(--ap) * 64); height: calc(var(--ap) * 2); margin-top: calc(var(--ap) * -1); transition: opacity 300ms steps(3); }
+.ahud-bar.stam.idle { opacity: 0.25; }
+.ahud-bar.stam.empty { --base: #c8a030; --hi: #f0d060; }
+
+/* ---- status chips (above the vitals) ---- */
+.ahud-status { display: flex; flex-wrap: wrap; gap: calc(var(--ap) * 2); max-width: calc(var(--ap) * 150); }
+.ahud-chip { position: relative; display: inline-flex; align-items: baseline; gap: calc(var(--ap) * 2); font-size: 0.75em; padding: calc(var(--ap) * 1) calc(var(--ap) * 3) calc(var(--ap) * 2);
+    background: rgba(10, 9, 16, 0.86); box-shadow: 0 0 0 var(--ap) var(--st, var(--c-st-other)), inset calc(var(--ap) * 2) 0 0 var(--st, var(--c-st-other)); padding-left: calc(var(--ap) * 5); }
+.ahud-chip i { font-style: normal; color: var(--st, var(--c-st-other)); }
+.ahud-chip .x { font-weight: normal; color: var(--ah-gold); }
+.ahud-chip .x:empty, .ahud-chip .t:empty { display: none; }
+.ahud-chip .t { color: var(--c-ink-dim); font-variant-numeric: tabular-nums; }
+.ahud-chip .drain { position: absolute; left: 0; bottom: 0; height: var(--ap); background: var(--st, var(--c-st-other)); }
+.ahud-chip.ending { animation: ahud-blink 0.5s steps(2) infinite; }
+
+/* ---- bottom-centre: skill bar ---- */
+.ahud-centre { position: absolute; left: 50%; bottom: calc(var(--ap) * 8); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
+.ahud-skills { display: flex; align-items: flex-end; gap: calc(var(--ap) * 3); padding: calc(var(--ap) * 3); pointer-events: auto;
+    background: rgba(13, 12, 19, 0.82); box-shadow: 0 0 0 var(--ap) var(--c-frame), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.25); }
+.ahud-sep { width: var(--ap); align-self: stretch; margin: calc(var(--ap) * 2) var(--ap); background: var(--c-frame); }
+.ahud-slot { position: relative; width: calc(var(--ap) * 26); height: calc(var(--ap) * 26); cursor: pointer; overflow: hidden;
+    background: linear-gradient(180deg, #2a2638 0 50%, #1d1a29 50% 100%);
+    box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) #4a4258, inset 0 calc(var(--ap) * 3) 0 rgba(255, 255, 255, 0.06); }
+.ahud-slot.basic { width: calc(var(--ap) * 30); height: calc(var(--ap) * 30);
+    box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-frame-hi), inset 0 calc(var(--ap) * 3) 0 rgba(255, 255, 255, 0.08); }
+.ahud-slot .abbr { position: absolute; inset: 0; display: grid; place-items: center; padding-top: calc(var(--ap) * 2); color: var(--c-ink); }
+.ahud-slot.basic .abbr { font-size: 1em; }
+.ahud-slot .glyph { position: absolute; left: calc(var(--ap) * 3); top: calc(var(--ap) * 2); font-size: 0.75em; color: var(--c-accent); }
+.ahud-slot .key { position: absolute; right: calc(var(--ap) * 3); top: calc(var(--ap) * 2); font-size: 0.75em; color: var(--ah-gold); }
+.ahud-slot .cost { position: absolute; right: calc(var(--ap) * 2); bottom: calc(var(--ap) * 2); min-width: calc(var(--ap) * 5); padding: 0 var(--ap); font-size: 0.75em; line-height: 1;
+    text-align: center; color: #fff; background: var(--ah-mana); box-shadow: 0 0 0 var(--ap) #000; text-shadow: none; }
+.ahud-slot .shutter { position: absolute; left: calc(var(--ap) * 2); right: calc(var(--ap) * 2); bottom: calc(var(--ap) * 2); height: 0; background: rgba(4, 4, 8, 0.72);
+    box-shadow: 0 calc(var(--ap) * -1) 0 rgba(159, 232, 207, 0.55); }
+.ahud-slot .sweep { position: absolute; inset: calc(var(--ap) * 2); --sweep: 0;
+    background: conic-gradient(rgba(4, 4, 8, 0.55) calc(var(--sweep) * 360deg), transparent 0); }
+.ahud-slot .secs { position: absolute; inset: 0; display: grid; place-items: center; padding-top: calc(var(--ap) * 2); color: #fff; font-variant-numeric: tabular-nums; }
+.ahud-slot .secs:empty { display: none; }
+.ahud-slot.is-cooldown .abbr { opacity: 0.3; }
+.ahud-slot .secs:not(:empty) ~ .key { color: var(--c-ink-dim); }
+.ahud-slot.is-cooldown:has(.secs:not(:empty)) .abbr { visibility: hidden; }
+.ahud-slot.is-nores .abbr { color: var(--c-ink-mute); }
+.ahud-slot.is-nores .cost { background: var(--c-hp-low); }
+.ahud-slot.is-disabled .abbr, .ahud-slot.is-disabled .glyph { color: var(--c-ink-mute); }
+.ahud-slot.is-disabled { background: repeating-linear-gradient(135deg, #1a1822 0 calc(var(--ap) * 2), #15131c calc(var(--ap) * 2) calc(var(--ap) * 4)); }
+.ahud-slot.empty { cursor: default; background: rgba(20, 18, 28, 0.6); box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) #2c2836; }
+.ahud-slot.empty .key { color: var(--c-ink-mute); }
+.ahud-slot.is-ready:not(.empty):hover { box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-accent); }
+.ahud-skills.guarding .ahud-slot.basic { box-shadow: inset 0 0 0 var(--ap) #000, inset 0 0 0 calc(var(--ap) * 2) var(--c-st-control); }
+.ahud-slot.dodge { width: calc(var(--ap) * 18); height: calc(var(--ap) * 18); cursor: default; align-self: center; }
+.ahud-slot.dodge .glyph { left: 0; right: 0; top: calc(var(--ap) * 3); text-align: center; font-size: 1em; color: var(--ah-stam-hi); }
+.ahud-slot.dodge .key { left: 0; right: 0; top: auto; bottom: calc(var(--ap) * 1); text-align: center; font-size: 0.6em; color: var(--c-ink-dim); }
+.ahud-slot.dodge.is-cooldown .glyph { color: var(--c-ink-mute); }
+
+/* ---- whole-bar refusal note (stunned, silenced) ---- */
+.ahud-note { color: var(--c-hp-low); font-size: 0.75em; letter-spacing: 0.06em; padding: 0 calc(var(--ap) * 4); background: rgba(10, 9, 16, 0.7); }
+
+/* ---- interact prompt (above the bar) ---- */
+.ahud-prompt { display: flex; align-items: center; gap: calc(var(--ap) * 3); padding: calc(var(--ap) * 2) calc(var(--ap) * 6) calc(var(--ap) * 3); white-space: nowrap;
+    background: rgba(13, 12, 19, 0.86); box-shadow: 0 0 0 var(--ap) var(--c-frame), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo); animation: ahud-rise 140ms steps(3); }
+.ahud-prompt kbd { font-size: 0.85em; }
+.ahud-prompt .verb { color: var(--c-ink); }
+.ahud-prompt .name { color: var(--ah-gold); }
+
+/* ---- top-left: quest tracker ---- */
+.ahud-quest { position: absolute; left: calc(var(--ap) * 8); top: calc(var(--ap) * 7); max-width: calc(var(--ap) * 150); padding: calc(var(--ap) * 2) calc(var(--ap) * 24) calc(var(--ap) * 3) calc(var(--ap) * 5);
+    background: linear-gradient(90deg, rgba(10, 9, 16, 0.78) 0 70%, rgba(10, 9, 16, 0.4) 85%, transparent 100%);
+    border-left: calc(var(--ap) * 2) solid var(--ah-gold); }
+.ahud-quest-title { color: var(--ah-gold); font-size: 0.75em; letter-spacing: 0.08em; text-transform: uppercase; }
+.ahud-quest-text { font-size: 0.75em; color: var(--c-ink); }
+.ahud-quest-title:empty { display: none; }
+
+/* ---- top-centre: boss bar, lock-on plate ---- */
+.ahud-top { position: absolute; left: 50%; top: calc(var(--ap) * 7); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
+.ahud-boss { width: calc(var(--ap) * 196); display: grid; gap: calc(var(--ap) * 2); animation: ahud-rise 200ms steps(4); }
+.ahud-boss-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 calc(var(--ap) * 2); }
+.ahud-boss-name { color: var(--c-ink); letter-spacing: 0.14em; text-transform: uppercase; }
+.ahud-boss-pips { color: #d84a3a; font-size: 0.75em; letter-spacing: 0.15em; }
+.ahud-boss-bar { width: calc(var(--ap) * 192); height: calc(var(--ap) * 6); justify-self: center;
+    box-shadow: 0 0 0 var(--ap) #000, 0 0 0 calc(var(--ap) * 2) var(--c-frame), 0 0 0 calc(var(--ap) * 3) var(--c-frame-lo); }
+.ahud-boss-bar > .fill { --base: #a8302a; --hi: #d8503a; }
+.ahud-lock { display: flex; align-items: center; gap: calc(var(--ap) * 3); padding: var(--ap) calc(var(--ap) * 5) calc(var(--ap) * 2); font-size: 0.75em;
+    background: rgba(10, 9, 16, 0.8); box-shadow: 0 0 0 var(--ap) var(--c-accent), 0 0 0 calc(var(--ap) * 2) #000; }
+.ahud-lock-mark { color: var(--c-accent); }
+.ahud-lock-bar { width: calc(var(--ap) * 48); height: calc(var(--ap) * 3); }
+
+/* ---- right: reward notices ---- */
+.ahud-notices { position: absolute; right: calc(var(--ap) * 8); top: calc(var(--ap) * 40); display: flex; flex-direction: column; align-items: flex-end; gap: calc(var(--ap) * 3); }
+.ahud-notice { display: flex; gap: calc(var(--ap) * 3); align-items: baseline; font-size: 0.75em; padding: calc(var(--ap) * 2) calc(var(--ap) * 5) calc(var(--ap) * 3) calc(var(--ap) * 16);
+    background: linear-gradient(270deg, rgba(10, 9, 16, 0.85) 0 75%, transparent 100%); border-right: calc(var(--ap) * 2) solid var(--nc, var(--ah-gold));
+    animation: ahud-slide 180ms steps(4); transition: opacity 400ms steps(4), transform 400ms steps(4); }
+.ahud-notice i { font-style: normal; color: var(--nc, var(--ah-gold)); }
+.ahud-notice.n-loot { --nc: var(--ah-gold); } .ahud-notice.n-xp { --nc: var(--c-accent); }
+.ahud-notice.n-quest { --nc: #e8a860; } .ahud-notice.n-level { --nc: #fff1a8; }
+.ahud-notice.out { opacity: 0; transform: translateX(calc(var(--ap) * 8)); }
+
+/* portrait phones: the bar takes the width, so vitals and statuses sit above it */
+.world-stage.tall .ahud-left { bottom: calc(var(--ap) * 50); }
+.world-stage.tall .ahud-centre { bottom: calc(var(--ap) * 6); }
+.world-stage.tall .ahud-notices { top: calc(var(--ap) * 60); }
+
+/* combat tint: the frame warms a little when something is engaged; danger pulses the vitals frame */
+.ahud.in-combat .ahud-skills { box-shadow: 0 0 0 var(--ap) var(--c-frame-hi), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.35); }
+.ahud.danger .ahud-vitals { animation: ahud-danger 0.9s steps(2) infinite; }
+
+@keyframes ahud-blink { 50% { opacity: 0.45; } }
+@keyframes ahud-rise { from { transform: translateY(calc(var(--ap) * 4)); opacity: 0; } }
+@keyframes ahud-slide { from { transform: translateX(calc(var(--ap) * 16)); opacity: 0; } }
+@keyframes ahud-danger { 50% { box-shadow: 0 0 0 var(--ap) var(--c-hp-low), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(255, 90, 60, 0.4); } }
+@media (prefers-reduced-motion: reduce) {
+    .ahud *, .ahud { animation: none !important; transition: none !important; }
+    .ahud-notice.out { transform: none; }
+}
+@media (prefers-contrast: more) {
+    .ahud-vitals, .ahud-skills, .ahud-prompt, .ahud-lock, .ahud-chip, .ahud-notice, .ahud-quest { background: #000; }
+}
+/* ===================== end ACTION HUD ===================== */

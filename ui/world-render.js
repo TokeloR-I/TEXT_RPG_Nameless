@@ -751,8 +751,8 @@
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
             ENSO.sprites.drawCharacter(g, cx, base, {
                 appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
-                facing: view.facing, anim: view.moving ? 'walk' : 'idle'
-            }, time);
+                facing: view.facing, anim: view.anim || (view.moving ? 'walk' : 'idle')
+            }, view.anim && view.animT != null ? view.animT : time);   // combat v3: swing / dodge / guard / hurt
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
             const hands = view.facing === 'left' || view.facing === 'right' ? [cx + (view.facing === 'left' ? -1 : 1)] : [cx - 5, cx + 5];
             for (const hx of hands) {
@@ -812,8 +812,9 @@
             T = cellOf(map);
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
-            for (const d of drawOrder(objects, view)) {
+            for (const d of drawOrder(objects, view, view.actors)) {
                 if (d.kind === 'player') { drawPlayer(view.x * T, view.y * T, view, time); continue; }
+                if (d.kind === 'actor') { g.save(); try { d.a.draw(g, time); } finally { g.restore(); } continue; }   // combat v3 enemies (ui/world-ui.js)
                 const o = d.o;
                 if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, PT, time);
                 if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
@@ -966,8 +967,9 @@
     const TILE_LIGHTS = { fireplace: { radius: 2.2, color: 'rgba(255, 140, 60, 0.30)' }, oven: { radius: 1.8, color: 'rgba(255, 150, 60, 0.28)' } };
     /** Front-to-back drawing order for the things standing on a map: lower on screen = drawn later (in
      *  front). Ties keep their input order, and the player goes after an object on the same row. */
-    function drawOrder(objects, player) {
+    function drawOrder(objects, player, actors = []) {
         const list = objects.map((o, i) => ({ kind: 'object', o, y: o.y, i }));
+        (actors || []).forEach((a, i) => list.push({ kind: 'actor', a, y: a.y, i: objects.length + 1 + i }));   // { y (tile units), draw(g, time) }
         if (player) list.push({ kind: 'player', y: player.y, i: objects.length + 0.5 });
         return list.sort((a, b) => a.y - b.y || a.i - b.i);
     }
