@@ -17,7 +17,7 @@ const branch = (g) => { if (g.mode === 'branch_select') g.act({ type: 'choose_br
 const fight = (g, s, id) => { H.contact(s, id); win(g); s.fightOver(id, 'victory'); branch(g); return g.player.gold; };
 function mainline(ctx, optional, log) {
   const { g, s } = ctx; const at = (k) => log && log.push(`${k} ${g.player.gold}`);
-  H.inspect(s, 'cellar_inscription'); H.travel(s, 'house'); H.travel(s, 'grounds');
+  H.inspect(s, 'cellar_inscription'); H.inspect(s, 'cellar_old_purse'); at('purse'); H.travel(s, 'house'); H.travel(s, 'grounds');
   if (optional) { fight(g, s, 'grounds_weed_rats'); at('rats'); }
   H.inspect(s, 'grounds_foundation'); H.travel(s, 'road');
   if (optional) { fight(g, s, 'road_wolf'); at('wolf'); }
@@ -33,7 +33,7 @@ function mainline(ctx, optional, log) {
   H.inspect(s, 'sanctuary_warden_npc'); pick(g, /Stand aside/); pick(g, /Draw your weapon/); fight(g, s, 'sanctuary_warden'); at('Warden');
 }
 // E1 Gold timeline
-{ const c = run(); const log = []; mainline(c, false, log); rec('E1', c.preWarden >= 78, 'Gold on the mandatory path (fixture: 78 before the Warden, +70 guaranteed after, gate 60)', `${log.join(' · ')} · before Warden ${c.preWarden}`);
+{ const c = run(); const log = []; mainline(c, false, log); rec('E1', c.preWarden >= 65, 'Gold on the mandatory path, cellar purse included (PR #168: at least 65 before the Warden, about 74 expected; +20 at the seal)', `${log.join(' · ')} · before Warden ${c.preWarden}`);
   const o = run(); const l2 = []; mainline(o, true, l2); rec('E1b', null, 'Gold with every optional fight and Shane', `${l2.join(' · ')}`);
   // E2 Q07
   const { g, s } = c; H.travel(s, 'seal_chamber'); const seal = H.inspect(s, 'seal_first_echo'); c.afterSeal = g.player.gold;
@@ -64,17 +64,22 @@ function mainline(ctx, optional, log) {
   // value of gear: statDamagePer
   rec('E5b', null, 'What gear is worth in combat', `gameRules.statDamagePer ${g.data.gameRules.statDamagePer}: +1 STR/INT (Blade, Charm) is +0.25 damage per hit, i.e. +1 only on every 4th point; +1 DEF (Jerkin) is -1 per enemy hit. Fixture asked for "+1 physical attack damage"`); }
 // E6 save/load keeps Gold, stock, equipment
-{ const { g } = run(); g.player.gold = 50; g.act({ type: 'buy', shopId: 'mara', item: 'Padded Jerkin' }); g.act({ type: 'equip', item: 'Padded Jerkin' });
+{ const { g } = run(); g.player.gold = 50; g.story.withMerchant = 'mara';   // harness shortcut: as if talking to Mara (persistence is what's under test)
+  g.act({ type: 'buy', shopId: 'mara', item: 'Padded Jerkin' }); g.act({ type: 'equip', item: 'Padded Jerkin' });
   const g2 = GameEngine.fromSave(JSON.parse(JSON.stringify(g.serialize({})))); const p2 = g2.player;
   rec('E6', p2.gold === g.player.gold && p2.equipment.bodyArmor === 'Padded Jerkin' && p2.def === g.player.def && (p2.shopStock || {})['mara:Padded Jerkin'] === 1, 'Save/load keeps Gold, shop stock, equipment and its stat', `gold ${g.player.gold}→${p2.gold}; armor ${p2.equipment.bodyArmor}; DEF ${g.player.def}→${p2.def}; mara jerkins left ${(p2.shopStock || {})['mara:Padded Jerkin']}`); }
-// E7 kill gold can't be farmed by fleeing
-{ const { g, s } = run(); H.inspect(s, 'cellar_inscription'); H.travel(s, 'house'); H.travel(s, 'grounds');
-  H.contact(s, 'grounds_weed_rats');
+// E7 loot is paid once, on victory only (universal loot, PR #172): flee after one kill → nothing; come back and win → paid once;
+// leave and re-enter, save and load → no second award and no respawn
+{ const { g, s } = run(); H.inspect(s, 'cellar_inscription'); H.travel(s, 'house'); H.travel(s, 'grounds'); H.travel(s, 'road'); H.travel(s, 'tollway');
+  H.contact(s, 'tollway_ragpickers');
   for (let i = 0; i < 20 && g.mode === 'combat' && g.alive(g.combat.enemies).length > 1; i++) { g.combat.enemies[0].hp = 1; const a = g.getAvailableActions(); if (a.awaiting === 'continue') g.act({ type: 'continue' }); else g.act({ type: 'attack', targetId: g.combat.enemies[0].id }); }
   for (let i = 0; i < 30 && g.mode === 'combat'; i++) { const a = g.getAvailableActions(); if (a.awaiting === 'continue') g.act({ type: 'continue' }); else g.act({ type: 'flee' }); }
-  const after1 = g.player.gold; s.fightOver('grounds_weed_rats', 'fled');
-  const e = s.map.encounters.find((x) => x.id === 'grounds_weed_rats'); H.walkTo(s, e.x, e.y + 3); const r = H.contact(s, 'grounds_weed_rats'); const back = r.type; win(g); s.fightOver('grounds_weed_rats', 'victory');
-  rec('E7', after1 === 2 && g.player.gold === 4, 'Kill one rat, flee, come back and win: each rat pays its 2 Gold once (4 in all)', `after the flee ${after1}; re-engage ${back}; after the win ${g.player.gold}; kills credited ${g.stats.kills}`); }
+  const fled = g.mode !== 'combat'; const after1 = g.player.gold; s.fightOver('tollway_ragpickers', 'fled');
+  const e = s.map.encounters.find((x) => x.id === 'tollway_ragpickers'); H.walkTo(s, e.x, e.y - 2); const r = H.contact(s, 'tollway_ragpickers'); win(g); s.fightOver('tollway_ragpickers', 'victory'); branch(g);
+  const won = g.player.gold; H.travel(s, 'road'); H.travel(s, 'tollway'); const still = s.map.encounters.some((x) => x.id === 'tollway_ragpickers' && s.visibleObjects().includes(x));
+  const g2 = GameEngine.fromSave(JSON.parse(JSON.stringify(g.serialize({})))); const reload = g2.player.gold;
+  rec('E7', fled && after1 === 0 && won >= 10 && won <= 18 && !still && reload === won, 'Ragpickers: flee after one kill pays nothing; the win pays once (design 10–18 for two L1 goblins); re-enter and reload pay nothing more',
+    `fled ${fled}; Gold after the flee ${after1}; re-engage ${r.type}; after the win ${won}; encounter back after re-entering: ${still}; Gold after reload ${reload}; kills credited ${g.stats.kills}`); }
 // E8 text commands
 { const { g } = run(); g.player.gold = 50; const a = txt(g.input('buy iona bandages')); const b = txt(g.input('buy iona Bandages'));
   rec('E8', !/cannot sell/.test(a), "Text version: 'buy iona bandages' (lower case, as players type it)", `lower case → "${a.replace(/^> [^/]*\/ /, '')}"; exact case → "${b.replace(/^> [^/]*\/ /, '')}"`);
