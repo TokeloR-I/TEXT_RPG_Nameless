@@ -1,0 +1,31 @@
+name: Codex studio configuration
+
+on:
+  pull_request:
+    paths:
+      - '.codex/**'
+      - '.agents/skills/enso-studio/**'
+      - 'tools/codex-studio.py'
+      - 'tools/tests/test_codex_studio.py'
+      - '.github/workflows/codex-studio.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.codex/**'
+      - '.agents/skills/enso-studio/**'
+      - 'tools/codex-studio.py'
+      - 'tools/tests/test_codex_studio.py'
+      - '.github/workflows/codex-studio.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate studio definitions and entry point
+        run: python3 tools/codex-studio.py check
+      - name: Test validator and launcher without credentials or model calls
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/tests -v
