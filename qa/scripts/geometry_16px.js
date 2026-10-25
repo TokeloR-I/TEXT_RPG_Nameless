@@ -1,40 +1,38 @@
-// Geometry audit of the 16 px world as played: object footprint vs collision, and gate fights.
-const R = require('path').join(__dirname, '..', '..');
-const { doubleWorld } = require(R + '/src/world/scale16.js');
-const { tileAt } = require(R + '/src/world/world.js');
-const Z = require(R + '/src/world/zone1.js');
-const W = doubleWorld(Z);
-const solid = (m, x, y) => { const t = tileAt(W, m, x, y); return !t || !!t.solid; };
-let walkIn = 0, total = 0;
-const gates = [];
+// Geometry audit of the 16 px world as played (scale16.doubleWorld), through the real WorldSession rules.
+// (1) every NPC and enemy blocks every cell of the 2x2 block its sprite is drawn on;
+// (2) every required fight (gate: true) still holds the only way on;
+// (3) every person and enemy can be talked to / fought from each open side of its block.
+//   node qa/scripts/geometry_16px.js
+const path = require('path');
+const R = path.join(__dirname, '..', '..');
+const { WorldSession, DIRS } = require(path.join(R, 'src/world/world.js'));
+const { doubleWorld } = require(path.join(R, 'src/world/scale16.js'));
+const W = doubleWorld(require(path.join(R, 'src/world/zone1.js')));
+let bad = 0, total = 0; const lines = [];
 for (const [mid, m] of Object.entries(W.maps)) {
   if (!m.source32) continue;
-  const objs = [...(m.interactables || []).map((o) => ({ ...o, enc: false })), ...(m.encounters || []).map((o) => ({ ...o, enc: true }))];
-  const occ = new Set(objs.map((o) => o.x + ',' + o.y));
-  for (const o of objs) {
-    if (!o.enc && o.kind !== 'npc') continue;
+  const s = new WorldSession(W, { map: mid, spawn: Object.keys(m.spawns)[0] });
+  for (const o of [...(m.interactables || []), ...(m.encounters || [])]) {
+    const enc = (m.encounters || []).includes(o);
+    if (!enc && o.kind !== 'npc') continue;
     total++;
     const bx = o.x - (o.x % 2), by = o.y - (o.y % 2);
-    const free = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => [bx + dx, by + dy]).filter(([x, y]) => !(x === o.x && y === o.y) && !solid(m, x, y) && !occ.has(x + ',' + y));
-    if (free.length) walkIn++;
-    if (o.gate) gates.push({ mid, o, m });
-    console.log(`${mid.padEnd(26)} ${(o.enc ? 'ENEMY ' : 'NPC   ')}${o.id.padEnd(28)} walkable cells of its own 2x2 block: ${free.length}`);
+    const open = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => [bx + dx, by + dy]).filter(([x, y]) => !s.isBlocked(x, y));
+    // sides: each cell next to the block that is walkable, facing into the block
+    let sides = 0, ok = 0;
+    for (const [x, y, f] of [[bx, by - 1, 'down'], [bx + 1, by - 1, 'down'], [bx, by + 2, 'up'], [bx + 1, by + 2, 'up'], [bx - 1, by, 'right'], [bx - 1, by + 1, 'right'], [bx + 2, by, 'left'], [bx + 2, by + 1, 'left']]) {
+      if (s.isBlocked(x, y)) continue; sides++; s.x = x; s.y = y; s.facing = f; if (s.prompt()) ok++;
+    }
+    if (open.length || ok < sides) bad++;
+    lines.push(`${mid.padEnd(26)} ${(enc ? 'ENEMY ' : 'NPC   ')}${o.id.padEnd(28)} open cells inside its block: ${open.length}; prompt from ${ok}/${sides} adjacent cells`);
   }
 }
-console.log(`\n${walkIn}/${total} NPCs+enemies have walkable cells inside the 32px block their sprite is drawn on`);
-// Gate bypass: with all non-gate objects blocked and the gate cell blocked, can you still reach every exit from every spawn?
-for (const { mid, o, m } of gates) {
-  const blocked = new Set([...(m.interactables || []), ...(m.encounters || [])].map((q) => q.x + ',' + q.y));
-  const sp = Object.entries(m.spawns);
-  const reach = (sx, sy) => { const seen = new Set([sx + ',' + sy]); const q = [[sx, sy]]; while (q.length) { const [x, y] = q.shift(); for (const [nx, ny] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]) { const k = nx + ',' + ny; if (seen.has(k) || solid(m, nx, ny) || blocked.has(k)) continue; seen.add(k); q.push([nx, ny]); } } return seen; };
-  // Does the gate split the map in the original 32 px version?
-  const m32 = m.source32;
-  const solid32 = (x, y) => { const t = tileAt(Z, m32, x, y); return !t || !!t.solid; };
-  const blocked32 = new Set([...(m32.interactables || []), ...(m32.encounters || [])].map((q) => q.x + ',' + q.y));
-  const reach32 = (sx, sy) => { const seen = new Set([sx + ',' + sy]); const q = [[sx, sy]]; while (q.length) { const [x, y] = q.shift(); for (const [nx, ny] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]) { const k = nx + ',' + ny; if (seen.has(k) || solid32(nx, ny) || blocked32.has(k)) continue; seen.add(k); q.push([nx, ny]); } } return seen; };
-  const [n0, s0] = sp; const s32 = Object.values(m32.spawns);
-  const a32 = reach32(s32[0].x, s32[0].y).size, a16 = reach(s0[1].x, s0[1].y);
-  const exitsReached = (m.exits || []).filter((e) => a16.has(e.x + ',' + e.y) || [[e.x+1,e.y],[e.x-1,e.y],[e.x,e.y+1],[e.x,e.y-1]].some(([x,y]) => a16.has(x+','+y))).map((e) => e.group || e.id);
-  const reached32 = (m32.exits || []).filter((e) => { const s = reach32(s32[0].x, s32[0].y); return s.has(e.x + ',' + e.y); }).map((e) => e.id);
-  console.log(`GATE ${o.id} on ${mid}: from spawn ${s0[0]}, 32px reaches exits [${reached32}], 16px reaches [${[...new Set(exitsReached)]}]`);
+console.log(lines.join('\n'));
+console.log(`\n${total - bad}/${total} NPCs+enemies: block their whole 2x2 and answer from every adjacent cell`);
+// gates: with every non-gate object present, can you get past a living gate enemy?
+for (const [mid, m] of Object.entries(W.maps)) for (const o of (m.encounters || []).filter((e) => e.gate)) {
+  const s = new WorldSession(W, { map: mid, spawn: Object.keys(m.spawns)[0] });
+  const reach = (sx, sy) => { const seen = new Set([sx + ',' + sy]); const q = [[sx, sy]]; while (q.length) { const [x, y] = q.shift(); for (const [dx, dy] of Object.values(DIRS)) { const nx = x + dx, ny = y + dy, k = nx + ',' + ny; if (seen.has(k) || s.isBlocked(nx, ny)) continue; seen.add(k); q.push([nx, ny]); } } return seen; };
+  const res = Object.entries(m.spawns).map(([sid, sp]) => { const a = reach(sp.x, sp.y); const ex = [...new Set((m.exits || []).filter((e) => a.has(e.x + ',' + e.y)).map((e) => e.group || e.id))]; return `${sid} → [${ex}]`; });
+  console.log(`GATE ${o.id} on ${mid}: ${res.join('; ')}`);
 }

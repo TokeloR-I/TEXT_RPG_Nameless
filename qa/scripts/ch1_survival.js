@@ -17,6 +17,7 @@ const args = process.argv.slice(2);
 const SEEDS = parseInt(args.find((a) => /^\d+$/.test(a)) || '100', 10);
 const BOT = (args[args.indexOf('--bot') + 1] && args.includes('--bot')) ? args[args.indexOf('--bot') + 1] : 'smart';
 const PICKUPS = args.includes('--pickups');
+const BUY = args.includes('--buy');   // spend all Gold on healing in Shamefield after Q05 (best HP per Gold first)
 const JSON_OUT = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
 const DATA = JSON.parse(JSON.stringify(BASE));
 args.forEach((a, i) => { if (a !== '--set') return; const [p, raw] = args[i + 1].split('='); const ks = p.split('.'); let o = DATA; for (const k of ks.slice(0, -1)) o = o[k]; o[ks[ks.length - 1]] = JSON.parse(raw); });
@@ -84,6 +85,7 @@ function mainline(ctx, branchIdx) {
     takeExit(s, 'tollway_south'); inspect(s, 'village_tamsin'); bye(g); inspect(s, 'village_mara'); bye(g);
     inspect(s, 'village_captain'); bye(g); travel(s, 'tollway'); inspect(s, 'tollway_register'); travel(s, 'shamefield');
     inspect(s, 'village_captain'); say(g, /Here it is/); bye(g);
+    if (BUY) { ctx.goldAtShop = g.player.gold; for (const [shop, item] of [['iona', 'Healing Herb Bundle'], ['mara', 'Bandages'], ['iona', 'Bandages'], ['mara', 'Moldy Bread']]) while (g.player.gold >= g.data.shopDefinitions[shop].stock[item].buyPrice && g.act({ type: 'buy', shopId: shop, item }).ok !== false && g.player.inventory.includes(item) && g.player.gold >= 0) { if ((ctx.bought = (ctx.bought || 0) + 1) > 20) break; } }
     travel(s, 'orchard');
     if (PICKUPS) inspect(s, 'orchard_herbs');
     if (!fight(ctx, 'orchard_cultists', 'G3 Cultists')) return 'G3';
@@ -136,7 +138,7 @@ for (const cls of classes) {
 const avg = (xs, f) => (xs.length ? xs.reduce((a, x) => a + f(x), 0) / xs.length : 0);
 function wilson(k, n, z = 1.96) { if (!n) return [0, 0]; const p = k / n, d = 1 + z * z / n, c = p + z * z / (2 * n), r = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)); return [Math.round(100 * Math.max(0, (c - r) / d)), Math.round(100 * Math.min(1, (c + r) / d))]; }
 const variant = args.filter((a, i) => args[i - 1] === '--set').join(' ') || 'shipped';
-console.log(`Chapter One survival — ${SEEDS} seeds per class · bot: ${BOT} · pickups: ${PICKUPS ? 'shed Bandages + well bottle + orchard herbs' : 'none'} · data: ${variant}\n`);
+console.log(`Chapter One survival — ${SEEDS} seeds per class · bot: ${BOT} · pickups: ${PICKUPS ? 'shed Bandages + well bottle + orchard herbs' : 'none'} · shopping: ${BUY ? 'all Gold on healing after Q05' : 'none'} · data: ${variant}\n`);
 console.log('| Class | Encounter | Lvl | Reached | Win % (95% CI) | HP in → out (of max) | Lowest HP left (wins) | Heal items used | Biggest hit taken | Rounds | Who kills you |');
 console.log('|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|');
 for (const cls of classes) for (const label of ['G1 Ragpickers', 'G2 Root-Chewers', 'G3 Cultists', 'G4 Ritual Ghoul', 'B01 Warden', 'Opt rats (L1)', 'Opt wolf (L1)', 'Opt constables (L2)']) {
