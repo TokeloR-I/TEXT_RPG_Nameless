@@ -201,6 +201,13 @@
             }
         }
 
+        /** Whether the player is with this merchant: talked to last, on this map, and (Shane) he's been recruited. */
+        storyMerchantHere(shopId) {
+            if (this.story.withMerchant !== shopId) return false;
+            if (shopId === 'shane' && !this.hasStoryFlag('shane_recruited')) return false;
+            return true;
+        }
+
         /** Something happened in the world. Advances every active quest waiting for it, then any triggers. */
         storyEvent(ev) {
             if (!this.story || !ev || !ev.type || ev.id == null) return;
@@ -242,6 +249,7 @@
             // The conversation is open from here: a quest this talk completes must not prompt the branch choice
             // until it ends. The opening node is chosen after the event, so it sees what the talk just completed.
             this.story.dialogue = { npcId, node: null };
+            this.story.withMerchant = npcId;
             this.storyEvent({ type: 'talk', id: npcId });
             const entry = (npc.talk || []).find((t) => this.storyAllows(t.if));
             if (!entry) { this.story.dialogue = null; this.say(`${npc.name} has nothing more to say.`); this.maybePromptBranch(); return; }
@@ -366,7 +374,7 @@
             switch (a.type) {
                 case 'talk': this.startTalk(String(a.npcId || '')); return true;
                 case 'world_inspect': this.storyEvent({ type: 'inspect', id: String(a.objectId || '') }); return true;
-                case 'world_enter': s.at = String(a.mapId || ''); this.storyEvent({ type: 'enter', id: s.at }); return true;
+                case 'world_enter': s.at = String(a.mapId || ''); s.withMerchant = null; this.storyEvent({ type: 'enter', id: s.at }); return true;
                 case 'black_flight': this.blackFlight(String(a.anchorId || '')); return true;
                 case 'talk_crow': this.startTalk('crow'); return true;
                 case 'dialogue_choice': case 'dialogue_leave': this.refuse('WRONG_MODE', "You aren't talking to anyone."); return true;

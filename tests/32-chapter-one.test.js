@@ -265,3 +265,26 @@ test('Chapter One: catching up stops at the quest that asked for the step, never
     assert.strictEqual(g.questState('Q03'), 'active');
     for (const q of ['Q04', 'Q05', 'Q06', 'B01', 'Q07', 'Q08']) assert.notStrictEqual(g.questState(q), 'complete', `${q} is not skipped`);
 });
+
+test('Chapter One: you buy only from the merchant you are with; typed names match without case (QA-44/46)', () => {
+    const { g, s } = run();
+    g.player.gold = 100;
+    g.act({ type: 'buy', shopId: 'iona', item: 'Bandages' });
+    assert.strictEqual(g.player.gold, 100, 'not from the cellar');
+    s.place('shamefield', 'from_tollway');
+    talk(s, 'village_iona');
+    const ask = g.dialogueChoices().find((c) => /What have you got/.test(c.text));
+    g.act({ type: 'dialogue_choice', choiceId: ask.choiceId });
+    const good = g.getAvailableActions().actions.find((a) => a.type === 'buy' && a.enabled);
+    assert.ok(good, 'the merchant menu offers the stock');
+    g.act({ type: 'buy', shopId: 'iona', item: good.item.toLowerCase() });
+    assert.strictEqual(g.player.gold, 100 - good.price, 'lower case works');
+    bye(g);
+    g.act({ type: 'buy', shopId: 'iona', item: good.item });
+    assert.strictEqual(g.player.gold, 100 - 2 * good.price, 'right after talking, on the same map');
+    g.act({ type: 'buy', shopId: 'shane', item: 'Healing Herb Bundle' });
+    assert.strictEqual(g.player.gold, 100 - 2 * good.price, "Shane's stall is shut until he's recruited");
+    s.place('tollway', 'from_road'); g.act({ type: 'world_enter', mapId: 'tollway' });
+    g.act({ type: 'buy', shopId: 'iona', item: good.item });
+    assert.strictEqual(g.player.gold, 100 - 2 * good.price, 'not after leaving the map');
+});

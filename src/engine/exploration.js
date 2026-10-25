@@ -203,9 +203,20 @@
             return true;
         }
 
+        /** The stock's own spelling of an item name: typed names match without case (QA-46). */
+        stockName(shopId, item) {
+            const stock = (((this.data.shopDefinitions || {})[shopId] || {}).stock) || {};
+            return stock[item] ? item : Object.keys(stock).find((k) => k.toLowerCase() === String(item).toLowerCase()) || item;
+        }
+
         /** Shared, pure purchase validation for actions and merchant menus. */
         purchaseBlock(shopId, item) {
-            const shop = (this.data.shopDefinitions || {})[shopId], entry = shop && shop.stock && shop.stock[item];
+            const shop = (this.data.shopDefinitions || {})[shopId];
+            item = this.stockName(shopId, item);
+            const entry = shop && shop.stock && shop.stock[item];
+            // In the story world you buy from a merchant you're with: the last one you talked to, on this map, and
+            // Shane only once he's recruited (QA-44).
+            if (this.story && shop && !this.storyMerchantHere(shopId)) return { code: 'NOT_HERE', message: "That merchant isn't here. Talk to them first." };
             const def = this.data.itemDefinitions[item];
             if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1)
                 return { code: 'NOT_FOR_SALE', message: 'This merchant cannot sell that item.' };
@@ -217,6 +228,7 @@
 
         /** Commerce is atomic: validations complete before either balance or inventory changes. */
         buyItem(shopId, item) {
+            item = this.stockName(shopId, item);
             const block = this.purchaseBlock(shopId, item);
             if (block) { this.refuse(block.code, block.message); return false; }
             const entry = this.data.shopDefinitions[shopId].stock[item];
