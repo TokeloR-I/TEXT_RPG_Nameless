@@ -670,7 +670,7 @@
             const facingIt = angleDiff(p.angle, angleTo(p, a)) <= (((R.guard || {}).arcDeg || 140) / 2) * DEG;
             const guarded = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
             const parried = guarded && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= ((R.parry || {}).windowMs || 160);
-            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried });
+            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1 });
             this.collect(r.events);
             if (!r.ok) return;
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }

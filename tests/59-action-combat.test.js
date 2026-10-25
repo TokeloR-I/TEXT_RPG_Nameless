@@ -163,3 +163,22 @@ test('Action: v2 flee is refused (you run instead); turn and realtime modes are 
     assert.strictEqual(t.actionEngage('x', ['rust_rat']).error.code, 'WRONG_MODE');
     assert.strictEqual(t.actionView(), null);
 });
+test('Action: a boss hpMult and an attack damageMult apply in action fights only, and leave no status behind', () => {
+    const g = actionGame('warrior', 59);
+    const base = new GameEngine({ seed: 59 }).data.enemies.crow_touched_warden.hp;
+    g.actionEngage('sanctuary_warden', ['crow_touched_warden']);
+    const w = g.combat.enemies[0];
+    assert.strictEqual(w.maxHp, Math.round(base * g.data.actionRules.bosses.crow_touched_warden.hpMult));
+    g.player.hp = g.player.maxHp = 9999;
+    const blow = (mult) => {
+        assert.ok(g.actionEnemyWindup(w.id).ok);
+        const hp = g.player.hp;
+        assert.strictEqual(g.actionEnemyStrike(w.id, { damageMult: mult }).result, 'hit');
+        return hp - g.player.hp;
+    };
+    const plain = [], heavy = [];
+    for (let i = 0; i < 6; i++) { plain.push(blow(1)); g.tick(3000); heavy.push(blow(6)); g.tick(3000); }
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    assert.ok(sum(heavy) > sum(plain) * 3, `heavy ${heavy} vs plain ${plain}`);
+    assert.ok(!g.player.statusEffects.some((s) => s.name === 'Heavy Blow'), 'the multiplier is not left on the player');
+});
