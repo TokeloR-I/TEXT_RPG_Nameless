@@ -132,10 +132,16 @@ test('Chapter One: the Warden warns, can be left in peace, and only fights when 
     travel(s, 'grounds');
     talk(s, 'grounds_orin'); say(g, /rebuilt/);
     assert.ok(g.player.inventory.includes("Builder's Ledger"));
-    bye(g);
     assert.strictEqual(g.questState('Q07'), 'active', 'waiting for the gate repair');
-    g.storyEvent({ type: 'build', id: 'homestead_gate' });
+    // the repair is a choice on the ledger (QA-32/42), free for now
+    const build = g.dialogueChoices().find((c) => c.choiceId === 'build:homestead_gate');
+    assert.ok(build, 'Orin offers the gate repair');
+    const gold = g.player.gold;
+    g.act({ type: 'dialogue_choice', choiceId: build.choiceId });
+    assert.strictEqual(g.player.gold, gold);
     assert.strictEqual(g.questState('Q07'), 'complete');
+    assert.ok(!g.dialogueChoices().some((c) => c.choiceId.startsWith('build:')), 'built once');
+    bye(g);
     assert.ok(g.hasStoryFlag('chapter_one_complete'));
     assert.strictEqual(g.trackedObjective().questId, 'Q08', 'a clear next objective toward chapter two');
     assert.strictEqual(g.player.inventory.filter((i) => i === "Builder's Ledger").length, 1);
