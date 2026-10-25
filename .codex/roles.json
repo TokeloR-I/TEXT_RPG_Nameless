@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "roles": [
+    {
+      "name": "enso_coordinator",
+      "identity": "Orion",
+      "role": "Coordinator",
+      "config": ".codex/agents/enso-coordinator.toml",
+      "source": ".claude/agents/wren.md (orchestration responsibility only)"
+    },
+    {
+      "name": "enso_lead_programmer",
+      "identity": "Alder",
+      "role": "Lead Programmer",
+      "config": ".codex/agents/enso-lead-programmer.toml",
+      "source": ".claude/agents/studio-lead-programmer.md"
+    },
+    {
+      "name": "enso_game_designer",
+      "identity": "Lyra",
+      "role": "Game Designer",
+      "config": ".codex/agents/enso-game-designer.toml",
+      "source": ".claude/agents/studio-game-designer.md"
+    },
+    {
+      "name": "enso_systems_designer",
+      "identity": "Vector",
+      "role": "Systems Designer",
+      "config": ".codex/agents/enso-systems-designer.toml",
+      "source": ".claude/agents/studio-systems-designer.md"
+    },
+    {
+      "name": "enso_ui_programmer",
+      "identity": "Lumen",
+      "role": "UI Programmer",
+      "config": ".codex/agents/enso-ui-programmer.toml",
+      "source": ".claude/agents/studio-ui-programmer.md"
+    },
+    {
+      "name": "enso_ux_designer",
+      "identity": "Mira",
+      "role": "UX Designer",
+      "config": ".codex/agents/enso-ux-designer.toml",
+      "source": ".claude/agents/studio-ux-designer.md"
+    },
+    {
+      "name": "enso_qa_tester",
+      "identity": "Verity",
+      "role": "QA Tester",
+      "config": ".codex/agents/enso-qa-tester.toml",
+      "source": ".claude/agents/studio-qa-tester.md"
+    },
+    {
+      "name": "enso_performance_analyst",
+      "identity": "Pulse",
+      "role": "Performance Analyst",
+      "config": ".codex/agents/enso-performance-analyst.toml",
+      "source": ".claude/agents/studio-performance-analyst.md"
+    },
+    {
+      "name": "enso_technical_artist",
+      "identity": "Ember",
+      "role": "Technical Artist",
+      "config": ".codex/agents/enso-technical-artist.toml",
+      "source": ".claude/agents/studio-technical-artist.md"
+    },
+    {
+      "name": "enso_technical_director",
+      "identity": "Atlas",
+      "role": "Technical Director",
+      "config": ".codex/agents/enso-technical-director.toml",
+      "source": ".claude/agents/studio-technical-director.md"
+    },
+    {
+      "name": "enso_gameplay_programmer",
+      "identity": "Flint",
+      "role": "Gameplay Programmer",
+      "config": ".codex/agents/enso-gameplay-programmer.toml",
+      "source": ".claude/agents/studio-gameplay-programmer.md"
+    }
+  ]
+}

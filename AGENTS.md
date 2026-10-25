@@ -9,14 +9,27 @@ This file, the code, the tests and the docs are the only shared memory. Read thi
 | Owner / producer | Tokelo (human) | everything, merges PRs | — |
 | Lead Game Designer | Thorne (`.claude/agents/thorne.md`) | `docs/design/` mechanics; `null` pending values and mechanic fields in `src/data.js` | engine logic |
 | Systems & Balance Designer | Gauge (`.claude/agents/gauge.md`) | `docs/design/` balance specs; balance values in `src/data.js` | engine logic, `qa/` |
-| Narrative Designer | Vaelis | `docs/design/` story, lore and dialogue | code, data values |
+| Historical narrative authors | Retired; existing canon remains authoritative | Existing `docs/design/` story, lore and dialogue as reference | No retired-personnel assignments |
 | Dev | Claude (dev chat) | `src/`, `ui/`, `tests/`, `tools/`, `index.html`, `style.css`, `world.html`, `world.css` | `docs/design/` |
 | QA & Balance | Claude (QA chat) | `qa/` reports | `src/`, `tests/`, data values |
-| *(to assign)* | ChatGPT | *(owner decides)* | |
+| Codex Studio | Orion and ten Codex specialists (`.codex/roles.json`) | Assigned design, data, engine, UI, art, tools and QA work on separate `codex/` branches | `.claude/` configurations, unmerged work owned by others, merging/pushing `main` |
 | *(to assign)* | Gemini | *(owner decides)* | |
 
 If your role isn't in the table, ask the owner before editing. **When in doubt, propose in a PR description or a
 `qa/` note instead of changing files you don't own.**
+
+### Independent Codex Studio (owner mandate, 2026-10-25)
+Codex is authorized to work independently through its coordinator and specialists; see `.codex/STUDIO.md` and
+`docs/agents/CODEX_STUDIO.md`. For Codex work, this current mandate supersedes historical "unassigned" and
+per-file approval text. Routine mechanics, pending values and balance decisions are delegated to Codex's own
+Game Designer and Systems Designer, researched, documented and tested; they do not wait for Claude availability.
+Only fundamental creative-direction changes escalate to the owner. Technical invariants below still apply.
+
+Claude remains independent: Wren leads development, Pixie UI/UX, Tally QA, Thorne game design and Gauge systems.
+Retired Sable, Morrigan, Vesper and Vaelis references in older material are historical, not active assignments;
+Codex must not reactivate them. Rook is owner-assigned backup only. Codex does not edit Claude's configurations.
+Check issues, branches and PRs before starting; preserve other studios' unmerged work and use separate worktrees.
+The owner remains the only person who merges `main`.
 
 ## 2. Workflow
 1. Branch from `main`: `<agent>/<short-topic>`, e.g. `claude/soul-chain`, `gemini/enemy-ai`, `chatgpt/item-designs`.
