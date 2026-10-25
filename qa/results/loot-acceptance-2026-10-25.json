@@ -1,0 +1,328 @@
+{
+  "seeds": 200,
+  "accounting": {
+    "routes": 200,
+    "min": 66,
+    "mean": 74.085,
+    "p10": 70,
+    "max": 81,
+    "preWardenXp": 250,
+    "gateGold": 0,
+    "gateMaterials": 0
+  },
+  "survival": [
+    {
+      "cls": "warrior",
+      "branch": "vanguard",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 883,
+      "winRate": 1
+    },
+    {
+      "cls": "warrior",
+      "branch": "vanguard",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 889,
+      "winRate": 1
+    },
+    {
+      "cls": "warrior",
+      "branch": "berserker",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 883,
+      "winRate": 1
+    },
+    {
+      "cls": "warrior",
+      "branch": "berserker",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 889,
+      "winRate": 1
+    },
+    {
+      "cls": "warrior",
+      "branch": "warden",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 883,
+      "winRate": 1
+    },
+    {
+      "cls": "warrior",
+      "branch": "warden",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 889,
+      "winRate": 1
+    },
+    {
+      "cls": "mage",
+      "branch": "elementalist",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 874,
+      "winRate": 1
+    },
+    {
+      "cls": "mage",
+      "branch": "elementalist",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 879,
+      "winRate": 1
+    },
+    {
+      "cls": "mage",
+      "branch": "illusionist",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 145,
+      "deaths": {
+        "sanctuary_warden": 55
+      },
+      "errors": [],
+      "bought": 874,
+      "winRate": 0.725
+    },
+    {
+      "cls": "mage",
+      "branch": "illusionist",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 177,
+      "deaths": {
+        "sanctuary_warden": 23
+      },
+      "errors": [],
+      "bought": 879,
+      "winRate": 0.885
+    },
+    {
+      "cls": "mage",
+      "branch": "chronomancer",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 89,
+      "deaths": {
+        "sanctuary_warden": 111
+      },
+      "errors": [],
+      "bought": 874,
+      "winRate": 0.445
+    },
+    {
+      "cls": "mage",
+      "branch": "chronomancer",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 148,
+      "deaths": {
+        "sanctuary_warden": 52
+      },
+      "errors": [],
+      "bought": 879,
+      "winRate": 0.74
+    },
+    {
+      "cls": "rogue",
+      "branch": "assassin",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 68,
+      "deaths": {
+        "sanctuary_warden": 132
+      },
+      "errors": [],
+      "bought": 865,
+      "winRate": 0.34
+    },
+    {
+      "cls": "rogue",
+      "branch": "assassin",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 149,
+      "deaths": {
+        "sanctuary_warden": 51
+      },
+      "errors": [],
+      "bought": 862,
+      "winRate": 0.745
+    },
+    {
+      "cls": "rogue",
+      "branch": "duelist",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 865,
+      "winRate": 1
+    },
+    {
+      "cls": "rogue",
+      "branch": "duelist",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 862,
+      "winRate": 1
+    },
+    {
+      "cls": "rogue",
+      "branch": "saboteur",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 865,
+      "winRate": 1
+    },
+    {
+      "cls": "rogue",
+      "branch": "saboteur",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 862,
+      "winRate": 1
+    },
+    {
+      "cls": "necromancer",
+      "branch": "bone_warden",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 189,
+      "deaths": {
+        "sanctuary_warden": 11
+      },
+      "errors": [],
+      "bought": 887,
+      "winRate": 0.945
+    },
+    {
+      "cls": "necromancer",
+      "branch": "bone_warden",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 891,
+      "winRate": 1
+    },
+    {
+      "cls": "necromancer",
+      "branch": "plaguecaller",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 189,
+      "deaths": {
+        "sanctuary_warden": 11
+      },
+      "errors": [],
+      "bought": 887,
+      "winRate": 0.945
+    },
+    {
+      "cls": "necromancer",
+      "branch": "plaguecaller",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 891,
+      "winRate": 1
+    },
+    {
+      "cls": "necromancer",
+      "branch": "soulbinder",
+      "equipment": false,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 189,
+      "deaths": {
+        "sanctuary_warden": 11
+      },
+      "errors": [],
+      "bought": 887,
+      "winRate": 0.945
+    },
+    {
+      "cls": "necromancer",
+      "branch": "soulbinder",
+      "equipment": true,
+      "seeds": 200,
+      "reachedWarden": 200,
+      "won": 200,
+      "deaths": {},
+      "errors": [],
+      "bought": 891,
+      "winRate": 1
+    }
+  ],
+  "limitations": [
+    "Accounting uses forced victories to isolate rewards and XP; it is not a combat win-rate test.",
+    "Survival uses the existing smart bot, mandatory route only, no forced HP, purchases at Iona, and automatic positive-score equipment choices.",
+    "Both survival arms use the new economy and identical seeds. The control omits equipment; the combined arm equips starters and eligible drops. No player base stats were changed.",
+    "Historical QA #12 Warden reference (Warrior 55%, Mage 15%, Rogue 28%, Necromancer 0%) used a different economy/route; these observations are not a reproduction or a balance sign-off.",
+    "Same seed pairs are reproducible, but damage and loot consume a different RNG sequence when fights differ."
+  ]
+}

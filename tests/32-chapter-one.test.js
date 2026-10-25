@@ -59,7 +59,8 @@ function mainline(ctx) {
     assert.strictEqual(g.player.level, 2);
     takeExit(s, 'tollway_south');
     talk(s, 'village_tamsin'); bye(g);
-    talk(s, 'village_mara'); bye(g);
+    talk(s, 'village_mara'); say(g, /carry supplies/); bye(g);
+    talk(s, 'village_tamsin'); say(g, /Mara sent/); bye(g);
     assert.strictEqual(g.questState('Q04'), 'complete');
     const shut = walkTo(s, 15, 1) && s.move('up');
     assert.deepStrictEqual([shut.type, s.mapId], ['locked', 'shamefield'], 'the orchard gate is shut until Q05');

@@ -10,7 +10,7 @@ test('use: healing items heal, get used up, and refuse at full HP', () => {
     g.do('use band');
     assert.strictEqual(g.player.hp, 75);
     assert.ok(!g.player.inventory.includes('Bandages'));
-    g.do('use rusty sword');
+    g.do('use old key');
     assert.match(g.text(), /nothing to use it for/);
 });
 

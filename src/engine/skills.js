@@ -52,10 +52,10 @@
 
         rollDamage(attacker, target, skill, hit) {
             let dmg = this.randInt(skill.base_damage[0], skill.base_damage[1]);
-            if (attacker.isPlayer) dmg += this.statBonus(attacker, skill.damage_type);
+            if (attacker.isPlayer) dmg += this.statBonus(attacker, skill.damage_type) + this.equipmentDamageBonus(skill.damage_type, attacker.equipment || {});
             const gcIdx = attacker.statusEffects.findIndex((s) => s.name === 'Guaranteed Crit');
             if (gcIdx !== -1) { hit.forceCrit = true; attacker.statusEffects.splice(gcIdx, 1); }
-            hit.isCrit = hit.forceCrit || this.rng() < (attacker.critChance || 0);
+            hit.isCrit = hit.forceCrit || this.rng() < ((attacker.critChance || 0) + (attacker.isPlayer ? (this.equipmentModifiers(attacker.equipment || {}).critChance || 0) : 0));
             if (hit.isCrit) dmg = Math.floor(dmg * (attacker.critMultiplier || 1.5));
 
             let final;
@@ -306,6 +306,7 @@
         }
 
         onDeath(target, source, options = {}) {
+            target.lootEligible = this.isPlayerSide(source) && !target.isMinion;
             target.dead = true;
             this.orphanStatusesOf(target);
             // A dead owner cannot retain links or Feast subscriptions. Removing a
@@ -332,14 +333,6 @@
             if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {
                 this.stats.kills++;
                 this.stats.credited.push(target.entityKey);
-                // Fixed early-game coin reward. Credited entity keys are persistent,
-                // so neither replaying an encounter nor a duplicate death can farm Gold.
-                const coins = Number.isSafeInteger(target.goldReward) && target.goldReward >= 0
-                    ? target.goldReward : 2;
-                if (coins && Number.isSafeInteger(p.gold + coins)) {
-                    p.gold += coins;
-                    this.say(`You recover ${coins} Gold from ${target.name}.`);
-                }
             }
             if (!p.isHollowKing) {
                 this.combat.corpses++;

@@ -54,7 +54,7 @@
                 { id: 'traveller', text: 'Speak to the traveller at the tollway', on: { type: 'talk', id: 'elian' }, marker: { map: 'tollway', x: 12, y: 6 } },
                 { id: 'story', text: 'Hear Elian out', on: { type: 'story', id: 'elian_journey' }, marker: { map: 'tollway', x: 12, y: 6 } }
             ],
-            onComplete: [{ flag: 'elian_in_village' }, { start: 'Q04' }]
+            onComplete: [{ gold: 15, key: 'elian_resolution' }, { flag: 'elian_in_village' }, { start: 'Q04' }]
         },
         // ------------------------------------------------------------- Segment C: Shamefield
         Q04: {
@@ -63,9 +63,10 @@
             objectives: [
                 { id: 'village', text: 'Cross the bridge and reach Shamefield', on: { type: 'enter', id: 'shamefield' }, marker: { map: 'tollway', x: 9, y: 19 } },
                 { id: 'elder', text: 'Speak to Tamsin, the village elder', on: { type: 'talk', id: 'tamsin' }, marker: { map: 'shamefield', x: 9, y: 8 } },
-                { id: 'trader', text: 'Meet one of the traders on the square', on: { type: 'story', id: 'met_shopkeeper' }, marker: { map: 'shamefield', x: 12, y: 7 } }
+                { id: 'trader', text: 'Collect Mara’s supply parcel', on: { type: 'story', id: 'village_supplies_collected' }, marker: { map: 'shamefield', x: 12, y: 7 } },
+                { id: 'delivery', text: 'Deliver Mara’s supply parcel to Tamsin', on: { type: 'story', id: 'village_supplies_delivered' }, marker: { map: 'shamefield', x: 9, y: 8 } }
             ],
-            onComplete: [{ start: 'Q05' }]
+            onComplete: [{ gold: 8, key: 'village_assistance' }, { start: 'Q05' }]
         },
         Q05: {
             title: 'The Orchard Ledger', kind: 'main', xp: 20,
@@ -76,7 +77,7 @@
                     effects: [{ item: 'Tollway Register', key: 'item:tollway_register' }] },
                 { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 6, y: 5 } }
             ],
-            onComplete: [{ flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
+            onComplete: [{ gold: 8, key: 'orchard_register' }, { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
         },
         // ------------------------------------------------------------- Segment D: Featherwatch
         Q06: {
@@ -105,6 +106,7 @@
                         { say: 'The vision lets go. The key has crumbled to black sand in your hand, and something in you is a little less empty than before.' },
                         { removeItem: 'Seal-Key of the First Echo' },
                         { flag: 'fragment_one' },
+                        { gold: 20, key: 'first_seal_treasury' },
                         // Nahemoth, the first aspect (ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md; Vaelis's DRAFT lines).
                         // Only opening the seal grants it, never the Warden's death alone.
                         { say: 'The seal splits. A flock of ink-black feathers rises from a seam that has no depth. They turn against the wind and fold into a single crow.', important: true },
@@ -233,6 +235,7 @@
                         ['npc', "If you're heading north, the watch has the orchard road closed. The tollkeeper ran when the goblins came and took the route register with him. The Captain won't open the gate without knowing who's gone up that road."]
                     ],
                     choices: [
+                        { text: 'Mara sent these supplies for the village.', if: { items: ['Village Supply Parcel'], quests: { Q04: 'active' } }, stay: true, effects: [{ removeItem: 'Village Supply Parcel' }, { event: { type: 'story', id: 'village_supplies_delivered' } }, { say: 'Tamsin: Thank you. These will keep our neighbours fed.' }] },
                         { text: 'Why is the village called Shamefield?', to: 'name' },
                         { text: 'Where can I get supplies?', to: 'supplies' },
                         { text: 'Goodbye.', end: true }
@@ -244,7 +247,8 @@
                 },
                 supplies: {
                     lines: [['npc', "Mara keeps general goods on the square. Bragg the smith is by the inn. Iona sells herbs, when the watch isn't asking her about Shane."]],
-                    choices: [{ text: 'Why is the village called Shamefield?', to: 'name' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'Mara sent these supplies for the village.', if: { items: ['Village Supply Parcel'], quests: { Q04: 'active' } }, stay: true, effects: [{ removeItem: 'Village Supply Parcel' }, { event: { type: 'story', id: 'village_supplies_delivered' } }, { say: 'Tamsin: Thank you. These will keep our neighbours fed.' }] },
+                        { text: 'Why is the village called Shamefield?', to: 'name' }, { text: 'Goodbye.', end: true }]
                 },
                 after: {
                     lines: [['npc', "The orchard gate's open, I hear. Be careful up there. The Warden is a kind man, but he won't let anyone past the roost."]],
@@ -263,7 +267,7 @@
                 default: {
                     lines: [['npc', "Supplies are scarce. Look closely before you part with anything."]],
                     effects: [met],
-                    choices: [shop('mara'), { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'Can I carry supplies to Tamsin?', if: { quests: { Q04: 'active' }, notFlag: 'village_supplies_taken' }, stay: true, effects: [{ flag: 'village_supplies_taken' }, { item: 'Village Supply Parcel', key: 'village_parcel' }, { event: { type: 'story', id: 'village_supplies_collected' } }, { say: 'Mara: Take these to Tamsin. The village stores are running low.' }] }, shop('mara'), { text: 'Goodbye.', end: true }]
                 }
             }
         },
@@ -618,6 +622,7 @@
     };
 
     const triggers = [
+        { id: 'old_cellar_purse', on: { type: 'inspect', id: 'cellar_old_purse' }, effects: [{ gold: 10, key: 'old_cellar_purse' }] },
         { id: 'chant', on: { type: 'enter', id: 'shamefield' }, effects: [
             { say: "Somewhere near the well, a crowd is chanting: 'Shame on Shane! Shame on Shane!'" },
             { available: 'S01' }

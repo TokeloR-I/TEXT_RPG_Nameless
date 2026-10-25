@@ -305,7 +305,7 @@
 
         /** Contact with a visible enemy: the engine starts a normal fight. */
         engage(enc) {
-            const events = this.engine ? this.engine.worldEncounter(enc.id, enc.enemies) : [];
+            const events = this.engine ? this.engine.worldEncounter(enc.id, enc.enemies, enc.loot) : [];
             const w = this.engine && this.engine.world;
             // The fight may already be over when this returns (a faster enemy can finish a 1 HP player).
             const started = !this.engine || (this.engine.mode === 'combat' && w.encounter === enc.id) || w.lastEncounter === enc.id;
