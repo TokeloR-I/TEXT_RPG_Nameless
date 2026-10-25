@@ -85,7 +85,8 @@ Wren leads; each agent works in the area `AGENTS.md` gives them. Studio roles co
 | Wren (lead-programmer, gameplay-programmer) | Engine clock, cooldowns, skill bar, timed statuses, tests | done in this PR |
 | Pixie (ui-programmer, ux-designer) | Real-time battle HUD: skill bar with cooldown sweeps, keys 1–6, target, wind-up bars, status timers; skill-bar editor | this PR |
 | Tally (qa-tester, performance-analyst) | Real-time bot, win rates per class vs. turn mode, real-time bug hunt | `qa/QA_REPORT_2026-10-25_14_REALTIME.md` |
-| Vaelis (systems-designer, game-designer) | Tune `realtimeRules`, per-skill `cooldown` values, the open questions below | next |
+| Thorne (game-designer) | Answer the open questions below (mechanics), real-time design for Possession and Eternal Architect | next |
+| Gauge (systems-designer) | Tune `realtimeRules`, per-skill `cooldown` values, class win rates with Tally | next |
 | Keel (technical-director) | Engine review: real-time is one of the triggers in `ENGINE_DECISION.md` (see below) | next |
 | Sable / Vesper (technical-artist, 2D) | Wind-up telegraphs and hit VFX timed to the clock | later |
 | Rook (gameplay-programmer) | Follow-ups: per-skill cooldowns in data, stamina/dodge if approved | later |
@@ -113,7 +114,7 @@ The Necromancer (idle 58% of the time) and the Warrior's 100% are class-tuning j
 with the square of the stacks (more damage per tick *and* faster ticks): two 99-stack DoTs deal ~2,000 DPS in Tally's
 stress fight, ~600 with `perStackSpeedup: 0`. Real fights reach 7 stacks today, but it's question 1 below.
 
-## Open questions (for Vaelis and Tokelo)
+## Open questions (for Thorne and Gauge; Tokelo only if one changes the creative direction)
 
 1. **"Cooldown reduced per multiplier"**: is the faster DoT tick the right reading? The other readings were: stacks
    shorten the *skill's* cooldown, or stacks shorten how long the effect lasts. Swapping the reading is a small change.

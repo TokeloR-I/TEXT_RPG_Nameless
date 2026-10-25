@@ -7,7 +7,9 @@ This file, the code, the tests and the docs are the only shared memory. Read thi
 | Role | Who | Owns (may change) | Must not change |
 |---|---|---|---|
 | Owner / producer | Tokelo (human) | everything, merges PRs | — |
-| Game designer | human collaborator | `docs/design/` (approved design handoffs) | code |
+| Lead Game Designer | Thorne (`.claude/agents/thorne.md`) | `docs/design/` mechanics; `null` pending values and mechanic fields in `src/data.js` | engine logic |
+| Systems & Balance Designer | Gauge (`.claude/agents/gauge.md`) | `docs/design/` balance specs; balance values in `src/data.js` | engine logic, `qa/` |
+| Narrative Designer | Vaelis | `docs/design/` story, lore and dialogue | code, data values |
 | Dev | Claude (dev chat) | `src/`, `ui/`, `tests/`, `tools/`, `index.html`, `style.css`, `world.html`, `world.css` | `docs/design/` |
 | QA & Balance | Claude (QA chat) | `qa/` reports | `src/`, `tests/`, data values |
 | *(to assign)* | ChatGPT | *(owner decides)* | |
@@ -65,9 +67,11 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 
 ## 4. Design authority
 - **Approved design lives in `docs/design/`.** Implement what it says. If code and design disagree, the design wins.
+- **Thorne** (mechanics) and **Gauge** (numbers) are the designers. They decide routine design and balance themselves and
+  escalate to Tokelo only major changes to the game's creative direction.
 - Values that are `null` in `src/data.js` are **PENDING designer decisions**. Never fill them with guesses.
   `npm run pending` lists them. To test a configurable rule, use a modified data copy (`gameWith` in the tests).
-- Don't change balance numbers in `src/data.js` unless the owner or designer asked. Measure with `npm run balance`
+- Don't change balance numbers in `src/data.js` unless the owner or a designer (Thorne, Gauge) asked; Gauge may change them directly. Measure with `npm run balance`
   and report options instead.
 - Decided combat rules (don't silently change):
   - `attack` is always free: the class's first skill if it costs nothing, else the universal Basic Attack.
