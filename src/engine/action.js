@@ -205,7 +205,7 @@
         // Enemy attacks (the sim decides when)
         // =====================================================================
         /** An enemy starts an attack: the engine picks the skill (as v2 does) and it reads "readies X". */
-        actionEnemyWindup(enemyId) {
+        actionEnemyWindup(enemyId, { skill: wanted = null } = {}) {
             return this.actionRun(() => {
                 const e = this.actionEnemy(enemyId);
                 if (!e) return null;
@@ -216,7 +216,8 @@
                 this.springTrap(e);
                 if (e.hp <= 0) { this.checkBattleEnd(); return { skill: null }; }
                 this.beginOpportunity(e);
-                const skill = e.skills.length ? e.skills[Math.floor(this.rng() * e.skills.length)] : this.data.skillDefinitions['Basic Attack'];
+                // The sim's attack table names the skill (Thorne's patterns); otherwise one at random, as v2 does.
+                const skill = (wanted && e.skills.find((x) => x.name === wanted)) || (e.skills.length ? e.skills[Math.floor(this.rng() * e.skills.length)] : this.data.skillDefinitions['Basic Attack']);
                 c.action.windups[e.id] = { skill: skill.name, startedAt: c.rt.now };
                 this.say(`${e.name} readies ${skill.name}!`);
                 return { skill: skill.name };

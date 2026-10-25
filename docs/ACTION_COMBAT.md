@@ -45,7 +45,7 @@ All return `{ ok, events, error? }` like `act()` and run as transactions.
 | `actionCast(skillId \| 'attack', { slot })` → `{ ok, castId, skill, shape, resolved }` | The player starts an attack or skill: same refusals as v2 (`ON_COOLDOWN`, `GLOBAL_COOLDOWN`, `STUNNED`, `NOT_ENOUGH_RESOURCE`, `SILENCED`, …) plus `BUSY` (a cast is in flight). Skills nobody aims (self, summons, ground, corpse) resolve at once (`resolved: true`). The basic attack has no v2 swing timer here: the weapon's startup and recovery pace it. |
 | `actionResolve(castId, targetIds)` → `{ ok, hit }` | The cast's hit landed on these engine ids, nearest first. Single-target skills hit the first body only (v2 damage balance); circles hit all; `enemy_multiple` needs its count. Pays the cost, runs the effects, starts the cooldown. `[]` = a whiff: paid and on cooldown anyway. |
 | `actionCancel(castId)` | The cast never came out (dodged out of it, stunned): nothing paid. |
-| `actionEnemyWindup(enemyId)` → `{ ok, skill }` | An enemy starts an attack. The engine picks the skill (as v2 does) and says "readies X". Refused while stunned (`STUNNED`) or already winding up (`BUSY`). |
+| `actionEnemyWindup(enemyId, { skill })` → `{ ok, skill }` | An enemy starts an attack. The sim's attack table names the skill (`actionRules.enemies[key].attacks[]`, `bosses[key]`); without one the engine picks at random (as v2 does) and says "readies X". Refused while stunned (`STUNNED`) or already winding up (`BUSY`). |
 | `actionEnemyStrike(enemyId, { hit, guarded, parried })` → `{ ok, result }` | The wind-up comes out: `result` is `hit`, `guarded` (damage × `actionRules.guard.damageTaken`), `parried` (no damage, an `action.parry` event; the sim staggers the enemy), `miss` (`hit: false`: dodged or out of reach) or `interrupted` (stunned during the wind-up). |
 | `actionDisengage(encounterId)` | The group gave up (leash). Its enemies leave the fight and reset. |
 | `actionView()` | Pure. Per engaged enemy `{ id, encounterId, key, name, hp, maxHp, stunned, speedMult, statuses, windup }`, minions, the player's stun/slow/statuses, casts in flight, and `getRealtimeState()`. |
@@ -68,6 +68,16 @@ it every step.
 `engine.world.drops` (`{ id, mapId, x, y, claimIds, gold, items }`, saved with the run). `getWorldDrops(mapId)` (pure)
 lists them; `act({ type: 'collect_drop', dropId })` claims them (allowed in combat too) and removes the drop. A drop is
 collected once; reloading, retreating or re-entering a map never duplicates it.
+
+## Enemy patterns (the sim)
+
+Each enemy fights from its attack table: `actionRules.enemies[key].attacks[]` (skill, shape `arc` / `line` /
+`circle` / `projectile` / `ground`, reach, arc, width, lunge, wind-up / active / recovery, cooldown, `useAt`
+[min, max] distance, `combo` steps, `blockCost`, `parryable`, `guardable`, `onHit`). The telegraph is the hitbox; it
+tracks the player and locks for the last `lockMs`. At most `combat.maxSimultaneousAttackers` wind up at once. Bosses
+read `actionRules.bosses[key]`: named attacks, `phases` by HP (`openWith`, `speed`, `recoveryMult`, `drop`,
+`sweepCombo`, `summonCrowsCount`), `attackGapMs`, `minWindupMs`. Ground attacks (crow shadows) drop circles on the
+player and where they're heading. Chain Lock roots and pulls (sim-side for now).
 
 ## Numbers (`actionRules` in src/data.js)
 

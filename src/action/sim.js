@@ -125,7 +125,7 @@
                     x: hx, y: hy, homeX: hx, homeY: hy, r: prof.radius || 6, angle: Math.PI / 2,
                     state: 'idle', stateEnd: 0, nextThinkAt: 0, attackReadyAt: 0, path: null, repathAt: 0,
                     wanderTo: null, hp: null, maxHp: null, stunned: false, speedMult: 1, dead: false, deadAt: 0,
-                    windup: null, hurtUntil: 0, name: null
+                    windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, roleIdx: (prof.roles ? i : null)
                 });
             });
         }
@@ -191,6 +191,11 @@
                 if (en) {
                     if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp }); }
                     Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
+                    const b = this.bossOf(a);
+                    if (b && b.phases) {   // boss phases by HP: a new phase opens with its signature move
+                        const idx = b.phases.reduce((k, x, i) => (en.hp / en.maxHp <= x.fromHpPct + 1e-9 ? i : k), 0);
+                        if (idx > a.phaseIdx) { a.phaseIdx = idx; const ph = b.phases[idx]; if (ph.openWith) { a.openWith = ph.openWith; a.atkReady[ph.openWith] = 0; } if (ph.speed) a.prof = { ...a.prof, speed: ph.speed }; this.fx.push({ type: 'phase', x: a.x, y: a.y, phase: idx + 1 }); }
+                    }
                     if (en.hp <= 0) this.kill(a);
                 }
             }
@@ -223,7 +228,7 @@
             g.engaged = false;
             g.reengageAt = this.now + 1500;
             for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1 });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -260,7 +265,7 @@
             const dodgeR = { ...(R.dodge || {}), ...(((R.classes || {})[this.engine.player.className] || {}).dodge || {}) };
             if (inp.dodge) {
                 inp.dodge = false;
-                if (!stunned && p.state !== 'dodge' && this.now >= p.dodgeReadyAt && p.stamina >= (dodgeR.stamina || 25)) {
+                if (!stunned && !(this.now < (p.rootUntil || 0)) && p.state !== 'dodge' && this.now >= p.dodgeReadyAt && p.stamina >= (dodgeR.stamina || 25)) {
                     if (p.attack && p.attack.castId && !p.attack.fired) this.engine.actionCancel(p.attack.castId);
                     const m = inp.move;
                     const dir = (m.x || m.y) ? Math.atan2(m.y, m.x) : p.angle;
@@ -297,7 +302,7 @@
             let vx = 0, vy = 0;
             const pr = R.player || {};
             if (p.state === 'dodge') { vx = Math.cos(p.dodge.angle) * p.dodge.speed; vy = Math.sin(p.dodge.angle) * p.dodge.speed; }
-            else if (!stunned && p.state !== 'hurt') {
+            else if (!stunned && p.state !== 'hurt' && !(this.now < (p.rootUntil || 0))) {
                 const m = inp.move;
                 const len = Math.hypot(m.x, m.y);
                 if (len > 0) {
@@ -317,7 +322,9 @@
             p.moving = !!(vx || vy);
             if (p.state === 'idle' && p.moving) p.state = 'move';
             if (p.state === 'move' && !p.moving) p.state = 'idle';
+            const bx = p.x, by = p.y;
             this.moveBody(p, vx * dt, vy * dt);
+            p.vx = (p.x - bx) / dt; p.vy = (p.y - by) / dt;   // for leading ground attacks
             p.facing = facingOf(p.angle);
             this.playerTile();
         }
@@ -478,19 +485,23 @@
             const home = { x: a.homeX, y: a.homeY };
             if (dist(a, home) > (pr.leash || 200) && dist(p, home) > (pr.leash || 200)) { this.leash(g); return; }
             if (a.state === 'windup') {
-                a.angle = a.windup.lockAngle == null ? angleTo(a, p) : a.angle;
+                if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, p);   // tracks, then locks (Thorne §4)
                 if (this.now >= a.stateEnd) this.enemyActive(a);
                 return;
             }
-            if (a.state === 'active') { this.enemyLunge(a, dt); if (this.now >= a.stateEnd) { a.state = 'recover'; a.stateEnd = this.now + (pr.recoveryMs || 600); } return; }
-            if (a.state === 'recover') { if (this.now >= a.stateEnd) { a.state = 'chase'; a.attackReadyAt = this.now + 200 + this.rng() * 700; } return; }
-            // chase
+            if (a.state === 'active') {
+                this.enemyLunge(a, dt);
+                if (this.now >= a.stateEnd) this.enemyRecover(a);
+                return;
+            }
+            if (a.state === 'recover') { if (this.now >= a.stateEnd) a.state = 'chase'; return; }
+            // chase: pick an attack that fits the distance, else close in (or keep the preferred distance)
             a.angle = angleTo(a, p);
-            const reach = pr.reach || 18;
-            const inReach = d <= reach + p.r + a.r * 0.5 && (!pr.ranged || this.lineOfSight(a, p));
-            if (inReach && this.now >= a.attackReadyAt && this.attackers() < 2) { this.enemyWindup(a); return; }
-            if (pr.ranged && pr.keepDistance && d < pr.keepDistance) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
-            if (!inReach || d > reach * 0.8 + p.r + a.r) this.chase(a, dt);
+            const atk = this.now >= a.attackReadyAt && this.attackers() < ((this.rules.combat || {}).maxSimultaneousAttackers || 2) ? this.pickAttack(a, d) : null;
+            if (atk) { this.enemyWindup(a, atk); return; }
+            const [kmin, kmax] = this.keepRange(a);
+            if (d < kmin - 2) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
+            if (d > kmax + p.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, p))) this.chase(a, dt);
         }
 
         attackers() { return this.actors.filter((x) => !x.dead && (x.state === 'windup' || x.state === 'active')).length; }
@@ -501,43 +512,136 @@
             this.fx.push({ type: 'disengage', encounterId: g.encounterId });
         }
 
-        enemyWindup(a) {
-            const r = this.engine.actionEnemyWindup(a.engineId);
+        // ---- attack tables (actionRules.enemies[key].attacks[], bosses[key]) ----
+        bossOf(a) { return (this.rules.bosses || {})[a.key] || null; }
+        bossPhase(a) {
+            const b = this.bossOf(a);
+            if (!b || !b.phases || a.hp == null || !a.maxHp) return null;
+            let ph = null;
+            for (const x of b.phases) if (a.hp / a.maxHp <= x.fromHpPct + 1e-9) ph = x;
+            return ph;
+        }
+        /** Every attack this enemy can use right now: its table, or the boss's current phase. */
+        attacksOf(a) {
+            const b = this.bossOf(a);
+            if (b && b.attacks) {
+                let names = Object.keys(b.attacks), drop = [];
+                for (const x of b.phases || []) if (a.hp != null && a.maxHp && a.hp / a.maxHp <= x.fromHpPct + 1e-9) { if (x.attacks) names = x.attacks; if (x.drop) drop = drop.concat(x.drop); }
+                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));
+            }
+            const pr = a.prof;
+            if (Array.isArray(pr.attacks) && pr.attacks.length) return pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
+            return [{ name: 'primary', shape: pr.shape, reach: pr.reach, arcDeg: pr.arcDeg, width: pr.width, lunge: pr.lunge, windupMs: pr.windupMs, activeMs: pr.activeMs, recoveryMs: pr.recoveryMs, projSpeed: pr.projSpeed, projectile: pr.projectile }];
+        }
+        keepRange(a) {
+            const b = this.bossOf(a), k = (b && b.keepDistance) || a.prof.keepDistance;
+            if (Array.isArray(k)) return k;
+            if (typeof k === 'number') return [k, Math.max(k, a.prof.reach || 18)];
+            return [0, (a.prof.reach || 18) * 0.8];
+        }
+        attackRanged(a) { return this.attacksOf(a).every((x) => x.shape === 'projectile' || x.shape === 'ground'); }
+        /** The attack to start at distance d, or null. Phase openers first; then attacks whose useAt fits; then any in reach. */
+        pickAttack(a, d) {
+            const p = this.player;
+            const list = this.attacksOf(a).filter((x) => !(a.atkReady[x.name] > this.now));
+            if (a.roleIdx != null) {
+                const roles = a.prof.roles || [];
+                const mine = roles[a.roleIdx % roles.length];
+                const own = list.filter((x) => !x.role || x.role === mine);
+                if (own.length) list.splice(0, list.length, ...own);
+            }
+            if (a.openWith) { const o = list.find((x) => x.name === a.openWith); a.openWith = null; if (o) return o; }
+            const fits = (x) => {
+                const reach = (x.reach || 18) + (x.lunge ? 0 : 0);
+                if (x.shape === 'ground') return d <= Math.max(140, reach);
+                if (x.shape === 'projectile') return d <= reach && this.lineOfSight(a, p);
+                if (x.useWhen === 'playerBeyond80For1500ms') return d > 80;
+                if (x.useAt) return d >= x.useAt[0] - p.r && d <= x.useAt[1] + p.r + a.r * 0.5;
+                return d <= reach + p.r + a.r * 0.5;
+            };
+            const ok = list.filter(fits);
+            if (!ok.length) return null;
+            // cooldown-bound attacks (crows) take their turn when ready; otherwise the first fitting entry
+            const special = ok.filter((x) => x.cooldownMs >= 5000);
+            return special.length ? special[0] : ok[0];
+        }
+
+        enemyWindup(a, atk, step = 0) {
+            const r = this.engine.actionEnemyWindup(a.engineId, { skill: atk.skill });
             this.collect(r.events);
             if (!r.ok) { a.attackReadyAt = this.now + 300; return; }
-            const pr = a.prof;
+            const b = this.bossOf(a);
+            const st = atk.combo ? { ...atk, ...atk.combo[step] } : atk;
+            let windup = st.windupMs || a.prof.windupMs || 520;
+            if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
             a.state = 'windup';
-            a.stateEnd = this.now + (pr.windupMs || 520);
+            a.stateEnd = this.now + windup;
             a.angle = angleTo(a, this.player);
-            a.windup = { skill: r.skill, start: this.now, end: a.stateEnd, lockAngle: a.angle, shape: this.enemyShape(a) };
+            if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
+            a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd };
+            if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
+        }
+
+        /** Crow shadows: one on the player, the rest where they're heading (Thorne §5). */
+        groundTargets(a, st) {
+            const p = this.player;
+            const ph = this.bossPhase(a);
+            const n = (ph && ph.summonCrowsCount) || st.count || 1;
+            const lead = (st.leadMs || 300) / 1000;
+            const out = [{ x: p.x, y: p.y }];
+            for (let i = 1; i < n; i++) {
+                const k = i % 2 ? 1 : 2;
+                const j = (this.rng() * 2 - 1) * 16;
+                out.push({ x: p.x + (p.vx || 0) * lead * k + j, y: p.y + (p.vy || 0) * lead * k + (this.rng() * 2 - 1) * 16 });
+            }
+            return out;
         }
 
         /** The telegraph IS the hitbox (Thorne): what the player sees during the wind-up is what hits. */
         enemyShape(a) {
-            const pr = a.prof;
-            const kind = pr.shape || 'arc';
-            if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: pr.reach || 100, width: 6 };
-            if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (pr.reach || 20) + (pr.lunge || 0), width: pr.width || 10 };
-            if (kind === 'circle') return { kind: 'circle', x: a.x, y: a.y, radius: pr.reach || 24 };
-            return { kind: 'arc', x: a.x, y: a.y, angle: a.angle, arc: (pr.arcDeg || 100) * DEG, reach: (pr.reach || 18) + 4 };
+            const st = (a.windup && a.windup.atk) || this.attacksOf(a)[0];
+            const kind = st.shape || 'arc';
+            if (kind === 'ground') return { kind: 'multi', shapes: (a.windup && a.windup.circles || []).map((c) => ({ kind: 'circle', x: c.x, y: c.y, radius: st.radius || 20 })) };
+            if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: st.reach || 100, width: st.width || 6 };
+            if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (st.reach || 20) + (st.lunge && !(st.reach > st.lunge) ? st.lunge : 0), width: st.width || 10 };
+            if (kind === 'circle') return { kind: 'circle', x: a.x, y: a.y, radius: st.radius || st.reach || 24 };
+            return { kind: 'arc', x: a.x, y: a.y, angle: a.angle, arc: (st.arcDeg || 100) * DEG, reach: (st.reach || 18) + 4 };
         }
 
         enemyActive(a) {
-            const pr = a.prof;
-            a.state = 'active';
-            a.stateEnd = this.now + (pr.activeMs || 110);
             const w = a.windup;
+            const st = w.atk;
+            a.state = 'active';
+            a.stateEnd = this.now + (st.activeMs != null ? st.activeMs : 110);
             w.shape = this.enemyShape(a);   // from where it stands now (a lunge started from here)
-            if (pr.shape === 'projectile') {
-                this.projectiles.push({ owner: 'enemy', actor: a, x: a.x, y: a.y, angle: a.angle, speed: pr.projSpeed || 140, range: (pr.reach || 100) + 20, travelled: 0, r: 4, kind: pr.projectile || 'shadow' });
+            if (st.shape === 'projectile') {
+                this.projectiles.push({ owner: 'enemy', actor: a, atk: st, x: a.x, y: a.y, angle: a.angle, speed: st.projSpeed || a.prof.projSpeed || 140, range: (st.reach || 100) + 20, travelled: 0, r: st.radius || (st.width ? st.width / 2 : 4), kind: st.projectile || a.prof.projectile || (st.skill === 'Chain Lock' ? 'feather' : 'shadow') });
                 return;
             }
-            this.strikePlayer(a, this.inShape(w.shape, this.player));
+            const hit = w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, this.player)) : this.inShape(w.shape, this.player);
+            this.strikePlayer(a, hit, st);
+            if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
+        }
+
+        /** After the blow: the next hit of a combo, or recovery and a gap before the next attack. */
+        enemyRecover(a) {
+            const w = a.windup;
+            const b = this.bossOf(a);
+            const ph = this.bossPhase(a);
+            const base = w ? w.base : {};
+            const combo = base.combo || (ph && ph.sweepCombo && base.name === 'halberd_sweep' ? Array.from({ length: ph.sweepCombo.hits }, (_, i) => (i ? { windupMs: ph.sweepCombo.gapMs } : {})) : null);
+            if (combo && w.step + 1 < combo.length && !a.dead && a.engineId) { this.enemyWindup(a, { ...base, combo }, w.step + 1); return; }
+            let rec = (w && w.atk.recoveryMs != null ? w.atk.recoveryMs : a.prof.recoveryMs) || 600;
+            for (const x of (b && b.phases) || []) if (x.recoveryMult && a.hp / a.maxHp <= x.fromHpPct + 1e-9) rec = Math.max(500, rec * x.recoveryMult);
+            a.state = 'recover';
+            a.stateEnd = this.now + rec;
+            a.attackReadyAt = a.stateEnd + (b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700);
         }
 
         enemyLunge(a, dt) {
-            if (!a.prof.lunge || !a.windup) return;
-            const v = a.prof.lunge / ((a.prof.activeMs || 110) / 1000);
+            const st = a.windup && a.windup.atk;
+            if (!st || !st.lunge || !st.activeMs) return;
+            const v = st.lunge / (st.activeMs / 1000);
             this.moveBody(a, Math.cos(a.angle) * v * dt, Math.sin(a.angle) * v * dt, this.gateCellOf(a));
         }
 
@@ -554,7 +658,7 @@
         }
 
         /** An enemy blow reaches the player's space: dodge i-frames, guard arc and parry window decide. */
-        strikePlayer(a, touching) {
+        strikePlayer(a, touching, st = {}) {
             const p = this.player;
             const R = this.rules;
             if (!touching || this.now < p.iframesUntil) {
@@ -564,22 +668,29 @@
                 return;
             }
             const facingIt = angleDiff(p.angle, angleTo(p, a)) <= (((R.guard || {}).arcDeg || 140) / 2) * DEG;
-            const guarded = p.guarding && facingIt;
-            const parried = guarded && p.guardSince != null && this.now - p.guardSince <= ((R.parry || {}).windowMs || 160);
+            const guarded = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
+            const parried = guarded && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= ((R.parry || {}).windowMs || 160);
             const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried });
             this.collect(r.events);
             if (!r.ok) return;
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }
             if (r.result === 'guarded') {
-                p.stamina = Math.max(0, p.stamina - ((R.guard || {}).staminaPerHit || 14));
+                p.stamina = Math.max(0, p.stamina - (st.blockCost || (R.guard || {}).staminaPerHit || 14));
                 p.staminaAt = this.now + ((R.stamina || {}).regenDelayMs || 600);
                 this.fx.push({ type: 'guard', x: p.x, y: p.y, angle: p.angle });
                 return;
             }
             if (r.result === 'hit') {
                 const pr = R.player || {};
-                if (p.state !== 'attack' || !p.attack || p.attack.fired) { p.state = 'hurt'; p.stateEnd = this.now + (pr.hurtMs || 220); }
-                this.moveBody(p, Math.cos(angleTo(a, p)) * 5, Math.sin(angleTo(a, p)) * 5);
+                if (p.state !== 'attack' || !p.attack || p.attack.fired) { p.state = 'hurt'; p.stateEnd = this.now + (st.staggers ? (pr.staggerMs || 400) : (pr.hurtMs || 220)); }
+                const away = angleTo(a, p);
+                const kb = st.knockbackPx || 5;
+                this.moveBody(p, Math.cos(away) * kb, Math.sin(away) * kb);
+                if (st.onHit) {   // Chain Lock: rooted and pulled in
+                    p.rootUntil = this.now + (st.onHit.ms || 1000);
+                    if (st.onHit.pullPx) this.moveBody(p, -Math.cos(away) * st.onHit.pullPx, -Math.sin(away) * st.onHit.pullPx);
+                    this.fx.push({ type: 'notice', text: 'Chained! You can\'t move.' });
+                }
                 this.fx.push({ type: 'player_hit', x: p.x, y: p.y });
             }
         }
@@ -670,8 +781,8 @@
                     const a = pj.actor;
                     if (a.dead || !a.engineId || !a.windup) continue;
                     const p = this.player;
-                    if (Math.hypot(p.x - pj.x, p.y - pj.y) <= p.r + pj.r) { this.strikePlayer(a, true); continue; }
-                    if (wall || pj.travelled >= pj.range) { this.strikePlayer(a, false); continue; }
+                    if (Math.hypot(p.x - pj.x, p.y - pj.y) <= p.r + pj.r) { this.strikePlayer(a, true, pj.atk); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.strikePlayer(a, false, pj.atk); continue; }
                 }
                 keep.push(pj);
             }
@@ -733,7 +844,7 @@
                 actors: this.actors.filter((a) => !a.dead || this.now - a.deadAt < 700).map((a) => ({
                     sid: a.sid, engineId: a.engineId, encounterId: a.encounterId, key: a.key, name: a.name, x: a.x, y: a.y, r: a.r, angle: a.angle, facing: facingOf(a.angle),
                     state: a.dead ? 'dead' : this.now < a.hurtUntil ? 'hurt' : a.state, t: a.dead ? this.now - a.deadAt : 0, hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss,
-                    engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned,
+                    engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),

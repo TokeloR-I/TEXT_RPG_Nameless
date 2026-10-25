@@ -136,3 +136,41 @@ test('Sim: the same seed and inputs give the same fight (deterministic, frame-ra
     };
     assert.strictEqual(play(1000 / 60), play(1000 / 60));
 });
+
+/** Thorne's actionRules proposal (docs/design/ENSO_ACTION_COMBAT_DESIGN.md §7), read straight from the doc. */
+function thorneRules(base) {
+    const md = require('fs').readFileSync(require('path').join(__dirname, '../docs/design/ENSO_ACTION_COMBAT_DESIGN.md'), 'utf8');
+    const json = md.slice(md.indexOf('## 7.')).match(/```json\n([\s\S]*?)\n```/)[1];
+    return { ...base, ...JSON.parse(json) };
+}
+
+test('Sim: the Crow Warden fights to his pattern: telegraphed sweeps and thrusts, crow shadows, and Murder of Crows when phase 2 opens', () => {
+    const r = run('warrior', 66);
+    r.g.story.flags.push('warden_challenged');
+    const map = WORLD.maps.sanctuary;
+    r.s.place('sanctuary', Object.keys(map.spawns)[0]);
+    const [x, y] = freeNear(r.s, 22, 16);
+    r.s.x = x; r.s.y = y;
+    r.sim = new ActionSim({ engine: r.g, session: r.s, rules: thorneRules(r.g.data.actionRules), seed: 66 });
+    const warden = r.sim.actors.find((a) => a.key === 'crow_touched_warden');
+    assert.ok(warden, 'the Warden stands in the sanctuary');
+    r.g.player.hp = r.g.player.maxHp = 99999;
+    r.sim.engageGroup(r.sim.groups.sanctuary_warden);
+    const used = new Set();
+    let halved = false;
+    for (let i = 0; i < 60 * 60; i++) {
+        const w = r.sim.actors.find((a) => a.key === 'crow_touched_warden');
+        if (w.windup && w.state === 'windup') used.add(w.windup.base.name);
+        // stand still at mid range most of the time, step away now and then (Chain Lock punishes kiting)
+        const away = Math.floor(i / 240) % 3 === 2;
+        const d = Math.hypot(w.x - r.sim.player.x, w.y - r.sim.player.y) || 1;
+        r.sim.update(1000 / 60, { move: away ? { x: (r.sim.player.x - w.x) / d, y: (r.sim.player.y - w.y) / d } : { x: 0, y: 0 }, aim: { x: w.x, y: w.y } });
+        if (!halved && i === 60 * 30) {   // drop him into phase 2
+            const e = r.g.combat.enemies.find((en) => en.key === 'crow_touched_warden');
+            e.hp = Math.floor(e.maxHp * 0.45);
+            halved = true;
+        }
+    }
+    for (const name of ['halberd_sweep', 'summon_crows', 'murder_of_crows']) assert.ok(used.has(name), `used ${name} (saw ${[...used].join(', ')})`);
+    assert.ok(used.has('reaping_thrust') || used.has('chain_lock'), `mid/long range attacks (saw ${[...used].join(', ')})`);
+});

@@ -1539,6 +1539,7 @@
             case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); break;
             case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
+            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice('The Warden changes his stance!', 'quest'); break;
             case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
             case 'notice': toast(ev.text); break;
             default: break;
@@ -1576,7 +1577,7 @@
     function hudView(now) {
         const v = sim.view();
         const p = v.player;
-        const enemies = v.actors.filter((a) => a.engaged && a.state !== 'dead' && a.engineId).map((a) => ({ id: a.sid, name: a.name, hp: a.hp, maxHp: a.maxHp, boss: a.boss }));
+        const enemies = v.actors.filter((a) => a.engaged && a.state !== 'dead' && a.engineId).map((a) => ({ id: a.sid, name: a.name, hp: a.hp, maxHp: a.maxHp, boss: a.boss, phase: a.phase, phases: a.phases }));
         const boss = enemies.find((e) => e.boss);
         const pr = !v.engaged && screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
         while (notices.length && now - notices[0].at > 4000) notices.shift();
@@ -1586,7 +1587,7 @@
             guarding: p.guarding,
             lockTargetId: lockId,
             enemies,
-            boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp } : null,
+            boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp, phase: boss.phase, phases: boss.phases } : null,
             prompt: pr && pr.kind !== 'encounter' ? { key: 'E', verb: pr.verb, name: pr.name } : null,
             notices: notices.map((n) => ({ id: n.id, text: n.text, kind: n.kind }))
         };
@@ -1602,7 +1603,7 @@
                 g.fillStyle = d.items.length ? '#c9a2ff' : '#e8c860'; g.fillRect(Math.round(d.x) - 3, Math.round(d.y) - 4 + bob, 6, 5);
                 g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
             }
-            for (const a of sim.view().actors) if (a.telegraph) AFX.telegraph(g, a.telegraph, a.telegraph.progress, ctx.time, { boss: a.boss });
+            for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
         });
         // Over the bodies: the player's swing, projectiles, sparks and numbers.
         renderer.addHook('foreground', (g, ctx) => {
@@ -1795,7 +1796,7 @@
         world: WORLD,   // the world as played (16 px tiles); ENSO.world.zone1 keeps the authored 32 px coordinates
         goto(mapId, spawn) { session.place(mapId, spawn); if (sim) sim.enterMap(); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
         sim() { return sim; },
-        start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); },
+        start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); setTimeout(() => document.activeElement && document.activeElement.blur && document.activeElement.blur(), 0); },   // the name box's delayed focus would eat keys
         actor(name) { playActor(name); return actor.anim; },
         /** Stand next to a visible enemy on this map, facing it (then walk into it to fight). */
         nextTo(id) {
