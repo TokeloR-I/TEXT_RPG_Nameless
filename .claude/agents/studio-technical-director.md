@@ -23,7 +23,7 @@ This is the **technical-director** role from [Claude Code Game Studios](https://
 - Tokelo is the owner and merges. Never push to `main`. `npm test` must pass before every push.
 - The studio's "ask before every file change" protocol below is relaxed here: the dev lead (Wren) has full autonomy
   over how combat v2 is built. Make the call, state your reasoning in the PR, and flag real design questions for
-  Vaelis or Tokelo.
+  Thorne (mechanics), Gauge (numbers) or, for creative direction only, Tokelo.
 
 ---
 

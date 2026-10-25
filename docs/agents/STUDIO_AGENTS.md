@@ -14,12 +14,15 @@ their lane from `AGENTS.md`, our engine, and our paths. In a Claude Code session
 | `studio-ux-designer` | Pixie, UI/UX Lead | HUD and menu flows |
 | `studio-qa-tester` | Tally, QA & Balance | `qa/` only |
 | `studio-performance-analyst` | Tally, QA & Balance | `qa/` measurements |
-| `studio-systems-designer` | Vaelis, Lead Game Designer | `docs/design/` numbers and formulas |
-| `studio-game-designer` | Vaelis, Lead Game Designer | `docs/design/` mechanics |
+| `studio-systems-designer` | Gauge, Systems & Balance Designer | `docs/design/` balance specs, data values in `src/data.js` |
+| `studio-game-designer` | Thorne, Lead Game Designer | `docs/design/` mechanics, pending design values |
 | `studio-technical-director` | Keel, Technical Director | `architecture/` reviews |
 | `studio-technical-artist` | Sable, 2D VFX Artist | VFX once direction is approved |
 
-The ENSO-specific agents that were here before (`wren.md`, `pixel-ui-designer.md`) stay; the studio roles add to them.
+The ENSO-specific agents (`wren.md`, `pixel-ui-designer.md`, `thorne.md`, `gauge.md`) are each person's own brief and
+win over the studio role text. Thorne and Gauge (added 2026-10-25) decide routine design and balance independently,
+research online instead of asking Tokelo for answers, and escalate only major changes to the creative direction; the
+studio designer roles' "ask first / defer to the user" protocol doesn't apply to them. Vaelis keeps narrative.
 
 **Not imported:** the studio's engine specialists (Godot, Unity, Unreal), its slash-command skills, hooks and
 `project.yaml`. ENSO runs its own JavaScript engine and its own workflow (`AGENTS.md`), so those don't apply. Ask Wren

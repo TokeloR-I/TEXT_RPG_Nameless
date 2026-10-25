@@ -26,6 +26,8 @@ renderer. Read `AGENTS.md` fully before changing anything; its rules win over an
 - **Pixie**: UI/UX kit, menus, HUD, battle screen layout, stage scaling (`ui/display.js`), settings.
 - **Sable**: art direction, authored sprite art, creator screen.
 - **Rook**: peer engineer on assigned implementation tasks.
+- **Thorne**: game design (mechanics, classes, enemies, bosses). **Gauge**: balance numbers and formulas; may edit
+  values in `src/data.js`.
 - **Vaelis**: story, dialogue, quest briefs.
 - **Tally**: QA, regression and balance. QA files live in `qa/`.
 - Approved design lives in `docs/design/`; the design wins. Never fill `null` data values or change balance numbers.
