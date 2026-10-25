@@ -4,6 +4,11 @@
 // Routes are computed from the map data (BFS), but every step is a real keydown/keyup.
 // Uses Playwright if it is installed anywhere on the machine; it is NOT a repo dependency.
 //   node qa/scripts/world_browser.js            PLAYWRIGHT=/path/to/playwright node qa/scripts/world_browser.js
+//   --legacy-battle   also run the old battle-menu checks (B9, B10, B12, B14) on world.html?combat=turn
+//   --headed          show the browser
+// Exploration checks (B1-B8, B11, B13) run against the default build. Exit code 1 on any FAIL.
+// 2026-10-25 (Tally): routes are null-safe (the "(intermediate value) is not iterable" crash when a BFS found no
+// route), the old battle-overlay checks are legacy-only, and B11 follows Chapter One's opened road (road -> tollway -> road).
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 
@@ -15,20 +20,24 @@ function loadPlaywright() {
 const pw = loadPlaywright();
 if (!pw) { console.log('SKIP: Playwright not found (set PLAYWRIGHT=/path/to/playwright). Not a repo dependency.'); process.exit(0); }
 
+const LEGACY = process.argv.includes('--legacy-battle');
+const HEADED = process.argv.includes('--headed');
 const out = [];
 const rec = (id, what, ok, note) => out.push(`${ok ? 'PASS' : 'FAIL'}  [${id}] ${what}\n        ${note}`);
+const skip = (id, what) => out.push(`SKIP  [${id}] ${what}\n        legacy battle-menu check: run with --legacy-battle (world.html?combat=turn)`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
 const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
 
 (async () => {
-    const browser = await pw.chromium.launch();
+    const browser = await pw.chromium.launch(HEADED ? { headless: false } : undefined);
     const page = await browser.newPage({ reducedMotion: 'reduce', viewport: { width: 1000, height: 800 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
-    await page.goto('file://' + path.join(ROOT, 'world.html'));
+    await page.goto('file://' + path.join(ROOT, 'world.html') + (LEGACY ? '?combat=turn' : ''));
     await sleep(300);
+    const ACTION = await page.evaluate(() => !!(ENSO.actionSim && !/combat=(turn|realtime)/.test(location.search)));   // free movement build
 
     const S = () => page.evaluate(() => ({ ...ensoDebug.state(), pos: window.ensoWorld ? ensoWorld.getState() : null,
         inv: window.enso && enso.player ? [...enso.player.inventory] : [], hp: window.enso && enso.player ? enso.player.hp : null,
@@ -40,12 +49,19 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     };
     /** One tile step in `dir` with real keys. Returns the new state. */
     const step = async (dir, keys = KEY) => {
+        if (ACTION) {   // free movement: first re-centre on the tile across the step, so the body doesn't snag a wall corner
+            const off = await page.evaluate((dir) => { const sm = ensoDebug.sim(), T = sm.T; return dir === 'left' || dir === 'right' ? sm.player.y / T - 0.5 - ensoWorld.y : sm.player.x / T - 0.5 - ensoWorld.x; }, dir);
+            if (Math.abs(off) > 0.12) {
+                const k = dir === 'left' || dir === 'right' ? (off > 0 ? keys.up : keys.down) : (off > 0 ? keys.left : keys.right);
+                await page.keyboard.down(k); await sleep(Math.min(200, Math.abs(off) * 210)); await page.keyboard.up(k); await sleep(30);
+            }
+        }
         const before = (await S()).pos;
         await page.keyboard.down(keys[dir]);
         const t0 = Date.now();
         while (Date.now() - t0 < 400) {
             const p = (await S()).pos;
-            if (!p || p.x !== before.x || p.y !== before.y || p.map !== before.map || p.facing !== before.facing && Date.now() - t0 > 60) break;
+            if (!p || p.x !== before.x || p.y !== before.y || p.map !== before.map || !ACTION && p.facing !== before.facing && Date.now() - t0 > 60) break;   // combat v3: WASD faces at once, so only a tile change ends a step
             await sleep(15);
         }
         await page.keyboard.up(keys[dir]);
@@ -74,12 +90,28 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         while (prev.get(k)) { const [pk, d] = prev.get(k); dirs.unshift(d); k = pk; }
         return dirs;
     }, [gx, gy]);
-    const walk = async (gx, gy) => { const r = await route(gx, gy); if (!r) return false; for (const d of r) await step(d); return true; };
+    /** Walk to (gx, gy) one real step at a time, re-routing after every step: a held key can slide two tiles on a
+     *  slow machine (QA 2026-10-25: B5/B7/B8 overshot and then followed a stale route). Stops if the map changes. */
+    const walkTo = async (gx, gy, max = 240) => {
+        const m0 = (await S()).pos.map;
+        for (let i = 0; i < max; i++) {
+            const p = (await S()).pos;
+            if (p.map !== m0) return true;
+            if (p.x === gx && p.y === gy) return true;
+            const r = await route(gx, gy);
+            if (process.env.QA_DEBUG) console.log(`  walkTo ${gx},${gy}: at ${p.map} ${p.x},${p.y} route ${r ? r.length + ' ' + r[0] : 'none'}`, JSON.stringify(await page.evaluate(() => { const sm = window.ensoDebug.sim && ensoDebug.sim(); return [ensoDebug.state().screen, ensoDebug.state().modal, sm && +(sm.player.x / 16 - 0.5).toFixed(2), sm && +(sm.player.y / 16 - 0.5).toFixed(2), sm && sm.player.state]; })));
+            if (!r) return false;
+            if (!r.length) return true;
+            await step(r[0]);
+        }
+        return false;
+    };
+    const walk = walkTo;
     /** Stand next to (x,y) and face it. */
     const faceAt = async (x, y) => {
         for (const [d, dx, dy] of [['down', 0, -1], ['up', 0, 1], ['right', -1, 0], ['left', 1, 0]]) {
             const r = await route(x + dx, y + dy);
-            if (r) { for (const s of r) await step(s); const p = (await S()).pos; if (p.facing !== d) await step(d); return true; }
+            if (r && await walkTo(x + dx, y + dy)) { const p = (await S()).pos; if (p.facing !== d) await step(d); return true; }
         }
         return false;
     };
@@ -156,7 +188,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
             const e = await exitOf(m, ex);
             const r = await route(e.x, e.y);
             if (!r) { res.push(`${ex}: no route`); continue; }
-            for (const d of r) await step(d);
+            await walkTo(e.x, e.y);
             await idle(2500); await sleep(400);
             const s1 = await S(); await sleep(900); const s2 = await S();
             const onExit = await page.evaluate(() => !!ensoWorld.exitAt(ensoWorld.x, ensoWorld.y));
@@ -170,18 +202,19 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     {
         await goto('grounds', 'from_house');
         const door = await exitOf('grounds', 'grounds_shed_door');
-        for (const d of await route(door.x, door.y)) await step(d);
+        await walkTo(door.x, door.y);
         await idle(2500); await sleep(300);
         const inShed = (await S()).pos.map === 'shed';
         const o = await objAt('shed', 'shed_bandages');
+        if (!inShed) console.log('  note B8: did not reach the shed (no route from the spawn?)');
         await faceAt(o.x, o.y);
         const inv0 = (await S()).inv.filter((i) => i === 'Bandages').length;
         await press('e', 300); let s = await S(), n = 0; while (s.dialog && n++ < 5) { await press('Enter', 200); s = await S(); }
         const inv1 = (await S()).inv.filter((i) => i === 'Bandages').length;
         const back = await exitOf('shed', 'shed_door');
-        for (const d of await route(back.x, back.y)) await step(d);
+        await walkTo(back.x, back.y);
         await idle(2500); await sleep(300);
-        for (const d of await route(door.x, door.y)) await step(d);
+        await walkTo(door.x, door.y);
         await idle(2500); await sleep(300);
         const visible = await page.evaluate(() => ensoWorld.visibleObjects().some((x) => x.id === 'shed_bandages'));
         await faceAt(o.x, o.y); await press('e', 300); s = await S(); n = 0; while (s.dialog && n++ < 5) { await press('Enter', 200); s = await S(); }
@@ -189,7 +222,8 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         rec('B8', 'Shed: walk in, pick up the Bandages with E (+1); leave and re-enter: gone, E gives nothing more', inShed && inv1 === inv0 + 1 && !visible && inv2 === inv1, `in shed ${inShed}; Bandages ${inv0} -> ${inv1} -> after re-entry ${inv2}; still on the map: ${visible}`);
     }
     // ------------------------------------------------------------------ B9 encounter: overlay, input focus, flee, no instant re-fight
-    {
+    if (!LEGACY) { skip('B9', 'Battle overlay: arrows never move you, Flee, no instant re-fight'); skip('B14', 'Level-3 branch menu after a world fight'); skip('B10', 'Re-engage and win with Attack + Enter'); }
+    else {
         await goto('grounds', 'from_house');
         const enc = await page.evaluate(() => ensoDebug.world.maps.grounds.encounters[0]);
         await page.evaluate(() => { enso.player.hp = enso.player.maxHp = 9999; });
@@ -197,7 +231,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         let ok = false;
         for (const [d, dx, dy] of [['down', 0, -1], ['up', 0, 1], ['right', -1, 0], ['left', 1, 0]]) {
             const r = await route(enc.x + dx, enc.y + dy);
-            if (r) { for (const s of r) await step(s); await step(d); ok = true; break; }
+            if (r && await walkTo(enc.x + dx, enc.y + dy)) { await step(d); ok = true; break; }
         }
         await sleep(600);
         let s = await S();
@@ -206,8 +240,8 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         for (const d of ['left', 'right', 'up', 'down']) { await page.keyboard.down(KEY[d]); await sleep(120); await page.keyboard.up(KEY[d]); }
         const pos1 = (await S()).pos;
         // choose Flee: it's the 4th root item
-        const fleeIdx = await page.evaluate(() => [...document.querySelectorAll('#combat .battle-menu li')].findIndex((li) => /Flee/.test(li.innerText)));
-        const curIdx = await page.evaluate(() => [...document.querySelectorAll('#combat .battle-menu li')].findIndex((li) => /selected|active|current/.test(li.className)));
+        const fleeIdx = await page.evaluate(() => [...document.querySelectorAll('#combat .menu li')].findIndex((li) => /Flee/.test(li.innerText)));
+        const curIdx = await page.evaluate(() => [...document.querySelectorAll('#combat .menu li')].findIndex((li) => /selected|active|current/.test(li.className)));
         for (let i = Math.max(0, curIdx); i < fleeIdx; i++) await press('ArrowDown', 80);
         await press('Enter', 500);
         s = await S();
@@ -231,7 +265,7 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         while ((await S()).screen === 'combat' && rounds++ < 80) {
             // root menu: Attack is first; Enter, then Enter again on a target menu if one opens
             await press('Home', 30); await press('Enter', 120);
-            const targetMenu = await page.evaluate(() => [...document.querySelectorAll('#combat .battle-menu li')].some((li) => /HP/.test(li.innerText)));
+            const targetMenu = await page.evaluate(() => [...document.querySelectorAll('#combat .menu li')].some((li) => /HP/.test(li.innerText)));
             if (targetMenu) await press('Enter', 150);
             const st = await page.evaluate(() => ({ ended: !!document.querySelector('#combat') && /Victory|Defeat/.test(document.querySelector('#combat .battle-head') ? document.querySelector('#combat .battle-head').innerText : ''), mode: enso.mode }));
             if (st.mode !== 'combat') { await press('Enter', 300); }
@@ -249,35 +283,38 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
         rec('B10', 'After stepping away it can be fought again; Attack + Enter wins; you return next to where it stood; it is gone from the map',
             reOpened && s.screen === 'explore' && gone && near, `re-engaged ${reOpened}; after ${rounds} key rounds: screen ${s.screen}, engine ${s.mode}; encounter gone ${gone}; at ${s.pos.x},${s.pos.y} (enemy stood at ${enc.x},${enc.y})`);
     }
-    // ------------------------------------------------------------------ B11 road boundary notice, can turn back
+    // ------------------------------------------------------------------ B11 the road on: road -> tollway -> road
     {
         await goto('road', 'from_grounds');
         const b = await page.evaluate(() => ensoDebug.world.maps.road.boundaries && ensoDebug.world.maps.road.boundaries[0]);
-        let txt = '', turned = false;
-        if (b) {
-            // walk to the nearest tile of the boundary rectangle
-            let target = null;
-            for (let y = b.y; y < b.y + (b.h || 1) && !target; y++) for (let x = b.x; x < b.x + (b.w || 1) && !target; x++) if (await route(x, y)) target = [x, y];
-            if (target) {
-                const r = await route(...target);
-                // the boundary tile itself is excluded by route(); step the last move manually
-                for (const d of r) await step(d);
-                await sleep(500); const s = await S(); txt = s.dialogText;
-                let n = 0; let st = s; while (st.dialog && n++ < 5) { await press('Enter', 200); st = await S(); }
-                const back = await exitOf('road', 'road_back'); const rb = await route(back.x, back.y);
-                if (rb) { for (const d of rb) await step(d); await idle(2500); await sleep(300); turned = (await S()).pos.map === 'grounds'; }
-            }
-        }
-        rec('B11', 'The road edge shows a "beyond the homestead / coming later" notice and you can walk back to the grounds', !!b && /later|beyond|coming/i.test(txt) && turned, `notice: "${(txt || '').replace(/\s+/g, ' ').slice(0, 90)}"; walked back to grounds ${turned}`);
+        const ex = await page.evaluate(() => ensoDebug.world.maps.road.exits.find((e) => /^road_tollway$/.test(e.id)));
+        let res = '', ok = false;
+        if (ex) {   // Chapter One: the fog edge is now a way on (src/world/chapter1-maps.js homestead.roadExit)
+            const r = await route(ex.x, ex.y);
+            if (r) { await walkTo(ex.x, ex.y); await idle(2500); await sleep(400); }
+            let s = await S(); let n = 0; while (s.dialog && n++ < 5) { await press('Enter', 200); s = await S(); }
+            const there = s.pos.map === 'tollway';
+            const back = await page.evaluate(() => ensoWorld.map.exits.find((e) => e.id === 'tollway_north'));
+            const rb = back && (await route(back.x, back.y));
+            if (rb) { await walkTo(back.x, back.y); await idle(2500); await sleep(400); }
+            s = await S(); n = 0; while (s.dialog && n++ < 5) { await press('Enter', 200); s = await S(); }
+            const returned = s.pos.map === 'road';
+            ok = !!r && there && returned;
+            res = `route to road_tollway ${!!r}; reached tollway ${there}; walked back to road ${returned} (at ${s.pos.map} ${s.pos.x},${s.pos.y})`;
+        } else if (b) {
+            res = 'road boundary present but no tollway exit: Chapter One maps not loaded?';
+        } else res = 'neither a road boundary nor the tollway exit exists';
+        rec('B11', 'The road south leads on: walking into the fog reaches the Broken Tollway, and its north exit walks you back', ok, res);
     }
     // ------------------------------------------------------------------ B12 defeat
-    {
+    if (!LEGACY) skip('B12', 'At 1 HP the wolf wins on the battle screen: game over');
+    else {
         await goto('road', 'from_grounds');
         await page.evaluate(() => { enso.player.hp = 1; enso.player.def = 0; });
         const w = await page.evaluate(() => ensoDebug.world.maps.road.encounters[0]);
         for (const [d, dx, dy] of [['down', 0, -1], ['up', 0, 1], ['right', -1, 0], ['left', 1, 0]]) {
             const r = await route(w.x + dx, w.y + dy);
-            if (r) { for (const s of r) await step(s); await step(d); break; }
+            if (r && await walkTo(w.x + dx, w.y + dy)) { await step(d); break; }
         }
         await sleep(700);
         let rounds = 0;
@@ -289,7 +326,9 @@ const WASD = { up: 'w', down: 's', left: 'a', right: 'd' };
     rec('B13', 'No script errors during the whole session', !errors.length, errors.length ? errors.slice(0, 3).join(' | ') : 'none');
 
     await browser.close();
-    console.log('World Zone 1 — browser checks (headless Chromium, real key presses)\n');
+    console.log(`World Zone 1 — browser checks (headless Chromium, real key presses)${LEGACY ? ' — with legacy battle checks, ?combat=turn' : ''}\n`);
     console.log(out.join('\n'));
-    console.log(`\n${out.filter((l) => l.startsWith('PASS')).length}/${out.length} pass`);
+    const fails = out.filter((l) => l.startsWith('FAIL')).length;
+    console.log(`\n${out.filter((l) => l.startsWith('PASS')).length} pass · ${fails} fail · ${out.filter((l) => l.startsWith('SKIP')).length} skipped (legacy)`);
+    process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error('HARNESS ERROR', e); process.exit(1); });

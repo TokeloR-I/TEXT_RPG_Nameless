@@ -1,0 +1,174 @@
+{
+  "when": "2026-10-25T18:22:50.278Z",
+  "url": "file:///home/claude/text_rpg_nameless/world.html?combat=action",
+  "cls": "warrior",
+  "hooks": {
+    "action": true,
+    "fromSim": true,
+    "player": true,
+    "enemies": true,
+    "sim": true,
+    "toScreen": true,
+    "place": true
+  },
+  "combatMode": "action",
+  "bootShot": "qa/results/action/01_boot.png",
+  "results": [
+    {
+      "id": "a",
+      "what": "Sub-tile movement (hold D 1 s -> non-integer tiles) and diagonal WASD",
+      "status": "PASS",
+      "reason": "hold D 1 s: grounds(28.00,10.55) -> grounds(32.80,10.55) (dx 4.800 tiles, fractional samples true); hold W+A 0.6 s: grounds(32.80,10.55) -> grounds(30.56,8.38) (both axes true); source action",
+      "shots": [
+        "qa/results/action/02_a_hold_d_1s.png",
+        "qa/results/action/03_a_diag_wa.png"
+      ]
+    },
+    {
+      "id": "b",
+      "what": "Near the grounds rats: no battle overlay (#combat hidden), enemies move toward the player",
+      "status": "PASS",
+      "reason": "battle overlay opened: false; engine engaged: true (screen explore); enemies via hook: 2; approached while walking: true; closed the gap while player stood: true",
+      "shots": [
+        "qa/results/action/04_b_near_rats.png",
+        "qa/results/action/05_b_after_approach.png"
+      ]
+    },
+    {
+      "id": "c",
+      "what": "1 / LMB near an enemy lowers its HP; the player can still move mid-fight",
+      "status": "PASS",
+      "reason": "target grounds_weed_rats#0 HP 15 -> 4 after 1 swing(s) (LMB, 1, LMB, 1); engine mode combat; moved during fight true (grounds(13.28,30.13) -> grounds(11.66,30.77)); overlay false",
+      "shots": [
+        "qa/results/action/07_c_after_attack.png",
+        "qa/results/action/08_c_move_in_fight.png"
+      ]
+    },
+    {
+      "id": "d",
+      "what": "Space dodges (moves further than a walk over the same 250 ms)",
+      "status": "PASS",
+      "reason": "walk 250 ms: 1.50 tiles; Space + D 250 ms: 3.58 tiles (grounds(29.50,10.55) -> grounds(33.07,10.55)); dialog opened by Space: false",
+      "shots": [
+        "qa/results/action/09_d_dodge.png"
+      ]
+    },
+    {
+      "id": "e",
+      "what": "After the enemies die a loot drop appears; walking over it collects it once (gold rises once)",
+      "status": "PASS",
+      "reason": "drop drop:grounds_weed_rats at px (176,496) = tile (10.5,30.5), gold 0, items [{\"item\":\"Rough Hide\",\"name\":\"Rough Hide\",\"rarity\":null},{\"item\":\"Rough Hide\",\"name\":\"Rough Hide\",\"rarity\":null}]; gold 0 -> 0 -> 0, inventory 1 -> 3 -> 3 (walk over, then walk back over); drop gone true",
+      "shots": [
+        "qa/results/action/10_kill_start.png",
+        "qa/results/action/11_kill_end.png",
+        "qa/results/action/12_e_drop_visible.png",
+        "qa/results/action/13_e_after_collect.png"
+      ]
+    },
+    {
+      "id": "f",
+      "what": "No console / page errors during the run",
+      "status": "PASS",
+      "reason": "none",
+      "shots": []
+    },
+    {
+      "id": "g",
+      "what": "The Crow Warden (sanctuary_warden) is challenged by dialogue and fought in the map (no battle overlay)",
+      "status": "PASS",
+      "reason": "talked true, chose challenge true, flag true; Warden actor right after the talk true; engaged true; overlay false; Warden actor recover HP 375/375.",
+      "shots": [
+        "qa/results/action/14_g_sanctuary.png",
+        "qa/results/action/15_g_after_challenge.png",
+        "qa/results/action/16_g_warden_fight.png"
+      ]
+    },
+    {
+      "id": "h",
+      "what": "Save/load keeps defeated (world-combat) enemies gone",
+      "status": "PASS",
+      "reason": "saved true; after Continue: defeated has rats true; rats back on map false; screen explore",
+      "shots": [
+        "qa/results/action/19_h_saved.png",
+        "qa/results/action/20_h_after_load.png"
+      ]
+    },
+    {
+      "id": "i",
+      "what": "Leash: outrun an engaged group; it disengages, goes home, combat ends",
+      "status": "PASS",
+      "reason": "engaged at start true; after running to the house: engaged false, engine explore; rats' distance from home (tiles) 0.0, 0.6",
+      "shots": [
+        "qa/results/action/21_i_leash.png"
+      ]
+    },
+    {
+      "id": "j",
+      "what": "Guard (RMB held, facing the wolf) loses <= 60% of the HP per second of standing open",
+      "status": "PASS",
+      "reason": "open 10 s: 19 HP in 4 damaging hits (1.87 HP/s); guarding 10 s (sim guarding=true): 3 HP in 2 damaging hits (0.29 HP/s)",
+      "shots": [
+        "qa/results/action/22_j_guard.png"
+      ]
+    },
+    {
+      "id": "k",
+      "what": "Orchard acolytes: detect a player 3 tiles away in plain view, then fight at range (projectiles, damage from > 2 tiles)",
+      "status": "PASS",
+      "reason": "trial 1: engaged after 133 ms, projectiles 1, ranged hits 3, HP lost 10, acolytes (26.6,6.8 chase) (25.8,6.8 chase) · trial 2: engaged after 139 ms, projectiles 1, ranged hits 3, HP lost 12, acolytes (27.0,7.0 chase) (25.8,6.9 chase) · trial 3: engaged after 125 ms, projectiles 1, ranged hits 2, HP lost 7, acolytes (27.0,6.6 chase) (26.2,6.5 recover)",
+      "shots": [
+        "qa/results/action/25_k_acolytes_trial1.png",
+        "qa/results/action/26_k_acolytes_trial2.png",
+        "qa/results/action/27_k_acolytes_trial3.png"
+      ]
+    },
+    {
+      "id": "l",
+      "what": "Death in the world respawns the player (half HP, enemies reset), no game over",
+      "status": "PASS",
+      "reason": "engine explore, screen explore; HP 60/120; engaged false; wolf back true; at road(18.00,2.23); message \"You fall… and come to where you entered, aching but alive. ■\"",
+      "shots": [
+        "qa/results/action/31_l_death.png",
+        "qa/results/action/32_l_respawn.png"
+      ]
+    },
+    {
+      "id": "m",
+      "what": "Saving is refused while a group is engaged",
+      "status": "PASS",
+      "reason": "engaged true; menu opened true; save slot changed false; menu note: \"You can't save during a fight.\"",
+      "shots": [
+        "qa/results/action/28_m_save_in_fight.png"
+      ]
+    },
+    {
+      "id": "n",
+      "what": "Leaving the map mid-fight leaves no broken state (fight ends cleanly, rats reset and are still there)",
+      "status": "PASS",
+      "reason": "engaged before true; went through the shed door true (now shed, engine explore, sim engaged false); back outside: {\"map\":\"grounds\",\"rats\":2,\"mode\":\"explore\",\"engaged\":false}",
+      "shots": [
+        "qa/results/action/29_n_after_exit.png",
+        "qa/results/action/30_n_back.png"
+      ]
+    },
+    {
+      "id": "o",
+      "what": "Parry: guard tapped just before a strike staggers the attacker and blocks the damage",
+      "status": "PASS",
+      "reason": "1 timed attempts (RMB pressed with < 120 ms of wind-up left), 1 parried; attacker state / HP lost per attempt: stagger/-0",
+      "shots": [
+        "qa/results/action/23_o_parry.png"
+      ]
+    },
+    {
+      "id": "p",
+      "what": "Collision: holding each direction for 2.5 s ends against a wall/tree, never inside a solid tile",
+      "status": "PASS",
+      "reason": "0/154 position samples inside a solid tile; a: grounds(28.00,8.00) -> grounds(16.53,8.00) · w: grounds(16.53,8.00) -> grounds(16.53,1.85) (stopped) · d: grounds(16.53,1.85) -> grounds(19.15,1.85) (stopped) · s: grounds(19.15,1.85) -> grounds(19.15,13.47)",
+      "shots": [
+        "qa/results/action/24_p_collision.png"
+      ]
+    }
+  ],
+  "errors": []
+}

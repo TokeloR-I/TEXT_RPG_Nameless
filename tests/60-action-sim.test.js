@@ -174,3 +174,45 @@ test('Sim: the Crow Warden fights to his pattern: telegraphed sweeps and thrusts
     for (const name of ['halberd_sweep', 'summon_crows', 'murder_of_crows']) assert.ok(used.has(name), `used ${name} (saw ${[...used].join(', ')})`);
     assert.ok(used.has('reaping_thrust') || used.has('chain_lock'), `mid/long range attacks (saw ${[...used].join(', ')})`);
 });
+
+test('Sim: an encounter a story flag reveals mid-map joins the sim (the Warden after "Stand aside"), without re-entering', () => {
+    const r = run('warrior', 67);
+    r.s.place('sanctuary', Object.keys(WORLD.maps.sanctuary.spawns)[0]);
+    r.sim = new ActionSim({ engine: r.g, session: r.s, rules: r.g.data.actionRules, seed: 67 });
+    assert.ok(!r.sim.actors.some((a) => a.key === 'crow_touched_warden'), 'not before the challenge');
+    r.g.story.flags.push('warden_challenged');
+    frames(r.sim, 20);
+    assert.ok(r.sim.actors.some((a) => a.key === 'crow_touched_warden'), 'the Warden is in the sim once the flag is set');
+});
+
+test('Sim: gate guards see and shoot out of their own gateway (the orchard acolytes)', () => {
+    const r = run('warrior', 68);
+    r.g.player.hp = r.g.player.maxHp = 9999;
+    r.s.place('orchard', Object.keys(WORLD.maps.orchard.spawns)[0]);
+    const enc = r.s.visibleObjects().find((o) => o.id === 'orchard_cultists');
+    const [x, y] = freeNear(r.s, enc.x, enc.y + (enc.h || 1) + 4);
+    r.s.x = x; r.s.y = y;
+    r.sim = new ActionSim({ engine: r.g, session: r.s, rules: r.g.data.actionRules, seed: 68 });
+    let engagedAt = null, shots = 0;
+    const hp = r.g.player.hp;
+    for (let i = 0; i < 60 * 8; i++) {
+        r.sim.update(1000 / 60, {});
+        if (engagedAt == null && r.g.mode === 'combat') engagedAt = i;
+        shots = Math.max(shots, r.sim.projectiles.filter((p) => p.owner !== 'player').length);
+        }
+    assert.ok(engagedAt != null && engagedAt < 60 * 2, `engaged at frame ${engagedAt}`);
+    assert.ok(shots > 0, 'they shoot');
+    assert.ok(r.g.player.hp < hp, 'and the shots land');
+});
+
+test('Sim: walking along a wall the body only clips slides past the corner instead of stopping dead', () => {
+    const r = run('warrior', 69);
+    r.s.place('grounds', Object.keys(WORLD.maps.grounds.spawns)[0]);
+    r.sim = new ActionSim({ engine: r.g, session: r.s, rules: r.g.data.actionRules, seed: 69 });
+    for (const a of r.sim.actors) a.prof = { ...a.prof, detect: 0 };
+    // the shed's south wall is row 15 (x 14-17): a body 3 px into that row slips under it; one centred in it stops
+    r.sim.player.x = 21 * T; r.sim.player.y = 16 * T + r.sim.player.r - 3;
+    frames(r.sim, 150, { move: { x: -1, y: 0 } });
+    assert.ok(r.sim.player.x / T < 14, `got past the shed corner (x ${(r.sim.player.x / T).toFixed(2)})`);
+    assert.ok(!r.sim.bodyBlocked(r.sim.player.x, r.sim.player.y, r.sim.player.r), 'never inside a wall');
+});

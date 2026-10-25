@@ -1,0 +1,33 @@
+World Zone 1 — browser checks (headless Chromium, real key presses)
+
+PASS  [B1] world.html loads with no script errors and no map-validation problems; title screen shown
+        screen title; errors 0; problems ""
+PASS  [B2] Enter on the title starts the first class; intro closes with Enter; you stand in the cellar, exploring
+        screen explore, map cellar (6,10), engine mode explore
+PASS  [B3] Arrow keys and WASD both move one tile
+        {"right":"arrow ok, d ok","left":"blocked here","down":"arrow ok, s ok","up":"arrow ok, w ok"}
+PASS  [B4] Walls stop you (pressing on stays put); walking adds no rounds, statuses or resource
+        stopped by a wall going up at (6,2); engine before {"round":0,"res":1,"st":0,"combat":false} after {"round":0,"res":1,"st":0,"combat":false}
+PASS  [B5] E opens the inspect text; closing it with Enter does not also move you
+        dialog opened true; position 9,4 -> 9,4
+PASS  [B6] Esc opens the menu; arrows while it is open move nothing (and leak no step on close)
+        menu opened true, closed true; pos 9,4 -> 9,4 -> 9,4
+PASS  [B7] Cellar -> house -> grounds -> house -> cellar by walking; you stay put after each transition (no bounce-back)
+        cellar->house · house->grounds · grounds->house · house->cellar
+PASS  [B8] Shed: walk in, pick up the Bandages with E (+1); leave and re-enter: gone, E gives nothing more
+        in shed true; Bandages 0 -> 1 -> after re-entry 1; still on the map: false
+SKIP  [B9] Battle overlay: arrows never move you, Flee, no instant re-fight
+        legacy battle-menu check: run with --legacy-battle (world.html?combat=turn)
+SKIP  [B14] Level-3 branch menu after a world fight
+        legacy battle-menu check: run with --legacy-battle (world.html?combat=turn)
+SKIP  [B10] Re-engage and win with Attack + Enter
+        legacy battle-menu check: run with --legacy-battle (world.html?combat=turn)
+PASS  [B11] The road south leads on: walking into the fog reaches the Broken Tollway, and its north exit walks you back
+        route to road_tollway true; reached tollway true; walked back to road true (at road 24,41)
+SKIP  [B12] At 1 HP the wolf wins on the battle screen: game over
+        legacy battle-menu check: run with --legacy-battle (world.html?combat=turn)
+PASS  [B13] No script errors during the whole session
+        none
+
+10 pass · 0 fail · 4 skipped (legacy)
+EXIT 0
