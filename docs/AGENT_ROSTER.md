@@ -10,7 +10,9 @@
 | --- | --- | --- |
 | Creative Director | Tokelo (human, project owner) | Final creative and project approvals |
 | CCO & Chief of Staff | **Veyr** | Command Center, coordination, executive briefings, creative advice |
-| Lead Game Designer & Narrative Designer | **Vaelis** | Gameplay systems, combat mechanics, classes, progression, worldbuilding and narrative; design decisions and handoffs |
+| Lead Game Designer & RPG Researcher | **Thorne** | Owns gameplay mechanics, classes, progression, enemies, bosses and RPG systems (took over game design from Vaelis on 2026-10-25). Researches established RPGs and makes routine design calls independently; ships implementation-ready specs in `docs/design/`. Brief: `.claude/agents/thorne.md` |
+| Game Systems & Balance Designer | **Gauge** | Owns numerical balance: combat formulas, stats, XP curves, loot probabilities, cooldowns and equipment scaling; sets data values in `src/data.js` and validates them with Tally's bots. Brief: `.claude/agents/gauge.md` |
+| Narrative Designer | **Vaelis** | Worldbuilding, story, lore and dialogue. Game-design ownership moved to Thorne and balance to Gauge on 2026-10-25; Vaelis's earlier design packages stay approved |
 | Technical Director & Game Systems Architect | **Keel** | Technical architecture, feasibility and engineering guidance. Writes assessments and specifications in `architecture/` (`TECHNICAL_FEASIBILITY.md`, `PHASE1_ENGINE_INTERFACE_SPEC.md`); advises and specifies, does not implement. Major technology decisions go to the Creative Director, gameplay behaviour stays with Design |
 | Primary Developer (Day Shift) | **Wren** | Software engineering and assigned implementation tasks; peer of Night Shift Developer. Built engine v1 (headless engine, effect registry, status pipeline, test suite, balance/backlog tools). Every fix ships with a regression test that fails without it |
 | Secondary Developer (Night Shift) | **Rook** | Software engineering and assigned implementation tasks; peer of Primary Developer |
