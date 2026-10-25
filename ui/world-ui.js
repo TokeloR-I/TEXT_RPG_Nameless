@@ -369,7 +369,10 @@
     }
 
     /** Fights are real time (combat v2, src/engine/realtime.js); ?combat=turn in the address plays the legacy turn-based fights. */
-    const COMBAT_MODE = /[?&]combat=turn(?:&|$)/.test(location.search || '') ? 'turn' : 'realtime';
+    // Combat v3 (docs/ACTION_COMBAT.md) fights in the world: the default. ?combat=realtime is v2's battle overlay,
+    // ?combat=turn the legacy turn-based screen.
+    const COMBAT_MODE = /[?&]combat=turn(?:&|$)/.test(location.search || '') ? 'turn' : /[?&]combat=realtime(?:&|$)/.test(location.search || '') ? 'realtime' : 'action';
+    const ACTION = COMBAT_MODE === 'action' && !!(ENSO.actionSim && ENSO.actionFx);
 
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
     function seedFromUrl() {
@@ -395,6 +398,7 @@
         session = new WorldSession(WORLD, { engine });
         session.restorePosition(((engine.lastLoad.attachments || {}).world) || null);
         window.ensoWorld = session;
+        actionStart();
         seen.clear();
         for (const id of ((engine.lastLoad.attachments || {}).seen) || []) seen.add(id);
         enterExplore(engine.player.className, engine.player.appearance || 0, (engine.lastLoad.attachments || {}).cosmetics || defaultCosmetics());
@@ -425,6 +429,7 @@
         engine.act({ type: 'enter_world' });
         session = new WorldSession(WORLD, { engine });
         window.ensoWorld = session;
+        actionStart();
         seen.clear();
         enterExplore(cls, look || 0, cosmetics);
         openDialog(WORLD.intro, null);
@@ -633,7 +638,7 @@
         muteHeldKeys();
         els.hud.hidden = true;
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
-        const bar = engine.combatMode === 'realtime';
+        const bar = engine.combatMode !== 'turn';
         mmTabs = MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar));
         mm = { tab: Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null };
         focusTabs();
@@ -646,7 +651,7 @@
         renderMain();
     }
     function runTab(id) {
-        if (id === 'save') { mm.note = saveGame(); renderMain(); return; }
+        if (id === 'save') { const ok = engine.canSave ? engine.canSave() : { ok: true }; mm.note = ok.ok ? saveGame() : ok.error.message; renderMain(); return; }
         if (id === 'quit') { showTitle(); return; }
         enterList(id, 0);
     }
@@ -783,7 +788,7 @@
         }
         if (tab === 'settings') {
             page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain"><li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
+                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move (8 ways) · mouse aims · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
         if (tab === 'crow') {
@@ -1372,6 +1377,249 @@
     function toggleBattleLog() { battle.logOpen = !battle.logOpen; renderBattle(); }
 
     // ---------------------------------------------------------------------
+    // Combat v3: fights in the world (docs/ACTION_COMBAT.md). src/action/sim.js owns space and time, the
+    // engine the rules; this page turns keys and the mouse into sim input, and draws the sim's view with
+    // ui/action-fx.js (telegraphs, swings, sparks, numbers) and ui/action-hud.js (Pixie's HUD).
+    // WASD move · mouse aims · LMB / 1 attack · 2–6, R skills · Space dodge · Shift sprint · RMB guard
+    // (a fresh press = parry) · E interact · Tab lock on.
+    // ---------------------------------------------------------------------
+    let sim = null;
+    let lastActionFrame = 0;
+    const AFX = ENSO.actionFx;
+    const afx = ACTION ? AFX.createFx() : null;
+    const aim = { x: 0, y: 0, screenX: null, screenY: null, movedAt: 0 };
+    const press = { attack: false, dodge: false, interact: false, slot: null };
+    let guardHeld = false;
+    let lockId = null;
+    const notices = [];
+    let noticeSeq = 0;
+    let lastPlayerHp = null;
+    let hud = null;
+    let playerAnim = { name: null, t0: 0, key: '' };
+
+    function actionStart() {
+        if (!ACTION) return;
+        sim = new ENSO.actionSim.ActionSim({ engine, session, rules: DATA.actionRules, seed: engine.seed });
+        lastActionFrame = 0;
+        lockId = null;
+        notices.length = 0;
+        lastPlayerHp = engine.player.hp;
+        if (!hud && ENSO.actionHud) {
+            hud = ENSO.actionHud.create($('world-stage'));
+            hud.onSlot((i) => { press.slot = i; });
+            hud.onAttack(() => { press.attack = true; });
+        }
+    }
+
+    /** Keys the world handles itself in action mode. True when the key was used. */
+    function actionKey(ev) {
+        if (screen !== 'explore' || modal || !sim) return false;
+        if (ev.key === 'Tab') { ev.preventDefault(); if (!ev.repeat) cycleLock(ev.shiftKey ? -1 : 1); return true; }
+        if (ev.repeat) return ev.key === ' ' || ev.key === 'Shift';
+        if (ev.key === ' ') { press.dodge = true; return true; }
+        const slot = ENSO.actionHud ? ENSO.actionHud.slotForKey(ev) : null;
+        if (slot === 'basic') { press.attack = true; return true; }
+        if (slot != null) { press.slot = slot; return true; }
+        if ((ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') && !fade && !flash && !feathering) { press.interact = true; return true; }
+        return false;
+    }
+
+    function cycleLock(dir) {
+        const live = sim.view().actors.filter((a) => a.engaged && a.state !== 'dead');
+        if (!live.length) { lockId = null; return; }
+        const p = sim.player;
+        live.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+        const i = live.findIndex((a) => a.sid === lockId);
+        lockId = live[(i + dir + live.length) % live.length].sid;
+    }
+
+    /** Where the map is on screen (the renderer's camera, ui/world-render.js draw()). */
+    function camera() {
+        const map = WORLD.maps[view.mapId], T = map.tileSize || 32;
+        const mw = map.tiles[0].length * T, mh = map.tiles.length * T, W = canvas.width, H = canvas.height;
+        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
+        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
+        return { ox: -Math.round(camX), oy: -Math.round(camY), T };
+    }
+    if (ACTION) {
+        const toCanvas = (ev) => { const r = canvas.getBoundingClientRect(); return { x: (ev.clientX - r.left) * canvas.width / r.width, y: (ev.clientY - r.top) * canvas.height / r.height }; };
+        canvas.addEventListener('mousemove', (ev) => { const c = toCanvas(ev); aim.screenX = c.x; aim.screenY = c.y; aim.movedAt = performance.now(); });
+        canvas.addEventListener('mousedown', (ev) => {
+            if (screen !== 'explore' || modal) return;
+            const c = toCanvas(ev); aim.screenX = c.x; aim.screenY = c.y; aim.movedAt = performance.now();
+            if (ev.button === 0) press.attack = true;
+            if (ev.button === 2) guardHeld = true;
+            ev.preventDefault();
+        });
+        window.addEventListener('mouseup', (ev) => { if (ev.button === 2) guardHeld = false; });
+        canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+        window.addEventListener('blur', () => { guardHeld = false; });
+    }
+
+    function actionInput() {
+        const mv = { x: 0, y: 0 };
+        for (const d of held) { mv.x += DIRS[d][0]; mv.y += DIRS[d][1]; }
+        const len = Math.hypot(mv.x, mv.y);
+        if (len) { mv.x /= len; mv.y /= len; }
+        let target = null;
+        const lock = lockId && sim.actors.find((a) => a.sid === lockId && !a.dead);
+        if (!lock) lockId = null;
+        if (lock && performance.now() - aim.movedAt > 1500) target = { x: lock.x, y: lock.y };   // lock-on aims until the mouse moves
+        else if (aim.screenX != null && performance.now() - aim.movedAt < 8000) { const c = camera(); target = { x: aim.screenX - c.ox, y: aim.screenY - c.oy }; }
+        const input = { move: mv, aim: target, sprint: down.has('Shift'), guard: guardHeld || down.has('q') || down.has('Q'), attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
+        press.attack = press.dodge = press.interact = false;
+        press.slot = null;
+        return input;
+    }
+
+    function notice(text, kind = 'loot') {
+        notices.push({ id: `n${++noticeSeq}`, text, kind, at: performance.now() });
+        while (notices.length > 6) notices.shift();
+    }
+
+    function actionFrame(now) {
+        if (!sim) return;
+        const dt = lastActionFrame ? Math.min(100, now - lastActionFrame) : 0;
+        lastActionFrame = now;
+        const live = screen === 'explore' && !modal && !fade && !flash && !feathering;
+        if (sim.mapId !== session.mapId) sim.enterMap();
+        if (live) {
+            const out = sim.update(dt, actionInput());
+            for (const ev of out.fx) actionFxEvent(ev, now);
+            for (const ev of out.engineEvents) {
+                if (ev.type === 'world.drop') notice(`${ev.drop.gold ? `${ev.drop.gold} Gold` : ''}${ev.drop.gold && ev.drop.items.length ? ' · ' : ''}${ev.drop.items.map((i) => i.name).join(', ')} dropped`, 'loot');
+                if (ev.type === 'loot') notice(`Picked up ${[ev.gold ? `${ev.gold} Gold` : '', ...(ev.items || []).map((i) => i.name || i)].filter(Boolean).join(', ')}`, 'loot');
+                if (ev.type === 'action.cleared') notice(`+${ev.xp} XP`, 'xp');
+                if (ev.type === 'text' && /level|Level|evolve|Quest|quest|journal/.test(ev.text) && ev.important) notice(ev.text, 'quest');
+            }
+            for (const r of out.world) {
+                if (r.type === 'transition') { sim.enterMap(); arriveAction(r); }
+                else if (r.type === 'boundary') { syncFromSim(); openDialog([r.text], r.title); }
+                else if (r.type === 'interact') interact();
+                else if (r.type === 'respawn') { syncFromSim(); openDialog(['You fall… and come to where you entered, aching but alive.'], null, afterStory); }
+            }
+            if (out.engineEvents.some((e) => e.type === 'action.end')) { updateHud(); afterStory(); }
+        }
+        syncFromSim(now);
+        if (engine.player.hp < lastPlayerHp) afx.spawn('damage', { x: sim.player.x, y: sim.player.y - 18, amount: lastPlayerHp - engine.player.hp, taken: true }, now);
+        lastPlayerHp = engine.player.hp;
+        els.hud.hidden = true;
+        els.prompt.hidden = true;
+        if (hud) {
+            hud.el.hidden = screen !== 'explore' || modal === 'pause';
+            hud.update(ENSO.actionHud.viewModel(engine, hudView(now), now), now);
+        }
+    }
+
+    /** A walked-through exit: the same arrival as a tile step's fade (banner, story pages, quests). */
+    function arriveAction(r) {
+        syncFromSim();
+        fade = { t0: performance.now(), phase: 'in', result: r };
+        showBanner(WORLD.maps[session.mapId].name);
+        updateHud();
+        const story = readable(r.events || []).map((l) => l.text);
+        const pages = [r.text, story.length ? story.join('\n') : null].filter(Boolean);
+        if (pages.length) openDialog(pages, null, afterStory); else afterStory();
+    }
+
+    function actionFxEvent(ev, now) {
+        const P = sim.player;
+        switch (ev.type) {
+            case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical' }, now); break;
+            case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount }, now); break;
+            case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
+            case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); break;
+            case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); break;
+            case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); break;
+            case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); break;
+            case 'aoe': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius }, now); break;
+            case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); break;
+            case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); break;
+            case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); break;
+            case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); break;
+            case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
+            case 'disengage': notice('They give up the chase.', 'quest'); break;
+            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice('The Warden changes his stance!', 'quest'); break;
+            case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
+            case 'notice': toast(ev.text); break;
+            default: break;
+        }
+    }
+
+    /** The renderer's view from the sim: the player's body in tile units, the action pose, the actors. */
+    function syncFromSim(now = performance.now()) {
+        if (!sim) return;
+        const v = sim.view();
+        const T = sim.T;
+        const p = v.player;
+        view.mapId = session.mapId;
+        view.x = p.x / T - 0.5;
+        view.y = (p.y - T / 2 + 2) / T;   // drawPlayer puts the feet at y*T + T - 2: the body's centre is a little above the feet
+        view.facing = p.facing;
+        view.moving = p.moving;
+        const pose = p.state === 'attack' ? (p.attack && !p.attack.isBasic ? 'heavy' : 'swing') : p.state === 'dodge' ? 'dodge' : p.state === 'hurt' ? 'hurt' : p.guarding ? 'guard' : null;
+        const key = pose ? `${pose}:${p.state === 'attack' && p.attack ? p.attack.shape && p.attack.skill : ''}` : '';
+        if (pose && (playerAnim.name !== pose || playerAnim.key !== key)) playerAnim = { name: pose, t0: now, key };
+        if (!pose) playerAnim = { name: null, t0: 0, key: '' };
+        view.anim = playerAnim.name;
+        view.animT = playerAnim.name ? now - playerAnim.t0 : null;
+        view.actors = v.actors.map((a) => ({
+            y: (a.y - T / 2 + 2) / T,
+            draw: (g, time) => {
+                AFX.drawEnemy(g, a.key, Math.round(a.x), Math.round(a.y + (a.r || 5)), { facing: a.facing, state: a.state === 'chase' || a.state === 'return' ? 'move' : a.state === 'active' ? 'attack' : a.state === 'stunned' ? 'stagger' : a.state, t: a.t, now: time });
+                if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(a.y - 18), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
+                if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);
+            }
+        }));
+    }
+
+    /** What Pixie's HUD reads from the world (ui/action-hud.js viewModel). */
+    function hudView(now) {
+        const v = sim.view();
+        const p = v.player;
+        const enemies = v.actors.filter((a) => a.engaged && a.state !== 'dead' && a.engineId).map((a) => ({ id: a.sid, name: a.name, hp: a.hp, maxHp: a.maxHp, boss: a.boss, phase: a.phase, phases: a.phases }));
+        const boss = enemies.find((e) => e.boss);
+        const pr = !v.engaged && screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
+        while (notices.length && now - notices[0].at > 4000) notices.shift();
+        return {
+            stamina: { cur: p.stamina, max: p.staminaMax },
+            dodgeReadyInMs: Math.max(0, sim.player.dodgeReadyAt - sim.now),
+            guarding: p.guarding,
+            lockTargetId: lockId,
+            enemies,
+            boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp, phase: boss.phase, phases: boss.phases } : null,
+            prompt: pr && pr.kind !== 'encounter' ? { key: 'E', verb: pr.verb, name: pr.name } : null,
+            notices: notices.map((n) => ({ id: n.id, text: n.text, kind: n.kind }))
+        };
+    }
+
+    if (ACTION) {
+        // Under the bodies: wind-up telegraphs and loot on the ground.
+        renderer.addHook('ground', (g, ctx) => {
+            if (!sim || screen === 'title') return;
+            for (const d of engine.getWorldDrops ? engine.getWorldDrops(session.mapId) : []) {
+                const bob = Math.round(Math.sin(ctx.time / 300 + d.x) * 1);
+                g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(Math.round(d.x) - 4, Math.round(d.y) + 2, 8, 2);
+                g.fillStyle = d.items.length ? '#c9a2ff' : '#e8c860'; g.fillRect(Math.round(d.x) - 3, Math.round(d.y) - 4 + bob, 6, 5);
+                g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
+            }
+            for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
+        });
+        // Over the bodies: the player's swing, projectiles, sparks and numbers.
+        renderer.addHook('foreground', (g, ctx) => {
+            if (!sim || screen === 'title') return;
+            const v = sim.view();
+            const p = v.player;
+            if (p.attack && p.attack.shape && (p.attack.shape.shape || p.attack.shape.kind) !== 'projectile' && (p.attack.shape.shape || '') !== 'self') {
+                const s = p.attack.shape;
+                AFX.swing(g, { x: Math.round(p.x), y: Math.round(p.y), angle: p.angle, arc: ((s.arcDeg || 100) * Math.PI) / 180, reach: s.reach || s.radius || 20, progress: p.attack.progress, cls: engine.player.className });
+            }
+            for (const pj of v.projectiles) AFX.projectile(g, { x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, now: ctx.time });
+            afx.draw(g, ctx.time);
+        });
+    }
+
+    // ---------------------------------------------------------------------
     // World actions
     // ---------------------------------------------------------------------
     function syncView() { view.mapId = session.mapId; view.x = session.x; view.y = session.y; view.facing = session.facing; }
@@ -1464,6 +1712,7 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
+        if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
         if (isAct(ev)) interact();
         else if (ev.key === 'Escape') openPause();
@@ -1528,13 +1777,14 @@
             view.fade = k < 1 ? Math.abs(Math.sin(k * Math.PI * 2)) * 0.8 : 0;
             if (k >= 1) { const fn = flash.fn; flash = null; fn(); }
         }
-        if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
+        if (ACTION) actionFrame(now);   // combat v3: free movement and fights in the world
+        else if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
         if (!anim) view.moving = false;
-        if (screen !== 'title') updatePrompt();
+        if (screen !== 'title' && !ACTION) updatePrompt();
         rtFrame(now);   // before drawActor: a tick that re-renders the overlay gets its sprite drawn this same frame
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
-        const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));
+        const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id) }));   // action enemies are sim actors
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
@@ -1544,8 +1794,9 @@
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')
     window.ensoDebug = {
         world: WORLD,   // the world as played (16 px tiles); ENSO.world.zone1 keeps the authored 32 px coordinates
-        goto(mapId, spawn) { session.place(mapId, spawn); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
-        start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); },
+        goto(mapId, spawn) { session.place(mapId, spawn); if (sim) sim.enterMap(); syncView(); showBanner(WORLD.maps[mapId].name); updateHud(); },
+        sim() { return sim; },
+        start(cls, name, look, cosmetics) { startGame(cls || 'warrior', name, look, cosmetics); advanceDialog(true); setTimeout(() => document.activeElement && document.activeElement.blur && document.activeElement.blur(), 0); },   // the name box's delayed focus would eat keys
         actor(name) { playActor(name); return actor.anim; },
         /** Stand next to a visible enemy on this map, facing it (then walk into it to fight). */
         nextTo(id) {
