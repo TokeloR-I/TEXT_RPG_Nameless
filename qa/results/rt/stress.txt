@@ -1,0 +1,4 @@
+warrior: after 600 s still 'combat', max DoT stacks 81, DoT damage in the last 10 s 6033 (603/s), enemy casts 680, engine errors 0
+mage: after 600 s still 'combat', max DoT stacks 0, DoT damage in the last 10 s 0 (0/s), enemy casts 611, engine errors 0
+rogue: after 600 s still 'combat', max DoT stacks 86, DoT damage in the last 10 s 6891 (689/s), enemy casts 680, engine errors 0
+necromancer: after 600 s still 'combat', max DoT stacks 99, DoT damage in the last 10 s 20790 (2079/s), enemy casts 680, engine errors 0

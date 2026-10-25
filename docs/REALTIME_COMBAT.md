@@ -39,10 +39,10 @@ much fight time and returns events. Same seed + same `tick`/`act` sequence = sam
 
 | | Rule | First-pass number (`realtimeRules`) |
 |---|---|---|
-| Basic attack | Free, any time, own swing timer from SPD. Not blocked by the global cooldown. | 1.6 s × 10 / SPD, 0.8–2.5 s |
+| Basic attack | Free, any time, own swing timer from SPD. Not blocked by the global cooldown. | 3 s × 10 / SPD, 1.5–4.5 s |
 | Skills | Use any time they're ready. Own cooldown, then the shared global cooldown. | GCD 1 s |
-| Cooldowns | A skill's own `cooldown` (seconds) if set; else from its cost. | 3 s + 2 s per cost; cost "all" 15 s |
-| Enemies | Act on their own clock from SPD; each action winds up first ("readies Heavy Slash!"), then lands. A stun during the wind-up interrupts it. | 3 s × 10 / SPD, 1.2–5 s; wind-up 0.6 s; first action after 1 s |
+| Cooldowns | A skill's own `cooldown` (seconds) if set; else from its cost. | 4 s + 3 s per cost; cost "all" 15 s |
+| Enemies | Act on their own clock from SPD; each action winds up first ("readies Heavy Slash!"), then lands. A stun during the wind-up interrupts it. | 2.5 s × 10 / SPD, 1.2–5 s; wind-up 0.6 s; first action after 1 s |
 | Minions | Act on their own clock, no wind-up. | 2.5 s × 10 / SPD, 1.2–5 s |
 | Pulse | What the end of a round did: resource regen, Soul Energy for dealing damage, Combo/Mark gains, bombs, Soul Feast, the round counter. | every 3 s |
 | Statuses | Every status is timed. A duration written in turns lasts `secondsPerTurn` per turn. Statuses that ended at the holder's next turn (Guard) last `guardSeconds`. Marked for Death / Expose windows are timed too. | 3 s per turn; Guard 3 s |
@@ -96,6 +96,22 @@ Wren leads; each agent works in the area `AGENTS.md` gives them. Studio roles co
 version of real-time combat is a clock over the same headless rules engine, in a menu-free battle overlay — no physics,
 no positioning, no hitboxes — so the custom JS/Canvas engine is enough and no switch is needed now. If Vaelis wants
 action combat with movement, dodging and hitboxes on the map, that is the point to have Keel re-run the engine review.
+
+## Balance, first pass (Tally, QA #14)
+
+`qa/QA_REPORT_2026-10-25_14_REALTIME.md`, bot `qa/scripts/rt_balance.js` (200 seeds per class, ~120 actions a minute).
+The first numbers (1.6 s swing, 3 s enemies, 3 s + 2 s cooldowns) let every class win the Warden 79–100%, because
+the player acted 2–4 times per enemy action. Wren took Tally's "closest to parity" option (3 s swing, 2.5 s enemies,
+4 s + 3 s cooldowns). Measured after the change, Warden win % without shopping (QA #13 had 100 / 74 / 87 / 98 turn-based with shopping):
+
+| | Warrior | Mage | Rogue | Necromancer |
+|---|---|---|---|---|
+| Turn-based, no shopping | 89 | 21 | 47 | 15 |
+| Real time, now, no shopping | 100 | 60 | 92 | 48 |
+
+The Necromancer (idle 58% of the time) and the Warrior's 100% are class-tuning jobs for Vaelis. DoT damage grows
+with the square of the stacks (more damage per tick *and* faster ticks): two 99-stack DoTs deal ~2,000 DPS in Tally's
+stress fight, ~600 with `perStackSpeedup: 0`. Real fights reach 7 stacks today, but it's question 1 below.
 
 ## Open questions (for Vaelis and Tokelo)
 
