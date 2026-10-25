@@ -85,14 +85,20 @@ function mainline(ctx, branchIdx) {
     takeExit(s, 'tollway_south'); inspect(s, 'village_tamsin'); bye(g); inspect(s, 'village_mara'); bye(g);
     inspect(s, 'village_captain'); bye(g); travel(s, 'tollway'); inspect(s, 'tollway_register'); travel(s, 'shamefield');
     inspect(s, 'village_captain'); say(g, /Here it is/); bye(g);
-    if (BUY) { ctx.goldAtShop = g.player.gold; for (const [shop, item] of [['iona', 'Healing Herb Bundle'], ['mara', 'Bandages'], ['iona', 'Bandages'], ['mara', 'Moldy Bread']]) while (g.player.gold >= g.data.shopDefinitions[shop].stock[item].buyPrice && g.act({ type: 'buy', shopId: shop, item }).ok !== false && g.player.inventory.includes(item) && g.player.gold >= 0) { if ((ctx.bought = (ctx.bought || 0) + 1) > 20) break; } }
+    // buying needs the merchant's stock open since QA-44: talk to each, ask what they sell, buy, say goodbye
+    if (BUY) { ctx.goldAtShop = g.player.gold; ctx.bought = 0;
+      for (const [shop, item] of [['iona', 'Healing Herb Bundle'], ['mara', 'Bandages'], ['iona', 'Bandages'], ['mara', 'Moldy Bread']]) {
+        inspect(s, 'village_' + shop); say(g, /What have you got/);   // opens the merchant's stock (dialogue.shopId)
+        for (let n = 0; n < 20; n++) { const before = g.player.inventory.length; g.act({ type: 'buy', shopId: shop, item }); if (g.player.inventory.length === before) break; ctx.bought++; }
+        bye(g);
+      } }
     travel(s, 'orchard');
     if (PICKUPS) inspect(s, 'orchard_herbs');
     if (!fight(ctx, 'orchard_cultists', 'G3 Cultists')) return 'G3';
     takeExit(s, 'orchard_north');
     if (!fight(ctx, 'featherwatch_ghoul', 'G4 Ritual Ghoul')) return 'G4';
     takeExit(s, 'featherwatch_north'); inspect(s, 'sanctuary_journal'); inspect(s, 'sanctuary_warden_npc');
-    ctx.xpBeforeWarden = total(g); ctx.levelBeforeWarden = g.player.level;
+    ctx.xpBeforeWarden = total(g); ctx.goldBeforeWarden = g.player.gold; ctx.levelBeforeWarden = g.player.level;
     say(g, /What is behind it/); say(g, /I'll go/);
     if (g.mode === 'branch_select') { const br = Object.keys(DATA.evolutionPaths[g.player.className].branches)[branchIdx]; g.act({ type: 'choose_branch', branchId: br }); ctx.branch = br; }
     inspect(s, 'sanctuary_warden_npc'); say(g, /Stand aside/); say(g, /Draw your weapon/);
@@ -121,7 +127,7 @@ function optional(cls, seed, which) {
 
 // ------------------------------------------------------------------ run and report
 const classes = Object.keys(DATA.basePlayerClasses);
-const agg = {}; const deaths = {}; const xpCheck = {}; const branchWin = {};
+const agg = {}; const deaths = {}; const xpCheck = {}; const branchWin = {}; const econ = {};
 const add = (cls, row) => { const k = `${cls}|${row.label}`; (agg[k] = agg[k] || []).push(row); };
 for (const cls of classes) {
     deaths[cls] = {}; xpCheck[cls] = { reached: 0, ok250: 0, l3: 0 }; branchWin[cls] = {};
@@ -131,6 +137,8 @@ for (const cls of classes) {
         for (const r of ctx.rows) add(cls, r);
         deaths[cls][died || 'survived'] = (deaths[cls][died || 'survived'] || 0) + 1;
         if (ctx.xpBeforeWarden != null) { xpCheck[cls].reached++; if (ctx.xpBeforeWarden === 250) xpCheck[cls].ok250++; if (ctx.levelBeforeWarden === 3) xpCheck[cls].l3++; }
+        if (ctx.goldAtShop != null) { const e = (econ[cls] = econ[cls] || { n: 0, gold: 0, bought: 0, wardenGold: 0, wn: 0 }); e.n++; e.gold += ctx.goldAtShop; e.bought += ctx.bought; }
+        if (ctx.goldBeforeWarden != null) { const e = (econ[cls] = econ[cls] || { n: 0, gold: 0, bought: 0, wardenGold: 0, wn: 0 }); e.wn++; e.wardenGold += ctx.goldBeforeWarden; }
         if (ctx.branch) { const b = (branchWin[cls][ctx.branch] = branchWin[cls][ctx.branch] || { n: 0, w: 0 }); b.n++; if (!died) b.w++; }
         for (const which of ['rats', 'wolf', 'constables']) { if (seed > Math.min(SEEDS, 100)) break; const o = optional(cls, seed, which); for (const r of o.rows) if (!r.skipped) add(cls, r); }
     }
@@ -154,4 +162,5 @@ for (const cls of classes) {
     const d = deaths[cls]; const surv = d.survived || 0;
     console.log(`| ${cls} | ${Math.round(100 * surv / SEEDS)}% | ${Object.entries(d).map(([k, v]) => `${k} ${v}`).join(', ')} | ${xpCheck[cls].ok250}/${xpCheck[cls].reached} at 250, ${xpCheck[cls].l3}/${xpCheck[cls].reached} at L3 | ${Object.entries(branchWin[cls]).map(([b, x]) => `${b} ${Math.round(100 * x.w / x.n)}% (${x.n})`).join(', ')} |`);
 }
+if (Object.keys(econ).length) { console.log('\n| Class | Gold at the shop (mean) | Heal items bought (mean) | Gold left at the Warden (mean) |\n|---|---:|---:|---:|'); for (const [c, e] of Object.entries(econ)) console.log(`| ${c} | ${e.n ? (e.gold / e.n).toFixed(1) : '—'} | ${e.n ? (e.bought / e.n).toFixed(2) : '—'} | ${e.wn ? (e.wardenGold / e.wn).toFixed(1) : '—'} |`); }
 if (JSON_OUT) require('fs').writeFileSync(JSON_OUT, JSON.stringify({ agg, deaths, xpCheck, branchWin }, null, 1));

@@ -1,0 +1,50 @@
+Chapter One survival — 200 seeds per class · bot: smart · pickups: none · shopping: all Gold on healing after Q05 · data: resourceRules.Stealth Tokens.regen=1
+
+| Class | Encounter | Lvl | Reached | Win % (95% CI) | HP in → out (of max) | Lowest HP left (wins) | Heal items used | Biggest hit taken | Rounds | Who kills you |
+|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|
+| warrior | G1 Ragpickers | 1 | 200 | 100 (98–100) | 120 → 120 (120) | 119 | -0.23 | 6 | 6.1 | — |
+| warrior | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 120 → 130 (120) | 130 | -0.04 | 7 | 4.1 | — |
+| warrior | G3 Cultists | 2 | 200 | 100 (98–100) | 130 → 130 (130) | 123 | -0.25 | 10 | 4.2 | — |
+| warrior | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 130 → 128 (130) | 104 | -0.03 | 15 | 4.4 | — |
+| warrior | B01 Warden | 3 | 200 | 100 (98–100) | 140 → 108 (140) | 67 | 1.27 | 26 | 19.7 | — |
+| warrior | Opt rats (L1) | 1 | 100 | 100 (96–100) | 120 → 120 (120) | 120 | 0.00 | 1 | 4.0 | — |
+| warrior | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 120 → 120 (120) | 117 | 0.00 | 11 | 4.4 | — |
+| warrior | Opt constables (L2) | 2 | 100 | 100 (96–100) | 130 → 130 (130) | 130 | -0.26 | 3 | 6.2 | — |
+| mage | G1 Ragpickers | 1 | 200 | 100 (98–100) | 70 → 56 (70) | 38 | -0.21 | 10 | 3.8 | — |
+| mage | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 56 → 80 (70) | 80 | -0.01 | 11 | 2.5 | — |
+| mage | G3 Cultists | 2 | 200 | 100 (98–100) | 80 → 69 (80) | 53 | 0.12 | 14 | 3.8 | — |
+| mage | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 69 → 69 (80) | 53 | 0.30 | 19 | 3.1 | — |
+| mage | B01 Warden | 3 | 200 | 74 (68–80) | 90 → 61 (90) | 19 | 3.11 | 30 | 18.0 | The Crow-Touched Warden 52 |
+| mage | Opt rats (L1) | 1 | 100 | 100 (96–100) | 70 → 70 (70) | 70 | 0.00 | 5 | 2.0 | — |
+| mage | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 70 → 64 (70) | 50 | 0.00 | 15 | 2.8 | — |
+| mage | Opt constables (L2) | 2 | 100 | 100 (96–100) | 80 → 80 (80) | 78 | -0.25 | 7 | 3.6 | — |
+| rogue | G1 Ragpickers | 1 | 200 | 100 (98–100) | 85 → 84 (85) | 77 | -0.21 | 9 | 4.0 | — |
+| rogue | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 84 → 95 (85) | 95 | -0.03 | 10 | 2.4 | — |
+| rogue | G3 Cultists | 2 | 200 | 100 (98–100) | 95 → 90 (95) | 72 | -0.24 | 13 | 3.5 | — |
+| rogue | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 90 → 85 (95) | 64 | -0.02 | 18 | 2.8 | — |
+| rogue | B01 Warden | 3 | 200 | 100 (98–100) | 105 → 85 (105) | 48 | 1.63 | 29 | 13.8 | — |
+| rogue | Opt rats (L1) | 1 | 100 | 100 (96–100) | 85 → 85 (85) | 85 | 0.00 | 4 | 2.0 | — |
+| rogue | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 85 → 83 (85) | 67 | 0.00 | 14 | 2.8 | — |
+| rogue | Opt constables (L2) | 2 | 100 | 100 (96–100) | 95 → 95 (95) | 95 | -0.27 | 6 | 4.0 | — |
+| necromancer | G1 Ragpickers | 1 | 200 | 100 (98–100) | 80 → 72 (80) | 57 | -0.25 | 8 | 5.3 | — |
+| necromancer | G2 Root-Chewers | 1 | 200 | 100 (98–100) | 72 → 90 (80) | 90 | -0.03 | 9 | 3.8 | — |
+| necromancer | G3 Cultists | 2 | 200 | 100 (98–100) | 90 → 81 (90) | 66 | -0.25 | 12 | 3.9 | — |
+| necromancer | G4 Ritual Ghoul | 2 | 200 | 100 (98–100) | 81 → 74 (90) | 59 | 0.07 | 17 | 3.9 | — |
+| necromancer | B01 Warden | 3 | 200 | 98 (94–99) | 100 → 75 (100) | 22 | 3.39 | 28 | 23.9 | The Crow-Touched Warden 5 |
+| necromancer | Opt rats (L1) | 1 | 100 | 100 (96–100) | 80 → 80 (80) | 80 | 0.00 | 3 | 3.4 | — |
+| necromancer | Opt wolf (L1) | 1 | 100 | 100 (96–100) | 80 → 76 (80) | 63 | 0.00 | 13 | 3.8 | — |
+| necromancer | Opt constables (L2) | 2 | 100 | 100 (96–100) | 90 → 90 (90) | 90 | -0.23 | 5 | 5.3 | — |
+
+| Class | Full mainline survived (to the end of B01) | Where runs ended | Reached the Warden at exactly 250 XP / L3 | Warden win % by branch (runs) |
+|---|---:|---|---|---|
+| warrior | 100% | survived 200 | 200/200 at 250, 200/200 at L3 | berserker 100% (67), warden 100% (67), vanguard 100% (66) |
+| mage | 74% | survived 148, B01 52 | 200/200 at 250, 200/200 at L3 | illusionist 78% (67), chronomancer 46% (67), elementalist 98% (66) |
+| rogue | 100% | survived 200 | 200/200 at 250, 200/200 at L3 | duelist 100% (67), saboteur 100% (67), assassin 100% (66) |
+| necromancer | 98% | survived 195, B01 5 | 200/200 at 250, 200/200 at L3 | plaguecaller 99% (67), soulbinder 97% (67), bone_warden 97% (66) |
+
+| Class | Gold at the shop (mean) | Heal items bought (mean) | Gold left at the Warden (mean) |
+|---|---:|---:|---:|
+| warrior | 45.1 | 4.33 | 19.8 |
+| mage | 45.0 | 4.30 | 19.8 |
+| rogue | 44.8 | 4.29 | 19.6 |
+| necromancer | 45.3 | 4.26 | 19.6 |
