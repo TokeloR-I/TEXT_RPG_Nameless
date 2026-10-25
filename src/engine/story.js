@@ -87,6 +87,7 @@
                 if (e.item) this.storyGiveItem(e.item, e.key || `item:${e.item}`);
                 if (e.removeItem) { const i = this.player.inventory.indexOf(e.removeItem); if (i !== -1) this.player.inventory.splice(i, 1); }
                 if (e.shop) this.storyShop(e.shop);
+                if (e.construction && this.story.dialogue) this.story.dialogue.construction = e.construction;
                 if (e.construction) this.storyConstruction(e.construction);
                 if (e.start) this.startQuest(e.start, opts);
                 if (e.event) this.storyEvent(e.event);
@@ -263,6 +264,13 @@
             const node = this.npcDef(d.npcId).nodes[d.node];
             const list = (node.choices || []).map((c, i) => ({ c, i })).filter(({ c }) => this.storyAllows(c.if));
             const out = list.map(({ c, i }) => ({ choiceId: c.id || `c${i}`, text: c.text, ends: !c.to && !c.stay }));
+            // On Orin's ledger, the construction is a choice too (QA-42).
+            if (d.construction) {
+                const rule = (this.data.constructionDefinitions || {})[d.construction], p = this.player;
+                if (rule && !(p.homestead && p.homestead.built && p.homestead.built[d.construction])) {
+                    out.unshift({ choiceId: `build:${d.construction}`, text: `Build ${rule.name || d.construction} (${rule.goldCost ? `${rule.goldCost} Gold` : 'free'})`, ends: false });
+                }
+            }
             if (!out.some((c) => c.ends)) out.push({ choiceId: 'leave', text: 'Goodbye.', ends: true });
             return out;
         }
@@ -294,6 +302,12 @@
             const pick = offered.find((c) => c.choiceId === choiceId);
             if (!pick) { this.refuse('INVALID_CHOICE', `That isn't one of the choices. Pick 1–${offered.length}.`); this.showDialogueChoices(); return; }
             if (pick.choiceId === 'leave') { this.endDialogue(true); return; }
+            if (pick.choiceId.startsWith('build:')) {
+                const id = pick.choiceId.slice(6);
+                if (this.buildUpgrade(id)) this.storyEvent({ type: 'build', id });
+                if (this.story.dialogue) this.showDialogueChoices();
+                return;
+            }
             const node = npc.nodes[d.node];
             const idx = (node.choices || []).findIndex((c, i) => (c.id || `c${i}`) === choiceId);
             const choice = node.choices[idx];
