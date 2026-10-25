@@ -1,0 +1,83 @@
+rt_balance — 200 seeds/class · APM 120 · reaction 250 ms · data: realtimeRules.basicAttack.swingSeconds=3 · 155 s
+
+### Text dungeon (tools/balance.js route)
+
+| Class | Mode | Route win % | Fights | Fight win % | Mean fight time (s)* | Mean HP left (wins) | DPS dealt | DPS taken | Nothing ready % | DoT share of dmg | Max DoT stacks (mean / max) | Player / enemy casts per s |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| warrior | rt | 100 | 1200 | 100 | 21.5 | 129 | 4.08 | 0.72 | 53 | 4.5% | 0.1 / 3 | 0.69 / 0.44 |
+| mage | rt | 100 | 1200 | 100 | 12.8 | 75 | 6.86 | 2.24 | 29 | 0.0% | 0.0 / 0 | 0.86 / 0.37 |
+| rogue | rt | 100 | 1200 | 100 | 14.6 | 92 | 5.98 | 1.51 | 45 | 0.0% | 0.0 / 0 | 0.89 / 0.37 |
+| necromancer | rt | 100 | 1200 | 100 | 16.4 | 87 | 5.33 | 1.83 | 59 | 6.6% | 0.3 / 6 | 0.78 / 0.39 |
+
+*turn mode: rounds x secondsPerTurn (an equivalent, not a clock).
+
+| Class | Encounter | rt reached / win % / time s / HP left |
+|---|---|---|
+| warrior | F1 | 200 / 100 / 14.0 / 120 |
+| warrior | F2 | 200 / 100 / 22.5 / 120 |
+| warrior | F3 | 200 / 100 / 14.8 / 130 |
+| warrior | F4 | 200 / 100 / 28.5 / 130 |
+| warrior | F5 | 200 / 100 / 22.5 / 140 |
+| warrior | F6 | 200 / 100 / 26.5 / 136 |
+| mage | F1 | 200 / 100 / 5.8 / 64 |
+| mage | F2 | 200 / 100 / 10.3 / 64 |
+| mage | F3 | 200 / 100 / 7.1 / 80 |
+| mage | F4 | 200 / 100 / 14.0 / 80 |
+| mage | F5 | 200 / 100 / 10.1 / 90 |
+| mage | F6 | 200 / 100 / 29.2 / 73 |
+| rogue | F1 | 200 / 100 / 7.3 / 82 |
+| rogue | F2 | 200 / 100 / 10.6 / 84 |
+| rogue | F3 | 200 / 100 / 7.8 / 95 |
+| rogue | F4 | 200 / 100 / 14.4 / 95 |
+| rogue | F5 | 200 / 100 / 11.2 / 105 |
+| rogue | F6 | 200 / 100 / 36.4 / 88 |
+| necromancer | F1 | 200 / 100 / 7.5 / 80 |
+| necromancer | F2 | 200 / 100 / 11.7 / 80 |
+| necromancer | F3 | 200 / 100 / 8.7 / 90 |
+| necromancer | F4 | 200 / 100 / 15.7 / 90 |
+| necromancer | F5 | 200 / 100 / 11.6 / 100 |
+| necromancer | F6 | 200 / 100 / 43.4 / 82 |
+
+### Chapter One to the Warden
+
+| Class | Mode | Route win % | Fights | Fight win % | Mean fight time (s)* | Mean HP left (wins) | DPS dealt | DPS taken | Nothing ready % | DoT share of dmg | Max DoT stacks (mean / max) | Player / enemy casts per s |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| warrior | rt | 100 | 1000 | 100 | 14.1 | 129 | 4.64 | 0.75 | 53 | 7.4% | 0.2 / 3 | 0.77 / 0.31 |
+| mage | rt | 93 | 1000 | 99 | 9.0 | 73 | 7.22 | 2.26 | 35 | 0.0% | 0.0 / 0 | 0.98 / 0.31 |
+| rogue | rt | 100 | 1000 | 100 | 11.7 | 90 | 5.61 | 1.44 | 43 | 0.0% | 0.0 / 0 | 0.90 / 0.29 |
+| necromancer | rt | 76 | 1000 | 95 | 13.1 | 84 | 4.89 | 1.82 | 59 | 10.8% | 0.4 / 6 | 0.75 / 0.30 |
+
+*turn mode: rounds x secondsPerTurn (an equivalent, not a clock).
+
+| Class | Encounter | rt reached / win % / time s / HP left |
+|---|---|---|
+| warrior | G1 Ragpickers | 200 / 100 / 15.9 / 120 |
+| warrior | G2 Root-Chewers | 200 / 100 / 8.8 / 130 |
+| warrior | G3 Cultists | 200 / 100 / 9.3 / 130 |
+| warrior | G4 Ritual Ghoul | 200 / 100 / 9.8 / 130 |
+| warrior | B01 Warden | 200 / 100 / 26.6 / 135 |
+| mage | G1 Ragpickers | 200 / 100 / 7.7 / 69 |
+| mage | G2 Root-Chewers | 200 / 100 / 2.2 / 80 |
+| mage | G3 Cultists | 200 / 100 / 3.8 / 80 |
+| mage | G4 Ritual Ghoul | 200 / 100 / 3.3 / 79 |
+| mage | B01 Warden | 200 / 93 / 28.2 / 57 |
+| rogue | G1 Ragpickers | 200 / 100 / 7.3 / 85 |
+| rogue | G2 Root-Chewers | 200 / 100 / 4.9 / 95 |
+| rogue | G3 Cultists | 200 / 100 / 4.9 / 95 |
+| rogue | G4 Ritual Ghoul | 200 / 100 / 4.3 / 95 |
+| rogue | B01 Warden | 200 / 100 / 36.9 / 79 |
+| necromancer | G1 Ragpickers | 200 / 100 / 8.1 / 80 |
+| necromancer | G2 Root-Chewers | 200 / 100 / 5.0 / 90 |
+| necromancer | G3 Cultists | 200 / 100 / 5.4 / 90 |
+| necromancer | G4 Ritual Ghoul | 200 / 100 / 6.2 / 90 |
+| necromancer | B01 Warden | 200 / 76 / 40.8 / 65 |
+
+### Bugs found
+
+BUG act() refuses an option getAvailableActions() calls enabled — 1199x
+   {"type":"use_item","item":"Healing Herb Bundle"} (Healing Herb Bundle): GLOBAL_COOLDOWN "Recovering: ready in 0.5s." at 30400 ms
+   repro: node qa/scripts/rt_balance.js --repro mage:2:dungeon --apm 120 --reaction 250 --set realtimeRules.basicAttack.swingSeconds=3
+   {"type":"use_item","item":"Healing Herb Bundle"} (Healing Herb Bundle): GLOBAL_COOLDOWN "Recovering: ready in 0.4s." at 30500 ms
+   repro: node qa/scripts/rt_balance.js --repro mage:2:dungeon --apm 120 --reaction 250 --set realtimeRules.basicAttack.swingSeconds=3
+   {"type":"use_item","item":"Healing Herb Bundle"} (Healing Herb Bundle): GLOBAL_COOLDOWN "Recovering: ready in 0.3s." at 30600 ms
+   repro: node qa/scripts/rt_balance.js --repro mage:2:dungeon --apm 120 --reaction 250 --set realtimeRules.basicAttack.swingSeconds=3

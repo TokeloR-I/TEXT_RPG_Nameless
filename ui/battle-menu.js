@@ -46,6 +46,7 @@
      *            or Set the turn order / Keep the speed order while awaiting 'turn_order')
      *   skills : every known skill, enabled or with the engine's reason
      *   items  : usable items
+     *   realtime : the real-time fight's pause menu (Resume / Items / Flee)
      * Each entry: { kind, label, sub, disabled, option }.
      */
     function entries(avail, view, skillInfo) {
@@ -69,6 +70,14 @@
             out.push({ kind: 'skills', label: 'Skills', sub: `${skills.filter((o) => o.enabled).length} of ${skills.length} usable`, disabled: !skills.length, option: null });
             out.push({ kind: 'items', label: 'Items', sub: items.length ? `${items.filter((o) => o.enabled).length} usable` : 'nothing usable', disabled: !items.some((o) => o.enabled), option: null });
             if (flee) out.push({ kind: 'flee', label: 'Flee', sub: 'Back to the map. The enemy stays.', disabled: !flee.enabled, option: flee });
+            return out;
+        }
+        if (view === 'realtime') {   // combat v2: the pause menu of a real-time fight (the clock stops while it is open)
+            const items = acts.filter((o) => o.type === 'use_item');
+            const flee = acts.find((o) => o.type === 'flee');
+            const out = [{ kind: 'resume', label: 'Resume', sub: 'Back to the fight. The clock is stopped while this menu is open.', disabled: false, option: null }];
+            out.push({ kind: 'items', label: 'Items', sub: items.length ? `${items.filter((o) => o.enabled).length} usable` : 'nothing usable', disabled: !items.some((o) => o.enabled), option: null });
+            if (flee) out.push({ kind: 'flee', label: 'Flee', sub: flee.enabled ? 'Back to the map. The enemy stays.' : flee.reason.message, disabled: !flee.enabled, option: flee });
             return out;
         }
         if (view === 'skills') {

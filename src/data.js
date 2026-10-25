@@ -744,9 +744,9 @@
             secondsPerTurn: 3,             // a status written in turns lasts this many seconds per turn
             globalCooldownSeconds: 1,      // after any skill or item, before the next one
             maxStepMs: 1000,               // the longest slice one tick() call simulates (a sleeping tab can't skip a fight)
-            basicAttack: { swingSeconds: 1.6, referenceSpeed: 10, minSeconds: 0.8, maxSeconds: 2.5 },   // swing = 1.6 x 10 / SPD
-            cooldowns: { baseSeconds: 3, perCostSeconds: 2, allCostSeconds: 15 },   // a skill's own `cooldown` (seconds) wins
-            enemy: { actionSeconds: 3, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5, windupSeconds: 0.6, openingSeconds: 1 },
+            basicAttack: { swingSeconds: 3, referenceSpeed: 10, minSeconds: 1.5, maxSeconds: 4.5 },   // swing = 3 x 10 / SPD (QA #14: 1.6 s made every class win ~100%)
+            cooldowns: { baseSeconds: 4, perCostSeconds: 3, allCostSeconds: 15 },   // a skill's own `cooldown` (seconds) wins
+            enemy: { actionSeconds: 2.5, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5, windupSeconds: 0.6, openingSeconds: 1 },
             minion: { actionSeconds: 2.5, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5 },
             statuses: {
                 dotMaxStacks: 99,          // Bleed, Poison, Infection and every other 'dot' stack to 99 (Tokelo, 2026-10-25)

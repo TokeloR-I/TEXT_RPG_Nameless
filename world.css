@@ -331,8 +331,64 @@ body {
 .b-help { margin: 0.3em 0 0; min-height: 1.4em; color: var(--c-ink); font-size: 0.85em; line-height: 1.35; border-top: 1px solid rgba(138, 122, 88, 0.45); padding-top: 0.3em; }
 .b-cmd .keys { margin: 0.2em 0 0 !important; font-size: 0.78em; color: var(--c-ink-dim); }
 
+/* Real-time fights (combat v2): fight clock in the header, wind-up bars on the foes, the skill bar
+   bottom right. Countdowns are driven by --k (1 = just started, 0 = ready), set every frame by world-ui. */
+.combat.rt .b-foot { grid-template-columns: minmax(0, 1fr) auto; }
+.rt-clock { display: flex; align-items: center; gap: 0.6em; flex: none; text-shadow: 0 1px 0 #000; }
+.rt-clock-t { font-size: 1.5em; color: var(--c-ink); font-variant-numeric: tabular-nums; min-width: 2.8em;
+    padding: 0.05em 0.45em; background: var(--c-win-lo); border: 2px solid var(--c-frame-hi); box-shadow: 0 0 0 2px var(--c-frame-lo); }
+.rt-pulse { position: relative; display: block; width: 9cqw; height: 0.42em; background: var(--c-bar-bg); box-shadow: 0 0 0 1px #000; overflow: hidden; }
+.rt-pulse .fill { position: absolute; inset: 0 auto 0 0; width: calc((1 - var(--k, 1)) * 100%); background: var(--c-gold); }
+.rt-pulse-k { font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-ink-dim); }
+.combat.rt .b-round { margin-left: auto; }
+.combat.rt .foe { cursor: pointer; }
+.rt-wind, .rt-next { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr; gap: 0.05em; margin-top: 0.1em; }
+.rt-wbar, .rt-nbar { position: relative; display: block; height: 0.42em; background: var(--c-bar-bg); box-shadow: 0 0 0 1px #000; overflow: hidden; }
+.rt-nbar { height: 0.2em; opacity: 0.8; }
+.rt-wbar .fill, .rt-nbar .fill { position: absolute; inset: 0 auto 0 0; width: calc((1 - var(--k, 1)) * 100%); }
+.rt-wbar .fill { background: linear-gradient(90deg, var(--c-hp-mid), var(--c-hp-low)); }
+.rt-nbar .fill { background: var(--c-ink-mute); }
+.rt-wname { font-size: 0.82em; color: var(--c-hp-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: bob 0.4s steps(2) infinite; }
+.reduce-motion .rt-wname { animation: none; }
+.chip .rt-left { font-weight: normal; color: var(--c-ink-dim); font-variant-numeric: tabular-nums; }
+
+.rt-cmd { padding-bottom: 0.4em; }
+.rt-bar { display: flex; gap: 0.35em; align-items: stretch; }
+.rt-slot {
+    position: relative; display: grid; grid-template-rows: auto 1fr auto; width: 5.6em; height: 4.4em; padding: 0.2em 0.3em; overflow: hidden;
+    font: inherit; font-size: 0.82em; line-height: 1.15; text-align: left; color: var(--c-ink); cursor: pointer;
+    background: var(--c-win-lo); border: 1px solid var(--c-frame); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px var(--c-frame-lo);
+}
+.rt-slot.basic { border-color: var(--c-frame-hi); margin-right: 0.35em; }
+.rt-slot kbd { margin: 0; justify-self: start; font-size: 0.85em; padding: 0 0.25em; line-height: 1.2; }
+.rt-slot .rt-name { align-self: center; font-size: 0.9em; overflow-wrap: anywhere; overflow: hidden; max-height: 2.3em; }
+.rt-slot .rt-cost { justify-self: end; font-size: 0.8em; color: var(--c-st-control); }
+.rt-slot.ready { border-color: var(--c-accent); }
+.rt-slot.ready:hover { background: #1f2a2a; }
+.rt-slot.off, .rt-slot.empty { cursor: default; }
+.rt-slot.off .rt-name, .rt-slot.off .rt-cost, .rt-slot.off kbd { color: var(--c-ink-mute); border-color: var(--c-ink-mute); }
+.rt-slot.off::after { content: '✕'; position: absolute; top: 0.15em; right: 0.3em; font-size: 0.8em; color: var(--c-ink-mute); }
+.rt-slot.empty { border-style: dashed; border-color: var(--c-ink-mute); background: rgba(19, 17, 27, 0.6); }
+.rt-slot.empty kbd { color: var(--c-ink-mute); border-color: var(--c-ink-mute); }
+/* Cooldown: a dark shutter that drops away from the top, seconds in the middle. GCD: a bright strip along the bottom. */
+.rt-cd { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--k, 1) * 100%); background: rgba(5, 4, 9, 0.72);
+    border-top: 1px solid var(--c-frame-hi); display: grid; place-items: center; pointer-events: none; }
+.rt-cd.done, .rt-gcd.done { display: none; }
+.rt-cd .rt-sec { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-size: 1.15em; color: #fff; text-shadow: 0 1px 0 #000, 0 0 3px #000; font-variant-numeric: tabular-nums; }
+.rt-gcd { position: absolute; left: 0; bottom: 0; height: 2px; width: calc(var(--k, 1) * 100%); background: var(--c-accent); pointer-events: none; }
+.rt-hint { margin: 0.25em 0 0; min-height: 1.3em; font-size: 0.8em; color: var(--c-hp-mid); line-height: 1.3; }
+.rt-hint.flash { animation: hint 0.3s steps(2); }
+@keyframes hint { 50% { color: #fff; } }
+.rt-res { margin-left: 0.6em; color: var(--c-st-control); }
+
 @media (max-width: 640px) {
     .combat { font-size: clamp(10px, 2.6cqw, 13px); }
+    .combat.rt .b-foot { grid-template-columns: minmax(0, 1fr); }
+    .rt-bar { gap: 0.2em; }
+    .rt-slot { width: auto; flex: 1 1 0; min-width: 0; height: 3.9em; font-size: 0.74em; }
+    .rt-slot.basic { margin-right: 0.15em; }
+    .rt-pulse { width: 14cqw; }
+    .rt-cmd .keys { display: none; }
     .b-foot { grid-template-columns: minmax(0, 1fr); gap: 0.6em; }
     .b-commands { max-height: 5.4em; }
     .plate { width: 22cqw; }

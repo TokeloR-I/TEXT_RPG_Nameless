@@ -368,6 +368,9 @@
         });
     }
 
+    /** Fights are real time (combat v2, src/engine/realtime.js); ?combat=turn in the address plays the legacy turn-based fights. */
+    const COMBAT_MODE = /[?&]combat=turn(?:&|$)/.test(location.search || '') ? 'turn' : 'realtime';
+
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
     function seedFromUrl() {
         const m = /[?&]seed=(\d+)/.exec(location.search || '');
@@ -386,7 +389,7 @@
     }
     function continueGame(save) {
         let loaded;
-        try { loaded = ENSO.GameEngine.fromSave(save); } catch (e) { toast("That save couldn't be loaded."); creatorStep('name'); return; }
+        try { loaded = ENSO.GameEngine.fromSave(save, { combatMode: COMBAT_MODE }); } catch (e) { toast("That save couldn't be loaded."); creatorStep('name'); return; }
         engine = loaded;
         window.enso = engine;
         session = new WorldSession(WORLD, { engine });
@@ -414,7 +417,7 @@
     }
 
     function startGame(cls, name, look, cosmetics = defaultCosmetics()) {
-        engine = new ENSO.GameEngine({ seed: seedFromUrl() });
+        engine = new ENSO.GameEngine({ seed: seedFromUrl(), combatMode: COMBAT_MODE });
         window.enso = engine;                 // handy from the browser console
         engine.start();
         engine.act({ type: 'choose_class', classId: cls });
@@ -616,6 +619,7 @@
         { id: 'status', label: 'Status', sub: 'Your character, stats and gear.' },
         { id: 'items', label: 'Items', sub: 'Use what you carry.' },
         { id: 'equipment', label: 'Equipment', sub: 'Change your gear and compare stats.' },
+        { id: 'skillbar', label: 'Skill bar', sub: 'The six skills on keys 1-6 in a real-time fight.' },   // real-time fights only
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'settings', label: 'Settings', sub: 'Display, controls and this run.' },
@@ -629,12 +633,13 @@
         muteHeldKeys();
         els.hud.hidden = true;
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
-        mmTabs = MM_TABS_ALL.filter((t) => t.id !== 'crow' || crow);
-        mm = { tab: Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, note: note || '', fly: null };
+        const bar = engine.combatMode === 'realtime';
+        mmTabs = MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar));
+        mm = { tab: Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null };
         focusTabs();
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.fly = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -668,6 +673,7 @@
                 action: () => { mm.note = actLines({ type: 'equip', item: c.item }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } }));
             if (row.item) items.push({ label: `Take off ${engine.itemName(row.item)}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
+        if (id === 'skillbar') items = skillBarItems();
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
@@ -688,10 +694,35 @@
         if (!items || !items.length) { renderMain(); return; }          // Status and Journal are pages, not lists
         mm.focus = 'list';
         const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
+            : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
+    }
+    /** Skill bar (combat v2): the six slots, then for a chosen slot the learned skills that can go there.
+     *  The engine keeps the bar and refuses anything it won't allow (set_skill_slot); a skill already on the bar swaps. */
+    function skillBarInfo() {
+        const p = engine.getState().player;
+        const detail = Object.fromEntries(p.skills.map((k) => [k.name, k.detail || '']));
+        const bar = typeof engine.getSkillBar === 'function' ? engine.getSkillBar() : [];
+        const onBar = new Set(bar.map((b) => b.skillId).filter(Boolean));
+        const bench = typeof engine.skillBarBench === 'function' ? engine.skillBarBench() : p.skills.map((k) => k.name).filter((n) => !onBar.has(n));
+        return { bar, bench, detail };
+    }
+    function skillBarItems() {
+        const { bar, bench, detail } = skillBarInfo();
+        if (mm.barSlot == null) {
+            return bar.map((b) => ({ label: `${b.slot + 1} · ${b.skillId || '— empty —'}`, sub: b.skillId ? (detail[b.skillId] || 'On the bar.') : 'Choose a skill for this key.',
+                action: () => { mm.barSlot = b.slot; enterList('skillbar', 0); } }));
+        }
+        const slot = mm.barSlot;
+        const set = (skillId) => () => { mm.note = actLines({ type: 'set_skill_slot', slot, skillId }); mm.barSlot = null; enterList('skillbar', slot); };
+        const here = (bar[slot] || {}).skillId;
+        const items = bench.map((name) => ({ label: name, sub: detail[name] || 'Learned, not on the bar.', action: set(name) }));
+        for (const b of bar) if (b.skillId && b.slot !== slot) items.push({ label: `${b.skillId} (slot ${b.slot + 1})`, sub: `Swap: ${here ? `${here} goes to slot ${b.slot + 1}` : `slot ${b.slot + 1} is left empty`}.`, action: set(b.skillId) });
+        if (here) items.push({ label: `Clear slot ${slot + 1}`, sub: `Take ${here} off the bar.`, action: set(null) });
+        return items;
     }
     /** Run an engine action from the menu and return what it said, for the note line. */
     function actLines(action) {
@@ -744,9 +775,15 @@
                 <div><h3>${hl && hl.diff ? 'If you wear it' : 'Stats'}</h3>${statsHtml(p, hl && hl.diff)}</div></div>`;
         }
         if (tab === 'journal') page = journalHtml() || '<p class="mm-dim">No journal in this game.</p>';
+        if (tab === 'skillbar') {
+            const { bar, bench } = skillBarInfo();
+            page = `<h3>${mm.barSlot != null ? `Slot ${mm.barSlot + 1}: choose a skill` : 'Keys 1-6'}</h3>${inList ? list : `<ul class="mm-plain">${bar.map((b) => `<li><kbd>${b.slot + 1}</kbd> ${b.skillId ? esc(b.skillId) : '<span class="mm-dim">— empty —</span>'}</li>`).join('')}</ul>`}
+                <h3>Not on the bar</h3>${bench.length ? `<ul class="mm-plain mm-dim">${bench.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="mm-dim">Every skill you know is on the bar.</p>'}
+                <p class="mm-dim">Your basic attack needs no slot: <kbd>F</kbd> in a fight. The bar can't change during a fight.</p>`;
+        }
         if (tab === 'settings') {
             page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain"><li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li></ul>
+                <h3>Controls</h3><ul class="mm-plain"><li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
         if (tab === 'crow') {
@@ -758,7 +795,7 @@
         }
         if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
         const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
         els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
             <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
@@ -891,6 +928,13 @@
     // Battle overlay. The fight is the engine's; menus come from its availability list.
     // ---------------------------------------------------------------------
     const BM = ENSO.battleMenu;
+    // Real-time fights (combat v2): this page owns the clock and calls engine.tick() about every 100 ms
+    // from the frame loop (rtFrame). The HUD model is ui/battle-realtime.js.
+    const RT = ENSO.battleRealtime;
+    const rtClock = RT.createClock({ stepMs: 100, maxMs: 250 });
+    let rtLastFrame = 0;
+    const isRealtime = () => !!(battle && battle.rt);
+    const rtState = () => (typeof engine.getRealtimeState === 'function' ? engine.getRealtimeState() : null);
 
     function beginBattle(result) {
         screen = 'combat';
@@ -898,28 +942,150 @@
         muteHeldKeys();
         els.hud.hidden = true;
         els.banner.hidden = true; clearTimeout(bannerTimer);   // the map name never shows through the battle
-        battle = { id: result.id, log: [], fresh: 0, logOpen: false, ended: null, lastHp: {}, targetIds: [], labels: {} };
+        const live = engine.mode === 'combat' && engine.combatMode === 'realtime' && !!rtState();
+        battle = { id: result.id, log: [], fresh: 0, logOpen: false, ended: null, lastHp: {}, targetIds: [], labels: {},
+            rt: live ? { paused: false, running: false, now: 0, at: performance.now(), sig: '', hint: '' } : null };
         playActor('idle');
         fx.clear();
+        rtClock.reset();
         addLog(result.events);
-        if (engine.mode === 'combat') battleRoot(); else battleOver();
+        if (engine.mode !== 'combat') battleOver(); else if (isRealtime()) rtLive(); else battleRoot();
     }
     function addLog(events) {
         const lines = readable(events);
         for (const l of lines) battle.log.push(l);
-        battle.fresh = Math.min(lines.length, LOG_LINES);           // what the last action said is highlighted
+        // Turn-based: what the last action said is highlighted. Real time: the last few lines stay up, whatever said them.
+        if (isRealtime()) { if (lines.length) battle.fresh = Math.min(2, battle.log.length); } else battle.fresh = Math.min(lines.length, LOG_LINES);
         if (battle.log.length > LOG_LINES) battle.log.splice(0, battle.log.length - LOG_LINES);
     }
     function send(action) {
         const hpBefore = engine.player.hp;
         const before = engine.getState();
+        const rtBefore = isRealtime() ? rtState() : null;
+        const slots = rtBefore ? RT.skillSlots(engine.getAvailableActions(), rtBefore) : null;
         const r = engine.act(action);
+        if (isRealtime() && !r.ok) { rtHint(r.error ? r.error.message : ''); return; }   // a refusal (cooldown, stun...) is a hint, not a log line
         addLog(r.events);
         if (r.ok) {
-            actorReacts(action, hpBefore);
-            fx.push(ENSO.combatFx.eventsFromStates(before, engine.getState(), action, DATA, r.events), performance.now());
+            // Real time: a skill-bar press is drawn as the slot's skill, aimed at the held target.
+            let shown = rtBefore ? RT.presentationAction(action, slots) : action;
+            if (rtBefore && shown && (shown.type === 'skill' || shown.type === 'attack') && !shown.targetId && !shown.targetIds) {
+                const def = shown.type === 'skill' ? DATA.skillDefinitions[shown.skillId] : null;
+                if (!def || /^enemy/.test(def.target || 'enemy_single')) shown = { ...shown, targetId: rtBefore.targetId };
+            }
+            if (shown) actorReacts(shown, hpBefore);
+            fx.push(ENSO.combatFx.eventsFromStates(before, engine.getState(), shown, DATA, r.events), performance.now());
         }
-        if (engine.mode === 'combat') battleRoot(); else battleOver();
+        if (engine.mode !== 'combat') battleOver(); else if (isRealtime()) rtLive(); else battleRoot();
+    }
+
+    // ---- Real-time fight: clock, keys and the pause menu ----
+    /** Back to the live fight (no menu, the clock runs). */
+    function rtLive() {
+        battle.rt.paused = false;
+        if (engine.getAvailableActions().awaiting !== 'realtime') { rtSync(); battleRoot(); return; }   // anything the engine asks outside the bar uses the normal menu
+        battle.targetIds = [];
+        menu = null;
+        rtSync();
+        renderBattle();
+    }
+    /** Esc / I: stop the clock and show Resume / Items / Flee (or the items list straight away). */
+    function rtPause(sub) {
+        battle.rt.paused = true;
+        rtHint('', false);
+        if (sub === 'items') { rtItems(); return; }
+        menu = makeMenu(toItems(BM.entries(engine.getAvailableActions(), 'realtime'), (e) => {
+            if (e.kind === 'resume') return rtLive();
+            if (e.kind === 'items') return rtItems();
+            send(BM.actionFor(e.option));
+        }), { back: rtLive, render: renderBattle });
+        renderBattle();
+    }
+    function rtItems() {
+        battle.rt.paused = true;
+        menu = makeMenu(toItems(BM.entries(engine.getAvailableActions(), 'items'), (e) => send(BM.actionFor(e.option))), { back: () => rtPause(), render: renderBattle });
+        if (!menu.items.length) menu = makeMenu([{ label: 'Nothing to use', sub: 'Back to the fight.', action: rtLive }], { back: rtLive, render: renderBattle });
+        renderBattle();
+    }
+    /** One line under the skill bar: why the last press did nothing. Updated in place (no re-render). */
+    function rtHint(text, draw = true) {
+        battle.rt.hint = text || '';
+        const el = els.combat.querySelector('.rt-hint');
+        if (el) { el.textContent = battle.rt.hint; el.classList.remove('flash'); void el.offsetWidth; if (battle.rt.hint) el.classList.add('flash'); } else if (draw) renderBattle();
+    }
+    /** Remember the engine's fight time at this moment (countdowns are drawn from it) and what the HUD shows. */
+    function rtSync() {
+        const v = rtState();
+        battle.rt.now = v ? v.now : battle.rt.now;
+        battle.rt.at = performance.now();
+        battle.rt.sig = rtSignature(v);
+    }
+    /** What a full re-render depends on besides log lines: usable slots, resource, target, wind-ups. Timers update in place. */
+    function rtSignature(v) {
+        if (!v || engine.mode !== 'combat') return '';
+        const avail = engine.getAvailableActions();
+        const p = engine.player;
+        return [(avail.actions || []).map((o) => (o.enabled ? 1 : 0)).join(''), p.resource.current, p.hp, v.targetId,
+            Object.entries(v.actors).map(([id, a]) => `${id}:${a.windup ? a.windup.skill : '-'}`).join(',')].join('|');
+    }
+    /** Called every frame: feeds the engine clock while the fight runs, then moves the countdowns. */
+    function rtFrame(now) {
+        const dt = rtLastFrame ? now - rtLastFrame : 0;
+        rtLastFrame = now;
+        if (!isRealtime() || screen !== 'combat') { rtClock.reset(); return; }
+        // The clock stops for the pause menu, the full log (it hides the field), a hidden tab, and once the fight is over.
+        const running = !battle.ended && !battle.rt.paused && !battle.logOpen && !document.hidden && engine.mode === 'combat';
+        if (running && !battle.rt.running) battle.rt.at = now;   // resuming: countdowns start from the engine's time again
+        battle.rt.running = running;
+        const ms = rtClock.feed(dt, running);
+        if (ms > 0) rtTick(ms);
+        if (isRealtime() && screen === 'combat') rtTimers(now);
+    }
+    function rtTick(ms) {
+        const hpBefore = engine.player.hp;
+        const before = engine.getState();
+        const events = engine.tick(ms);
+        if (events.length) {
+            addLog(events);
+            fx.push(ENSO.combatFx.eventsFromStates(before, engine.getState(), null, DATA, events), performance.now());
+            if (engine.mode === 'game_over') playActor('death'); else if (engine.player.hp < hpBefore) playActor('hit');
+        }
+        if (engine.mode !== 'combat') { battleOver(); return; }
+        const sig = battle.rt.sig;
+        rtSync();
+        if (events.length || battle.rt.sig !== sig) renderBattle();
+    }
+    /** Countdowns between ticks: fight time is the engine's last time plus what has passed since (at most one step). */
+    function rtTimers(now) {
+        const t = battle.rt.now + (battle.rt.running ? Math.min(250, Math.max(0, now - battle.rt.at)) : 0);
+        els.combat.querySelectorAll('[data-rt-end]').forEach((el) => {
+            const end = +el.dataset.rtEnd, total = +el.dataset.rtTotal;
+            const k = RT.remaining({ endsAt: end, totalMs: total }, t);
+            el.style.setProperty('--k', k.toFixed(3));
+            el.classList.toggle('done', k <= 0);
+            const sec = el.querySelector('.rt-sec');
+            if (sec) sec.textContent = RT.secondsText(end - t);
+        });
+        els.combat.querySelectorAll('[data-rt-ends]').forEach((el) => { el.textContent = `${Math.max(0, Math.ceil((+el.dataset.rtEnds - t) / 1000))}s`; });
+        const clock = els.combat.querySelector('[data-rt-clock]');
+        if (clock) clock.textContent = RT.clockText(t);
+    }
+    /** Keys in a live real-time fight. Returns true if used. */
+    function rtKey(ev) {
+        const slot = RT.slotForKey(ev);
+        if (slot >= 0) { send({ type: 'skill_slot', slot }); return true; }
+        if (ev.key === 'f' || ev.key === 'F') { send({ type: 'attack' }); return true; }
+        if (ev.key === 'Tab') { rtCycleTarget(ev.shiftKey ? -1 : 1); return true; }
+        if (ev.repeat) return false;
+        if (ev.key === 'Escape') { rtPause(); return true; }
+        if (ev.key === 'i' || ev.key === 'I') { rtPause('items'); return true; }
+        return false;
+    }
+    function rtCycleTarget(dir) {
+        const v = rtState();
+        const s = engine.getState();
+        const id = RT.cycleTarget(s.combat ? s.combat.enemies : [], v && v.targetId, dir);
+        if (id && (!v || id !== v.targetId)) send({ type: 'set_target', targetId: id });
     }
 
     // The player's battle sprite (GFX-2, #106): which one-shot animation to play is a presentation
@@ -1051,11 +1217,36 @@
         const trail = was > now ? `<span class="trail" style="--from:${was}%;--to:${now}%"></span>` : '';
         return `<span class="bar ${cls} tone-${BV.hpTone(cur, max)}" role="meter" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${Math.max(0, cur)}">${trail}<span class="fill" style="width:${now}%"></span></span>`;
     }
-    function chips(list) {
+    /** Status chips; in a real-time fight (`now` = fight time) timed ones count down their seconds in place. */
+    function chips(list, now) {
         return (list || []).map((x) => {
-            const c = BV.statusChip(x, DATA.statusDefinitions);
-            return `<span class="chip st-${c.category}" title="${esc(c.title)}"><i aria-hidden="true">${c.glyph}</i>${esc(c.text)}</span>`;
+            const c = BV.statusChip(x, DATA.statusDefinitions, now);
+            const left = c.endsAt != null ? ` <b class="rt-left" data-rt-ends="${c.endsAt}">${c.seconds}s</b>` : '';
+            return `<span class="chip st-${c.category}" title="${esc(c.title)}"><i aria-hidden="true">${c.glyph}</i>${esc(c.text)}${left}</span>`;
         }).join('');
+    }
+    /** A countdown element the frame loop moves (rtTimers): --k goes from 1 (just started) to 0 (done). */
+    const rtTimer = (cls, t, inner = '') => (t ? `<span class="${cls}" data-rt-end="${t.endsAt}" data-rt-total="${t.totalMs || 0}" style="--k:1">${inner}</span>` : '');
+    /** The skill bar (keys 1-6) and the basic attack (F). Usable or not, and why, is the engine's answer. */
+    function skillBarHtml(avail, v) {
+        const p = engine.player;
+        const slotHtml = (sl) => {
+            const timing = sl.reason && (sl.reason.code === 'ON_COOLDOWN' || sl.reason.code === 'GLOBAL_COOLDOWN');
+            const cls = sl.empty ? 'empty' : sl.enabled ? 'ready' : timing ? 'cooling' : 'off';
+            const cd = sl.cooldown && sl.cooldown.endsAt > v.now ? rtTimer('rt-cd', sl.cooldown, '<span class="rt-sec"></span>') : '';
+            const gcd = !sl.empty && sl.gcd ? rtTimer('rt-gcd', sl.gcd) : '';
+            return `<button type="button" tabindex="-1" class="rt-slot ${cls}" data-rt-slot="${sl.slot}" title="${esc(sl.title)}" aria-label="${esc(sl.title)}" aria-disabled="${!sl.enabled}">
+                <kbd>${sl.key}</kbd><span class="rt-name">${esc(sl.label || '')}</span>${sl.empty ? '' : `<span class="rt-cost">${sl.cost ? `◆${sl.cost}` : 'free'}</span>`}${cd}${gcd}</button>`;
+        };
+        const b = RT.basicSlot(avail, v);
+        const bcls = b.enabled ? 'ready' : b.reason && b.reason.code === 'ON_COOLDOWN' ? 'cooling' : 'off';
+        return `<div class="rt-bar" role="toolbar" aria-label="Skill bar">
+                <button type="button" tabindex="-1" class="rt-slot basic ${bcls}" data-rt-basic title="${esc(b.title)}" aria-label="${esc(b.title)}" aria-disabled="${!b.enabled}">
+                    <kbd>${b.key}</kbd><span class="rt-name">${esc(b.label)}</span><span class="rt-cost">swing</span>${rtTimer('rt-cd', b.swing)}</button>
+                ${RT.skillSlots(avail, v).map(slotHtml).join('')}
+            </div>
+            <p class="rt-hint" role="status">${esc(battle.rt.hint || '')}</p>
+            <p class="keys"><kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> attack <kbd>Tab</kbd> target <kbd>I</kbd> items <kbd>Esc</kbd> pause <kbd>L</kbd> ${battle.logOpen ? 'close log' : 'log'} <span class="rt-res">◆ ${esc(p.resource.type)}</span></p>`;
     }
     function commandHtml(m) {
         const items = m ? m.items : [];
@@ -1070,20 +1261,23 @@
         const foes = s.combat ? s.combat.enemies : [];
         const minions = s.combat ? s.combat.minions : [];
         const avail = !battle.ended && engine.mode === 'combat' ? engine.getAvailableActions() : null;
+        const rtv = isRealtime() && !battle.ended ? rtState() : null;   // real-time fight: clock, timers, held target
+        const rtLiveBar = !!(rtv && avail && avail.awaiting === 'realtime' && !battle.rt.paused);
+        const rtNow = rtv ? rtv.now : undefined;
         const controlled = avail && avail.awaiting === 'control' ? foes.find((e) => e.id === avail.controlledActorId) : null;
         const round = s.combat ? `Round ${s.combat.round}` : '';
         const heading = battle.ended === 'victory' ? 'Victory' : battle.ended === 'defeat' ? 'Defeat' : round;
         // Twins keep the letter they started the fight with ("Rust Rat B" stays B after A falls).
         battle.labels = { ...BV.unitLabels([...foes, ...minions]), ...battle.labels };
         const name = (u) => battle.labels[u.id] || u.name;
-        const strip = BV.turnStrip(battle.ended ? null : engine.getTurnOrder(), battle.labels);
+        const strip = BV.turnStrip(battle.ended || isRealtime() ? null : engine.getTurnOrder(), battle.labels);
         // Turn bar (HD-2D pass): the one acting sits in the big diamond, everyone after them rides the line.
         const units = Object.fromEntries([...foes, ...minions].map((u) => [u.id, u]));
         const face = (t, size) => `<canvas class="face" width="${size}" height="${size}" data-face="${esc(t.id)}" data-key="${esc((units[t.id] || {}).key || '')}" aria-hidden="true"></canvas>`;
         const queue = [...strip.now, ...strip.next];
         const actor = queue.find((t) => t.current) || null;
         const turnHtml = (list) => list.filter((t) => t !== actor).map((t) => `<li class="t-${esc(t.side)}${battle.targetIds.includes(t.id) ? ' aimed' : ''}" title="${esc(t.label)}">${face(t, 24)}<span class="t-name">${esc(t.label)}</span></li>`).join('');
-        const mode = battle.ended ? '' : controlled ? `You control ${controlled.name}` : avail && avail.awaiting === 'turn_order' ? 'Set the turn order' : '';
+        const mode = battle.ended ? '' : isRealtime() && battle.rt.paused ? 'Paused' : controlled ? `You control ${controlled.name}` : avail && avail.awaiting === 'turn_order' ? 'Set the turn order' : '';
         const n = battle.log.length;
         const logHtml = battle.log.map((l, i) => {
             const v = BV.logLine(l.text);
@@ -1092,11 +1286,13 @@
         els.combat.hidden = false;
         els.combat.classList.toggle('ended', !!battle.ended);
         els.combat.classList.toggle('log-open', battle.logOpen);
+        els.combat.classList.toggle('rt', isRealtime());
         els.combat.innerHTML = `
             <header class="b-head">
                 ${actor ? `<div class="b-now t-${esc(actor.side)}" aria-label="Acting now: ${esc(actor.label)}"><span class="dia">${face(actor, 32)}</span><span class="t-name">${esc(actor.label)}</span></div>` : ''}
+                ${rtv ? `<div class="rt-clock" aria-label="Fight clock"><span class="rt-clock-t" data-rt-clock>${RT.clockText(rtv.now)}</span>${rtTimer('rt-pulse', { endsAt: rtv.now + rtv.pulseInMs, totalMs: ((DATA.realtimeRules || {}).pulseSeconds || 3) * 1000 }, '<span class="fill"></span>')}<span class="rt-pulse-k">pulse</span></div>` : ''}
                 ${queue.length ? `<ol class="b-turns" aria-label="Turn order">${turnHtml(strip.now)}${strip.next.length ? `<li class="t-sep" aria-hidden="true">Next</li>${turnHtml(strip.next)}` : ''}</ol>` : ''}
-                <span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}</header>
+                <span class="b-round ${battle.ended ? `b-${esc(battle.ended)}` : ''}">${esc(isRealtime() && !battle.ended ? 'Real time' : heading)}</span>${mode ? `<span class="b-mode">${esc(mode)}</span>` : ''}</header>
             <section class="b-field" aria-label="Battlefield">
                 <div class="b-side b-allies">
                     <figure class="unit me" data-unit-id="player">
@@ -1109,12 +1305,16 @@
                 </div>
                 <div class="b-side b-foes">${foes.map((e) => {
                     const hit = battle.lastHp[e.id] != null && e.hp < battle.lastHp[e.id];
-                    const aimed = battle.targetIds.includes(e.id);
-                    return `<figure class="unit foe ${aimed ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}">
+                    const aimed = battle.targetIds.includes(e.id) || !!(rtv && rtv.targetId === e.id);
+                    const tm = rtv ? RT.actorTimers(rtv, e.id) : null;
+                    // Real time: a wind-up bar with the move's name (stun it before it lands), else a thin timer to its next move.
+                    const timers = !tm ? '' : tm.windup ? `<span class="rt-wind" title="${esc(name(e))} readies ${esc(tm.windup.skill)}">${rtTimer('rt-wbar', tm.windup, '<span class="fill"></span>')}<span class="rt-wname">${esc(tm.windup.skill)}</span></span>`
+                        : tm.next ? `<span class="rt-next" title="Next move">${rtTimer('rt-nbar', tm.next, '<span class="fill"></span>')}</span>` : '';
+                    return `<figure class="unit foe ${aimed ? 'targeted' : ''} ${hit ? 'hit' : ''}" data-unit-id="${esc(e.id)}"${rtv ? ` title="${esc(name(e))}: click to target"` : ''}>
                         <span class="b-cursor" aria-hidden="true">${aimed ? '▼' : ''}</span>
                         <canvas width="128" height="128" data-key="${esc(e.key)}"></canvas>
                         <figcaption class="plate"><span class="u-name">${esc(name(e))}</span>${hpBar(e.id, e.hp, e.maxHp, 'enemy')}<span class="u-hp">${e.hp}/${e.maxHp}</span>
-                            <span class="chips">${chips(e.statusEffects)}</span></figcaption></figure>`;
+                            ${timers}<span class="chips">${chips(e.statusEffects, rtNow)}</span></figcaption></figure>`;
                 }).join('')}</div>
             </section>
             <section class="win b-log ${battle.logOpen ? 'open' : ''}" aria-live="polite" aria-label="Battle log">${logHtml}</section>
@@ -1123,21 +1323,28 @@
                     <div class="u-name">${esc(p.name)} <span class="lv">Lv ${p.level}</span></div>
                     <div class="stat"><span class="k">HP</span>${hpBar('player', p.hp, p.maxHp, 'hp')}<span class="v">${Math.max(0, p.hp)}<small>/${p.maxHp}</small></span></div>
                     <div class="stat"><span class="k">${esc(p.resource.type)}</span>${hpBar('player.res', p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
-                    <div class="chips">${chips(p.statusEffects)}</div>
+                    <div class="chips">${chips(p.statusEffects, rtNow)}</div>
                 </section>
-                <section class="win b-cmd" aria-label="Commands">
+                ${rtLiveBar ? `<section class="win b-cmd rt-cmd" aria-label="Skill bar">${skillBarHtml(avail, rtv)}</section>` : `<section class="win b-cmd" aria-label="Commands">
                     ${commandHtml(menu)}
+                    ${isRealtime() && battle.rt.hint && battle.rt.paused ? `<p class="rt-hint" role="status">${esc(battle.rt.hint)}</p>` : ''}
                     <p class="keys"><kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm${menu && menu.back ? ' <kbd>Esc</kbd> back' : ''} <kbd>L</kbd> ${battle.logOpen ? 'close log' : 'log'}</p>
-                </section>
+                </section>`}
             </footer>`;
         bindMenuClicks(els.combat, menu);
+        if (rtLiveBar) {
+            const press = (el, fn) => { el.addEventListener('mousedown', (e) => e.preventDefault()); el.addEventListener('click', fn); };   // no focus: keys stay with the fight
+            els.combat.querySelectorAll('[data-rt-slot]').forEach((el) => press(el, () => send({ type: 'skill_slot', slot: +el.dataset.rtSlot })));
+            els.combat.querySelectorAll('[data-rt-basic]').forEach((el) => press(el, () => send({ type: 'attack' })));
+            els.combat.querySelectorAll('.foe[data-unit-id]').forEach((el) => el.addEventListener('click', () => { if (rtState() && rtState().targetId !== el.dataset.unitId) send({ type: 'set_target', targetId: el.dataset.unitId }); }));
+        }
         const sel = els.combat.querySelector('.b-commands li.selected');
         if (sel) sel.scrollIntoView({ block: 'nearest' });                       // long skill lists scroll with the cursor
         els.combat.querySelector('.b-log').addEventListener('click', toggleBattleLog);
         els.combat.querySelectorAll('canvas[data-key]:not(.face)').forEach((c) => ENSO.worldRender.drawCreature(c, c.dataset.key, performance.now()));
         els.combat.querySelectorAll('canvas.face').forEach(drawFace);
         // Camera: lean in on the foes while you pick a target, pull back otherwise (CSS; off with reduced motion).
-        $('world-stage').dataset.cam = battle.ended ? 'wide' : battle.targetIds.length ? 'foes' : actor && actor.side === 'enemy' ? 'me' : 'wide';
+        $('world-stage').dataset.cam = battle.ended || isRealtime() ? 'wide' : battle.targetIds.length ? 'foes' : actor && actor.side === 'enemy' ? 'me' : 'wide';
         // Collapsed, the message window starts at the first line of what just happened (your own action),
         // not at the bottom, so enemy turns never push your result out of view. Open, it shows the latest.
         const log = els.combat.querySelector('.b-log');
@@ -1146,6 +1353,7 @@
         battle.lastHp = Object.fromEntries([...foes, ...minions].map((e) => [e.id, e.hp]));
         battle.lastHp.player = p.hp;
         battle.lastHp['player.res'] = p.resource.current;
+        if (isRealtime()) rtTimers(performance.now());
     }
     /** A turn-bar face: Wren's portrait hook when it exists, else a crop of the sprite or creature. */
     function drawFace(c) {
@@ -1239,6 +1447,8 @@
         down.add(ev.key);
         if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
+            if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
+            if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
             if (modal === 'pause' && menu && (dir === 'left' || dir === 'right') && !ev.repeat && mainMenuSideways(dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
             if (menu) menuKey(menu, ev, dir);
@@ -1321,6 +1531,7 @@
         if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
         if (!anim) view.moving = false;
         if (screen !== 'title') updatePrompt();
+        rtFrame(now);   // before drawActor: a tick that re-renders the overlay gets its sprite drawn this same frame
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
         const objects = session.visibleObjects(view.mapId).map((o) => ({ ...o, seen: seen.has(o.id) }));

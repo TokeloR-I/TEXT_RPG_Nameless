@@ -54,10 +54,17 @@ test('RT-02: skills have cooldowns from cost (or their own), share a global cool
     g.run(RT.globalCooldownSeconds * 1000);
     assert.ok(g.act({ type: 'skill', skillId: 'Guard' }).ok, 'global cooldown over');
     const cd = g.getRealtimeState().cooldowns['Power Strike'];
-    assert.ok(cd && cd.remainingMs > 0 && cd.totalMs === 7000);
-    g.run(7000);
+    assert.ok(cd && cd.remainingMs > 0 && cd.totalMs === g.rtCooldownMs('Power Strike'));
+    g.run(g.rtCooldownMs('Power Strike'));
     assert.ok(option(g, 'skill', 'Power Strike').enabled, 'cooldown over');
     assert.ok(g.act({ type: 'skill', skillId: 'Power Strike' }).ok);
+    // QA #14 RT-1: an item shares the global cooldown, and availability says so too
+    g.player.inventory.push('Bandages'); g.player.hp -= 50;
+    assert.strictEqual(option(g, 'use_item').reason.code, 'GLOBAL_COOLDOWN');
+    assert.strictEqual(g.act({ type: 'use_item', item: 'Bandages' }).error.code, 'GLOBAL_COOLDOWN');
+    g.run(RT.globalCooldownSeconds * 1000);
+    assert.ok(option(g, 'use_item').enabled);
+    assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok);
     assertHealthy(g);
 });
 

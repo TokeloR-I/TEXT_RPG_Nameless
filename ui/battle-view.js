@@ -11,11 +11,20 @@
     /** Each status category has a glyph as well as a colour, so a chip never relies on colour alone. */
     const CATEGORY_GLYPH = { buff: '▲', debuff: '▼', dot: '✸', control: '◆', mark: '◎', cooldown: '⧗', other: '•' };
 
-    /** A status chip: { category, glyph, text, title }. `defs` is data.statusDefinitions. */
-    function statusChip(status, defs) {
+    /**
+     * A status chip: { category, glyph, text, title }. `defs` is data.statusDefinitions.
+     * In a real-time fight pass the fight clock `now` (getState().combat.realtime.now): a timed status
+     * (rtEndsAt) then shows seconds left instead of rounds, and `endsAt` is set so the HUD can count down.
+     */
+    function statusChip(status, defs, now) {
         const def = (defs && defs[status.name]) || {};
         const category = CATEGORY_GLYPH[def.category] ? def.category : 'other';
         const stacks = status.stacks > 1 ? ` ×${status.stacks}` : '';
+        if (typeof now === 'number' && typeof status.rtEndsAt === 'number') {
+            const secs = Math.max(0, Math.ceil((status.rtEndsAt - now) / 1000));
+            return { category, glyph: CATEGORY_GLYPH[category], text: `${status.name}${stacks}`, seconds: secs, endsAt: status.rtEndsAt,
+                title: `${status.name} (${category}${stacks ? `, ${status.stacks} stacks` : ''}, ${secs}s left)` };
+        }
         const turns = typeof status.duration === 'number' ? ` ${status.duration}` : '';
         const left = typeof status.duration === 'number' ? `, ${status.duration} round${status.duration === 1 ? '' : 's'} left` : '';
         return { category, glyph: CATEGORY_GLYPH[category], text: `${status.name}${stacks}${turns}`,
