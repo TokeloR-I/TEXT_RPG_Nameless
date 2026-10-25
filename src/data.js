@@ -230,9 +230,9 @@
             'Fortress': { description: 'Create a zone lasting 3 turns, allies take -20% dmg inside.', cost: 2, resource: 'Vigil', effects: [{ type: 'create_zone', zone: 'Fortress', duration: 3, effect: { type: 'damage_reduction', value: 0.2 } }], target: 'self', damage_type: 'utility' },
 
             // Necromancer Base Skills
-            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
+            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, cooldown: 4, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
             'Raise Skeleton': { description: 'Summon skeleton (5–7 dmg/turn).', cost: 2, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'skeleton', damage: [5, 7], duration: 'permanent' }], target: 'self' },
-            'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
+            'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, cooldown: 4, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
             'Channel the Grave': { description: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 1 turn)', cost: 0, resource: 'Soul Energy', effects: [{ type: 'gain_resource', resource: 'Soul Energy', value: 1 }, { type: 'take_true_damage', value: 2 }, { type: 'apply_status', status: 'Channel Cooldown', duration: 1 }], target: 'self' }, // Safety valve
 
             // Bone Warden Branch Skills
@@ -254,7 +254,7 @@
 
             // Rogue Base Skills
             'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'physical' },
-            'Evasion': { description: '50% chance to dodge next attack.', cost: 0, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
+            'Evasion': { description: '50% chance to dodge next attack.', cost: 0, cooldown: 7, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
             'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', cost: 1, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
             'Second Wind': { description: 'Gain +2 Energy, -25% evasion this turn.', cost: 0, resource: 'Energy', effects: [{ type: 'gain_resource', resource: 'Energy', value: 2 }, { type: 'apply_status', status: 'Evasion Debuff', value: -0.25, duration: 1 }], target: 'self' }, // Safety valve
 
@@ -276,9 +276,9 @@
             'Clockwork Bomb': { description: '20–28 dmg AOE, delayed 1 turn.', cost: 3, resource: 'Trap Charges', base_damage: [20, 28], effects: [{ type: 'delayed_aoe', delay: 1 }], target: 'enemy_aoe', damage_type: 'physical' },
 
             // Mage Base Skills
-            'Arcane Bolt': { description: '10–14 dmg.', cost: 1, resource: 'Mana', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
+            'Arcane Bolt': { description: '10–14 dmg.', cost: 1, cooldown: 4, resource: 'Mana', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
             'Focus': { description: 'Gain +2 Mana.', cost: 0, resource: 'Mana', effects: [{ type: 'gain_resource', resource: 'Mana', value: 2 }], target: 'self' },
-            'Mana Burst': { description: '15–20 dmg, ignores 25% armor.', cost: 2, resource: 'Mana', base_damage: [15, 20], effects: [{ type: 'ignore_armor_percent', value: 0.25 }], target: 'enemy_single', damage_type: 'magic' },
+            'Mana Burst': { description: '15–20 dmg, ignores 25% armor.', cost: 2, cooldown: 7, resource: 'Mana', base_damage: [15, 20], effects: [{ type: 'ignore_armor_percent', value: 0.25 }], target: 'enemy_single', damage_type: 'magic' },
             'Overchannel': { description: 'Spend HP to cast beyond Mana this turn; leaves a "Burnout" debuff next turn.', cost: 0, resource: 'Mana', effects: [{ type: 'overchannel' }], target: 'self' }, // Safety valve
 
             // Elementalist Branch Skills
@@ -740,7 +740,7 @@
         // Every number here is Wren's FIRST PASS (2026-10-25) for Tally to measure and Vaelis to tune.
         // ===================================================================
         const realtimeRules = {
-            pulseSeconds: 3,               // one "round" of bookkeeping: resource regen, Soul Energy, bombs, round counter
+            pulseSeconds: 2,               // one "round" of bookkeeping: resource regen, Soul Energy, bombs, round counter (Gauge: 3 -> 2, Necromancer Soul Energy starved; docs/design/ENSO_ACTION_COMBAT_BALANCE.md)
             secondsPerTurn: 3,             // a status written in turns lasts this many seconds per turn
             globalCooldownSeconds: 1,      // after any skill or item, before the next one
             maxStepMs: 1000,               // the longest slice one tick() call simulates (a sleeping tab can't skip a fight)
@@ -760,54 +760,213 @@
 
         // ===================================================================
         // ACTION COMBAT (combat v3, docs/ACTION_COMBAT.md): fights in the world, not on a battle screen.
-        // Pixels are map pixels on 16 px tiles; times in ms. Wren's first pass (2026-10-25), replaced by
-        // Vaelis's tables (docs/design/ENSO_ACTION_COMBAT_DESIGN.md) as they land.
+        // Pixels are map pixels on 16 px tiles; times in ms. Behaviour and first-pass numbers: Thorne,
+        // docs/design/ENSO_ACTION_COMBAT_DESIGN.md §7. Values owned by Gauge: docs/design/ENSO_ACTION_COMBAT_BALANCE.md
+        // (the reasoning, the paper model `node qa/scripts/action_model.js`, and what the sim bot must verify).
         // ===================================================================
         const actionRules = {
-            player: { speed: 64, sprintMult: 1.5, radius: 5, attackMoveMult: 0.35, hurtMs: 220 },
-            stamina: { max: 100, regenPerSec: 32, regenDelayMs: 600, sprintPerSec: 18 },
-            dodge: { distance: 46, ms: 220, iframeMs: 200, recoveryMs: 120, stamina: 25, cooldownMs: 350 },
-            guard: { damageTaken: 0.3, arcDeg: 140, staminaPerHit: 14, moveMult: 0.45 },
-            parry: { windowMs: 160, staggerMs: 900 },
-            respawn: { hpPct: 0.5 },
+            player: {
+                speed: 72, sprintMult: 1.5, radius: 5, attackMoveMult: 0.35, hurtMs: 220, staggerMs: 400, inputBufferMs: 150,
+                cancel: {
+                    dodgeCancels: ['attackStartup', 'attackRecovery', 'skillCast', 'skillRecovery', 'guard', 'item'],
+                    guardCancels: ['attackRecovery', 'skillRecovery'],
+                    recoveryCancelPct: 0.5,
+                    skillFizzle: { refundCost: true, cooldownMs: 1000 },
+                    lightHitsInterrupt: false
+                }
+            },
+            stamina: { max: 100, regenPerSec: 40, regenDelayMs: 600, sprintPerSec: 18, sprintMinToStart: 10, exhaustedUntil: 20, guardRegenMult: 0.3, sprintFreeOutOfCombat: true },
+            dodge: { distance: 48, ms: 240, iframeStartMs: 20, iframeMs: 200, recoveryMs: 120, stamina: 25, cooldownMs: 350, passThroughEnemies: true },
+            guard: { damageTaken: 0.4, arcDeg: 140, staminaPerHit: 14, moveMult: 0.45, raiseMs: 80, breakStaggerMs: 700 },
+            parry: { windowMs: 160, staggerMs: 900, rearmMs: 400 },
+            respawn: { hpPct: 0.5, bossHpPct: 1.0, at: 'entrySpawn', graceMs: 1500, iframeMs: 1500 },
             engageRadius: 120,                  // pressing attack with an enemy group this close engages it
             classes: {
-                warrior:     { weapon: { kind: 'arc', reach: 24, arcDeg: 120, startupMs: 140, activeMs: 90, recoveryMs: 260 } },
-                rogue:       { weapon: { kind: 'arc', reach: 18, arcDeg: 90, startupMs: 80, activeMs: 70, recoveryMs: 170 }, dodge: { distance: 56, stamina: 18 } },
-                mage:        { weapon: { kind: 'projectile', range: 120, speed: 210, radius: 4, projectile: 'arcane', startupMs: 160, activeMs: 0, recoveryMs: 220 }, dodge: { distance: 52 } },
-                necromancer: { weapon: { kind: 'projectile', range: 110, speed: 180, radius: 4, projectile: 'bone', startupMs: 170, activeMs: 0, recoveryMs: 240 } }
+                warrior: {
+                    weapon: {
+                        kind: 'arc', reach: 26, arcDeg: 110, startupMs: 150, activeMs: 90, recoveryMs: 240, moveMult: 0.35, poise: 1, comboResetMs: 600,
+                        combo: [
+                            { kind: 'arc', reach: 26, arcDeg: 110, startupMs: 150, activeMs: 90, recoveryMs: 240 },
+                            { kind: 'arc', reach: 26, arcDeg: 110, startupMs: 140, activeMs: 90, recoveryMs: 260 },
+                            { kind: 'arc', reach: 30, arcDeg: 70, startupMs: 220, activeMs: 100, recoveryMs: 420, poise: 2, stepPx: 8 }
+                        ]
+                    },
+                    dodge: {},
+                    guard: { damageTaken: 0.25, arcDeg: 140, staminaMult: 0.8, moveMult: 0.55, parry: { windowMs: 200, staggerMs: 1100 } }
+                },
+                rogue: {
+                    weapon: {
+                        kind: 'arc', reach: 20, arcDeg: 90, startupMs: 90, activeMs: 70, recoveryMs: 160, moveMult: 0.6, poise: 1, comboResetMs: 600,
+                        combo: [
+                            { kind: 'arc', reach: 20, arcDeg: 90, startupMs: 90, activeMs: 70, recoveryMs: 160 },
+                            { kind: 'arc', reach: 20, arcDeg: 90, startupMs: 90, activeMs: 70, recoveryMs: 160 },
+                            { kind: 'line', reach: 26, width: 10, startupMs: 130, activeMs: 80, recoveryMs: 300 }
+                        ]
+                    },
+                    dodge: { distance: 56, ms: 220, iframeMs: 200, recoveryMs: 70, stamina: 18, cooldownMs: 250 },
+                    guard: { parryOnly: true, damageTaken: 1.0, stamina: 10, whiffRecoveryMs: 350, parry: { windowMs: 200, staggerMs: 800 } }
+                },
+                mage: {
+                    weapon: { kind: 'projectile', range: 128, speed: 220, radius: 4, projectile: 'arcane', startupMs: 180, activeMs: 0, recoveryMs: 260, moveMult: 0.6, poise: 1 },
+                    dodge: { teleport: true, distance: 60, ms: 120, iframeStartMs: 0, iframeMs: 220, recoveryMs: 160, stamina: 30, cooldownMs: 600 },
+                    guard: { damageTaken: 0.6, arcDeg: 360, staminaMult: 1.5, moveMult: 0.4, parry: null }
+                },
+                necromancer: {
+                    weapon: { kind: 'projectile', range: 120, speed: 190, radius: 4, projectile: 'bone', startupMs: 200, activeMs: 0, recoveryMs: 300, moveMult: 0.6, poise: 1 },
+                    dodge: { distance: 40, ms: 300, iframeMs: 280, recoveryMs: 140, stamina: 25 },
+                    guard: { damageTaken: 0.5, arcDeg: 360, staminaMult: 1.2, moveMult: 0.4, parry: null }
+                }
             },
             skillShapes: {
                 byTarget: {
-                    enemy_single:   { shape: 'projectile', range: 130, speed: 230, radius: 5, castMs: 180 },
-                    enemy_multiple: { shape: 'cone', range: 70, arcDeg: 70, castMs: 200 },
-                    enemy_aoe:      { shape: 'circle', radius: 44, castMs: 240 },
-                    all_enemies:    { shape: 'circle', radius: 64, castMs: 260 },
-                    linked_enemies: { shape: 'circle', radius: 64, castMs: 220 },
-                    all_combatants: { shape: 'circle', radius: 64, castMs: 260 },
-                    self:           { shape: 'self', castMs: 120 },
+                    enemy_single:   { shape: 'projectile', range: 140, speed: 240, radius: 5, castMs: 220, maxTargets: 1 },
+                    enemy_aoe:      { shape: 'circle', radius: 40, castMs: 260 },
+                    enemy_multiple: { shape: 'ground', range: 140, radius: 40, castMs: 300, los: true },
+                    all_enemies:    { shape: 'circle', radius: 160, castMs: 300, los: true },
+                    linked_enemies: { shape: 'self', radius: 200, castMs: 220 },
+                    all_combatants: { shape: 'self', radius: 160, castMs: 300 },
+                    self:           { shape: 'self', castMs: 0 },
                     ally_single:    { shape: 'self', castMs: 120 },
-                    minions:        { shape: 'self', castMs: 160 },
-                    ground:         { shape: 'ground', radius: 30, range: 90, castMs: 220 },
-                    corpse:         { shape: 'self', castMs: 200 }
+                    minions:        { shape: 'self', radius: 200, castMs: 160 },
+                    ground:         { shape: 'ground', range: 110, radius: 32, castMs: 260 },
+                    corpse:         { shape: 'ground', range: 140, radius: 40, castMs: 300, needsCorpse: true }
                 },
                 bySkill: {
-                    'Power Strike': { shape: 'arc', reach: 28, arcDeg: 110, castMs: 260 },
-                    'Backstab':     { shape: 'arc', reach: 20, arcDeg: 70, castMs: 120 },
-                    'Quick Slash':  { shape: 'arc', reach: 20, arcDeg: 100, castMs: 90 },
-                    'Shield Bash':  { shape: 'arc', reach: 20, arcDeg: 90, castMs: 160 },
-                    'Whirlwind':    { shape: 'circle', radius: 30, castMs: 200 }
+                    'Slash':             { shape: 'arc', reach: 26, arcDeg: 110, castMs: 150, maxTargets: 1 },
+                    'Guard':             { shape: 'self', castMs: 0, stacksWithGuard: true },
+                    'Power Strike':      { shape: 'arc', reach: 30, arcDeg: 70, castMs: 420, activeMs: 120, recoveryMs: 450, poise: 3, stepPx: 12, maxTargets: 1 },
+                    'War Cry':           { shape: 'self', castMs: 300 },
+                    'Arcane Bolt':       { shape: 'projectile', range: 150, speed: 280, radius: 5, castMs: 240 },
+                    'Focus':             { shape: 'self', castMs: 500, moveMult: 0.3, channel: true },
+                    'Mana Burst':        { shape: 'projectile', range: 130, speed: 200, radius: 8, castMs: 450 },
+                    'Overchannel':       { shape: 'self', castMs: 0 },
+                    'Backstab':          { shape: 'line', reach: 24, width: 10, castMs: 160, maxTargets: 1, flankArcDeg: 120 },
+                    'Evasion':           { shape: 'self', castMs: 0 },
+                    'Quick Slash':       { shape: 'dash', dashPx: 32, dashMs: 110, reach: 20, arcDeg: 80, castMs: 80, maxTargets: 1 },
+                    'Second Wind':       { shape: 'self', castMs: 0 },
+                    'Grave Bolt':        { shape: 'projectile', range: 150, speed: 230, radius: 5, castMs: 300, corpseRadius: 200 },
+                    'Raise Skeleton':    {
+                        shape: 'summon', range: 40, castMs: 700,
+                        minion: {
+                            radius: 5, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220,
+                            attack: { skill: 'Bone Club', shape: 'arc', reach: 16, arcDeg: 70, windupMs: 350, activeMs: 80, recoveryMs: 450, cooldownMs: 1500 }
+                        }
+                    },
+                    'Soul Leech':        { shape: 'line', reach: 96, width: 10, castMs: 320, los: true, maxTargets: 1 },
+                    'Channel the Grave': { shape: 'self', castMs: 400 },
+                    'Shield Bash':       { shape: 'arc', reach: 22, arcDeg: 80, castMs: 260, poise: 3, stepPx: 12, maxTargets: 1 },
+                    'Hemorrhage':        { shape: 'arc', reach: 28, arcDeg: 90, castMs: 300, maxTargets: 1 },
+                    'Pincushion':        { shape: 'projectile', range: 160, speed: 320, radius: 4, castMs: 300 },
+                    'Bone Wall':         { shape: 'self', castMs: 250 },
+                    'Contagion':         { shape: 'projectile', range: 130, speed: 170, radius: 7, castMs: 400, los: true, spreadRadius: 48 },
+                    'Soul Chain':        { shape: 'ground', range: 130, radius: 48, castMs: 450, los: true, count: 2, breakDistance: 200 },
+                    'Shadowstep':        { shape: 'dash', teleport: true, range: 110, behindPx: 16, aimConeDeg: 30, castMs: 150, iframeMs: 150, los: true },
+                    'Riposte':           { shape: 'self', castMs: 0, durationMs: 3000, counter: { shape: 'arc', reach: 26, arcDeg: 110 } },
+                    'Caltrops':          { shape: 'ground', range: 110, radius: 32, castMs: 280, durationMs: 6000, applyOnEnter: true },
+                    'Fireball':          { shape: 'projectile', range: 160, speed: 240, radius: 7, castMs: 380 },
+                    'mirrorImage':       { shape: 'self', castMs: 200, decoyMs: 3000 },
+                    'haste':             { shape: 'self', castMs: 200 },
+                    'Whirlwind':         { shape: 'circle', radius: 30, castMs: 200 }
                 }
             },
-            enemyDefaults: { speed: 42, detect: 90, sight: true, reach: 18, windupMs: 520, activeMs: 110, recoveryMs: 600, shape: 'arc', arcDeg: 100, leash: 200, radius: 6, wander: 18 },
+            // Fills any field an enemy leaves out. An enemy's top-level reach/windupMs/shape are its primary attack.
+            enemyDefaults: { speed: 48, detect: 90, sight: true, reach: 18, windupMs: 520, activeMs: 110, recoveryMs: 600, lockMs: 200, shape: 'arc', arcDeg: 100, leash: 200, radius: 6, wander: 18, poise: 2, flinchMs: 250, blockCost: 14, parryable: true, giveUpMs: 4000 },
             enemies: {
-                rust_rat:          { speed: 58, reach: 14, windupMs: 380, recoveryMs: 420, radius: 4 },
-                hungry_wolf:       { speed: 70, detect: 110, reach: 20, windupMs: 450, shape: 'line', width: 10, lunge: 26 },
-                weak_goblin:       { speed: 46, reach: 16, windupMs: 480 },
-                bone_gnawer:       { speed: 50, reach: 15, windupMs: 420 },
-                cult_acolyte:      { speed: 40, ranged: true, keepDistance: 60, reach: 100, shape: 'projectile', projectile: 'shadow', projSpeed: 140, windupMs: 650 },
-                shackled_ghoul_stronger: { speed: 38, reach: 22, windupMs: 700, arcDeg: 140, radius: 8 },
-                crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 30, windupMs: 800, arcDeg: 150, radius: 10, leash: 400 }
+                rust_rat: {
+                    speed: 60, detect: 64, reach: 12, arcDeg: 60, windupMs: 380, activeMs: 80, recoveryMs: 400, radius: 4, poise: 1, leash: 150,
+                    keepDistance: [0, 12], group: 'swarm', flee: { belowHpPct: 0.3, ms: 1500 }, retreatAfterHitPx: 24,
+                    attacks: [
+                        { skill: 'Corroding Bite', shape: 'arc', reach: 12, arcDeg: 60, windupMs: 380, activeMs: 80, recoveryMs: 400, cooldownMs: 900, blockCost: 6 }
+                    ]
+                },
+                hungry_wolf: {
+                    speed: 82, detect: 112, smellRadius: 40, reach: 40, shape: 'line', width: 10, lunge: 40, windupMs: 480, activeMs: 200, recoveryMs: 650, radius: 6, poise: 2, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [40, 56], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Bite', shape: 'line', reach: 40, width: 10, lunge: 40, windupMs: 480, activeMs: 200, recoveryMs: 650, cooldownMs: 2200, blockCost: 12, useAt: [24, 56] },
+                        // Gauge: windup 300 -> 380. 7-10 dmg (the wolf's whole bite) needs a tell a 250 ms reaction can answer.
+                        { name: 'Snap', skill: 'Bite', shape: 'arc', reach: 16, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 900, blockCost: 8, useAt: [0, 20] }
+                    ]
+                },
+                weak_goblin: {
+                    speed: 52, detect: 96, alertMs: 400, reach: 18, arcDeg: 90, windupMs: 480, activeMs: 100, recoveryMs: 450, radius: 5, poise: 1, leash: 180,
+                    keepDistance: [14, 18], group: 'flank', flee: { belowHpPct: 0.25, ms: 2000 }, hopBackAfterHits: 2, hopBackPx: 20,
+                    attacks: [
+                        { skill: 'Goblin Slash', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 480, activeMs: 100, recoveryMs: 450, cooldownMs: 1200, blockCost: 10 }
+                    ]
+                },
+                bone_gnawer: {
+                    speed: 50, detect: 80, reach: 14, arcDeg: 50, windupMs: 420, activeMs: 80, recoveryMs: 500, radius: 5, poise: 2, leash: 150, giveUpMs: null,
+                    keepDistance: [0, 12], group: 'direct',
+                    attacks: [
+                        { skill: 'Ankle Snap', shape: 'arc', reach: 14, arcDeg: 50, windupMs: 420, activeMs: 80, recoveryMs: 500, cooldownMs: 1000, blockCost: 10, low: true, guardEfficiency: 0.5 }
+                    ]
+                },
+                cult_acolyte: {
+                    speed: 44, detect: 112, alertMs: 1200, ranged: true, keepDistance: [56, 90], reach: 120, shape: 'projectile', projectile: 'shadow', projSpeed: 130,
+                    windupMs: 650, activeMs: 0, recoveryMs: 600, radius: 5, poise: 2, leash: 170, group: 'ranged_keeps_distance', roles: ['blade', 'hexer'], backOffBelow: 40,
+                    attacks: [
+                        { name: 'Hex Bolt', skill: 'Hexing Blade', shape: 'projectile', reach: 120, projSpeed: 130, radius: 5, windupMs: 650, activeMs: 0, recoveryMs: 600, cooldownMs: 2500, blockCost: 12, parryable: false, role: 'hexer' },
+                        { name: 'Hexing Blade', skill: 'Hexing Blade', shape: 'line', reach: 22, width: 10, windupMs: 550, activeMs: 100, recoveryMs: 550, cooldownMs: 1400, blockCost: 12, role: 'blade' }
+                    ]
+                },
+                watch_constable: {
+                    speed: 54, detect: 128, alertMs: 1500, reach: 20, arcDeg: 80, windupMs: 500, activeMs: 100, recoveryMs: 500, radius: 6, poise: 3, leash: 260,
+                    keepDistance: [16, 22], group: 'pincer', frontalShield: { arcDeg: 90, damageTaken: 0.5 },
+                    attacks: [
+                        { skill: 'Truncheon', shape: 'arc', reach: 20, arcDeg: 80, windupMs: 500, activeMs: 100, recoveryMs: 500, cooldownMs: 1400, blockCost: 12 },
+                        { skill: 'Shield Shove', shape: 'line', reach: 18, width: 16, windupMs: 350, activeMs: 120, recoveryMs: 600, cooldownMs: 3000, blockCost: 20, knockbackPx: 24, staggers: true, useWhen: 'playerGuarding_or_shieldHitTwice' }
+                    ]
+                },
+                shackled_ghoul_stronger: {
+                    speed: 58, detect: 80, provokedOnly: true, reach: 20, arcDeg: 90, windupMs: 600, activeMs: 100, recoveryMs: 800, radius: 8, poise: 5, hyperArmor: true, leash: 120,
+                    keepDistance: [0, 20], group: 'solo',
+                    attacks: [
+                        {
+                            name: 'Frenzied Bite', skill: 'Frenzied Bite', shape: 'arc', reach: 20, arcDeg: 90, cooldownMs: 1600, useAt: [0, 20],
+                            combo: [
+                                { windupMs: 600, activeMs: 100, recoveryMs: 200, blockCost: 14 },
+                                { windupMs: 350, activeMs: 100, recoveryMs: 800, blockCost: 16, staggers: true, knockbackPx: 12 }
+                            ]
+                        },
+                        { name: 'Chain Whip', skill: 'Frenzied Bite', shape: 'arc', reach: 32, arcDeg: 160, windupMs: 800, activeMs: 150, recoveryMs: 700, cooldownMs: 4000, blockCost: 22, useAt: [20, 40] }
+                    ]
+                },
+                crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' }
+            },
+            bosses: {
+                crow_touched_warden: {
+                    arena: { x0: 16, y0: 32, x1: 336, y1: 224, home: { x: 184, y: 88 }, leashInsideArena: false, exitResets: true, respawnAt: { x: 184, y: 232 }, reengageRadius: 80 },
+                    speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
+                    parryStaggerMs: 600, warriorParryStaggerMs: 800, attackGapMs: 1200, minWindupMs: 500,
+                    guardsSeal: true, noSweepNearCagesPx: 40,
+                    attacks: {
+                        halberd_sweep:   { skill: 'Halberd Sweep', shape: 'arc', reach: 36, arcDeg: 150, windupMs: 700, activeMs: 150, recoveryMs: 700, blockCost: 30, parryable: true, useAt: [0, 40] },
+                        reaping_thrust:  { skill: 'Halberd Sweep', shape: 'line', reach: 64, width: 12, lunge: 24, windupMs: 550, activeMs: 120, recoveryMs: 900, blockCost: 22, parryable: true, useAt: [40, 80], alsoWhen: 'playerNorthOfWarden_or_nearCage' },
+                        chain_lock:      { skill: 'Chain Lock', shape: 'projectile', reach: 120, width: 10, projSpeed: 300, windupMs: 600, activeMs: 0, recoveryMs: 800, blockCost: 20, parryable: false, onHit: { status: 'Rooted', ms: 1000, pullPx: 24 }, useWhen: 'playerBeyond80For1500ms' },
+                        summon_crows:    { skill: 'Summon Crows', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 900, activeMs: 300, recoveryMs: 1000, guardable: false, cooldownMs: 9000 },
+                        // Gauge: windup 1200 -> 1300 (walking out of r 64 from his feet takes ~960 ms + a 250 ms reaction) and
+                        // active 200 -> 120 (the 200 ms dodge i-frames must cover the whole active window with slack).
+                        murder_of_crows: { skill: 'Summon Crows', shape: 'circle', radius: 64, windupMs: 1300, activeMs: 120, recoveryMs: 1500, guardable: false, cooldownMs: 15000, phase: 2 }
+                    },
+                    phases: [
+                        { fromHpPct: 1.0, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },
+                        { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
+                        { fromHpPct: 0.2, recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true }
+                    ],
+                    onDefeat: { drop: 'First Echo key', scene: 'crows_mourn' },
+                    onPlayerDefeat: { reset: 'fullHp', returnHome: true, keepFlags: ['warden_challenged'] }
+                }
+            },
+            combat: {
+                maxSimultaneousAttackers: 2,
+                reset: { returnSpeedMult: 1.6, invulnerable: true, fullHeal: true, reengageCooldownMs: 1500, unreachableMs: 3000 },
+                itemUse: { ms: 500, moveMult: 0.5, cancelKeepsItem: true },
+                channelInteractMs: 1000,
+                corpseMs: 30000,
+                perfectDodgeFiresOnDodge: true,
+                allowedWhileEngaged: { move: true, items: true, collectDrop: true, inspect: true, gather: 'channel', dialogue: false, shop: false, equip: false, skillBarEdit: false, inventoryReadOnly: true, pause: true, mapExit: true },
+                blockedWhileThreatened: ['save', 'black_flight']
             }
         };
 
