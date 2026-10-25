@@ -527,9 +527,10 @@
         els.prompt.hidden = true;
         renderTalk(events);
     }
-    function renderTalk(events) {
+    function renderTalk(events, conversationOnly = false) {
         const avail = engine.getAvailableActions();
         if (avail.awaiting !== 'dialogue') { closeTalk(events); return; }
+        if (avail.shop && !conversationOnly) { renderShop(avail); return; }
         const said = readable(events);
         const choices = avail.actions.filter((a) => a.type === 'dialogue_choice');
         const leave = () => renderTalk(engine.act({ type: 'dialogue_leave' }).events);
@@ -537,6 +538,36 @@
             { back: leave, render: () => drawTalk(avail, said) });
         drawTalk(avail, said);
     }
+    /** Shop goods and refusals come from the same engine checks as buy(). */
+    function renderShop(avail, message = '', selected = 0) {
+        const back = () => renderTalk([], true);
+        const goods = avail.shop.goods;
+        menu = makeMenu([...goods.map((good, index) => ({
+            label: `${good.item} · ${good.price} Gold`,
+            sub: `${good.remaining} left · Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}`,
+            disabled: !good.enabled,
+            action: () => {
+                const result = engine.act({ type: 'buy', shopId: good.shopId, item: good.item });
+                updateHud();
+                renderShop(engine.getAvailableActions(), result.ok ? `Purchased ${good.item} for ${good.price} Gold.` : result.error.message, index);
+            }
+        })), { label: 'Back to conversation', action: back }], { back, render: draw });
+        menu.index = Math.min(selected, menu.items.length - 1);
+        draw();
+        function draw() {
+            const good = goods[menu.index];
+            els.dialog.hidden = false;
+            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · Shop <span class="dialog-role">${avail.shop.gold} Gold</span></div>
+                ${menuHtml(menu, 'shop-goods')}
+                <div class="shop-detail">${esc(good ? good.description : 'Return to the conversation.')}</div>
+                <div class="shop-message" role="status">${esc(message)}</div>
+                <div class="dialog-keys">↑ ↓ choose · Enter buy one · Esc back</div>`;
+            bindMenuClicks(els.dialog, menu);
+            const selectedRow = els.dialog.querySelector('.selected');
+            if (selectedRow) selectedRow.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
     function drawTalk(avail, said) {
         const d = avail.dialogue;
         els.dialog.hidden = false;

@@ -203,18 +203,26 @@
             return true;
         }
 
-        /** Commerce is atomic: validations complete before either balance or inventory changes. */
-        buyItem(shopId, item) {
+        /** Shared, pure purchase validation for actions and merchant menus. */
+        purchaseBlock(shopId, item) {
             const shop = (this.data.shopDefinitions || {})[shopId], entry = shop && shop.stock && shop.stock[item];
             const def = this.data.itemDefinitions[item];
-            if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1) {
-                this.refuse('NOT_FOR_SALE','This merchant cannot sell that item.'); return false;
-            }
-            if (this.player.gold < entry.buyPrice) { this.refuse('NOT_ENOUGH_GOLD','Not enough Gold.'); return false; }
+            if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1)
+                return { code: 'NOT_FOR_SALE', message: 'This merchant cannot sell that item.' };
+            if (this.player.gold < entry.buyPrice) return { code: 'NOT_ENOUGH_GOLD', message: 'Not enough Gold.' };
+            const remaining = (this.player.shopStock || {})[`${shopId}:${item}`] ?? entry.quantity;
+            if (remaining < 1) return { code: 'OUT_OF_STOCK', message: 'That item is sold out.' };
+            return null;
+        }
+
+        /** Commerce is atomic: validations complete before either balance or inventory changes. */
+        buyItem(shopId, item) {
+            const block = this.purchaseBlock(shopId, item);
+            if (block) { this.refuse(block.code, block.message); return false; }
+            const entry = this.data.shopDefinitions[shopId].stock[item];
             if (!this.player.shopStock) this.player.shopStock = {};
             const key = `${shopId}:${item}`;
             const remaining = this.player.shopStock[key] ?? entry.quantity;
-            if (remaining < 1) { this.refuse('OUT_OF_STOCK','That item is sold out.'); return false; }
             this.player.gold -= entry.buyPrice;
             this.player.shopStock[key] = remaining - 1;
             this.player.inventory.push(item);

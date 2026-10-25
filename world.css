@@ -704,3 +704,10 @@ body {
 .vessel-columns { grid-template-columns: minmax(0, 44%) minmax(0, 56%); }
 .vessel-preview-stage { min-height: 0; }
 @media (max-width: 660px) { .vessel-columns { grid-template-columns: minmax(0, 1fr); } }
+
+/* Merchant panel: scroll stock independently on small displays. */
+.dialog:has(.shop-goods) { max-height: 88%; display: flex; flex-direction: column; }
+.shop-goods { overflow-y: auto; min-height: 0; }
+.shop-goods .m-sub { color: var(--ink-dim); font-size: .85em; }
+.shop-detail { margin-top: .5em; overflow-wrap: anywhere; }
+.shop-message { color: var(--accent); min-height: 1.3em; }
