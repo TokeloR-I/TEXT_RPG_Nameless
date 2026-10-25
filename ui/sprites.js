@@ -46,6 +46,33 @@
     // The player character: animations, layer order, which sheet each layer uses.
     // ---------------------------------------------------------------------
     const manifest = ENSO.spriteManifest || (ENSO.spriteManifest = {});
+    // Action-combat one-shots (combat v3, Vesper), per character, built only from poses each character's sheets
+    // already have. swing ≈ 350 ms (startup → active → recovery), heavy slower, dodge ≈ 250 ms crouch/lean,
+    // guard a looping hold, hurt a short flinch. A character that doesn't define one of these gets it from here
+    // (see animDef), so the generated Mana Seed manifest (assets/sprites/manaseed.js) needs no edit.
+    const st = (pose, ms, oy = 0) => ({ pose, ms, oy });
+    const ACTION_ANIMATIONS = {
+        player: {
+            swing: { once: true, then: 'idle', steps: [st('windup', 90), st('strike', 110, 1), st('strike', 100), st('stand', 50)] },
+            heavy: { once: true, then: 'idle', steps: [st('windup', 200), st('windup', 120, -1), st('strike', 140, 1), st('strike', 180, 1), st('stand', 80)] },
+            dodge: { once: true, then: 'idle', steps: [st('kneel', 70, 1), st('stepA', 110, 2), st('stepB', 70, 1)] },
+            guard: [st('windup', 600, 0), st('windup', 600, 1)],
+            hurt: { once: true, then: 'idle', steps: [st('hit', 110, -1), st('hit', 90), st('stand', 50)] }
+        },
+        manaseed: {
+            swing: { once: true, then: 'ready', steps: [st('slash1', 90), st('slash2', 50), st('slash3', 50), st('slash4', 160)] },
+            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash1', 200), st('slash2', 70), st('slash3', 90, 1), st('slash4', 240)] },
+            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk2', 120, 2), st('walk5', 70, 1)] },
+            guard: [st('parry', 600, 0), st('parry', 600, 1)],
+            hurt: { once: true, then: 'ready', steps: [st('hit', 160, -1), st('ready1', 90)] }
+        }
+    };
+    const actionAnimationsFor = (character) => {
+        const key = Object.keys(manifest).find((k) => manifest[k] === character);
+        return (key && ACTION_ANIMATIONS[key]) || {};
+    };
+    /** Every animation a character can play: its own, plus the action-combat ones it doesn't define itself. */
+    const animationsOf = (character) => ({ ...actionAnimationsFor(character), ...character.animations });
     manifest.player = manifest.player || {
         frame: { w: 24, h: 32 },
         anchor: { x: 12, y: 30 },              // the pixel that stands on the ground point (feet centre)
@@ -58,7 +85,9 @@
             attack: { once: true, then: 'idle', steps: [{ pose: 'windup', ms: 140, oy: 0 }, { pose: 'strike', ms: 120, oy: 1 }, { pose: 'strike', ms: 160, oy: 0 }, { pose: 'stand', ms: 80, oy: 0 }] },
             cast: { once: true, then: 'idle', steps: [{ pose: 'cast', ms: 160, oy: 0 }, { pose: 'cast', ms: 220, oy: -1 }, { pose: 'cast', ms: 160, oy: 0 }, { pose: 'stand', ms: 80, oy: 0 }] },
             hit: { once: true, then: 'idle', steps: [{ pose: 'hit', ms: 90, oy: -1 }, { pose: 'hit', ms: 140, oy: 0 }, { pose: 'stand', ms: 90, oy: 0 }] },
-            death: { once: true, steps: [{ pose: 'hit', ms: 160, oy: -1 }, { pose: 'kneel', ms: 220, oy: 2 }, { pose: 'kneel', ms: 1, oy: 3 }] }
+            death: { once: true, steps: [{ pose: 'hit', ms: 160, oy: -1 }, { pose: 'kneel', ms: 220, oy: 2 }, { pose: 'kneel', ms: 1, oy: 3 }] },
+            // Action combat (combat v3, docs/ACTION_COMBAT.md; Vesper). Same poses, world timings.
+            ...ACTION_ANIMATIONS.player
         },
         // Bottom to top. Facing up, long hair falls over the back, so the rear hair goes above the clothing.
         layerOrder: {
@@ -84,7 +113,7 @@
     const fill = (tpl, c) => tpl.replace(/\{(\w+)\}/g, (_, k) => (Number.isInteger(c[k]) ? c[k] : 0));
 
     /** An animation as { steps, once, then }. Plain arrays are looping animations. */
-    const animDef = (character, anim) => { const a = character.animations[anim] || character.animations.idle; return Array.isArray(a) ? { steps: a, once: false } : a; };
+    const animDef = (character, anim) => { const a = character.animations[anim] || actionAnimationsFor(character)[anim] || character.animations.idle; return Array.isArray(a) ? { steps: a, once: false } : a; };
     const duration = (steps) => steps.reduce((t, s) => t + s.ms, 0);
     /** Has a one-shot animation finished after `elapsed` ms? (Looping ones never do.) */
     function animationDone(character, anim, elapsed) { const a = animDef(character, anim); return !!a.once && elapsed >= duration(a.steps); }
@@ -279,7 +308,7 @@
         }
         for (const ch of new Set([character, ...Object.values(manifest)])) for (const dir of FACINGS) for (const layer of ['body']) {
             const id = fill(typeof ch.layers[layer] === 'string' ? ch.layers[layer] : ch.layers[layer].sheet, {});
-            for (const anim of Object.keys(ch.animations)) for (const s of animDef(ch, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
+            for (const anim of Object.keys(animationsOf(ch))) for (const s of animDef(ch, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
         }
         return errs;
     }
@@ -306,7 +335,7 @@
         g.imageSmoothingEnabled = prev;
     }
 
-    const api = { characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
+    const api = { ACTION_ANIMATIONS, animationsOf, characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
     ENSO.sprites = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

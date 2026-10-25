@@ -148,11 +148,16 @@
             c.rt = { now: 0, nextPulseAt: Math.round((r.pulseSeconds || 3) * 1000), cooldowns: {}, gcdUntil: 0, gcdMs: 0, basicReadyAt: 0, basicMs: 0, actors: {}, actorId: null, targetId: null };
             c.order = [this.player, ...this.alive(c.enemies), ...this.alive(c.minions)].sort((a, b) => this.speedOf(b) - this.speedOf(a));
             c.idx = 0;
-            const opening = Math.round(((r.enemy || {}).openingSeconds || 1) * 1000);
-            this.alive(c.enemies).forEach((e, i) => this.rtSchedule(e, opening + i * 250));
             c.rt.targetId = (this.alive(c.enemies)[0] || {}).id || null;
             this.ensureSkillBar();
             c.awaitingPlayer = true;
+            if (this.combatMode === 'action') {   // combat v3: the action sim decides when enemies attack (action.js)
+                c.rt.external = true;
+                c.action = { groups: {}, casts: {}, nextCastId: 0, nextEnemyId: c.enemies.length, windups: {} };
+                return;
+            }
+            const opening = Math.round(((r.enemy || {}).openingSeconds || 1) * 1000);
+            this.alive(c.enemies).forEach((e, i) => this.rtSchedule(e, opening + i * 250));
             this.say('--- Real-time battle! Skills 1-6, basic attack any time. ---', { important: true });
         }
 
@@ -177,6 +182,7 @@
             if (!this.rtActive()) return this.flush();
             const step = clamp(Number(ms) || 0, 0, this.rtRules().maxStepMs || 1000);
             if (step <= 0) return this.flush();
+            if (this.rtQuietUntil(step)) { this.combat.rt.now += step; return this.flush(); }   // nothing due: skip the transaction (60 Hz callers)
             return this.transact(() => this.rtAdvance(step));
         }
 
@@ -193,6 +199,14 @@
             }
         }
 
+        /** Pure: is nothing due in the next `ms`? (Every living non-player already has its clock, so rtNextEventAt won't book one.) */
+        rtQuietUntil(ms) {
+            const rt = this.combat.rt;
+            for (const x of this.rtLiving()) if (!x.isPlayer && !(rt.external && !x.isMinion) && !rt.actors[x.id]) return false;
+            const next = this.rtNextEventAt();
+            return next != null && next > rt.now + ms;
+        }
+
         rtLiving() { const c = this.combat; return [this.player, ...this.alive(c.enemies), ...this.alive(c.minions)].filter((x) => x.hp > 0); }
 
         /** The earliest pending event (status tick or expiry, wind-up, action, pulse). */
@@ -202,7 +216,7 @@
             const take = (v) => { if (isNum(v) && v < t) t = v; };
             for (const x of this.rtLiving()) {
                 for (const s of x.statusEffects) { take(s.rtEndsAt); if (s.type === 'dot') take(s.rtNextTickAt); }
-                if (x.isPlayer) continue;
+                if (x.isPlayer || (rt.external && !x.isMinion)) continue;
                 const a = rt.actors[x.id];
                 if (!a) { this.rtSchedule(x); take(rt.actors[x.id].nextActionAt); continue; }   // a new summon
                 take(a.windup ? a.windup.landsAt : a.nextActionAt);
@@ -231,7 +245,7 @@
             }
             // 2. wind-ups that land, 3. actions that start
             for (const x of this.rtLiving()) {
-                if (x.isPlayer) continue;
+                if (x.isPlayer || (rt.external && !x.isMinion)) continue;
                 const a = rt.actors[x.id];
                 if (!a) continue;
                 if (a.windup && a.windup.landsAt <= now) { this.rtLand(x); if (ended()) return true; }
@@ -372,7 +386,9 @@
                     if (!a.item || !this.player.inventory.includes(a.item)) { this.refuseCombat('NO_ITEM', a.item ? `You don't have a '${a.item}'.` : 'Use what? (e.g. use bandages)'); return; }
                     this.combatUseItem(a.item);
                     return;
-                case 'flee': this.doFlee(); return;
+                case 'flee':
+                    if (c.action) { this.refuseCombat('WRONG_MODE', 'Run! Out of their reach, they give up the chase.'); return; }   // combat v3: you flee by moving
+                    this.doFlee(); return;
                 default: this.refuseCombat('WRONG_MODE', `You can't do '${a.type}' in a real-time fight.`);
             }
         }
@@ -393,6 +409,7 @@
             if (p.statusEffects.some((s) => s.type === 'skip_turn')) return { code: 'STUNNED', message: "You're stunned and can't act yet." };
             const secs = (ms) => `${(ms / 1000).toFixed(1)}s`;
             if (isBasic) {
+                if (rt.external) return null;   // combat v3: the weapon's startup and recovery pace the basic attack (the sim)
                 if (rt.basicReadyAt > rt.now) return { code: 'ON_COOLDOWN', message: `${name} is ready in ${secs(rt.basicReadyAt - rt.now)}.`, remainingMs: rt.basicReadyAt - rt.now };
                 return null;
             }
@@ -420,6 +437,7 @@
             const c = this.combat;
             const rt = c.rt;
             if (isBasic) {
+                if (rt.external) return;
                 rt.basicMs = this.rtIntervalMs(this.player);
                 rt.basicReadyAt = rt.now + rt.basicMs;
             } else {

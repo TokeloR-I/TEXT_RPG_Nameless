@@ -57,8 +57,8 @@
             }
             return result;
         }
-        /** Record rolls before credit. A failed credit remains pending and can be retried without RNG. */
-        awardVictoryLoot(enemies) {
+        /** Roll each eligible enemy's once-only claim (recorded before credit) and return the claim ids. */
+        rollVictoryClaims(enemies) {
             this.stats.lootClaims = this.stats.lootClaims || {};
             const ids = [];
             for (const enemy of enemies) {
@@ -71,7 +71,64 @@
                 }
                 ids.push(id);
             }
-            return this.claimLoot(ids);
+            return ids;
+        }
+        /** Record rolls before credit. A failed credit remains pending and can be retried without RNG. */
+        awardVictoryLoot(enemies) {
+            return this.claimLoot(this.rollVictoryClaims(enemies));
+        }
+        /**
+         * Combat v3 (docs/ACTION_COMBAT.md "World drops"): roll the same claims, but leave them pending in a drop on the
+         * ground at (x, y) that the player collects with act({ type: 'collect_drop', dropId }). Nothing is credited here.
+         */
+        dropVictoryLoot(enemies, { encounterId, mapId, x, y } = {}) {
+            if (!this.world) throw new Error('dropVictoryLoot before enter_world');
+            const drops = this.world.drops || (this.world.drops = []);   // created on first use, so older saves load unchanged
+            const held = new Set(drops.flatMap(d => d.claimIds));
+            const claims = this.stats.lootClaims || {};
+            const ids = this.rollVictoryClaims(enemies).filter(id => !held.has(id) && claims[id] && claims[id].status !== 'claimed');
+            const live = ids.filter(id => claims[id].status === 'error' || claims[id].result.gold > 0 || claims[id].result.items.length);
+            // A claim that rolled nothing is settled at once, so it never lingers as pending.
+            for (const id of ids) if (!live.includes(id)) { claims[id].status = 'claimed'; delete claims[id].error; }
+            if (!live.length) return null;
+            const results = live.map(id => claims[id]).filter(c => c.status !== 'error').map(c => c.result);
+            const gold = results.reduce((n, r) => n + r.gold, 0);
+            const items = results.flatMap(r => r.items).map(e => {
+                const d = e.record || this.data.itemDefinitions[e.item] || {};
+                return { item: e.item, name: d.name || e.item, rarity: d.rarity || null };
+            });
+            const base = `drop:${encounterId != null ? encounterId : live[0]}`;
+            let id = base;
+            for (let n = 2; drops.some(d => d.id === id); n++) id = `${base}:${n}`;
+            const drop = { id, mapId: mapId == null ? null : String(mapId), x: Number(x) || 0, y: Number(y) || 0, claimIds: live, gold, items };
+            drops.push(drop);
+            const names = [...new Set(enemies.filter(e => e.lootClaimId && live.includes(e.lootClaimId)).map(e => e.name).filter(Boolean))];
+            const counts = {};
+            for (const e of items) counts[e.name] = (counts[e.name] || 0) + 1;
+            const parts = [...(gold ? [`${gold} Gold`] : []), ...Object.entries(counts).map(([name, n]) => n > 1 ? `${n} × ${name}` : name)];
+            const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : (parts[0] || 'something');
+            const who = names.length ? `The ${names.join(' and the ')}` : 'The fallen';
+            this.say(`${who} ${names.length > 1 ? 'drop' : 'drops'} ${list}.`);
+            this.out.push({ type: 'world.drop', drop: JSON.parse(JSON.stringify(drop)) });
+            return drop;
+        }
+        /** Pure: the uncollected drops on a map (copies). */
+        getWorldDrops(mapId) {
+            const drops = (this.world && this.world.drops) || [];
+            return JSON.parse(JSON.stringify(drops.filter(d => mapId == null || d.mapId === String(mapId))));
+        }
+        /** act({ type: 'collect_drop', dropId }): credit a drop's claims once and remove it. A refused credit keeps it. */
+        collectDrop(dropId) {
+            const drops = (this.world && this.world.drops) || [];
+            const index = drops.findIndex(d => d.id === String(dropId));
+            if (index < 0) { this.refuse('NO_DROP', 'There is nothing here to pick up.'); return null; }
+            const drop = drops[index];
+            const owed = this.pendingLoot(drop.claimIds).length;
+            const result = this.claimLoot(drop.claimIds);
+            if (owed && !result) return null;   // refused (GOLD_OVERFLOW / INVALID_LOOT): the drop stays on the ground
+            drops.splice(index, 1);
+            this.out.push({ type: 'world.drop_collected', dropId: drop.id, mapId: drop.mapId });
+            return result;
         }
         pendingLoot(ids = Object.keys(this.stats.lootClaims || {})) {
             return [...new Set(ids)].map(id => (this.stats.lootClaims || {})[id]).filter(c => c && c.status !== 'claimed');
@@ -86,7 +143,12 @@
                 return { code: 'INVALID_LOOT', message: `Undefined loot item: ${entry.item}. Rewards remain pending.` };
             return null;
         }
-        claimLoot(ids = Object.keys(this.stats.lootClaims || {})) {
+        claimLoot(ids = null) {
+            // claim_loot (no ids) retries stuck claims, but never reaches loot lying on the ground in the world.
+            if (ids == null) {
+                const held = new Set(((this.world && this.world.drops) || []).flatMap(d => d.claimIds));
+                ids = Object.keys(this.stats.lootClaims || {}).filter(id => !held.has(id));
+            }
             const pending = this.pendingLoot(ids);
             if (!pending.length) return null;
             const block = this.lootCreditBlock(pending);

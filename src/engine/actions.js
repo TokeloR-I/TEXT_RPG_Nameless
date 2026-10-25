@@ -24,7 +24,7 @@
     // Targeting kinds that don't take a chosen enemy (pickTargets decides who is affected).
     const NO_CHOICE = new Set(['self', 'minions', 'ground', 'corpse', 'enemy_aoe', 'all_enemies', 'all_combatants', 'linked_enemies']);
     const DIRECTION_NAMES = { n: 'north', s: 'south', e: 'east', w: 'west' };
-    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter', 'world_narration']);
+    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter', 'world_narration', 'collect_drop']);
 
     class ActionMethods {
         // =====================================================================
@@ -240,7 +240,14 @@
             if (!targets) { this.refuseCombat('INVALID_TARGET', this.invalidTargetMessage(skill, skillName, spec)); return; }
             const problem = this.requirementProblem(skill, targets);
             if (problem) { this.refuseCombat('REQUIREMENT_FAILED', problem); return; }
+            this.commitSkill(skillName, skill, targets, cost, opts);
+        }
 
+        /** The checks passed: pay, cast on these targets, end the action. useSkill() and action fights (action.js) share it. */
+        commitSkill(skillName, skill, targets, cost, opts = {}) {
+            const c = this.combat;
+            const p = this.player;
+            const basic = this.basicAttackName();
             if (cost > 0) {
                 p.resource.current -= cost;
                 this.say(`Used ${cost} ${p.resource.type}.`);
@@ -498,6 +505,11 @@
                 this.equipStarters();
                 this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null };
                 this.storyBegin();                 // the chapter runs in the world (src/engine/story.js)
+                return;
+            }
+            if (a.type === 'collect_drop') {             // loot on the ground (src/engine/loot.js); walked over mid-fight too
+                if (!this.world || (this.mode !== 'explore' && this.mode !== 'combat')) { this.refuse(this.world ? 'WRONG_MODE' : 'NO_DROP', this.world ? 'Not now.' : 'There is nothing here to pick up.'); return; }
+                this.collectDrop(a.dropId);
                 return;
             }
             if (!this.world) throw new Error(`${a.type} before enter_world`);
