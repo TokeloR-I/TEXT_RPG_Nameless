@@ -16,14 +16,7 @@
         // =====================================================================
         startCombat(enemyKeys, scope = this.currentRoom, loot = null) {
             this.say('--- COMBAT INITIATED! ---', { important: true });
-            const enemies = enemyKeys.map((key, i) => {
-                const e = clone(this.data.enemies[key]);
-                const overrides = (Array.isArray(loot) ? loot[i] : loot) || {};
-                for (const field of ['lootLevel', 'lootProfile', 'lootRank', 'lootTable', 'bossDrops', 'materialDrops'])
-                    if (field in overrides) e[field] = clone(overrides[field]);
-                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${scope}#${i}`, lootClaimId: `${scope}#${i}`, lootEligible: true, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
-                return e;
-            });
+            const enemies = this.buildEnemies(enemyKeys, scope, loot, 0);
             this.combat = {
                 enemies, minions: [], order: [], idx: 0, round: 0, corpses: 0,
                 dealtDamageThisRound: false, playerActedThisRound: false, markedEnemyHitThisRound: false,
@@ -43,11 +36,23 @@
             }
 
             for (const e of enemies) this.say(`${cap(this.withArticle(e))} appears! (HP: ${e.hp})`);
-            if (this.combatMode === 'realtime') { this.rtBegin(); return; }   // combat v2 (src/engine/realtime.js)
+            if (this.combatMode === 'realtime' || this.combatMode === 'action') { this.rtBegin(); return; }   // combat v2 (src/engine/realtime.js)
             this.newRound();
             this.say('--- Battle Order ---', { important: true });
             for (const c of this.combat.order) this.say(`${c.name} (SPD: ${this.speedOf(c)})`);
             this.advance();
+        }
+
+        /** Fresh combatants for enemy keys. `firstId` numbers their ids (action fights add groups to a running fight). */
+        buildEnemies(enemyKeys, scope, loot, firstId) {
+            return enemyKeys.map((key, i) => {
+                const e = clone(this.data.enemies[key]);
+                const overrides = (Array.isArray(loot) ? loot[i] : loot) || {};
+                for (const field of ['lootLevel', 'lootProfile', 'lootRank', 'lootTable', 'bossDrops', 'materialDrops'])
+                    if (field in overrides) e[field] = clone(overrides[field]);
+                Object.assign(e, { id: `enemy_${firstId + i}`, key, entityKey: `${scope}#${i}`, lootClaimId: `${scope}#${i}`, lootEligible: true, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
+                return e;
+            });
         }
 
         /** "a Rust Rat", "an Acolyte", but "The Crow-Touched Warden" / "James Newton" (QA-7). */
@@ -254,6 +259,7 @@
         checkBattleEnd() {
             const c = this.combat;
             const p = this.player;
+            if (c && c.action) return this.actionCheckEnd();   // combat v3: groups end one by one (src/engine/action.js)
 
             if (p.hp <= 0) {
                 if (this.tryCrownOfTheUndying()) return false;

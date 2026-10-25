@@ -41,20 +41,28 @@ All return `{ ok, events, error? }` like `act()` and run as transactions.
 
 | Call | What it does |
 |---|---|
-| `actionEngage(encounterId, enemyKeys, loot)` → `{ ok, ids }` | The group enters the fight (starts one, or joins the current one). `ids[i]` is the engine id of `enemyKeys[i]`. Refused for a defeated encounter. |
-| `actionCast(skillId \| 'attack', { slot })` → `{ ok, castId, skill, shape }` | The player starts an attack or skill: same refusals as v2 (`ON_COOLDOWN`, `GLOBAL_COOLDOWN`, `STUNNED`, `NOT_ENOUGH_RESOURCE`, `SILENCED`, …). Pays the cost and starts the cooldown now. Self skills resolve at once. |
-| `actionResolve(castId, targetIds)` | The cast's hit landed on these engine ids (the sim decided who was inside the arc / circle / projectile path). Runs the skill's effects on them. `[]` = a whiff. |
-| `actionEnemyStrike(enemyId, skillName, { guarded, parried })` | An enemy's attack connected with the player. Guard multiplies the damage by `actionRules.guard.damageTaken`; a parry blocks it and staggers the attacker. |
+| `actionEngage(encounterId, enemyKeys, loot, { mapId, x, y })` → `{ ok, ids }` | The group enters the fight (starts one, or joins the current one without resetting the player's statuses). `ids[i]` is the engine id of `enemyKeys[i]`; ids never repeat in a fight. The position is where its loot drops. Refused: `ALREADY_DEFEATED`, `ALREADY_ENGAGED`. |
+| `actionCast(skillId \| 'attack', { slot })` → `{ ok, castId, skill, shape, resolved }` | The player starts an attack or skill: same refusals as v2 (`ON_COOLDOWN`, `GLOBAL_COOLDOWN`, `STUNNED`, `NOT_ENOUGH_RESOURCE`, `SILENCED`, …) plus `BUSY` (a cast is in flight). Skills nobody aims (self, summons, ground, corpse) resolve at once (`resolved: true`). The basic attack has no v2 swing timer here: the weapon's startup and recovery pace it. |
+| `actionResolve(castId, targetIds)` → `{ ok, hit }` | The cast's hit landed on these engine ids, nearest first. Single-target skills hit the first body only (v2 damage balance); circles hit all; `enemy_multiple` needs its count. Pays the cost, runs the effects, starts the cooldown. `[]` = a whiff: paid and on cooldown anyway. |
+| `actionCancel(castId)` | The cast never came out (dodged out of it, stunned): nothing paid. |
+| `actionEnemyWindup(enemyId)` → `{ ok, skill }` | An enemy starts an attack. The engine picks the skill (as v2 does) and says "readies X". Refused while stunned (`STUNNED`) or already winding up (`BUSY`). |
+| `actionEnemyStrike(enemyId, { hit, guarded, parried })` → `{ ok, result }` | The wind-up comes out: `result` is `hit`, `guarded` (damage × `actionRules.guard.damageTaken`), `parried` (no damage, an `action.parry` event; the sim staggers the enemy), `miss` (`hit: false`: dodged or out of reach) or `interrupted` (stunned during the wind-up). |
 | `actionDisengage(encounterId)` | The group gave up (leash). Its enemies leave the fight and reset. |
-| `actionView()` | Pure. Per engaged enemy `{ id, encounterId, key, hp, maxHp, stunned, speedMult, statuses }`, the player's stun/slow, and `getRealtimeState()`. |
+| `actionView()` | Pure. Per engaged enemy `{ id, encounterId, key, name, hp, maxHp, stunned, speedMult, statuses, windup }`, minions, the player's stun/slow/statuses, casts in flight, and `getRealtimeState()`. |
+| `canSave()` | Pure. `{ ok: false, error: { code: 'IN_COMBAT' } }` while a group is engaged. |
 | `tick(ms)` | v2's clock: DoT ticks, status expiry, the resource pulse, cooldowns. The sim calls it every step while in combat. |
 
 When the last enemy of a group dies, the engine clears the group: XP, `world.defeated`, the quest event, and loot through
-`dropVictoryLoot(enemies, { encounterId, mapId, x, y })` (Rook: the loot becomes a world drop the player walks over, see
+`dropVictoryLoot(enemies, { encounterId, mapId, x, y })` (the loot becomes a world drop the player walks over, see
 below). When the player dies: `world.respawn` event, the fight ends, the player comes back at the map's safe spawn with
 half HP and the enemies reset (no broken quest state). Saving is refused while a group is engaged (`IN_COMBAT`).
+Events: `action.engage`, `action.cleared` (`{ encounterId, xp }`), `action.disengage`, `action.end` (`victory` /
+`escaped`), `action.parry`, `world.respawn` (`{ encounters, hp }`). v2's `flee` is refused: you flee by running.
 
-## World drops (Rook)
+`tick()` skips the transaction when no engine event is due before the step ends (Keel's review), so a 60 Hz sim can call
+it every step.
+
+## World drops
 
 `dropVictoryLoot()` rolls the same once-only loot claims as before but leaves them pending and records a drop in
 `engine.world.drops` (`{ id, mapId, x, y, claimIds, gold, items }`, saved with the run). `getWorldDrops(mapId)` (pure)
@@ -63,7 +71,7 @@ collected once; reloading, retreating or re-entering a map never duplicates it.
 
 ## Numbers (`actionRules` in src/data.js)
 
-First pass by Wren, replaced by Vaelis's tables (`docs/design/ENSO_ACTION_COMBAT_DESIGN.md`) as they land. Movement,
+First pass by Wren, replaced by the studio design tables (`docs/design/ENSO_ACTION_COMBAT_DESIGN.md`) as they land. Movement,
 stamina, dodge, guard, parry, sprint, per-class weapon profiles (reach, arc, startup/active/recovery, swing speed), skill
 shapes (projectile / arc / circle / self / summon / dash, by target kind with per-skill overrides), enemy archetypes
 (speed, detect range, attack reach, wind-up, leash), boss patterns.
@@ -74,14 +82,15 @@ WASD move (8 directions, sub-tile) · mouse aims · LMB or 1 basic attack · 2�
 RMB guard (tap at the right moment = parry) · E interact / talk / collect · Tab cycle target lock · I / J / Esc.
 The arrow keys still walk. Touch pad: unchanged walk buttons plus attack and dodge.
 
-## Workstreams (parallel, no gates)
+## Delivery team (direction §12: phases A–E are a planning aid, not gates)
 
-| Who (studio role) | Owns | Files |
+The Claude Gaming Studio delivers, led by Wren (development), Pixie (UI/UX) and Tally (QA). The studio's specialist
+agents (design, AI, animation, VFX, art, architecture) work inside it. Rook is backup and gets no assignments from this
+work; the world drops Rook had finished before that are kept and owned by Wren.
+
+| Who | Owns | Files |
 |---|---|---|
-| Wren (lead-programmer) | sim, engine bridge, world-ui integration, enemy AI core | `src/action/`, `src/engine/action.js`, `ui/world-ui.js` (game loop), `ui/world-render.js` (actor drawing) |
-| Vaelis (systems/game designer) | class feel, weapon profiles, skill shapes, enemy behaviours, Crow Warden pattern | `docs/design/ENSO_ACTION_COMBAT_DESIGN.md` |
-| Rook (gameplay-programmer) | world drops, equipment effects on attacks, quest rewards | `src/engine/loot.js`, `performWorld` in `src/engine/actions.js`, `tests/56-*` |
-| Sable, Vesper (technical-artist) | telegraphs, hit sparks, projectiles, damage numbers, attack/dodge/guard poses | `ui/action-fx.js`, `ui/sprites.js`, `assets/sprites/` |
-| Pixie (ui-programmer) | persistent action HUD: skill bar, stamina, enemy and boss bars, prompts, reward notices | `ui/world-ui.js` HUD parts, `world.css` |
-| Keel (technical-director) | architecture review: persistence, performance, engine decision | `architecture/ACTION_COMBAT_REVIEW.md` |
-| Tally (qa-tester) | real-browser playtests of movement, combat, loot, quests | `qa/` |
+| Wren (development lead) | sim, engine bridge, enemy AI, world drops, world-ui game loop, actor drawing | `src/action/`, `src/engine/action.js`, `src/engine/loot.js` drops, `ui/world-ui.js`, `ui/world-render.js` |
+| Pixie (UI/UX lead) | the whole action interface: skill bar, stamina, enemy and boss bars, aim/target cues, prompts, reward notices | `ui/action-hud.js`, `world.css` |
+| Tally (QA lead) | continuous real-browser playtests of movement, combat, loot, quests; regressions; balance evidence | `qa/` |
+| Studio specialists: Thorne (game design), Gauge (balance), technical art, architecture | class feel (Thorne), numbers and win rates (Gauge), telegraphs/VFX/poses (technical art), architecture review | `docs/design/ENSO_ACTION_COMBAT_DESIGN.md`, `ui/action-fx.js`, `ui/sprites.js`, `architecture/ACTION_COMBAT_REVIEW.md` |

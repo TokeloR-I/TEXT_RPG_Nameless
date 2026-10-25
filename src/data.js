@@ -758,6 +758,59 @@
             skillBar: { slots: 6 }
         };
 
+        // ===================================================================
+        // ACTION COMBAT (combat v3, docs/ACTION_COMBAT.md): fights in the world, not on a battle screen.
+        // Pixels are map pixels on 16 px tiles; times in ms. Wren's first pass (2026-10-25), replaced by
+        // Vaelis's tables (docs/design/ENSO_ACTION_COMBAT_DESIGN.md) as they land.
+        // ===================================================================
+        const actionRules = {
+            player: { speed: 64, sprintMult: 1.5, radius: 5, attackMoveMult: 0.35, hurtMs: 220 },
+            stamina: { max: 100, regenPerSec: 32, regenDelayMs: 600, sprintPerSec: 18 },
+            dodge: { distance: 46, ms: 220, iframeMs: 200, recoveryMs: 120, stamina: 25, cooldownMs: 350 },
+            guard: { damageTaken: 0.3, arcDeg: 140, staminaPerHit: 14, moveMult: 0.45 },
+            parry: { windowMs: 160, staggerMs: 900 },
+            respawn: { hpPct: 0.5 },
+            engageRadius: 120,                  // pressing attack with an enemy group this close engages it
+            classes: {
+                warrior:     { weapon: { kind: 'arc', reach: 24, arcDeg: 120, startupMs: 140, activeMs: 90, recoveryMs: 260 } },
+                rogue:       { weapon: { kind: 'arc', reach: 18, arcDeg: 90, startupMs: 80, activeMs: 70, recoveryMs: 170 }, dodge: { distance: 56, stamina: 18 } },
+                mage:        { weapon: { kind: 'projectile', range: 120, speed: 210, radius: 4, projectile: 'arcane', startupMs: 160, activeMs: 0, recoveryMs: 220 }, dodge: { distance: 52 } },
+                necromancer: { weapon: { kind: 'projectile', range: 110, speed: 180, radius: 4, projectile: 'bone', startupMs: 170, activeMs: 0, recoveryMs: 240 } }
+            },
+            skillShapes: {
+                byTarget: {
+                    enemy_single:   { shape: 'projectile', range: 130, speed: 230, radius: 5, castMs: 180 },
+                    enemy_multiple: { shape: 'cone', range: 70, arcDeg: 70, castMs: 200 },
+                    enemy_aoe:      { shape: 'circle', radius: 44, castMs: 240 },
+                    all_enemies:    { shape: 'circle', radius: 64, castMs: 260 },
+                    linked_enemies: { shape: 'circle', radius: 64, castMs: 220 },
+                    all_combatants: { shape: 'circle', radius: 64, castMs: 260 },
+                    self:           { shape: 'self', castMs: 120 },
+                    ally_single:    { shape: 'self', castMs: 120 },
+                    minions:        { shape: 'self', castMs: 160 },
+                    ground:         { shape: 'ground', radius: 30, range: 90, castMs: 220 },
+                    corpse:         { shape: 'self', castMs: 200 }
+                },
+                bySkill: {
+                    'Power Strike': { shape: 'arc', reach: 28, arcDeg: 110, castMs: 260 },
+                    'Backstab':     { shape: 'arc', reach: 20, arcDeg: 70, castMs: 120 },
+                    'Quick Slash':  { shape: 'arc', reach: 20, arcDeg: 100, castMs: 90 },
+                    'Shield Bash':  { shape: 'arc', reach: 20, arcDeg: 90, castMs: 160 },
+                    'Whirlwind':    { shape: 'circle', radius: 30, castMs: 200 }
+                }
+            },
+            enemyDefaults: { speed: 42, detect: 90, sight: true, reach: 18, windupMs: 520, activeMs: 110, recoveryMs: 600, shape: 'arc', arcDeg: 100, leash: 200, radius: 6, wander: 18 },
+            enemies: {
+                rust_rat:          { speed: 58, reach: 14, windupMs: 380, recoveryMs: 420, radius: 4 },
+                hungry_wolf:       { speed: 70, detect: 110, reach: 20, windupMs: 450, shape: 'line', width: 10, lunge: 26 },
+                weak_goblin:       { speed: 46, reach: 16, windupMs: 480 },
+                bone_gnawer:       { speed: 50, reach: 15, windupMs: 420 },
+                cult_acolyte:      { speed: 40, ranged: true, keepDistance: 60, reach: 100, shape: 'projectile', projectile: 'shadow', projSpeed: 140, windupMs: 650 },
+                shackled_ghoul_stronger: { speed: 38, reach: 22, windupMs: 700, arcDeg: 140, radius: 8 },
+                crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 30, windupMs: 800, arcDeg: 150, radius: 10, leash: 400 }
+            }
+        };
+
         // Items you can `use`. Anything not listed is a keepsake (for now).
         const itemDefinitions = {
             'Moldy Bread':           { use: 'heal', value: 8,  description: 'Better than nothing. Probably.' },
@@ -1436,7 +1489,7 @@
             }, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
-            statusDefinitions, statusRules, statusReactions, realtimeRules
+            statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules
         };
 
         const ENSO = global.ENSO || (global.ENSO = {});

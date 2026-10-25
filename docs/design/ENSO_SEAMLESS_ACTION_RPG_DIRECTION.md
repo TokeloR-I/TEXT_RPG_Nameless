@@ -4,7 +4,9 @@
 **Project:** ENSO's Last Stand  
 **From:** Creative Director  
 **Priority:** Core gameplay direction  
-**Affected areas:** Combat, exploration, world simulation, controls, UI/UX, AI, animations, loot, quests, and progression
+**Affected areas:** Combat, exploration, world simulation, controls, UI/UX, AI, animations, loot, quests, and progression  
+**Delivery team:** Claude Gaming Studio, with Wren (development lead), Pixie (UI/UX lead), and Tally (QA lead)  
+**Standby:** Rook — backup developer; no work assigned through this report
 
 ---
 
@@ -157,7 +159,7 @@ Weapons should visibly match equipped artwork when possible and produce mechanic
 
 ## 9. UI/UX — One Persistent Action-RPG Interface
 
-**Pixie should redesign the primary world UI around action gameplay**, not merely reskin the old battle screen.
+**Pixie, as UI/UX lead, should redesign the primary world UI around action gameplay**, not merely reskin the old battle screen.
 
 Persistent or immediately available elements should include:
 
@@ -176,14 +178,11 @@ Camera follow, mouse-directed facing/aiming, optional target lock and readable e
 
 ## 10. Animation, Art and VFX
 
-A successful action-RPG conversion requires visible motion and feedback for directional movement, idle, attacks, casting, dodging, guarding, stagger, damage, death and enemy telegraphs.
+A successful action-RPG conversion requires visible motion and feedback for directional movement, idle, attacks, casting, dodging, guarding, stagger, damage, death, and enemy telegraphs.
 
-- **Morrigan:** visual coherence and combat readability.
-- **Vesper:** character/enemy/weapon animation assets.
-- **Sable:** hit impacts, magic, projectiles, guard/parry feedback, AoE indicators and supernatural VFX.
-- **Wren:** asset playback, world integration and rendering performance.
+The **Claude Gaming Studio** handles art and VFX production, sourcing and integration as part of its development workflow. **Wren** owns technical integration and renderer behavior; **Pixie** owns visual readability and interface presentation; **Tally** tests the actual in-game result. The studio can use its integrated specialist agents internally without creating additional external lead roles or waiting for role-by-role approval.
 
-Prioritize compatible licensed packs and existing Mana Seed artwork when appropriate. Original art is best used to create recognizable ENSO identities, encounters and supernatural abilities, rather than rebuilding generic assets unnecessarily.
+Prioritize compatible licensed packs and existing Mana Seed artwork where appropriate. Original artwork should be reserved for distinctive ENSO identities, encounters, and supernatural abilities rather than rebuilding generic assets unnecessarily.
 
 The Mana Seed artist's permission and restriction on using their art as input or reference for AI image generation must be respected.
 
@@ -211,24 +210,39 @@ Preserve the legacy turn-based rules or build as a compatibility/testing referen
 
 ---
 
-## 12. Parallel Production Workstreams — No Sequential Approval Gates
+## 12. Delivery Phases — Managed Internally by Claude Gaming Studio
 
-**These are ownership areas, not ordered phases, approval checkpoints or dependencies that force the entire team to wait.** Agents should work concurrently, integrate continuously and deliver small usable changes as they go.
+The phases below describe **implementation scope and measurable progress**, not a mandatory sequence, external approval chain, or reason to stop parallel work. The **Claude Gaming Studio** decides how to subdivide, overlap, delegate, implement, and integrate the work. Multiple phases may progress simultaneously. Existing functioning systems should be reused wherever sensible.
 
-| Workstream | Lead | Working outcome |
-| --- | --- | --- |
-| Spatial combat and player movement | Wren | Move, aim, attack and dodge against an enemy directly in the explorable map |
-| Core combat design and class feel | Vaelis | Distinct class actions, weapon behavior, defensive rules and enemy/boss patterns |
-| Combat UI and input presentation | Pixie | Persistent skill bar, aiming/targeting cues, enemy/boss health, accessible world controls |
-| Enemies and world encounters | Wren with Vaelis | Patrol, detect, pursue, attack, disengage and interact with world geometry |
-| Loot, equipment and progression | Rook | Drop collection, equipment effects and quest rewards integrated into world play |
-| Architecture and integration support | Keel | Resolve genuine engine, persistence and performance risks with implementers |
-| Animations, VFX and visual readability | Vesper, Sable, Morrigan | Actual reusable combat sprites, effects, telegraphs and visual guidance |
-| Playtesting and QA | Tally | Continuous real-browser testing of movement, combat, loot, quests and regressions |
+**Studio leads:**
 
-The team should start with the current playable area and steadily replace the old encounter behavior **in the real game**, expanding across enemies, skills and Chapter One content as implementation becomes ready. No stage needs a ceremonial sign-off before another can begin.
+- **Wren — Development Lead:** Owns core gameplay architecture, in-world movement and combat implementation, enemy/world integration, and technical coordination with Claude Gaming Studio specialists.
+- **Pixie — UI/UX Lead:** Owns the complete action-RPG interface, input presentation, targeting/HUD behavior, player feedback, and frontend integration.
+- **Tally — QA Lead:** Owns continuous playable-build tests, regressions, balance evidence, and identifying serious gameplay defects as work lands.
+- **Claude Gaming Studio:** Supplies its integrated game-development specialists for implementation, combat design, AI, animation, VFX, asset production, technical support, and other disciplines as needed. The studio handles its own delegation and day-to-day decisions.
+- **Rook — Backup Developer:** Remains available but receives **no assignments from this report or the Claude Gaming Studio**. Only the Creative Director will assign work to Rook directly.
 
-Developers should resolve routine design and implementation issues directly with the relevant owners. Escalate only genuine creative decisions or irreconcilable conflicts, not every iteration or pull request.
+### Phase A — Continuous World-Combat Foundation
+
+Implement free directional movement, responsive aiming and basic attacks, spatial hit detection, player and enemy collision, dodge behavior, and hostile enemies that remain visible in the explorable world. Remove the automatic transition into the separate combat box from the primary graphical game.
+
+### Phase B — Combat Depth and Class Identity
+
+Adapt the existing cooldowns, six-slot skill bar, damage and status rules to world-space attacks. Support weapon ranges, projectiles, area attacks, skills, defensive timing, resource management, and distinct class playstyles. Preserve useful existing functionality rather than reimplementing it unnecessarily.
+
+### Phase C — Living Enemies and World Encounters
+
+Add patrol and detection behavior, pursuit, tactical movement, multiple enemies, terrain and line-of-sight awareness, disengagement, enemy recovery, and world-integrated pickups. Ordinary encounters and ambushes must work without a battle transition.
+
+### Phase D — Bosses and Chapter One Integration
+
+Bring the Crow Warden and other major encounters into world space with readable attack patterns, appropriate encounter boundaries, and recovery behavior. Connect combat outcomes with quests, XP, loot, equipment, dialogue, saves, exploration and Black Flight.
+
+### Phase E — Gameplay Feel, Stability and Polish
+
+Refine control responsiveness, camera, animation, VFX, audiovisual feedback, HUD clarity, class balance, accessibility, save/load and performance. Tally conducts practical browser playtests throughout—not only at the end. Issues discovered here should be fixed as part of ongoing development.
+
+**These phases are owned and coordinated by Claude Gaming Studio.** They are a planning aid, not sign-off gates. Agents are expected to produce working software, test it, fix regressions and continue without repeatedly escalating routine decisions.
 
 ---
 
@@ -248,9 +262,8 @@ The target experience is demonstrated when:
 10. Quests, XP, equipment and progression respond to the same world events.
 11. The HUD functions during exploration and combat without switching layouts into an instanced battle UI.
 12. Saving and loading preserves valid world and combat state.
-13. Gameplay is tested directly in a browser, with movement and combat observed—not inferred solely from passing unit tests.
 
-These outcomes are **evidence of the intended experience, not a sequence of permission gates**. Work should be merged and improved incrementally rather than held back until the entire list is complete.
+These outcomes are **evidence of the intended experience, not a sequence of permission gates**. Direct browser testing remains part of Tally’s continuing QA responsibilities. Work should be merged and improved incrementally rather than held back until the entire list is complete.
 
 ---
 
