@@ -111,7 +111,7 @@ test('Zone 1: defeat in a world fight is the normal game over', () => {
 test('Zone 1: a world fight uses exactly the current battle rules (same log as the same fight in the text game)', () => {
     const run = (world) => {
         const g = new GameEngine({ seed: 11 });
-        g.start(); g.input('rogue');
+        g.start(); g.input('rogue'); g.equipStarters(); g.flush();
         let log = '';
         if (world) { g.enterWorld(); log = text(g.worldEncounter('road_wolf', ['hungry_wolf'])) + '\n'; } else g.startCombat(['hungry_wolf']);
         log += fight(g);

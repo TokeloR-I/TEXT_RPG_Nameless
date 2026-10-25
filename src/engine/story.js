@@ -86,6 +86,7 @@
                 if (e.say) this.say(e.say, { important: !!e.important });
                 if (e.item) this.storyGiveItem(e.item, e.key || `item:${e.item}`);
                 if (e.removeItem) { const i = this.player.inventory.indexOf(e.removeItem); if (i !== -1) this.player.inventory.splice(i, 1); }
+                if (e.gold) this.storyGold(e.gold, e.key);
                 if (e.shop) this.storyShop(e.shop);
                 if (e.construction && this.story.dialogue) this.story.dialogue.construction = e.construction;
                 if (e.construction) this.storyConstruction(e.construction);
@@ -375,6 +376,7 @@
             if (s && s.dialogue) {
                 if (a.type === 'dialogue_choice') { this.chooseDialogue(String(a.choiceId)); return true; }
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
+                if (a.type === 'sell' && a.shopId === s.dialogue.shopId) { this.sellItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
@@ -413,9 +415,14 @@
                     description: (this.data.itemDefinitions[item] || {}).description || '',
                     enabled: !block, ...(block ? { reason: block } : {}) };
             }) : [];
-            actions.push(...goods);
+            const selling = shop ? [...new Set(this.player.inventory)].map(item => {
+                const reason = this.sellBlock(shopId, item), def = this.itemDef(item);
+                return { type: 'sell', shopId, item, name: this.itemName(item), price: def?.sellPrice || 0,
+                    owned: this.player.inventory.filter(id => id === item).length, description: this.itemDetails(item), enabled: !reason, ...(reason ? { reason } : {}) };
+            }) : [];
+            actions.push(...goods, ...selling);
             return {
-                shop: shop ? { shopId, gold: this.player.gold, goods } : null,
+                shop: shop ? { shopId, gold: this.player.gold, goods, selling } : null,
                 dialogue: {
                     npcId: d.npcId, name: npc.name, title: npc.title || null,
                     lines: (node.lines || []).map((l) => {

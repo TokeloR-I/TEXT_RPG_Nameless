@@ -12,6 +12,7 @@ test('feedback #96: Mara, Bragg, Iona and Shane stock purchasable goods',()=>{
 });
 test('feedback #96: merchant buy and equip applies reversible bonuses',()=>{
  const g=newGame(69).do('warrior');
+ g.act({type:'enter_world'});g.act({type:'talk',npcId:'mara'});g.act({type:'dialogue_leave'});
  g.player.gold=20;
  const base=g.player.def;
  assert.strictEqual(g.act({type:'buy',shopId:'mara',item:'Padded Jerkin'}).ok,true);
@@ -32,15 +33,11 @@ test('feedback #96: coin purse is consumed once and adds fixed Gold',()=>{
  assert.strictEqual(g.act({type:'use_item',item:'Small Coin Purse'}).ok,false);
  assert.strictEqual(g.player.gold,old+6);
 });
-test('feedback #96: enemy kill Gold is credited once and persists across restore',()=>{
+test('universal loot supersedes feedback #96: kills do not pay Gold before victory',()=>{
  const g=newGame(71).do('warrior','n','engage');
- const e=g.combat.enemies[0];
- const before=g.player.gold;
+ const e=g.combat.enemies[0], before=g.player.gold;
  g.damage(e,e.hp,g.player);
- assert.strictEqual(g.player.gold,before+2);
- const snap=JSON.parse(JSON.stringify(g.snapshot()));
- const h=newGame(72).do('warrior');h.restore(snap);
- assert.strictEqual(h.player.gold,before+2);
- g.onDeath(e,g.player);
- assert.strictEqual(g.player.gold,before+2);
+ assert.strictEqual(g.player.gold,before);
+ const h=newGame(72).do('warrior');h.restore(JSON.parse(JSON.stringify(g.snapshot())));
+ assert.strictEqual(h.player.gold,before);
 });

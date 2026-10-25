@@ -97,6 +97,7 @@
                 { id: 'cellar_stairs', x: 12, y: 5, trigger: 'step', toMap: 'house', toSpawn: 'from_cellar' }
             ],
             interactables: [
+                { id: 'cellar_old_purse', kind: 'inspect', x: 2, y: 5, name: 'Abandoned coin purse', sprite: 'bag', text: 'An old purse lies beside the bedroll. Ten coins remain inside.' },
                 { id: 'cellar_feathers', kind: 'inspect', x: 8, y: 3, name: 'Black feathers', sprite: 'feathers',
                     text: 'A drift of black feathers lies under the crack in the ceiling. Far too many for one bird. None of them are broken.' },
                 { id: 'cellar_tallies', kind: 'inspect', x: 5, y: 2, name: 'Scratched wall',

@@ -29,7 +29,7 @@
         worldPickup(id, item) { return this.act({ type: 'world_pickup', pickupId: id, item }).events; }
 
         /** Start the fight for a visible map encounter. Normal combat rules from here on. */
-        worldEncounter(id, enemyKeys) { return this.act({ type: 'world_encounter', encounterId: id, enemies: enemyKeys }).events; }
+        worldEncounter(id, enemyKeys, loot) { return this.act({ type: 'world_encounter', encounterId: id, enemies: enemyKeys, loot }).events; }
 
         /** Called by the combat code when a world encounter ends: 'victory' | 'fled' | 'defeat'. */
         worldFightEnded(result) {

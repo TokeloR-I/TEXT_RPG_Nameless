@@ -48,6 +48,8 @@
         engage: () => ({ type: 'engage' }), fight: () => ({ type: 'engage' }),
         class_lore: () => ({ type: 'describe', subject: 'class_tree' }), cl: () => ({ type: 'describe', subject: 'class_tree' }),
         journal: () => ({ type: 'describe', subject: 'journal' }), j: () => ({ type: 'describe', subject: 'journal' }),
+        enter_world: () => ({ type: 'enter_world' }),
+        claim_loot: () => ({ type: 'claim_loot' }),
         talk: (arg) => ({ type: 'talk', npcId: arg }),
         // dev cheats
         add_xp: (arg) => ({ type: 'cheat', cheat: 'add_xp', amount: arg }),
@@ -132,6 +134,8 @@
         restore(snap) {
             const s = JSON.parse(snap.json);
             Object.assign(this, s);
+            // Old saves already paid kill coins: do not give those instances a second reward.
+            if (!this.stats.lootClaims) this.stats.lootClaims = Object.fromEntries((this.stats.credited || []).map(id => [id, { status: 'claimed', legacy: true }]));
             if (snap.rng != null && typeof this.rng.setState === 'function') this.rng.setState(snap.rng);
             // JSON breaks shared references: re-link the turn order to the live combatant objects.
             if (this.combat) {
@@ -152,6 +156,8 @@
                 player: p && {
                     name: p.name, className: p.className, level: p.level,
                     hp: p.hp, maxHp: p.maxHp, def: p.def, spd: p.spd,
+                    critChance: p.critChance + (this.equipmentModifiers().critChance || 0),
+                    physicalDamage: this.equipmentDamageBonus('physical'), magicDamage: this.equipmentDamageBonus('magic'),
                     strength: p.strength, intelligence: p.intelligence, agility: p.agility,
                     xp: p.xp, xpToNext: p.xpToNext,
                     resource: { ...p.resource },
@@ -193,7 +199,7 @@
             this.combat = null;
             this.pendingBranchChoice = false;
             this.flags = { eventsUnlocked: false };
-            this.stats = { fights: 0, kills: 0, rounds: 0, credited: [] };
+            this.stats = { fights: 0, kills: 0, rounds: 0, credited: [], lootClaims: {} };
             this.progression = { baseClass: null, branch: null, evolutionName: null, stageIndex: -1 };
             this.world = null; // graphical world run flags (src/engine/world.js); null in the text game
             this.story = null; // Chapter One story state (src/engine/story.js); null in the text game
@@ -212,13 +218,14 @@
                 level: 1, xp: 0, xpToNext: 100,
                 resource: { type: def.startingResource.type, current: def.startingResource.initial, max: def.startingResource.max, regen: def.startingResource.regen || 0 },
                 inventory: [...def.startingItems],
-                gold: 0, equipment: { mainHand: null, bodyArmor: null, accessory: null },
+                gold: 0, itemInstances: {}, equipment: { mainHand: null, offHand: null, bodyArmor: null, accessory: null },
                 skills: [...def.startingSkills],
                 traits: clone(def.startingTraits),
                 statusEffects: [],
                 isHollowKing: false
             };
             this.progression = { baseClass: className, branch: null, evolutionName: def.name, stageIndex: -1 };
+            this.equipStarters();
         }
 
         // =====================================================================
@@ -237,6 +244,11 @@
                 const choices = this.dialogueChoices();
                 if (/^(bye|leave|goodbye|exit)$/.test(lower)) this.perform({ type: 'dialogue_leave' });
                 else if (String(n) === lower && n >= 1 && n <= choices.length) this.perform({ type: 'dialogue_choice', choiceId: choices[n - 1].choiceId });
+                else if (/^(buy|sell) /.test(lower)) {
+                    const match = /^(buy|sell) (\S+) (.+)$/i.exec(text);
+                    if (match) this.perform({ type: match[1].toLowerCase(), shopId: match[2].toLowerCase(), item: this.findInventoryItem(match[3]) || match[3] });
+                    else this.refuse('INVALID_CHOICE', 'Use buy <merchant> <item> or sell <merchant> <item>.');
+                }
                 else if (/^(journal|j)$/.test(lower)) this.perform({ type: 'describe', subject: 'journal' });
                 else { this.refuse('INVALID_CHOICE', `Type a number from 1 to ${choices.length}, or 'bye'.`); this.showDialogueChoices(); }
                 return;
@@ -310,7 +322,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

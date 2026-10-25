@@ -50,6 +50,7 @@ test('QA-1 #3: misses, dodges and zero-damage hits do not consume; the window st
 
 test('QA-1 #4: multi-hit — only the first qualifying hit gets the bonus', () => {
     const g = cellar(40, 'Marked for Death', 'Flurry');
+    g.player.equipment.mainHand = null; // isolate mark math from starter weapon damage
     const t = g.combat.enemies[0];
     g.do('marked for death 1');
     g.rng = () => 0.99; // no crits, max rolls: Flurry 8 + AGI 2 - DEF 1 = 9
@@ -97,7 +98,7 @@ test('QA-1 #6: Expose lasts two applier turns, faster or slower', () => {
 test('QA-1 #7: every hit in the Expose window benefits, none after it', () => {
     const g = hallway('warrior');
     const t = g.combat.enemies[0]; t.def = 0;
-    g.player.critChance = 0; g.player.strength = 0;
+    g.player.critChance = 0; g.player.strength = 0; g.player.equipment.mainHand = null;
     const roll = () => { const h = g.newHit(t); g.rollDamage(g.player, t, { base_damage: [10, 10], damage_type: 'physical' }, h); return h.damage; };
     g.player.normalTurns = 5;
     g.applyMark(g.player, t, { mark: 'Expose', value: 0.2, duration: 2 });

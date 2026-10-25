@@ -11,6 +11,7 @@
 
     const SLOTS = [
         { slot: 'mainHand', label: 'Weapon' },
+        { slot: 'offHand', label: 'Offhand' },
         { slot: 'bodyArmor', label: 'Armor' },
         { slot: 'accessory', label: 'Accessory' }
     ];
@@ -18,7 +19,11 @@
         { stat: 'strength', label: 'STR' },
         { stat: 'intelligence', label: 'INT' },
         { stat: 'agility', label: 'AGI' },
-        { stat: 'def', label: 'DEF' }
+        { stat: 'def', label: 'DEF' },
+        { stat: 'physicalDamage', label: 'Physical dmg', optional: true },
+        { stat: 'magicDamage', label: 'Magic dmg', optional: true },
+        { stat: 'maxHp', label: 'Max HP', optional: true },
+        { stat: 'critChance', label: 'Crit chance', optional: true }
     ];
     const statLabel = (stat) => (STATS.find((s) => s.stat === stat) || { label: stat.toUpperCase() }).label;
 
@@ -62,7 +67,7 @@
 
     /** Stat rows for the comparison panel: [{ stat, label, value, delta, after }]. `diff` is a candidate's. */
     function statPreview(player, diff) {
-        return STATS.map(({ stat, label }) => {
+        return STATS.filter(s => !s.optional || s.stat in player || s.stat in (diff || {})).map(({ stat, label }) => {
             const delta = (diff && diff[stat]) || 0;
             return { stat, label, value: player[stat], delta, after: player[stat] + delta };
         });

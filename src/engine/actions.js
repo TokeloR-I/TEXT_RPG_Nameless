@@ -90,6 +90,7 @@
                 case 'use_item': this.useItem(String(a.item || '')); return;
                 case 'equip': this.equipItem(String(a.item || '')); return;
                 case 'unequip': this.unequipItem(String(a.slot || '')); return;
+                case 'claim_loot': this.claimLoot(); return;
                 case 'buy': this.buyItem(String(a.shopId || ''), String(a.item || '')); return;
                 case 'sell': this.sellItem(String(a.shopId || ''), String(a.item || '')); return;
                 case 'compare_item': this.compareItem(String(a.item || '')); return;
@@ -345,15 +346,19 @@
                 if (room.enemies.length) actions.push({ type: 'engage', enabled: true });
             }
             actions.push(...this.itemAvailability());
+            if (this.pendingLoot().length) {
+                const reason = this.lootCreditBlock();
+                actions.push({ type: 'claim_loot', enabled: !reason, ...(reason ? { reason } : {}) });
+            }
             if (this.story) actions.push(...this.crowAvailability(), ...this.flightAvailability());   // Nahemoth (story.js)
             return actions;
         }
 
         itemAvailability() {
             const p = this.player;
-            const items = [...new Set(p.inventory.filter((i) => this.data.itemDefinitions[i]))];
+            const items = [...new Set(p.inventory.filter((i) => this.itemDef(i) && !['utility', 'quest'].includes(this.itemDef(i).type)))];
             return items.map((item) => {
-                const def = this.data.itemDefinitions[item];
+                const def = this.itemDef(item);
                 const opt = { type: 'use_item', item, count: p.inventory.filter((i) => i === item).length, enabled: true };
                 if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
                 else if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
@@ -464,6 +469,9 @@
         // =====================================================================
         performWorld(a) {
             if (a.type === 'enter_world') {
+                if (this.world) return;
+                if (this.mode !== 'explore' || !this.player) { this.refuse('WRONG_MODE', 'Choose a class and finish the current action first.'); return; }
+                this.equipStarters();
                 this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null };
                 this.storyBegin();                 // the chapter runs in the world (src/engine/story.js)
                 return;
@@ -488,7 +496,7 @@
             this.world.encounter = a.encounterId;
             this.world.lastEncounter = null;
             this.world.lastResult = null;
-            this.startCombat(a.enemies, `world:${a.encounterId}`);
+            this.startCombat(a.enemies, `world:${a.encounterId}`, a.loot);
         }
     }
 

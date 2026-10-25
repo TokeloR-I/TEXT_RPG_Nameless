@@ -1,0 +1,751 @@
+[
+  {
+    "args": [
+      "Wooden Staff",
+      1,
+      "common",
+      "snapshot:1:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 1
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 1,
+      "requiredLevel": 1,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 5,
+      "shopPrice": 11,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 1,
+      "rank": "common",
+      "instanceId": "snapshot:1:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      1,
+      "uncommon",
+      "snapshot:1:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 2
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 1,
+      "requiredLevel": 1,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 8,
+      "shopPrice": 17,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 1,
+      "rank": "uncommon",
+      "instanceId": "snapshot:1:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      3,
+      "common",
+      "snapshot:3:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 2
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 3,
+      "requiredLevel": 3,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 9,
+      "shopPrice": 18,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 2,
+      "rank": "common",
+      "instanceId": "snapshot:3:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      3,
+      "uncommon",
+      "snapshot:3:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 3
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 3,
+      "requiredLevel": 3,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 13,
+      "shopPrice": 27,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 2,
+      "rank": "uncommon",
+      "instanceId": "snapshot:3:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      4,
+      "common",
+      "snapshot:4:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 2
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 4,
+      "requiredLevel": 4,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 10,
+      "shopPrice": 20,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 2,
+      "rank": "common",
+      "instanceId": "snapshot:4:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      4,
+      "uncommon",
+      "snapshot:4:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 3
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 4,
+      "requiredLevel": 4,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 15,
+      "shopPrice": 30,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 2,
+      "rank": "uncommon",
+      "instanceId": "snapshot:4:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      4,
+      "rare",
+      "snapshot:4:rare"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 3,
+        "intelligence": 1
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 4,
+      "requiredLevel": 4,
+      "rarity": "rare",
+      "affixes": [
+        "arcanist",
+        "focused"
+      ],
+      "sellable": true,
+      "sellPrice": 25,
+      "shopPrice": 50,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 2,
+      "rank": "rare",
+      "instanceId": "snapshot:4:rare",
+      "seed": 170,
+      "name": "Rare Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      7,
+      "common",
+      "snapshot:7:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 3
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 7,
+      "requiredLevel": 7,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 14,
+      "shopPrice": 29,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 3,
+      "rank": "common",
+      "instanceId": "snapshot:7:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      7,
+      "uncommon",
+      "snapshot:7:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 4
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 7,
+      "requiredLevel": 7,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 22,
+      "shopPrice": 44,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 3,
+      "rank": "uncommon",
+      "instanceId": "snapshot:7:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      7,
+      "rare",
+      "snapshot:7:rare"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 5,
+        "intelligence": 1
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 7,
+      "requiredLevel": 7,
+      "rarity": "rare",
+      "affixes": [
+        "arcanist",
+        "focused"
+      ],
+      "sellable": true,
+      "sellPrice": 36,
+      "shopPrice": 73,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 3,
+      "rank": "rare",
+      "instanceId": "snapshot:7:rare",
+      "seed": 170,
+      "name": "Rare Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      7,
+      "epic",
+      "snapshot:7:epic"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 5,
+        "intelligence": 1,
+        "critChance": 0.02
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 7,
+      "requiredLevel": 7,
+      "rarity": "epic",
+      "affixes": [
+        "arcanist",
+        "focused",
+        "keen"
+      ],
+      "sellable": true,
+      "sellPrice": 72,
+      "shopPrice": 145,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 3,
+      "rank": "epic",
+      "instanceId": "snapshot:7:epic",
+      "seed": 170,
+      "name": "Epic Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      10,
+      "common",
+      "snapshot:10:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 4
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 10,
+      "requiredLevel": 10,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 19,
+      "shopPrice": 38,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 4,
+      "rank": "common",
+      "instanceId": "snapshot:10:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      10,
+      "uncommon",
+      "snapshot:10:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 5
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 10,
+      "requiredLevel": 10,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 28,
+      "shopPrice": 57,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 4,
+      "rank": "uncommon",
+      "instanceId": "snapshot:10:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      10,
+      "rare",
+      "snapshot:10:rare"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 6,
+        "intelligence": 1
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 10,
+      "requiredLevel": 10,
+      "rarity": "rare",
+      "affixes": [
+        "arcanist",
+        "focused"
+      ],
+      "sellable": true,
+      "sellPrice": 47,
+      "shopPrice": 95,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 4,
+      "rank": "rare",
+      "instanceId": "snapshot:10:rare",
+      "seed": 170,
+      "name": "Rare Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      10,
+      "epic",
+      "snapshot:10:epic"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 7,
+        "intelligence": 1,
+        "critChance": 0.02
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 10,
+      "requiredLevel": 10,
+      "rarity": "epic",
+      "affixes": [
+        "arcanist",
+        "focused",
+        "keen"
+      ],
+      "sellable": true,
+      "sellPrice": 95,
+      "shopPrice": 190,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 4,
+      "rank": "epic",
+      "instanceId": "snapshot:10:epic",
+      "seed": 170,
+      "name": "Epic Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      20,
+      "common",
+      "snapshot:20:common"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 7
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 20,
+      "requiredLevel": 20,
+      "rarity": "common",
+      "affixes": [],
+      "sellable": true,
+      "sellPrice": 33,
+      "shopPrice": 67,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 7,
+      "rank": "common",
+      "instanceId": "snapshot:20:common",
+      "seed": 170,
+      "name": "Common Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      20,
+      "uncommon",
+      "snapshot:20:uncommon"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 9
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 20,
+      "requiredLevel": 20,
+      "rarity": "uncommon",
+      "affixes": [
+        "arcanist"
+      ],
+      "sellable": true,
+      "sellPrice": 50,
+      "shopPrice": 101,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 7,
+      "rank": "uncommon",
+      "instanceId": "snapshot:20:uncommon",
+      "seed": 170,
+      "name": "Uncommon Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      20,
+      "rare",
+      "snapshot:20:rare"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 10,
+        "intelligence": 1
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 20,
+      "requiredLevel": 20,
+      "rarity": "rare",
+      "affixes": [
+        "arcanist",
+        "focused"
+      ],
+      "sellable": true,
+      "sellPrice": 84,
+      "shopPrice": 168,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 7,
+      "rank": "rare",
+      "instanceId": "snapshot:20:rare",
+      "seed": 170,
+      "name": "Rare Wooden Staff"
+    }
+  },
+  {
+    "args": [
+      "Wooden Staff",
+      20,
+      "epic",
+      "snapshot:20:epic"
+    ],
+    "expected": {
+      "type": "weapon",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "hands": 2,
+      "damageType": "magic",
+      "legalClasses": [
+        "mage"
+      ],
+      "statModifiers": {
+        "magicDamage": 12,
+        "intelligence": 1,
+        "critChance": 0.02
+      },
+      "itemBaseId": "Wooden Staff",
+      "itemLevel": 20,
+      "requiredLevel": 20,
+      "rarity": "epic",
+      "affixes": [
+        "arcanist",
+        "focused",
+        "keen"
+      ],
+      "sellable": true,
+      "sellPrice": 167,
+      "shopPrice": 335,
+      "unique": false,
+      "bound": false,
+      "description": "Wooden Staff. Starter equipment.",
+      "baseStatBonus": 7,
+      "rank": "epic",
+      "instanceId": "snapshot:20:epic",
+      "seed": 170,
+      "name": "Epic Wooden Staff"
+    }
+  }
+]

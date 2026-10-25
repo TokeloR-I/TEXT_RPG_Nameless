@@ -69,13 +69,13 @@
 
         findInventoryItem(name) {
             const lower = name.trim().toLowerCase();
-            return this.player.inventory.find((i) => i.toLowerCase() === lower)
+            return this.player.inventory.find(i => i === name) || this.player.inventory.find(i => this.itemDef(i) && i.toLowerCase() === lower) || this.player.inventory.find((i) => i.toLowerCase() === lower || this.itemName(i).toLowerCase() === lower)
                 || this.player.inventory.find((i) => i.toLowerCase().startsWith(lower)) || null;
         }
 
         /** Applies an item. Returns true if it was used up. */
         applyItem(item) {
-            const def = this.data.itemDefinitions[item];
+            const def = this.itemDef(item);
             const p = this.player;
             if (!def || !USABLE.has(def.use)) { this.refuse('ITEM_NO_USE', noUseMessage(item)); return false; }
             if (def.use === 'gold') {
@@ -107,117 +107,24 @@
             if (!inv.length) { this.say('Your inventory is empty.'); return; }
             this.say('--- Inventory ---', { important: true });
             for (const item of inv) {
-                const def = this.data.itemDefinitions[item];
-                this.say(`- ${item}${def ? ` — ${def.description} (use: ${def.use} ${def.value})` : ''}`);
+                const def = this.itemDef(item);
+                this.say(`- ${item}${def ? ` — ${this.itemDetails(item)}` : ''}`);
             }
         }
 
-        /** Effective armor/weapon bonuses are reversible deltas, never permanent level stats. */
-        equipmentModifiers() {
-            const sum = {};
-            for (const name of Object.values(this.player.equipment || {})) {
-                const def = name && this.data.itemDefinitions[name];
-                for (const [stat, delta] of Object.entries((def && def.statModifiers) || {}))
-                    sum[stat] = (sum[stat] || 0) + delta;
-            }
-            return sum;
-        }
-
-        compareItem(name) {
-            const item = this.findInventoryItem(name);
-            const def = item && this.data.itemDefinitions[item];
-            if (!def || !['mainHand', 'bodyArmor', 'accessory'].includes(def.slot)) {
-                this.refuse('NOT_EQUIPMENT', 'Select a valid owned equipment item.'); return;
-            }
-            const current = this.player.equipment[def.slot];
-            const differences = this.equipmentDiff(item);
-            this.say(`${item} vs ${current || 'empty'}: ${JSON.stringify(differences)}`);
-            return differences;
-        }
-
-        /** Stat change if `item` replaced what is in its slot now (pure). */
-        equipmentDiff(item) {
-            const def = this.data.itemDefinitions[item] || {};
-            const prev = this.data.itemDefinitions[this.player.equipment[def.slot]] || {};
-            const differences = {};
-            for (const stat of new Set([...Object.keys(prev.statModifiers || {}), ...Object.keys(def.statModifiers || {})]))
-                differences[stat] = (def.statModifiers?.[stat] || 0) - (prev.statModifiers?.[stat] || 0);
-            return differences;
-        }
-
-        /**
-         * UI-6: the equipment screen's data (pure). Each slot shows what is worn and every owned item that fits,
-         * with its stat change and, if it can't be worn, the same code and message equipItem() refuses with.
-         * The screen then sends act({ type: 'equip', item }) or act({ type: 'unequip', slot }).
-         */
-        getEquipment() {
-            const p = this.player;
-            if (!p) return null;
-            const slots = {};
-            for (const slot of EQUIP_SLOTS) slots[slot] = { item: (p.equipment && p.equipment[slot]) || null, candidates: [] };
-            for (const item of new Set(p.inventory)) {
-                const def = this.data.itemDefinitions[item];
-                if (!def || !slots[def.slot]) continue;
-                const c = { item, rarity: def.rarity || null, description: def.description || '', diff: this.equipmentDiff(item), enabled: true };
-                if (!Object.entries(def.requirements || {}).every(([stat, min]) => (p[stat] || 0) >= min)) {
-                    c.enabled = false; c.reason = { code: 'EQUIP_REQUIREMENTS', message: 'You do not meet that item’s requirements.' };
-                }
-                slots[def.slot].candidates.push(c);
-            }
-            return { slots, modifiers: this.equipmentModifiers() };
-        }
-
-        equipItem(name) {
-            const item = this.findInventoryItem(name);
-            const def = item && this.data.itemDefinitions[item];
-            if (!def || !['mainHand','bodyArmor','accessory'].includes(def.slot)) {
-                this.refuse('NOT_EQUIPMENT','That item cannot be equipped.'); return false;
-            }
-            if (this.player.equipment[def.slot] === item) return true;
-            if (!Object.entries(def.requirements || {}).every(([stat, min]) => (this.player[stat] || 0) >= min)) {
-                this.refuse('EQUIP_REQUIREMENTS','You do not meet that item’s requirements.'); return false;
-            }
-            const current = this.player.equipment[def.slot];
-            const changes = this.compareItem(item);
-            this.player.inventory.splice(this.player.inventory.indexOf(item), 1);
-            if (current) this.player.inventory.push(current);
-            this.player.equipment[def.slot] = item;
-            for (const [stat, delta] of Object.entries(changes)) {
-                if (!['def','strength','intelligence','agility'].includes(stat)) continue;
-                this.player[stat] += delta;
-            }
-            this.say(`Equipped ${item}.`);
-            return true;
-        }
-
-        unequipItem(slot) {
-            const p = this.player;
-            if (!p.equipment || !p.equipment[slot]) { this.refuse('EMPTY_SLOT','Nothing equipped in that slot.'); return false; }
-            const item = p.equipment[slot], def = this.data.itemDefinitions[item];
-            for (const [stat, delta] of Object.entries((def && def.statModifiers) || {})) {
-                if (['def','strength','intelligence','agility'].includes(stat)) p[stat] -= delta;
-            }
-            p.equipment[slot] = null;
-            p.inventory.push(item);
-            this.say(`Unequipped ${item}.`);
-            return true;
-        }
-
-        /** The stock's own spelling of an item name: typed names match without case (QA-46). */
+        /** Keep typed merchant stock names case-insensitive. */
         stockName(shopId, item) {
-            const stock = (((this.data.shopDefinitions || {})[shopId] || {}).stock) || {};
-            return stock[item] ? item : Object.keys(stock).find((k) => k.toLowerCase() === String(item).toLowerCase()) || item;
+            const stock = this.data.shopDefinitions[shopId]?.stock || {};
+            return stock[item] ? item : Object.keys(stock).find(id => id.toLowerCase() === String(item).toLowerCase()) || item;
         }
-
         /** Shared, pure purchase validation for actions and merchant menus. */
         purchaseBlock(shopId, item) {
+            const access = this.merchantBlock(shopId);
+            if (access) return access;
             const shop = (this.data.shopDefinitions || {})[shopId];
             item = this.stockName(shopId, item);
             const entry = shop && shop.stock && shop.stock[item];
-            // In the story world you buy from a merchant you're with: the last one you talked to, on this map, and
-            // Shane only once he's recruited (QA-44).
-            if (this.story && shop && !this.storyMerchantHere(shopId)) return { code: 'NOT_HERE', message: "That merchant isn't here. Talk to them first." };
-            const def = this.data.itemDefinitions[item];
+            const def = this.itemDef(item);
             if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1)
                 return { code: 'NOT_FOR_SALE', message: 'This merchant cannot sell that item.' };
             if (this.player.gold < entry.buyPrice) return { code: 'NOT_ENOUGH_GOLD', message: 'Not enough Gold.' };
@@ -242,17 +149,28 @@
             return true;
         }
 
+        merchantBlock(shopId) {
+            if (!this.story || !this.storyMerchantHere(shopId))
+                return { code: 'NOT_AT_MERCHANT', message: 'Talk to this merchant on the current map first.' };
+            return null;
+        }
+        sellBlock(shopId, item) {
+            const access = this.merchantBlock(shopId);
+            if (access) return access;
+            const shop = this.data.shopDefinitions[shopId], def = this.itemDef(item);
+            if (!shop || !this.player.inventory.includes(item) || !def || def.sellable !== true || def.bound || def.type === 'quest' || !Number.isSafeInteger(def.sellPrice) || def.sellPrice < 0)
+                return { code: 'NOT_SELLABLE', message: 'This item cannot be sold.' };
+            const buyPrices = Object.values(this.data.shopDefinitions).flatMap(s => Object.entries(s.stock || {}).filter(([id]) => id === item).map(([, e]) => e.buyPrice));
+            if (buyPrices.some(price => def.sellPrice > price)) return { code: 'UNSAFE_PRICE', message: 'This item has an invalid resale price.' };
+            if (!Number.isSafeInteger(this.player.gold + def.sellPrice)) return { code: 'GOLD_OVERFLOW', message: 'Gold limit reached.' };
+            return null;
+        }
         sellItem(shopId, name) {
-            const shop = (this.data.shopDefinitions || {})[shopId], item = this.findInventoryItem(name);
-            const def = item && this.data.itemDefinitions[item];
-            if (!shop || !def || def.sellable !== true || def.type === 'quest' ||
-                !Number.isSafeInteger(def.sellPrice) || def.sellPrice < 0) {
-                this.refuse('NOT_SELLABLE','This item cannot be sold.'); return false;
-            }
-            if (!Number.isSafeInteger(this.player.gold + def.sellPrice)) { this.refuse('GOLD_OVERFLOW','Gold limit reached.'); return false; }
+            const item = this.findInventoryItem(name), block = this.sellBlock(shopId, item);
+            if (block) { this.refuse(block.code, block.message); return false; }
             this.player.inventory.splice(this.player.inventory.indexOf(item), 1);
-            this.player.gold += def.sellPrice;
-            this.say(`Sold ${item} for ${def.sellPrice} Gold.`);
+            this.player.gold += this.itemDef(item).sellPrice;
+            this.say(`Sold ${this.itemName(item)} for ${this.itemDef(item).sellPrice} Gold.`);
             return true;
         }
 

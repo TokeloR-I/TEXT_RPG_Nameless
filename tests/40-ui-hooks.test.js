@@ -41,7 +41,7 @@ test('UI-6 getEquipment: slots, candidates with stat changes, and equip/unequip 
     const before = g.snapshot().json;
     const eq = g.getEquipment();
     assert.strictEqual(g.snapshot().json, before, 'pure');
-    assert.deepStrictEqual(Object.keys(eq.slots), ['mainHand', 'bodyArmor', 'accessory']);
+    assert.deepStrictEqual(Object.keys(eq.slots), ['mainHand', 'offHand', 'bodyArmor', 'accessory']);
     const blade = eq.slots.mainHand.candidates.find((c) => c.item === 'Roadworn Blade');
     assert.ok(blade.enabled);
     assert.deepStrictEqual(blade.diff, g.equipmentDiff('Roadworn Blade'));

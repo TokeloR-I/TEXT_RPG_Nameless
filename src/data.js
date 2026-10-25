@@ -765,7 +765,642 @@
         // Every skill knows its own name (the engine relies on skill.name).
         for (const key of Object.keys(skillDefinitions)) skillDefinitions[key].name = key;
 
+        // LOOT-001 / issues #169–170. Authored economy candidates; balance sign-off remains with QA.
+        const lootProfiles = {
+            "humanoid": {
+                "gold": 1,
+                "material": 0.35,
+                "equipment": 0.12,
+                "consumable": 0.12,
+                "materials": [
+                    [
+                        "Scrap Metal",
+                        40
+                    ],
+                    [
+                        "Worn Cloth",
+                        30
+                    ],
+                    [
+                        "Damaged Leather",
+                        30
+                    ]
+                ]
+            },
+            "beast": {
+                "gold": 0,
+                "material": 0.85,
+                "equipment": 0,
+                "consumable": 0,
+                "materials": [
+                    [
+                        "Raw Meat",
+                        45
+                    ],
+                    [
+                        "Rough Hide",
+                        35
+                    ],
+                    [
+                        "Fang/Bone",
+                        20
+                    ]
+                ]
+            },
+            "undead": {
+                "gold": 0,
+                "material": 0.7,
+                "equipment": 0.03,
+                "consumable": 0.03,
+                "materials": [
+                    [
+                        "Bone Fragment",
+                        50
+                    ],
+                    [
+                        "Grave Dust",
+                        30
+                    ],
+                    [
+                        "Tattered Remnant",
+                        20
+                    ]
+                ]
+            },
+            "monstrosity": {
+                "gold": 0,
+                "material": 0.75,
+                "equipment": 0.04,
+                "consumable": 0,
+                "materials": [
+                    [
+                        "Strange Gland",
+                        50
+                    ],
+                    [
+                        "Carapace Shard",
+                        30
+                    ],
+                    [
+                        "Tainted Residue",
+                        20
+                    ]
+                ]
+            },
+            "construct": {
+                "gold": 0,
+                "material": 0.8,
+                "equipment": 0.05,
+                "consumable": 0,
+                "materials": [
+                    [
+                        "Scrap Metal",
+                        50
+                    ],
+                    [
+                        "Mechanism Part",
+                        35
+                    ],
+                    [
+                        "Charged Fragment",
+                        15
+                    ]
+                ]
+            },
+            "demon": {
+                "gold": 0.2,
+                "material": 0.65,
+                "equipment": 0.15,
+                "consumable": 0.08,
+                "materials": [
+                    [
+                        "Abyssal Ash",
+                        50
+                    ],
+                    [
+                        "Demon Horn Shard",
+                        30
+                    ],
+                    [
+                        "Otherworld Residue",
+                        20
+                    ]
+                ]
+            },
+            "guardian": {
+                "gold": 0,
+                "material": 0.25,
+                "equipment": 0,
+                "consumable": 0,
+                "materials": []
+            },
+            "sentient_looter": {
+                "gold": 0.75,
+                "material": 0.45,
+                "equipment": 0.1,
+                "consumable": 0,
+                "materials": [
+                    [
+                        "Scrap Metal",
+                        40
+                    ],
+                    [
+                        "Worn Cloth",
+                        30
+                    ],
+                    [
+                        "Damaged Leather",
+                        30
+                    ]
+                ]
+            }
+        };
+        Object.assign(itemDefinitions, {
+            "Raw Meat": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 2,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Rough Hide": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 3,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Fang/Bone": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 1,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Scrap Metal": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 3,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Worn Cloth": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 1,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Damaged Leather": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 2,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Bone Fragment": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 1,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Grave Dust": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 3,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Tattered Remnant": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 1,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Strange Gland": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 4,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Carapace Shard": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 3,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Tainted Residue": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 2,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Mechanism Part": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 5,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Charged Fragment": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 6,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Abyssal Ash": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 4,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Demon Horn Shard": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 6,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Otherworld Residue": {
+                "type": "material",
+                "sellable": true,
+                "sellPrice": 5,
+                "description": "Trade / crafting material. No recipe required to sell."
+            },
+            "Old Cellar Purse": {
+                "type": "consumable",
+                "use": "gold",
+                "value": 10,
+                "sellable": false,
+                "description": "An abandoned purse containing 10 Gold."
+            },
+            "Village Supply Parcel": {
+                "type": "quest",
+                "bound": true,
+                "sellable": false,
+                "description": "Mara’s supplies for Tamsin."
+            },
+            "Seal-Key of the First Echo": {
+                "type": "quest",
+                "bound": true,
+                "unique": true,
+                "sellable": false,
+                "description": "The Warden’s irreplaceable seal key."
+            },
+            "Rusty Sword": {
+                "type": "weapon",
+                "slot": "mainHand",
+                "weaponType": "one-hand",
+                "hands": 1,
+                "damageType": "physical",
+                "legalClasses": [
+                    "warrior"
+                ],
+                "statModifiers": {
+                    "physicalDamage": 1
+                },
+                "itemBaseId": "Rusty Sword",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "rarity": "common",
+                "affixes": [],
+                "sellable": true,
+                "sellPrice": 1,
+                "shopPrice": 2,
+                "unique": false,
+                "bound": false,
+                "description": "Rusty Sword. Starter equipment."
+            },
+            "Wooden Shield": {
+                "type": "armor",
+                "slot": "offHand",
+                "weaponType": "shield",
+                "hands": 1,
+                "damageType": null,
+                "legalClasses": [
+                    "warrior"
+                ],
+                "statModifiers": {
+                    "def": 1
+                },
+                "itemBaseId": "Wooden Shield",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "rarity": "common",
+                "affixes": [],
+                "sellable": true,
+                "sellPrice": 1,
+                "shopPrice": 2,
+                "unique": false,
+                "bound": false,
+                "description": "Wooden Shield. Starter equipment."
+            },
+            "Short Sword": {
+                "type": "weapon",
+                "slot": "mainHand",
+                "weaponType": "one-hand",
+                "hands": 1,
+                "damageType": "physical",
+                "legalClasses": [
+                    "rogue",
+                    "warrior"
+                ],
+                "statModifiers": {
+                    "physicalDamage": 1
+                },
+                "itemBaseId": "Short Sword",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "rarity": "common",
+                "affixes": [],
+                "sellable": true,
+                "sellPrice": 1,
+                "shopPrice": 2,
+                "unique": false,
+                "bound": false,
+                "description": "Short Sword. Starter equipment."
+            },
+            "Wooden Staff": {
+                "type": "weapon",
+                "slot": "mainHand",
+                "weaponType": "staff",
+                "hands": 2,
+                "damageType": "magic",
+                "legalClasses": [
+                    "mage"
+                ],
+                "statModifiers": {
+                    "magicDamage": 1
+                },
+                "itemBaseId": "Wooden Staff",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "rarity": "common",
+                "affixes": [],
+                "sellable": true,
+                "sellPrice": 1,
+                "shopPrice": 2,
+                "unique": false,
+                "bound": false,
+                "description": "Wooden Staff. Starter equipment."
+            },
+            "Cracked Bone Staff": {
+                "type": "weapon",
+                "slot": "mainHand",
+                "weaponType": "staff",
+                "hands": 2,
+                "damageType": "magic",
+                "legalClasses": [
+                    "necromancer"
+                ],
+                "statModifiers": {
+                    "magicDamage": 1
+                },
+                "itemBaseId": "Cracked Bone Staff",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "rarity": "common",
+                "affixes": [],
+                "sellable": true,
+                "sellPrice": 1,
+                "shopPrice": 2,
+                "unique": false,
+                "bound": false,
+                "description": "Cracked Bone Staff. Starter equipment."
+            }
+        });
+        const equipmentMetadata = {
+            "Roadworn Blade": {
+                "itemBaseId": "Roadworn Blade",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "legalClasses": [
+                    "warrior",
+                    "rogue"
+                ],
+                "hands": 1,
+                "weaponType": "one-hand",
+                "damageType": "physical",
+                "unique": false,
+                "bound": false
+            },
+            "Padded Jerkin": {
+                "itemBaseId": "Padded Jerkin",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "legalClasses": [
+                    "warrior",
+                    "mage",
+                    "rogue",
+                    "necromancer"
+                ],
+                "hands": 0,
+                "weaponType": "armor",
+                "damageType": null,
+                "unique": false,
+                "bound": false
+            },
+            "Apprentice Charm": {
+                "itemBaseId": "Apprentice Charm",
+                "itemLevel": 1,
+                "requiredLevel": 1,
+                "legalClasses": [
+                    "mage",
+                    "necromancer"
+                ],
+                "hands": 0,
+                "weaponType": "arcane-accessory",
+                "damageType": "magic",
+                "unique": false,
+                "bound": false
+            }
+        };
+        for (const [id, fields] of Object.entries(equipmentMetadata)) Object.assign(itemDefinitions[id], fields);
+        const equipmentAffixes = {
+            "keen": {
+                "name": "Keen",
+                "family": "keen",
+                "types": [
+                    "one-hand",
+                    "staff"
+                ],
+                "modifiers": {
+                    "critChance": 0.02
+                }
+            },
+            "stalwart": {
+                "name": "Stalwart",
+                "family": "stalwart",
+                "types": [
+                    "armor",
+                    "shield",
+                    "arcane-accessory"
+                ],
+                "modifiers": {
+                    "maxHp": 5
+                }
+            },
+            "focused": {
+                "name": "Focused",
+                "family": "focused",
+                "types": [
+                    "staff",
+                    "wand",
+                    "arcane-accessory"
+                ],
+                "modifiers": {
+                    "intelligence": 1
+                }
+            },
+            "brutal": {
+                "name": "Brutal",
+                "family": "brutal",
+                "types": [
+                    "one-hand"
+                ],
+                "modifiers": {
+                    "physicalDamage": 1
+                }
+            },
+            "arcanist": {
+                "name": "Arcanist",
+                "family": "arcanist",
+                "types": [
+                    "staff",
+                    "wand",
+                    "arcane-accessory"
+                ],
+                "modifiers": {
+                    "magicDamage": 1
+                }
+            },
+            "guarding": {
+                "name": "Guarding",
+                "family": "guarding",
+                "types": [
+                    "armor",
+                    "shield"
+                ],
+                "modifiers": {
+                    "def": 1
+                }
+            }
+        };
+        const equipmentRarities = {
+            "common": {
+                "weight": 650,
+                "multiplier": 1,
+                "affixes": 0,
+                "price": 1,
+                "minLevel": 1
+            },
+            "uncommon": {
+                "weight": 250,
+                "multiplier": 1.15,
+                "affixes": 1,
+                "price": 1.5,
+                "minLevel": 1
+            },
+            "rare": {
+                "weight": 80,
+                "multiplier": 1.35,
+                "affixes": 2,
+                "price": 2.5,
+                "minLevel": 4
+            },
+            "epic": {
+                "weight": 18,
+                "multiplier": 1.65,
+                "affixes": 3,
+                "price": 5,
+                "minLevel": 7
+            },
+            "legendary": {
+                "weight": 2,
+                "multiplier": 1,
+                "affixes": null,
+                "price": 12,
+                "minLevel": 10
+            }
+        };
+        const lootTables = {
+            chapter1: { equipment: [
+                { itemBaseId: 'Rusty Sword', weight: 2 }, { itemBaseId: 'Short Sword', weight: 2 },
+                { itemBaseId: 'Wooden Staff', weight: 2 }, { itemBaseId: 'Cracked Bone Staff', weight: 2 },
+                { itemBaseId: 'Wooden Shield', weight: 1 }, { itemBaseId: 'Padded Jerkin', weight: 2 },
+                { itemBaseId: 'Apprentice Charm', weight: 1 }
+            ], consumables: [{ item: 'Bandages', weight: 1 }, { item: 'Healing Herb Bundle', weight: 1 }] }
+        };
+        const enemyLoot = {
+            "James_Newton": [
+                10,
+                "humanoid",
+                "elite"
+            ],
+            "weak_goblin": [
+                1,
+                "humanoid",
+                "common"
+            ],
+            "hungry_wolf": [
+                1,
+                "beast",
+                "common"
+            ],
+            "shackled_ghoul": [
+                1,
+                "undead",
+                "common"
+            ],
+            "rust_rat": [
+                1,
+                "beast",
+                "common"
+            ],
+            "cellar_vermin": [
+                1,
+                "beast",
+                "common"
+            ],
+            "drunken_shade": [
+                1,
+                "undead",
+                "common"
+            ],
+            "bone_gnawer": [
+                1,
+                "undead",
+                "common"
+            ],
+            "mire_lurker": [
+                2,
+                "monstrosity",
+                "common"
+            ],
+            "cult_acolyte": [
+                2,
+                "humanoid",
+                "common"
+            ],
+            "shackled_ghoul_stronger": [
+                2,
+                "undead",
+                "elite"
+            ],
+            "watch_constable": [
+                2,
+                "humanoid",
+                "common"
+            ],
+            "crow_touched_warden": [
+                3,
+                "guardian",
+                "boss"
+            ]
+        };
+        for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
+            Object.assign(enemies[id], { lootLevel, lootProfile, lootRank, lootTable: 'chapter1' });
+        enemies.crow_touched_warden.materialDrops = false;
+        enemies.crow_touched_warden.bossDrops = [{ item: 'Seal-Key of the First Echo', storyKey: 'item:crow_warden_memory_key' }];
+        for (const cls of Object.values(basePlayerClasses)) for (const id of cls.startingItems) {
+            if (!Object.keys(itemDefinitions).some(name => name.toLowerCase() === id.toLowerCase()))
+                itemDefinitions[id] = { type: 'utility', bound: true, sellable: false, description: 'A personal keepsake or utility item.' };
+        }
+        const starterEquipment = { warrior: ['Rusty Sword', 'Wooden Shield'], rogue: ['Short Sword'], mage: ['Wooden Staff'], necromancer: ['Cracked Bone Staff'] };
+
         const data = {
+            lootProfiles, lootTables, equipmentAffixes, equipmentRarities, starterEquipment,
             shopDefinitions: {
                 mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
                 bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },

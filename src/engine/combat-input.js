@@ -168,7 +168,7 @@
                 else if (info.missing.length) line += ' [partial]';
                 this.say(line);
             }
-            const usable = [...new Set(this.player.inventory.filter((i) => this.data.itemDefinitions[i]))];
+            const usable = [...new Set(this.player.inventory.filter((i) => this.itemDef(i)?.use))];
             for (const item of usable) {
                 const n = this.player.inventory.filter((i) => i === item).length;
                 this.say(`> Use ${item}${n > 1 ? ` (x${n})` : ''}`);

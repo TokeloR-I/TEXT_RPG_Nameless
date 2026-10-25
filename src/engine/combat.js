@@ -14,11 +14,14 @@
         // =====================================================================
         // Combat flow
         // =====================================================================
-        startCombat(enemyKeys, scope = this.currentRoom) {
+        startCombat(enemyKeys, scope = this.currentRoom, loot = null) {
             this.say('--- COMBAT INITIATED! ---', { important: true });
             const enemies = enemyKeys.map((key, i) => {
                 const e = clone(this.data.enemies[key]);
-                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${scope}#${i}`, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
+                const overrides = (Array.isArray(loot) ? loot[i] : loot) || {};
+                for (const field of ['lootLevel', 'lootProfile', 'lootRank', 'lootTable', 'bossDrops', 'materialDrops'])
+                    if (field in overrides) e[field] = clone(overrides[field]);
+                Object.assign(e, { id: `enemy_${i}`, key, entityKey: `${scope}#${i}`, lootClaimId: `${scope}#${i}`, lootEligible: true, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
                 return e;
             });
             this.combat = {
@@ -257,7 +260,8 @@
             }
             if (this.alive(c.enemies).length === 0) {
                 const rules = this.data.gameRules;
-                const xp = c.enemies.reduce((sum, e) => sum + (e.xp != null ? e.xp : rules.defaultEnemyXp), 0);
+                const xp = c.enemies.filter(e => e.lootEligible !== false && !e.isMinion && !e.summoned && !e.isSummoned && !e.hallucination && !e.illusion && !e.noLoot).reduce((sum, e) => sum + (e.xp != null ? e.xp : rules.defaultEnemyXp), 0);
+                this.awardVictoryLoot(c.enemies);
                 this.say('--- VICTORY! ---', { important: true });
                 this.mode = 'explore';
                 this.combat = null;

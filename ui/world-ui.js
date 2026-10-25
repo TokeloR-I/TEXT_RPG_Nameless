@@ -539,29 +539,29 @@
         drawTalk(avail, said);
     }
     /** Shop goods and refusals come from the same engine checks as buy(). */
-    function renderShop(avail, message = '', selected = 0) {
+    function renderShop(avail, message = '', selected = 0, selling = false) {
         const back = () => renderTalk([], true);
-        const goods = avail.shop.goods;
+        const goods = selling ? avail.shop.selling : avail.shop.goods;
         menu = makeMenu([...goods.map((good, index) => ({
-            label: `${good.item} · ${good.price} Gold`,
-            sub: `${good.remaining} left · Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}`,
+            label: `${good.name || good.item} · ${good.price} Gold`,
+            sub: `${selling ? '' : `${good.remaining} left · `}Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}`,
             disabled: !good.enabled,
             action: () => {
-                const result = engine.act({ type: 'buy', shopId: good.shopId, item: good.item });
+                const result = engine.act({ type: selling ? 'sell' : 'buy', shopId: good.shopId, item: good.item });
                 updateHud();
-                renderShop(engine.getAvailableActions(), result.ok ? `Purchased ${good.item} for ${good.price} Gold.` : result.error.message, index);
+                renderShop(engine.getAvailableActions(), result.ok ? `${selling ? 'Sold' : 'Purchased'} ${good.name || good.item} for ${good.price} Gold.` : result.error.message, index, selling);
             }
-        })), { label: 'Back to conversation', action: back }], { back, render: draw });
+        })), { label: selling ? 'Buy goods' : 'Sell from bag', action: () => renderShop(avail, '', 0, !selling) }, { label: 'Back to conversation', action: back }], { back, render: draw });
         menu.index = Math.min(selected, menu.items.length - 1);
         draw();
         function draw() {
             const good = goods[menu.index];
             els.dialog.hidden = false;
-            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · Shop <span class="dialog-role">${avail.shop.gold} Gold</span></div>
+            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · ${selling ? 'Sell' : 'Buy'} <span class="dialog-role">${avail.shop.gold} Gold</span></div>
                 ${menuHtml(menu, 'shop-goods')}
-                <div class="shop-detail">${esc(good ? good.description : 'Return to the conversation.')}</div>
+                <div class="shop-detail">${esc(good ? good.description : menu.items[menu.index].label)}</div>
                 <div class="shop-message" role="status">${esc(message)}</div>
-                <div class="dialog-keys">↑ ↓ choose · Enter buy one · Esc back</div>`;
+                <div class="dialog-keys">↑ ↓ choose · Enter ${selling ? 'sell' : 'buy'} one · Esc back</div>`;
             bindMenuClicks(els.dialog, menu);
             const selectedRow = els.dialog.querySelector('.selected');
             if (selectedRow) selectedRow.scrollIntoView({ block: 'nearest' });
@@ -650,19 +650,23 @@
         let items = null;
         const again = (fn) => () => { const i = menu.index; fn(); enterList(id, i); };
         if (id === 'items') {
-            const v = MM.itemsView(engine.getAvailableActions(), engine.getState().player.inventory, DATA.itemDefinitions);
+            const v = MM.itemsView(engine.getAvailableActions(), engine.getState().player.inventory, engine.itemDefinitions());
             items = v.usable.map((u) => ({ label: `${u.item}${u.count > 1 ? ` ×${u.count}` : ''}`, sub: u.enabled ? u.description : (u.reason ? u.reason.message : ''), disabled: !u.enabled,
                 action: again(() => { mm.note = actLines({ type: 'use_item', item: u.item }); }) }));
         }
+        if (id === 'items') {
+            const claim = engine.getAvailableActions().actions.find(a => a.type === 'claim_loot');
+            if (claim) items.push({ label: 'Collect pending loot', disabled: !claim.enabled, sub: claim.reason?.message, action: again(() => { mm.note = actLines({ type: 'claim_loot' }); }) });
+        }
         if (id === 'equipment' && !mm.slot) {
-            items = MM.slotsView(engine.getEquipment()).map((r) => ({ label: `${r.label}: ${r.item || '—'}`, sub: r.candidates.length ? `${r.candidates.length} to choose from` : r.item ? 'Nothing else fits here' : 'Nothing that fits',
+            items = MM.slotsView(engine.getEquipment()).map((r) => ({ label: `${r.label}: ${r.item ? engine.itemName(r.item) : '—'}`, sub: r.candidates.length ? `${r.candidates.length} to choose from` : r.item ? 'Nothing else fits here' : 'Nothing that fits',
                 disabled: !r.candidates.length && !r.item, action: () => { mm.slot = r.slot; enterList('equipment', 0); } }));
         }
         if (id === 'equipment' && mm.slot) {
             const row = MM.slotsView(engine.getEquipment()).find((r) => r.slot === mm.slot);
-            items = row.candidates.map((c) => ({ label: c.item, sub: c.enabled ? `${c.diffText}${c.description ? ` · ${c.description}` : ''}` : c.reason.message, disabled: !c.enabled, diff: c.diff,
+            items = row.candidates.map((c) => ({ label: c.name || c.item, sub: c.enabled ? `${c.diffText}${c.description ? ` · ${c.description}` : ''}` : c.reason.message, disabled: !c.enabled, diff: c.diff,
                 action: () => { mm.note = actLines({ type: 'equip', item: c.item }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } }));
-            if (row.item) items.push({ label: `Take off ${row.item}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
+            if (row.item) items.push({ label: `Take off ${engine.itemName(row.item)}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
@@ -711,7 +715,7 @@
                 <div class="stat"><span class="k">XP</span>${bar(p.xp, p.xpToNext, 'xp')}<span class="v">${p.xp}<small>/${p.xpToNext}</small></span></div>
             </div>
             ${statsHtml(p, null)}
-            <ul class="mm-gear">${eq.map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item || '—')}</li>`).join('')}<li><span class="mm-dim">Gold</span> ${p.gold || 0}</li></ul>`;
+            <ul class="mm-gear">${eq.map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</li>`).join('')}<li><span class="mm-dim">Gold</span> ${p.gold || 0}</li></ul>`;
     }
     /** The stat block; with a candidate's diff it becomes the comparison (▲ better, ▼ worse, never colour alone). */
     function statsHtml(p, diff) {
@@ -729,14 +733,14 @@
         let page = '';
         if (tab === 'status') page = statusHtml(p, s);
         if (tab === 'items') {
-            const v = MM.itemsView(engine.getAvailableActions(), p.inventory, DATA.itemDefinitions);
+            const v = MM.itemsView(engine.getAvailableActions(), p.inventory, engine.itemDefinitions());
             page = `<h3>Use</h3>${inList ? list : v.usable.length ? `<ul class="mm-plain">${v.usable.map((u) => `<li>${esc(u.item)}${u.count > 1 ? ` ×${u.count}` : ''}</li>`).join('')}</ul>` : '<p class="mm-dim">Nothing to use.</p>'}
-                ${v.carrying.length ? `<h3>Carrying</h3><ul class="mm-plain mm-dim">${v.carrying.map((c) => `<li>${esc(c.item)}${c.count > 1 ? ` ×${c.count}` : ''}</li>`).join('')}</ul>` : ''}`;
+                ${v.carrying.length ? `<h3>Carrying</h3><ul class="mm-plain mm-dim">${v.carrying.map((c) => `<li>${esc(engine.itemName(c.item))}${c.count > 1 ? ` ×${c.count}` : ''}</li>`).join('')}</ul>` : ''}`;
         }
         if (tab === 'equipment') {
             const hl = inList && menu.items[menu.index];
             const slotLabel = mm.slot ? MM.SLOTS.find((x) => x.slot === mm.slot).label : null;
-            page = `<div class="mm-cols"><div><h3>${slotLabel ? esc(slotLabel) : 'Gear'}</h3>${inList ? list : `<ul class="mm-plain">${MM.slotsView(engine.getEquipment()).map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item || '—')}</li>`).join('')}</ul>`}</div>
+            page = `<div class="mm-cols"><div><h3>${slotLabel ? esc(slotLabel) : 'Gear'}</h3>${inList ? list : `<ul class="mm-plain">${MM.slotsView(engine.getEquipment()).map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</li>`).join('')}</ul>`}</div>
                 <div><h3>${hl && hl.diff ? 'If you wear it' : 'Stats'}</h3>${statsHtml(p, hl && hl.diff)}</div></div>`;
         }
         if (tab === 'journal') page = journalHtml() || '<p class="mm-dim">No journal in this game.</p>';
