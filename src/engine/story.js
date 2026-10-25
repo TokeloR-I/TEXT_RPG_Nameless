@@ -98,6 +98,7 @@
             const stock = (((this.data.shopDefinitions || {})[id] || {}).stock) || {};
             const items = Object.entries(stock).filter(([, e]) => e && Number.isSafeInteger(e.buyPrice));
             if (!items.length) { this.say('(Nothing is for sale here yet.)'); return; }
+            if (this.story && this.story.dialogue) this.story.dialogue.shopId = id;
             this.say(`For sale: ${items.map(([name, e]) => `${name} (${e.buyPrice} Gold)`).join(', ')}.`);
             this.say(`(To buy: 'buy ${id} <item>'.)`);
         }
@@ -286,6 +287,7 @@
             const node = npc.nodes[d.node];
             const idx = (node.choices || []).findIndex((c, i) => (c.id || `c${i}`) === choiceId);
             const choice = node.choices[idx];
+            delete d.shopId;
             this.say(`${this.player.name}: "${choice.say || choice.text}"`);
             this.applyStoryEffects(choice.effects);
             if (!this.story.dialogue) return;               // an effect closed it
@@ -349,6 +351,7 @@
             if (s && s.dialogue) {
                 if (a.type === 'dialogue_choice') { this.chooseDialogue(String(a.choiceId)); return true; }
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
+                if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
                 this.showDialogueChoices();
@@ -376,7 +379,19 @@
             const node = npc.nodes[d.node];
             const actions = this.dialogueChoices().map((c) => ({ type: 'dialogue_choice', choiceId: c.choiceId, text: c.text, ends: c.ends, enabled: true }));
             actions.push({ type: 'dialogue_leave', enabled: true, farewell: npc.farewell || null });
+            const shopId = d.shopId;
+            const shop = shopId && (this.data.shopDefinitions || {})[shopId];
+            const goods = shop ? Object.entries(shop.stock || {}).map(([item, entry]) => {
+                const block = this.purchaseBlock(shopId, item);
+                return { type: 'buy', shopId, item, price: entry.buyPrice,
+                    remaining: (this.player.shopStock || {})[`${shopId}:${item}`] ?? entry.quantity,
+                    owned: this.player.inventory.filter((name) => name === item).length + Object.values(this.player.equipment || {}).filter((name) => name === item).length,
+                    description: (this.data.itemDefinitions[item] || {}).description || '',
+                    enabled: !block, ...(block ? { reason: block } : {}) };
+            }) : [];
+            actions.push(...goods);
             return {
+                shop: shop ? { shopId, gold: this.player.gold, goods } : null,
                 dialogue: {
                     npcId: d.npcId, name: npc.name, title: npc.title || null,
                     lines: (node.lines || []).map((l) => {
