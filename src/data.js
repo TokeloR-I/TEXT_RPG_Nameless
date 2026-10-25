@@ -780,6 +780,9 @@
             guard: { damageTaken: 0.4, arcDeg: 140, staminaPerHit: 14, moveMult: 0.45, raiseMs: 80, breakStaggerMs: 700 },
             parry: { windowMs: 160, staggerMs: 900, rearmMs: 400 },
             respawn: { hpPct: 0.5, bossHpPct: 1.0, at: 'entrySpawn', graceMs: 1500, iframeMs: 1500 },
+            // Gauge: a blow that lands on the player deals at least 35% of its raw damage, whatever the DEF (0.35 is the
+            // smallest round share at which the weakest Chapter One blow, a 3-damage rat bite, still deals 1). Guard applies after.
+            defence: { minDamageShare: 0.35 },
             engageRadius: 120,                  // pressing attack with an enemy group this close engages it
             classes: {
                 warrior: {

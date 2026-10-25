@@ -264,7 +264,7 @@
                     target.statusEffects.push(heavy);
                 }
                 if (guarded && target === this.player) {   // the guard is a short damage_reduction around this one hit
-                    guard = { name: 'Guarding', type: 'damage_reduction', value: 1 - ((this.actionRules().guard || {}).damageTaken ?? 0.3), duration: null, stacks: 1, appliedBy: this.player.id };
+                    guard = { name: 'Guarding', type: 'damage_reduction', value: 1 - (((((this.actionRules().classes || {})[this.player.className] || {}).guard || {}).damageTaken) ?? ((this.actionRules().guard || {}).damageTaken ?? 0.3)), duration: null, stacks: 1, appliedBy: this.player.id };
                     this.player.statusEffects.push(guard);
                     this.say('You take it on your guard.');
                 }
