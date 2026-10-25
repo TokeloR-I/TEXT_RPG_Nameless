@@ -254,7 +254,7 @@
 
             // Rogue Base Skills
             'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'physical' },
-            'Evasion': { description: '50% chance to dodge next attack.', cost: 0, cooldown: 7, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
+            'Evasion': { description: '50% chance to dodge next attack.', cost: 0, cooldown: 5, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
             'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', cost: 1, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
             'Second Wind': { description: 'Gain +2 Energy, -25% evasion this turn.', cost: 0, resource: 'Energy', effects: [{ type: 'gain_resource', resource: 'Energy', value: 2 }, { type: 'apply_status', status: 'Evasion Debuff', value: -0.25, duration: 1 }], target: 'self' }, // Safety valve
 
@@ -937,17 +937,18 @@
             bosses: {
                 crow_touched_warden: {
                     arena: { x0: 16, y0: 32, x1: 336, y1: 224, home: { x: 184, y: 88 }, leashInsideArena: false, exitResets: true, respawnAt: { x: 184, y: 232 }, reengageRadius: 80 },
-                    speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
+                    // Gauge: hpMult 2.5 (action mode only) puts the fight at 60-90 s; action play lands far more hits than v2.
+                    hpMult: 2.5, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
                     parryStaggerMs: 600, warriorParryStaggerMs: 800, attackGapMs: 1200, minWindupMs: 500,
                     guardsSeal: true, noSweepNearCagesPx: 40,
                     attacks: {
                         halberd_sweep:   { skill: 'Halberd Sweep', shape: 'arc', reach: 36, arcDeg: 150, windupMs: 700, activeMs: 150, recoveryMs: 700, blockCost: 30, parryable: true, useAt: [0, 40] },
                         reaping_thrust:  { skill: 'Halberd Sweep', shape: 'line', reach: 64, width: 12, lunge: 24, windupMs: 550, activeMs: 120, recoveryMs: 900, blockCost: 22, parryable: true, useAt: [40, 80], alsoWhen: 'playerNorthOfWarden_or_nearCage' },
                         chain_lock:      { skill: 'Chain Lock', shape: 'projectile', reach: 120, width: 10, projSpeed: 300, windupMs: 600, activeMs: 0, recoveryMs: 800, blockCost: 20, parryable: false, onHit: { status: 'Rooted', ms: 1000, pullPx: 24 }, useWhen: 'playerBeyond80For1500ms' },
-                        summon_crows:    { skill: 'Summon Crows', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 900, activeMs: 300, recoveryMs: 1000, guardable: false, cooldownMs: 9000 },
+                        summon_crows:    { skill: 'Summon Crows', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 900, activeMs: 300, recoveryMs: 1000, guardable: false, cooldownMs: 9000, damageMult: 3 },
                         // Gauge: windup 1200 -> 1300 (walking out of r 64 from his feet takes ~960 ms + a 250 ms reaction) and
                         // active 200 -> 120 (the 200 ms dodge i-frames must cover the whole active window with slack).
-                        murder_of_crows: { skill: 'Summon Crows', shape: 'circle', radius: 64, windupMs: 1300, activeMs: 120, recoveryMs: 1500, guardable: false, cooldownMs: 15000, phase: 2 }
+                        murder_of_crows: { skill: 'Summon Crows', shape: 'circle', radius: 64, windupMs: 1300, activeMs: 120, recoveryMs: 1500, guardable: false, cooldownMs: 15000, phase: 2, damageMult: 6 }
                     },
                     phases: [
                         { fromHpPct: 1.0, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },

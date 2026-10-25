@@ -46,7 +46,7 @@ All return `{ ok, events, error? }` like `act()` and run as transactions.
 | `actionResolve(castId, targetIds)` → `{ ok, hit }` | The cast's hit landed on these engine ids, nearest first. Single-target skills hit the first body only (v2 damage balance); circles hit all; `enemy_multiple` needs its count. Pays the cost, runs the effects, starts the cooldown. `[]` = a whiff: paid and on cooldown anyway. |
 | `actionCancel(castId)` | The cast never came out (dodged out of it, stunned): nothing paid. |
 | `actionEnemyWindup(enemyId, { skill })` → `{ ok, skill }` | An enemy starts an attack. The sim's attack table names the skill (`actionRules.enemies[key].attacks[]`, `bosses[key]`); without one the engine picks at random (as v2 does) and says "readies X". Refused while stunned (`STUNNED`) or already winding up (`BUSY`). |
-| `actionEnemyStrike(enemyId, { hit, guarded, parried })` → `{ ok, result }` | The wind-up comes out: `result` is `hit`, `guarded` (damage × `actionRules.guard.damageTaken`), `parried` (no damage, an `action.parry` event; the sim staggers the enemy), `miss` (`hit: false`: dodged or out of reach) or `interrupted` (stunned during the wind-up). |
+| `actionEnemyStrike(enemyId, { hit, guarded, parried, damageMult })` → `{ ok, result }` | The wind-up comes out (`damageMult`, from the attack table, scales the blow after DEF): `result` is `hit`, `guarded` (damage × `actionRules.guard.damageTaken`), `parried` (no damage, an `action.parry` event; the sim staggers the enemy), `miss` (`hit: false`: dodged or out of reach) or `interrupted` (stunned during the wind-up). |
 | `actionDisengage(encounterId)` | The group gave up (leash). Its enemies leave the fight and reset. |
 | `actionView()` | Pure. Per engaged enemy `{ id, encounterId, key, name, hp, maxHp, stunned, speedMult, statuses, windup }`, minions, the player's stun/slow/statuses, casts in flight, and `getRealtimeState()`. |
 | `canSave()` | Pure. `{ ok: false, error: { code: 'IN_COMBAT' } }` while a group is engaged. |
@@ -70,6 +70,8 @@ lists them; `act({ type: 'collect_drop', dropId })` claims them (allowed in comb
 collected once; reloading, retreating or re-entering a map never duplicates it.
 
 ## Enemy patterns (the sim)
+
+Action-only tuning (Gauge) lives in the tables, not the engine: `bosses[key].hpMult` multiplies a boss's HP when an action fight engages it (the Warden ×2.5), and an attack's `damageMult` scales that blow (Summon Crows ×3, Murder of Crows ×6). Turn and v2 fights never read either.
 
 Each enemy fights from its attack table: `actionRules.enemies[key].attacks[]` (skill, shape `arc` / `line` /
 `circle` / `projectile` / `ground`, reach, arc, width, lunge, wind-up / active / recovery, cooldown, `useAt`

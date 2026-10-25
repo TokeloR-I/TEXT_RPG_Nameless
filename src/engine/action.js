@@ -72,7 +72,11 @@
                 } else { this.refuse('WRONG_MODE', 'Not now.'); return null; }
                 const a = this.combat.action;
                 a.nextEnemyId = Math.max(a.nextEnemyId, ...enemies.map((e) => Number(e.id.split('_')[1]) + 1));   // ids never repeat in a fight
-                for (const e of enemies) e.encounterId = id;
+                for (const e of enemies) {
+                    e.encounterId = id;
+                    const hpMult = (((this.actionRules().bosses || {})[e.key]) || {}).hpMult;   // action play hits far more often than a v2 swing (Gauge)
+                    if (hpMult > 0 && hpMult !== 1) e.hp = e.maxHp = Math.round(e.maxHp * hpMult);
+                }
                 a.groups[id] = { encounterId: id, ids: enemies.map((e) => e.id), at: at ? { mapId: at.mapId, x: at.x, y: at.y } : null };
                 this.out.push({ type: 'action.engage', encounterId: id, ids: a.groups[id].ids.slice() });
                 return { ids: a.groups[id].ids.slice() };
@@ -228,7 +232,7 @@
          * The enemy's attack comes out. `hit`: it reached the player (not dodged). `guarded`: the player's guard
          * faced it (damage × actionRules.guard.damageTaken). `parried`: blocked, and the sim staggers the enemy.
          */
-        actionEnemyStrike(enemyId, { hit = true, guarded = false, parried = false } = {}) {
+        actionEnemyStrike(enemyId, { hit = true, guarded = false, parried = false, damageMult = 1 } = {}) {
             return this.actionRun(() => {
                 const e = this.actionEnemy(enemyId);
                 if (!e) return null;
@@ -254,14 +258,18 @@
                 if (this.statusOfType(e, 'silence')) { skill = this.data.skillDefinitions['Basic Attack']; this.say(`${e.name} is silenced and can only flail.`); }
                 e.lastSkillUsed = skill.name;
                 const target = this.rtEnemyTarget(e);
-                let guard = null;
+                let guard = null, heavy = null;
+                if (damageMult > 0 && damageMult !== 1) {   // an attack table's damageMult (Murder of Crows): after DEF, like a damage_reduction below 0
+                    heavy = { name: 'Heavy Blow', type: 'damage_reduction', value: 1 - damageMult, duration: null, stacks: 1, appliedBy: e.id };
+                    target.statusEffects.push(heavy);
+                }
                 if (guarded && target === this.player) {   // the guard is a short damage_reduction around this one hit
                     guard = { name: 'Guarding', type: 'damage_reduction', value: 1 - ((this.actionRules().guard || {}).damageTaken ?? 0.3), duration: null, stacks: 1, appliedBy: this.player.id };
                     this.player.statusEffects.push(guard);
                     this.say('You take it on your guard.');
                 }
                 try { this.castSkill(e, skill, [target]); } finally {
-                    if (guard) { const i = this.player.statusEffects.indexOf(guard); if (i >= 0) this.player.statusEffects.splice(i, 1); }
+                    for (const s of [guard, heavy]) if (s) { const i = target.statusEffects.indexOf(s); if (i >= 0) target.statusEffects.splice(i, 1); }
                 }
                 end();
                 this.checkBattleEnd();
