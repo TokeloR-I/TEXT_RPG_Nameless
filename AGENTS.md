@@ -51,10 +51,16 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
   field or effect entry can express it.
 - Every skill effect type is one entry in `src/effects.js` plus tests.
 - **Statuses always go through `engine.applyStatus(source, target, spec)`** (`src/statuses.js`). Players, enemies and
-  summons share one pipeline. Durations are **round-based**: −1 at the end of each round in which the holder had a
+  summons share one pipeline. Durations are **round-based** in turn-based fights (timed in real-time fights, see combat v2 below): −1 at the end of each round in which the holder had a
   turn after the status was applied. Never tick durations anywhere else. **Only exception:** statuses with an
   `expiry` policy in `statusDefinitions` (QA-1: Marked for Death, Expose, Guard) expire by opportunity
   (`applier_turns` / `holder_next_turn_start`, see `src/statuses.js`). Adding a policy to another status needs design approval.
+- **Combat v2 is real-time** (`src/engine/realtime.js`, `docs/REALTIME_COMBAT.md`, numbers in `realtimeRules`).
+  `new GameEngine({ combatMode: 'realtime' })` fights on a clock the front end drives with `engine.tick(ms)`; the
+  engine still never reads a timer. Turn-based is the **legacy mode** and stays the default (`combatMode: 'turn'`), so
+  the text game, the balance bot and the older tests are unchanged; `legacy/turn-based-combat-v1` is the snapshot.
+  In a real-time fight every status is timed (turns × `secondsPerTurn`) and every action is still one opportunity
+  (the T-0 hooks), so both modes share one rules path. Don't add a third timing rule; extend `realtimeRules`.
 - Randomness only through `engine.rng()` / `engine.randInt()` so runs are reproducible from a seed.
 
 ## 4. Design authority

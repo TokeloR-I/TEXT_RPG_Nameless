@@ -734,6 +734,30 @@
         // Triggers only when one status of the pair is applied to a target already holding the other.
         const statusReactions = [];
 
+        // ===================================================================
+        // REAL-TIME COMBAT (combat v2, docs/REALTIME_COMBAT.md). Used only when the engine runs with
+        // combatMode: 'realtime'; the turn-based rules above stay the legacy mode (combatMode: 'turn').
+        // Every number here is Wren's FIRST PASS (2026-10-25) for Tally to measure and Vaelis to tune.
+        // ===================================================================
+        const realtimeRules = {
+            pulseSeconds: 3,               // one "round" of bookkeeping: resource regen, Soul Energy, bombs, round counter
+            secondsPerTurn: 3,             // a status written in turns lasts this many seconds per turn
+            globalCooldownSeconds: 1,      // after any skill or item, before the next one
+            maxStepMs: 1000,               // the longest slice one tick() call simulates (a sleeping tab can't skip a fight)
+            basicAttack: { swingSeconds: 1.6, referenceSpeed: 10, minSeconds: 0.8, maxSeconds: 2.5 },   // swing = 1.6 x 10 / SPD
+            cooldowns: { baseSeconds: 3, perCostSeconds: 2, allCostSeconds: 15 },   // a skill's own `cooldown` (seconds) wins
+            enemy: { actionSeconds: 3, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5, windupSeconds: 0.6, openingSeconds: 1 },
+            minion: { actionSeconds: 2.5, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5 },
+            statuses: {
+                dotMaxStacks: 99,          // Bleed, Poison, Infection and every other 'dot' stack to 99 (Tokelo, 2026-10-25)
+                tickSeconds: 1,            // a DoT ticks every second at 1 stack...
+                perStackSpeedup: 0.02,     // ...and each stack above 1 shortens the tick: interval = tick / (1 + 0.02 x (stacks - 1))
+                minTickSeconds: 0.25,      // never faster than this
+                guardSeconds: 3            // statuses that ended at the holder's next turn (Guard) last this long
+            },
+            skillBar: { slots: 6 }
+        };
+
         // Items you can `use`. Anything not listed is a keepsake (for now).
         const itemDefinitions = {
             'Moldy Bread':           { use: 'heal', value: 8,  description: 'Better than nothing. Probably.' },
@@ -1412,7 +1436,7 @@
             }, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
-            statusDefinitions, statusRules, statusReactions
+            statusDefinitions, statusRules, statusReactions, realtimeRules
         };
 
         const ENSO = global.ENSO || (global.ENSO = {});
