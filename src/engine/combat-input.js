@@ -52,7 +52,7 @@
                 const suggestions = this.findSimilarSkills(attempted);
                 if (suggestions.length) this.say(`Did you mean: ${suggestions.join(', ')}?`);
             }
-            this.showCombatState();
+            if (!(this.rtActive && this.rtActive())) this.showCombatState();   // real-time: the HUD is always up
         }
 
         parseCombatInput(raw) {

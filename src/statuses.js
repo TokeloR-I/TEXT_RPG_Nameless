@@ -67,8 +67,11 @@
         };
         P.statusRules = function () { return this.data.statusRules || {}; };
 
-        P.maxStacks = function (name) {
+        P.maxStacks = function (name, type) {
             const def = this.statusDef(name);
+            // Real-time combat: every damage-over-time status stacks to realtimeRules.statuses.dotMaxStacks (99).
+            const rt = this.rtActive && this.rtActive() && (this.data.realtimeRules || {}).statuses;
+            if (rt && (def.category === 'dot' || (def.type || type) === 'dot') && isNum(rt.dotMaxStacks)) return rt.dotMaxStacks;
             return isNum(def.maxStacks) ? def.maxStacks : (this.statusRules().defaultMaxStacks || 1);
         };
 
@@ -83,6 +86,7 @@
         /** Who is acting right now (default source for statuses applied without one). */
         P.currentActor = function () {
             const c = this.combat;
+            if (c && c.rt) return (c.rt.actorId && this.findCombatant(c.rt.actorId)) || this.player;   // real-time: whoever is acting
             return (c && c.order[c.idx]) || this.player;
         };
 
@@ -128,7 +132,7 @@
 
             // --- rule 2: one instance per status per target; stack intensity up to cap, refresh duration
             const existingNames = target.statusEffects.map((s) => s.name);
-            const cap = this.maxStacks(name);
+            const cap = this.maxStacks(name, spec.type);
             const add = Math.max(1, spec.stacks || 1);
             let inst = this.findStatus(target, name);
             let wasAtCap = false;
@@ -151,6 +155,7 @@
 
             // --- QA-1: opportunity-based expiry for the statuses that declare a policy
             this.initExpiryPolicy(source, inst, duration);
+            if (this.rtActive && this.rtActive()) this.rtStatusApplied(inst);   // real-time: durations in ms (src/engine/realtime.js)
 
             // --- rules 7–9: Overflow Burst when re-applied while already capped
             if (wasAtCap) this.rollOverflow(source, target, inst);
@@ -305,7 +310,8 @@
             if (source && source.isPlayer && this.hasTrait('DoTs last +1 turn')) duration += 1;
             const inst = this.applyStatus(source, target, { name, type: 'dot', value, duration });
             if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances.')) inst.trueDamage = true;
-            if (inst) this.say(`${target.name} is afflicted with ${name} (${this.dotTickDamage(inst)} dmg/turn for ${inst.duration} turns).`);
+            if (inst && inst.rtTotalMs != null) this.say(`${target.name} is afflicted with ${name}${inst.stacks > 1 ? ` x${inst.stacks}` : ''} (${this.dotTickDamage(inst)} dmg every ${this.rtTickMs(inst) / 1000}s for ${inst.rtTotalMs / 1000}s).`);
+            else if (inst) this.say(`${target.name} is afflicted with ${name} (${this.dotTickDamage(inst)} dmg/turn for ${inst.duration} turns).`);
             return inst;
         };
 

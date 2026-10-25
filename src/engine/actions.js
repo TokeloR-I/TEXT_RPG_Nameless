@@ -100,10 +100,11 @@
                 case 'harvest': this.harvestPlot(String(a.plotId || '')); return;
                 case 'craft': this.craftRecipe(String(a.recipeId || '')); return;
                 case 'engage': this.engage(); return;
+                case 'set_skill_slot': this.setSkillSlot(a.slot, a.skillId == null ? null : String(a.skillId)); return;   // combat v2 skill bar
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
                 case 'cheat': this.cheat(a.cheat, a.amount); return;
-                case 'attack': case 'skill': case 'flee': case 'continue': case 'choose_class': case 'choose_branch':
+                case 'attack': case 'skill': case 'skill_slot': case 'set_target': case 'flee': case 'continue': case 'choose_class': case 'choose_branch':
                     this.refuse('WRONG_MODE', 'Not now.'); return;
                 default: this.refuse('UNKNOWN_ACTION', `Unknown action '${a.type}'.`);
             }
@@ -132,6 +133,7 @@
         performCombat(a) {
             const c = this.combat;
             const p = this.player;
+            if (this.rtActive()) { if (a.type === 'set_skill_slot') this.setSkillSlot(a.slot, a.skillId); else this.rtPerformCombat(a); return; }   // combat v2 (realtime.js)
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
             if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)
             if (c.awaitingContinue) {
@@ -189,6 +191,12 @@
         combatUseItem(item) {
             const c = this.combat;
             const p = this.player;
+            if (this.rtActive()) {   // real-time: an item shares the global cooldown, and time goes on
+                const problem = this.rtActionProblem(item, false);
+                if (problem) { this.refuseCombat(problem.code, problem.message); return; }
+                if (this.applyItem(item)) { this.rtBeginPlayerAction(); this.rtEndPlayerAction(item, false, { item: true }); }
+                return;
+            }
             c.awaitingPlayer = false;
             if (!this.applyItem(item)) { c.awaitingPlayer = true; this.showCombatState(); return; }
             c.playerActedThisRound = true;
@@ -220,6 +228,8 @@
                 this.refuseCombat('ONCE_PER_FIGHT', `${skillName} can only be used once per fight!`);
                 return;
             }
+            const timing = this.rtActionProblem(skillName, !!opts.viaAttack || skillName === basic);   // real-time only: stun, cooldowns
+            if (timing) { this.refuseCombat(timing.code, timing.message); return; }
             const cost = this.skillCost(skill);
             if (p.resource.current < cost) {
                 this.refuseCombat('NOT_ENOUGH_RESOURCE', `Not enough ${p.resource.type}! (${skillName} needs ${cost}, you have ${p.resource.current})`);
@@ -243,14 +253,19 @@
                 if (skill.cost) this.say("Hunter's Instinct: your first mark this turn is free.");
             }
 
-            c.awaitingPlayer = false;
             const isBasic = !!opts.viaAttack || skillName === basic;
+            const realtime = this.rtActive();
+            if (realtime) this.rtBeginPlayerAction(); else c.awaitingPlayer = false;
             this.castSkill(p, skill, targets);
             if (isBasic) {
                 this.resourceEvent('onBasicAttack', 1, 'combo');
                 if (this.hasTrait('Virulent Touch')) for (const t of targets) if (t.hp > 0 && !t.isPlayer) this.infect(p, t, 1);
             }
             c.playerActedThisRound = true;
+            if (realtime) {   // combat v2: no turn to end; the skill goes on cooldown and the clock runs on
+                this.rtEndPlayerAction(skillName, isBasic);
+                return;
+            }
             if (this.mode === 'combat' && c.extraTurn && !this.checkBattleEnd()) {
                 c.extraTurn = false;
                 c.awaitingPlayer = true;
@@ -330,7 +345,8 @@
                     out.awaiting = 'control';                     // N-5: the controlled actor's own moves
                     out.controlledActorId = c.controlledActorId;
                     out.actions = this.controlOptions(this.controlledActor());
-                } else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
+                } else if (this.rtActive()) { out.awaiting = 'realtime'; out.actions = this.combatAvailability(); out.skillBar = this.skillBarView(); }
+                else if (c.awaitingPlayer) { out.awaiting = 'action'; out.actions = this.combatAvailability(); }
             } else {
                 out.actions = [{ type: 'restart', enabled: true }];
             }
@@ -389,6 +405,12 @@
             if (this.statusOfType(p, 'silence') && name !== this.basicAttackName()) return fail('SILENCED', 'You are silenced — only your basic attack works this turn.');
             if (!this.isCastable(skill)) return fail('NOT_IMPLEMENTED', `${name} isn't implemented yet (missing: ${this.missingEffects(skill).join(', ')}).`);
             if (skill.oncePerFight && c.usedOncePerFight[name]) return fail('ONCE_PER_FIGHT', `${name} can only be used once per fight!`);
+            if (this.rtActive()) {
+                const cdMs = opt.isBasic ? this.rtIntervalMs(p) : this.rtCooldownMs(name);
+                opt.cooldownMs = cdMs;
+                const timing = this.rtActionProblem(name, opt.isBasic);
+                if (timing) { if (timing.remainingMs != null) opt.readyInMs = timing.remainingMs; return fail(timing.code, timing.message); }
+            }
             if (p.resource.current < cost) return fail('NOT_ENOUGH_RESOURCE', `Not enough ${p.resource.type}! (${name} needs ${cost}, you have ${p.resource.current})`);
 
             const living = this.alive(c.enemies);

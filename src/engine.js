@@ -24,6 +24,7 @@
  *   turn-order.js     Player-set turn order (Eternal Architect, D-09)
  *   story.js          Chapter story: quests, flags, journal, NPC dialogue, identity (CH1-01)
  *   save.js           Save/load: serialize(), load(), GameEngine.fromSave() (Phase 1 spec §5)
+ *   realtime.js       Real-time combat v2: tick(ms), cooldowns, skill bar, timed statuses
  *   util.js           small shared helpers (seeded RNG, clone, ...)
  * Each module is a set of GameEngine methods copied onto the prototype below.
  * ========================================================================= */
@@ -67,6 +68,8 @@
             this.seed = options.seed != null ? options.seed >>> 0 : Math.floor(Math.random() * 4294967296);
             this.rng = mulberry32(this.seed);
             this.debug = !!options.debug; // print internal errors to the console
+            // 'turn' = legacy turn-based fights (default), 'realtime' = combat v2 driven by tick(ms) (src/engine/realtime.js)
+            this.combatMode = options.combatMode === 'realtime' ? 'realtime' : 'turn';
             this.out = [];
             this.errors = [];
             this.reset();
@@ -322,7 +325,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

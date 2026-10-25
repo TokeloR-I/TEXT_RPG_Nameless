@@ -43,6 +43,7 @@
             }
 
             for (const e of enemies) this.say(`${cap(this.withArticle(e))} appears! (HP: ${e.hp})`);
+            if (this.combatMode === 'realtime') { this.rtBegin(); return; }   // combat v2 (src/engine/realtime.js)
             this.newRound();
             this.say('--- Battle Order ---', { important: true });
             for (const c of this.combat.order) this.say(`${c.name} (SPD: ${this.speedOf(c)})`);
@@ -94,9 +95,15 @@
         }
 
         endRound() {
+            this.say('--- End of Round ---', { important: true });
+            this.endRoundResources();
+            this.tickStatusesEndOfRound(); // round-based durations (approved rule 11)
+        }
+
+        /** The end-of-round resource bookkeeping (real-time fights run it on every pulse). */
+        endRoundResources() {
             const c = this.combat;
             const p = this.player;
-            this.say('--- End of Round ---', { important: true });
             if (p.className === 'necromancer' && !p.isHollowKing && c.dealtDamageThisRound) {
                 if (this.gainResource(p, 1) > 0) this.say('You gained 1 Soul Energy!');
             }
@@ -110,7 +117,6 @@
             }
             c.dealtDamageThisRound = false;
             c.markedEnemyHitThisRound = false;
-            this.tickStatusesEndOfRound(); // round-based durations (approved rule 11)
         }
 
         /** Runs NPC turns until the player must act or the fight ends. */
