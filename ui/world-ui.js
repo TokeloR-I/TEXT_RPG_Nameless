@@ -788,7 +788,7 @@
         }
         if (tab === 'settings') {
             page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move (8 ways) · mouse aims · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
+                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
         if (tab === 'crow') {
@@ -1380,7 +1380,7 @@
     // Combat v3: fights in the world (docs/ACTION_COMBAT.md). src/action/sim.js owns space and time, the
     // engine the rules; this page turns keys and the mouse into sim input, and draws the sim's view with
     // ui/action-fx.js (telegraphs, swings, sparks, numbers) and ui/action-hud.js (Pixie's HUD).
-    // WASD move · mouse aims · LMB / 1 attack · 2–6, R skills · Space dodge · Shift sprint · RMB guard
+    // WASD move and face · click aims · keyboard attacks face forward · LMB / 1 attack · 2–6, R skills · Space dodge · Shift sprint · RMB guard
     // (a fresh press = parry) · E interact · Tab lock on.
     // ---------------------------------------------------------------------
     let sim = null;
@@ -1388,7 +1388,7 @@
     const AFX = ENSO.actionFx;
     const afx = ACTION ? AFX.createFx() : null;
     const aim = { x: 0, y: 0, screenX: null, screenY: null, movedAt: 0 };
-    const press = { attack: false, dodge: false, interact: false, slot: null };
+    const press = { attack: false, pointerAttack: false, dodge: false, interact: false, slot: null };
     let guardHeld = false;
     let lockId = null;
     const notices = [];
@@ -1447,7 +1447,7 @@
         canvas.addEventListener('mousedown', (ev) => {
             if (screen !== 'explore' || modal) return;
             const c = toCanvas(ev); aim.screenX = c.x; aim.screenY = c.y; aim.movedAt = performance.now();
-            if (ev.button === 0) press.attack = true;
+            if (ev.button === 0) { press.attack = true; press.pointerAttack = true; }
             if (ev.button === 2) guardHeld = true;
             ev.preventDefault();
         });
@@ -1464,10 +1464,12 @@
         let target = null;
         const lock = lockId && sim.actors.find((a) => a.sid === lockId && !a.dead);
         if (!lock) lockId = null;
-        if (lock && performance.now() - aim.movedAt > 1500) target = { x: lock.x, y: lock.y };   // lock-on aims until the mouse moves
-        else if (aim.screenX != null && performance.now() - aim.movedAt < 8000) { const c = camera(); target = { x: aim.screenX - c.ox, y: aim.screenY - c.oy }; }
+        const aiming = press.pointerAttack || guardHeld;
+        // Pointer position is an action target, never passive facing input. Tab explicitly locks aim.
+        if (lock) target = { x: lock.x, y: lock.y };
+        else if (aiming && aim.screenX != null) { const c = camera(); target = { x: aim.screenX - c.ox, y: aim.screenY - c.oy }; }
         const input = { move: mv, aim: target, sprint: down.has('Shift'), guard: guardHeld || down.has('q') || down.has('Q'), attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
-        press.attack = press.dodge = press.interact = false;
+        press.attack = press.pointerAttack = press.dodge = press.interact = false;
         press.slot = null;
         return input;
     }
@@ -1582,6 +1584,7 @@
         const pr = !v.engaged && screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
         while (notices.length && now - notices[0].at > 4000) notices.shift();
         return {
+            appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
             stamina: { cur: p.stamina, max: p.staminaMax },
             dodgeReadyInMs: Math.max(0, sim.player.dodgeReadyAt - sim.now),
             guarding: p.guarding,
@@ -1779,7 +1782,7 @@
         }
         if (ACTION) actionFrame(now);   // combat v3: free movement and fights in the world
         else if (screen === 'explore' && !busy() && !flash && held.length && now - lastBump >= BUMP_MS) tryStep(held[held.length - 1], now);
-        if (!anim) view.moving = false;
+        if (!ACTION && !anim) view.moving = false;
         if (screen !== 'title' && !ACTION) updatePrompt();
         rtFrame(now);   // before drawActor: a tick that re-renders the overlay gets its sprite drawn this same frame
         if (screen === 'combat' || screen === 'over') drawActor(now);

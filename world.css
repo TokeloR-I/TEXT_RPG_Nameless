@@ -803,25 +803,26 @@ body {
 .ahud-row.res[data-res="soul"] .ahud-bar { --base: var(--ah-soul); --hi: var(--ah-soul-hi); }
 .ahud-row.res .chipfill { background: rgba(242, 230, 196, 0.5); }
 
-/* ---- bottom-left: vitals ---- */
-.ahud-left { position: absolute; left: calc(var(--ap) * 8); bottom: calc(var(--ap) * 8); display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--ap) * 4); }
-.ahud-vitals { padding: calc(var(--ap) * 3) calc(var(--ap) * 5) calc(var(--ap) * 4); display: grid; gap: calc(var(--ap) * 3);
-    background: linear-gradient(180deg, rgba(29, 27, 41, 0.86) 0 calc(var(--ap) * 11), rgba(19, 17, 27, 0.86) calc(var(--ap) * 11) 100%);
-    box-shadow: 0 0 0 var(--ap) var(--c-frame), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.3); }
-.ahud-name { display: flex; justify-content: space-between; gap: calc(var(--ap) * 6); color: var(--c-ink); }
-.ahud-name .lv { color: var(--ah-gold); font-size: 0.75em; align-self: flex-end; }
-.ahud-row { display: grid; grid-template-columns: calc(var(--ap) * 64) auto; grid-template-areas: "k v" "b b"; align-items: end; column-gap: calc(var(--ap) * 4); row-gap: calc(var(--ap) * 1); }
-.ahud-row .k { grid-area: k; color: var(--c-frame-hi); font-size: 0.75em; letter-spacing: 0.04em; }
+/* ---- top-left: compact portrait and authoritative vitals ---- */
+.ahud-left { position: absolute; left: calc(var(--ap) * 8); top: calc(var(--ap) * 7); display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--ap) * 4); max-width: 48%; }
+.ahud-vitals { padding: calc(var(--ap) * 2); display: grid; grid-template-columns: calc(var(--ap) * 26) minmax(0, 1fr); gap: calc(var(--ap) * 2) calc(var(--ap) * 5); width: calc(var(--ap) * 142);
+    background: linear-gradient(90deg, rgba(19, 17, 27, .8), rgba(19, 17, 27, .4) 80%, transparent); }
+.ahud-portrait { grid-column: 1; grid-row: 1 / 5; width: calc(var(--ap) * 26); height: calc(var(--ap) * 26); align-self: center; image-rendering: pixelated; border: var(--ap) solid var(--c-frame); background: var(--c-win-lo); }
+.ahud-name { grid-column: 2; min-width: 0; display: flex; justify-content: space-between; gap: calc(var(--ap) * 4); color: var(--c-ink); }
+.ahud-name > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ahud-name .lv { color: var(--ah-gold); font-size: 0.75em; align-self: flex-end; white-space: nowrap; }
+.ahud-row { grid-column: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "k v" "b b"; align-items: end; column-gap: calc(var(--ap) * 3); row-gap: var(--ap); }
+.ahud-row .k { grid-area: k; color: var(--c-frame-hi); font-size: 0.75em; overflow-wrap: anywhere; }
 .ahud-row .v { grid-area: v; font-size: 0.75em; text-align: right; font-variant-numeric: tabular-nums; color: var(--c-ink); }
-.ahud-row .ahud-bar { grid-area: b; width: calc(var(--ap) * 64); }
+.ahud-row .ahud-bar { grid-area: b; width: 100%; height: calc(var(--ap) * 3); }
 .ahud-row.hp.mid .ahud-bar { --base: #c8802f; --hi: #e8a850; }
 .ahud-row.hp.low .ahud-bar { --base: #d8402c; --hi: #ff6a48; }
 .ahud-row.hp.low .v { color: var(--c-hp-low); }
-.ahud-bar.stam { --base: var(--ah-stam); --hi: var(--ah-stam-hi); width: calc(var(--ap) * 64); height: calc(var(--ap) * 2); margin-top: calc(var(--ap) * -1); transition: opacity 300ms steps(3); }
+.ahud-bar.stam { --base: var(--ah-stam); --hi: var(--ah-stam-hi); grid-column: 2; width: 100%; height: calc(var(--ap) * 2); margin-top: calc(var(--ap) * -1); transition: opacity 300ms steps(3); }
 .ahud-bar.stam.idle { opacity: 0.25; }
 .ahud-bar.stam.empty { --base: #c8a030; --hi: #f0d060; }
 
-/* ---- status chips (above the vitals) ---- */
+/* ---- status chips below the vitals ---- */
 .ahud-status { display: flex; flex-wrap: wrap; gap: calc(var(--ap) * 2); max-width: calc(var(--ap) * 150); }
 .ahud-chip { position: relative; display: inline-flex; align-items: baseline; gap: calc(var(--ap) * 2); font-size: 0.75em; padding: calc(var(--ap) * 1) calc(var(--ap) * 3) calc(var(--ap) * 2);
     background: rgba(10, 9, 16, 0.86); box-shadow: 0 0 0 var(--ap) var(--st, var(--c-st-other)), inset calc(var(--ap) * 2) 0 0 var(--st, var(--c-st-other)); padding-left: calc(var(--ap) * 5); }
@@ -880,21 +881,21 @@ body {
 .ahud-prompt .verb { color: var(--c-ink); }
 .ahud-prompt .name { color: var(--ah-gold); }
 
-/* ---- top-left: quest tracker ---- */
-.ahud-quest { position: absolute; left: calc(var(--ap) * 8); top: calc(var(--ap) * 7); max-width: calc(var(--ap) * 150); padding: calc(var(--ap) * 2) calc(var(--ap) * 24) calc(var(--ap) * 3) calc(var(--ap) * 5);
+/* ---- top-right: compact quest tracker ---- */
+.ahud-quest { position: absolute; right: calc(var(--ap) * 8); top: calc(var(--ap) * 7); max-width: 28%; padding: calc(var(--ap) * 2) calc(var(--ap) * 5); overflow-wrap: anywhere;
     background: linear-gradient(90deg, rgba(10, 9, 16, 0.78) 0 70%, rgba(10, 9, 16, 0.4) 85%, transparent 100%);
     border-left: calc(var(--ap) * 2) solid var(--ah-gold); }
 .ahud-quest-title { color: var(--ah-gold); font-size: 0.75em; letter-spacing: 0.08em; text-transform: uppercase; }
-.ahud-quest-text { font-size: 0.75em; color: var(--c-ink); }
+.ahud-quest-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 0.75em; color: var(--c-ink); }
 .ahud-quest-title:empty { display: none; }
 
 /* ---- top-centre: boss bar, lock-on plate ---- */
-.ahud-top { position: absolute; left: 50%; top: calc(var(--ap) * 7); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
-.ahud-boss { width: calc(var(--ap) * 196); display: grid; gap: calc(var(--ap) * 2); animation: ahud-rise 200ms steps(4); }
+.ahud-top { position: absolute; left: 51%; top: calc(var(--ap) * 7); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
+.ahud-boss { width: calc(var(--ap) * 160); display: grid; gap: calc(var(--ap) * 2); animation: ahud-rise 200ms steps(4); }
 .ahud-boss-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 calc(var(--ap) * 2); }
 .ahud-boss-name { color: var(--c-ink); letter-spacing: 0.14em; text-transform: uppercase; }
 .ahud-boss-pips { color: #d84a3a; font-size: 0.75em; letter-spacing: 0.15em; }
-.ahud-boss-bar { width: calc(var(--ap) * 192); height: calc(var(--ap) * 6); justify-self: center;
+.ahud-boss-bar { width: calc(var(--ap) * 156); height: calc(var(--ap) * 6); justify-self: center;
     box-shadow: 0 0 0 var(--ap) #000, 0 0 0 calc(var(--ap) * 2) var(--c-frame), 0 0 0 calc(var(--ap) * 3) var(--c-frame-lo); }
 .ahud-boss-bar > .fill { --base: #a8302a; --hi: #d8503a; }
 .ahud-lock { display: flex; align-items: center; gap: calc(var(--ap) * 3); padding: var(--ap) calc(var(--ap) * 5) calc(var(--ap) * 2); font-size: 0.75em;
@@ -912,8 +913,17 @@ body {
 .ahud-notice.n-quest { --nc: #e8a860; } .ahud-notice.n-level { --nc: #fff1a8; }
 .ahud-notice.out { opacity: 0; transform: translateX(calc(var(--ap) * 8)); }
 
-/* portrait phones: the bar takes the width, so vitals and statuses sit above it */
-.world-stage.tall .ahud-left { bottom: calc(var(--ap) * 50); }
+/* Portrait phones keep the player cluster at the top left, with targets beneath. */
+.world-stage.tall .ahud-left { max-width: 54%; }
+.world-stage.tall .ahud-top { top: calc(var(--ap) * 72); }
+.world-stage.tall .ahud-quest { max-width: 40%; }
+.ahud-slot:focus-visible { outline: calc(var(--ap) * 2) solid var(--c-accent); outline-offset: var(--ap); }
+/* Empty exploration slots need no panel; equipped actions stay directly accessible. */
+.ahud:not(.in-combat) .ahud-slot.empty { display: none; }
+.ahud:not(.in-combat) .ahud-skills { background: rgba(13, 12, 19, .45); box-shadow: none; }
+.ahud-prompt { max-width: 90cqw; white-space: normal; overflow-wrap: anywhere; }
+.ahud-prompt .name { min-width: 0; }
+
 .world-stage.tall .ahud-centre { bottom: calc(var(--ap) * 6); }
 .world-stage.tall .ahud-notices { top: calc(var(--ap) * 60); }
 

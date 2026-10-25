@@ -316,7 +316,8 @@
     /**
      * Head-and-shoulders portrait (HD-2D HUD: turn bar, party plates). Draws the same composition as the
      * walking character, facing the camera, and crops the top of it into a size x size square at (x, y).
-     * opts are drawCharacter's ({ appearance, cosmetics, className }).
+     * opts are drawCharacter's ({ appearance, cosmetics, className }). Returns true when cacheable,
+     * false for a blank portrait or while requested image layers are still loading (fallbacks may draw).
      */
     function drawPortrait(g, x, y, opts, size = 32) {
         const character = opts.character || characterFor(opts.className);
@@ -328,11 +329,19 @@
         const px = tg.getImageData(0, 0, w, h).data;
         let top = 0;
         while (top < h && ![...Array(w).keys()].some((i) => px[(top * w + i) * 4 + 3] > 0)) top++;
+        if (top === h) return false;
         const crop = Math.min(w, 20), sx = Math.round((w - crop) / 2), sy = Math.max(0, Math.min(h - crop, top + 2));
         const prev = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
         g.drawImage(tmp, sx, sy, crop, crop, Math.round(x), Math.round(y), size, size);
         g.imageSmoothingEnabled = prev;
+        // A fallback is useful immediately, but must not freeze the portrait before its PNG loads.
+        const fields = { appearance: opts.appearance || 0, ...(opts.cosmetics || {}) };
+        return !character.layerOrder.down.some((layer) => {
+            const spec = character.layers[layer];
+            const sheet = sheets[fill(typeof spec === 'string' ? spec : spec.sheet, fields)];
+            return sheet && sheet.src && images.get(sheet.src)?.state === 'loading';
+        });
     }
 
     const api = { ACTION_ANIMATIONS, animationsOf, characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };

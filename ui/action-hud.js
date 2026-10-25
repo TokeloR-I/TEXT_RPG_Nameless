@@ -181,6 +181,7 @@
             inCombat,
             player: {
                 name: p.name || '', level: p.level || 1,
+                portrait: { appearance: sim.appearance ?? p.appearance ?? 0, className: sim.className || p.className, cosmetics: sim.cosmetics || p.cosmetics || {} },
                 hp: Math.max(0, p.hp || 0), maxHp: p.maxHp || 1,
                 resource: { name: res.type || '', cur: res.current || 0, max: res.max || 0, kind: resourceKind(res.type) }
             },
@@ -221,7 +222,7 @@
         const box = h('div', 'ahud', null);
         box.setAttribute('aria-label', 'Action HUD');
 
-        // ---- top-left: quest tracker
+        // ---- top-right: quest tracker
         const quest = h('div', 'ahud-quest', box);
         const qTitle = h('div', 'ahud-quest-title', quest);
         const qText = h('div', 'ahud-quest-text', quest);
@@ -241,10 +242,13 @@
         // ---- right: notices
         const notices = h('div', 'ahud-notices', box);
         notices.setAttribute('role', 'status'); notices.setAttribute('aria-live', 'polite');
-        // ---- bottom-left: statuses + vitals
+        // ---- top-left: portrait + compact vitals, statuses below
         const left = h('div', 'ahud-left', box);
-        const statuses = h('div', 'ahud-status', left);
         const vit = h('div', 'ahud-vitals', left);
+        const portrait = h('canvas', 'ahud-portrait', vit);
+        portrait.width = portrait.height = 32;
+        portrait.setAttribute('aria-hidden', 'true');
+        let portraitKey = null;
         const vName = h('div', 'ahud-name', vit);
         const vNameT = h('span', '', vName); const vLv = h('span', 'lv', vName);
         const mkRow = (k, kind) => {
@@ -259,6 +263,7 @@
         const rs = mkRow('', 'res');
         const stam = h('div', 'ahud-bar stam', vit);
         const stamFill = h('span', 'fill', stam);
+        const statuses = h('div', 'ahud-status', left);
         // ---- bottom-centre: prompt + skill bar
         const centre = h('div', 'ahud-centre', box);
         const note = h('div', 'ahud-note', centre);
@@ -268,6 +273,7 @@
         const mkSlot = (isBasic) => {
             const s = h('div', `ahud-slot${isBasic ? ' basic' : ''}`, barEl);
             s.setAttribute('role', 'button');
+            s.tabIndex = 0;
             const glyph = h('span', 'glyph', s);
             const ab = h('span', 'abbr', s);
             const shutter = h('span', 'shutter', s);
@@ -284,6 +290,12 @@
         const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
         basicEl.s.addEventListener('pointerdown', (e) => { stop(e); attackFns.forEach((f) => f()); });
         slotEls.forEach((el, i) => el.s.addEventListener('pointerdown', (e) => { stop(e); slotFns.forEach((f) => f(i)); }));
+        [basicEl, ...slotEls].forEach((el, i) => el.s.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            stop(e);
+            if (e.repeat) return;
+            (i === 0 ? attackFns : slotFns).forEach((f) => i === 0 ? f() : f(i - 1));
+        }));
         barEl.addEventListener('contextmenu', stop);
         // Dodge: a small cell at the end of the bar, so Space is always taught and its cooldown always shown.
         h('span', 'ahud-sep', barEl);
@@ -312,6 +324,8 @@
             text(el.glyph, s.glyph || '');
             attr(el.s, 'title', s.title);
             attr(el.s, 'aria-label', s.title);
+            attr(el.s, 'aria-disabled', String(!s.enabled));
+            el.s.tabIndex = s.empty ? -1 : 0;
             cls(el.s, 'empty', s.empty);
             for (const st of ['ready', 'cooldown', 'gcd', 'nores', 'disabled']) cls(el.s, `is-${st}`, s.state === st);
             const t = isBasic ? s.swing : s.cd;
@@ -366,6 +380,13 @@
             if (!m) return;
             cls(box, 'in-combat', m.inCombat);
             // vitals
+            const identity = m.player.portrait || {};
+            const nextPortrait = JSON.stringify(identity);
+            if (nextPortrait !== portraitKey && ENSO.sprites && ENSO.sprites.drawPortrait) {
+                const context = portrait.getContext('2d');
+                context.clearRect(0, 0, 32, 32);
+                if (ENSO.sprites.drawPortrait(context, 0, 0, identity, 32) === true) portraitKey = nextPortrait;
+            }
             text(vNameT, m.player.name); text(vLv, `Lv ${m.player.level}`);
             bar(hp, m.player.hp, m.player.maxHp, 64);
             text(hp.val, `${m.player.hp}/${m.player.maxHp}`);
