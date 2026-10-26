@@ -25,9 +25,12 @@ per-file approval text. Routine mechanics, pending values and balance decisions 
 Game Designer and Systems Designer, researched, documented and tested; they do not wait for Claude availability.
 Only fundamental creative-direction changes escalate to the owner. Technical invariants below still apply.
 
-Claude remains independent: Wren leads development, Pixie UI/UX, Tally QA, Thorne game design and Gauge systems.
+Claude remains independent. Its studio (owner restructure, 2026-10-26; hierarchy in `docs/agents/STUDIO_AGENTS.md`):
+Juniper produces; Wren leads development (Rook, now active, plus Hawk, Forge, Bolt, Brook); Thorne leads design
+(Gauge, Ledger, Moss, Cairn, Pip); Ashby leads narrative (Wick); Saffron leads art (Quill, technical artist); Pixie
+leads UI/UX (Hollis); Echo leads audio (Reed); Tally leads QA; Keel advises on architecture.
 Retired Sable, Morrigan, Vesper and Vaelis references in older material are historical, not active assignments;
-Codex must not reactivate them. Rook is owner-assigned backup only. Codex does not edit Claude's configurations.
+Codex must not reactivate them. Codex does not edit Claude's configurations.
 Check issues, branches and PRs before starting; preserve other studios' unmerged work and use separate worktrees.
 The owner remains the only person who merges `main`.
 
