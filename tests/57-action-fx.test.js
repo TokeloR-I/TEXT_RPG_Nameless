@@ -5,6 +5,7 @@ const FX = require('../ui/action-fx.js');
 require('../ui/battle-hd.js');                      // the HD creature painters drawEnemy prefers
 const SPRITES = require('../ui/sprites.js');
 require('../assets/sprites/player-placeholder.js');
+require('../assets/sprites/enso-player.js');
 
 /** A 2D context that records every call and accepts any method or property the painters use. */
 function fakeCtx() {
@@ -113,7 +114,7 @@ test('Sprites: action one-shots exist in all four facings for every player chara
         assert.ok(Array.isArray(anims.guard), `${key} guard loops`);
         assert.ok(!SPRITES.animationDone(ch, 'guard', 1e6) && SPRITES.animationDone(ch, 'hurt', 1e6));
         assert.ok(SPRITES.animationDone(ch, 'swing', ms('swing')) && !SPRITES.animationDone(ch, 'swing', ms('swing') - 1));
-        const body = SPRITES.sheets[typeof ch.layers.body === 'string' ? ch.layers.body.replace('{appearance}', 0) : ch.layers.body.sheet];
+        const body = SPRITES.getSheet((ch.fallbacks && ch.fallbacks.body) || (typeof ch.layers.body === 'string' ? ch.layers.body.replace('{appearance}', 0) : ch.layers.body.sheet));
         for (const facing of SPRITES.FACINGS) for (const a of ['swing', 'heavy', 'dodge', 'guard', 'hurt']) for (const s of [].concat(anims[a].steps || anims[a]))
             assert.ok(SPRITES.frameKey(body, facing, s.pose), `${key} ${a} ${facing} ${s.pose}`);
     }

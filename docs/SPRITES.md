@@ -96,6 +96,26 @@ colour variant, or use a palette sheet.
 **Single-file build:** the build inlines scripts, not PNGs. For art that must work in the double-click file,
 use a `data:image/png;base64,...` URL as `src`, or a palette sheet.
 
+## The player: the ENSO doll (original, drawn by code)
+
+`assets/sprites/enso-player.js` draws the player and every villager. Nothing is stored as pixels: each frame is
+built on first use from a pose skeleton (head, shoulders, elbows, hands, hips, knees, feet, weapon angle) and
+shapes on it, shaded from the top left, with darker edges where parts overlap and a coloured outline.
+`node tools/preview-enso-player.js out.png 4 '{"outfit":2}'` writes a contact sheet for review.
+
+- **Frames:** 64×64, feet at (32, 43), the 19 poses `stand`, `walk1-6`, `ready1-4`, `slash1-4`, `parry`, `hit`,
+  `down2`, `down3` in four facings (`left` mirrors `right`). Animations: `idle`, `walk`, `ready`, `attack`, `cast`,
+  `hit`, `death` and the action-combat `swing`, `heavy`, `dodge`, `guard`, `hurt`.
+- **One layer, generated per shape:** sheet ids are `enso.<hair>.<outfit>.<hat>.<weapon>.<shield>`; they come from
+  `ENSO.sheetProviders` (a provider builds a sheet the first time its id is asked for). Colours are palette roles,
+  so skin, hair colour, outfit colour and metal never need another sheet. The character brings its own
+  `paletteFor` and `sheetFields`.
+- **Choices** (`manifest.enso.options`): 4 skins, 9 hair styles × 12 colours, 6 outfits × 10 colours, 7 hats,
+  20 weapons (sword, axe, mace, spear × 5 metals), 13 shields (none + 3 shapes × 4 colours). Cosmetics fields:
+  `hairStyle`, `hairColor`, `outfit`, `outfitColor`, `hat`, `weapon`, `shield`. Any index wraps, so old saves load.
+  Picking a class suggests a matching outfit, weapon and shield in the creator.
+- **Villagers** (`person()` in `ui/world-render.js`) use the same doll, unarmed (`weapon: -1`), in their own colours.
+
 ## Mana Seed (removed 2026-10-26)
 
 The Mana Seed paper doll and tiles were removed on Tokelo's decision to make ENSO's own art. Their permission
@@ -127,3 +147,4 @@ licence. Any external art added later needs its source and licence recorded here
 | Asset | Source | Licence |
 |---|---|---|
 | `assets/sprites/player-placeholder.js` | Generated in-repo | Repository licence |
+| `assets/sprites/enso-player.js` | Drawn by code in-repo, no image input (`assets/LICENSE-enso-art.txt`) | Repository licence |

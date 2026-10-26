@@ -467,6 +467,18 @@
         const cx = px + 16, base = py + 30;
         const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
         g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
+        const EN = ENSO.spriteManifest && ENSO.spriteManifest.enso;
+        if (EN) {
+            // The ENSO doll (assets/sprites/enso-player.js), unarmed, in the villager's own colours. Hoods, helms and
+            // hats are the doll's own; tools and crows are drawn on top below.
+            const hat = o.hood ? 1 : o.helm ? 4 : o.hat ? 2 : 0;
+            const outfit = o.outfit != null ? o.outfit : o.helm ? 2 : o.hood ? 3 : seed % 2 ? 5 : 0;
+            const palette = { cloth: o.cloak, ...(o.hair && { hair: o.hair }), ...(o.skin && { skin: o.skin }), ...(o.belt && { accent: o.belt }),
+                ...(hat && { hat: o.hood || o.hat || '#4a4038' }), ...(o.helm && { metal: o.helm }), ...(o.scarf && { accent: o.scarf }) };
+            const cosmetics = { hairStyle: o.hairStyle != null ? o.hairStyle : seed % EN.options.hairStyles.length, hairColor: seed % 6, outfit, hat, weapon: -1, shield: 0 };
+            ENSO.sprites.drawCharacter(g, cx, base, { appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics, palette, character: EN, facing: 'down', anim: 'idle' }, t);
+            return personProps(g, cx, base - 30, { ...o, hat: null, hood: null, helm: null, scarf: null });
+        }
         const palette = { c: o.cloak, C: darker(o.cloak) };
         if (o.belt) palette.a = o.belt;
         if (o.hair) Object.assign(palette, { h: o.hair, H: darker(o.hair), L: darker(o.hair, 1.25) });
@@ -476,18 +488,6 @@
             facing: 'down', anim: 'idle', palette
         }, t + seed * 37);
         personProps(g, cx, base - 30, o);
-    }
-    /** Index of the colour in `list` (hex strings, nulls skipped) nearest to `hex`, from index `from`. */
-    function nearest(list, hex, from = 0) {
-        const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-        const [r, g2, b] = rgb(hex);
-        let best = from, bd = Infinity;
-        list.forEach((c, i) => {
-            if (i < from || !c) return;
-            const [r2, gg, b2] = rgb(c), d = (r - r2) ** 2 + (g2 - gg) ** 2 + (b - b2) ** 2;
-            if (d < bd) { bd = d; best = i; }
-        });
-        return best;
     }
     /** What a villager wears or carries over the body: hat, helm, hood, scarf, tools, crows. `top` is 30 px above the feet. */
     function personProps(g, cx, top, o) {

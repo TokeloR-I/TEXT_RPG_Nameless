@@ -166,8 +166,21 @@
     const HAIR_COLOURS = OPTS.hairColours ? OPTS.hairColours.map((c) => c.name) : ['Raven', 'Chestnut', 'Ash', 'Copper'];
     const OUTFITS = OPTS.outfits || ['Worn Traveler', 'Tattered', 'Armored', 'Ceremonial'];
     const HATS = OPTS.hats || ['None'], WEAPONS = OPTS.weapons || ['Sword'], SHIELDS = OPTS.shields || ['None'];
-    const CHOICES = { hairStyle: HAIR_STYLES, hairColor: HAIR_COLOURS, outfit: OUTFITS, hat: HATS, weapon: WEAPONS, shield: SHIELDS };
-    const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0, hat: 0, weapon: 0, shield: SHIELDS.length > 1 ? 1 : 0 });
+    const OUTFIT_COLOURS = OPTS.outfitColours ? OPTS.outfitColours.map((c) => c.name) : ['Default'];
+    const CHOICES = { hairStyle: HAIR_STYLES, hairColor: HAIR_COLOURS, outfit: OUTFITS, outfitColor: OUTFIT_COLOURS, hat: HATS, weapon: WEAPONS, shield: SHIELDS };
+    const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0, outfitColor: 0, hat: 0, weapon: 0, shield: SHIELDS.length > 1 ? 1 : 0 });
+    // A calling suggests a look (the player can change all of it): outfit style and colour, weapon and shield by
+    // their names in the art's options, so this list never depends on index order.
+    const CLASS_LOOK = { warrior: ['Ironclad', 'Rust', 'Iron Sword', 'Oak Round'], mage: ['Robe', 'Indigo', 'Iron Spear', 'None'],
+        rogue: ['Shadow Leathers', 'Crow', 'Iron Sword', 'None'], necromancer: ['Robe', 'Plum', 'Obsidian Mace', 'None'] };
+    function suggestLook(cls) {
+        const look = CLASS_LOOK[cls];
+        if (!look) return;
+        [['outfit', OUTFITS], ['outfitColor', OUTFIT_COLOURS], ['weapon', WEAPONS], ['shield', SHIELDS]].forEach(([field, list], i) => {
+            const at = list.indexOf(look[i]);
+            if (at >= 0) creator[field] = at;
+        });
+    }
     function showTitle() {
         screen = 'title';
         modal = 'creator'; syncActionHudVisibility();                    // the creation steps (Enter, Enter, Enter starts with the defaults)
@@ -176,11 +189,11 @@
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
         creatorStep(readSave() ? 'start' : 'name');
     }
-    const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit', 'hat', 'weapon', 'shield'];
+    const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit', 'outfitColor', 'hat', 'weapon', 'shield'];
     const LAST_STEP = CREATOR_FLOW[CREATOR_FLOW.length - 1];
     function creatorNext() {
         if (menu && CREATOR_FLOW.includes(creator.step)) {
-            if (creator.step === 'class') creator.cls = classes[menu.index];
+            if (creator.step === 'class') { creator.cls = classes[menu.index]; suggestLook(creator.cls); }
             else if (creator.step === 'look') creator.look = menu.index;
             else if (CHOICES[creator.step]) creator[creator.step] = menu.index;
         }
@@ -218,7 +231,7 @@
                 label,
                 sub: step === 'class' ? DATA.basePlayerClasses[classes[i]].description : null,
                 action: () => {
-                    if (step === 'class') creator.cls = classes[i];
+                    if (step === 'class') { creator.cls = classes[i]; suggestLook(creator.cls); }
                     else if (step === 'look') creator.look = i;
                     else creator[step] = i;
                     menu.index = i;
@@ -299,6 +312,7 @@
                         ${cycle('weapon','Weapon',WEAPONS,creator.weapon || 0)}
                         ${cycle('shield','Shield',SHIELDS,creator.shield || 0)}
                         ${swatches('hairColor','Hair colour',hairSwatches,creator.hairColor)}
+                        ${OPTS.outfitColours ? swatches('outfitColor','Outfit colour',OPTS.outfitColours.map((c) => c.swatch),creator.outfitColor || 0) : ''}
                         ${swatches('look','Skin tone',skinSwatches,creator.look)}
                         <div class="vessel-styles-heading">HAIRSTYLES <span>${HAIR_STYLES.length} STYLES</span></div>
                         <div class="vessel-hairstyles" role="group" aria-label="Choose hairstyle">
@@ -361,7 +375,7 @@
             const g = tile.getContext('2d');
             if (!g) return;
             g.imageSmoothingEnabled = false;
-            ENSO.sprites.drawCharacter(g, 24, 60, {
+            ENSO.sprites.drawCharacter(g, 24, 76, {   // head and shoulders: the hair is what differs
                 appearance, cosmetics: { ...cosmetic, hairStyle: Number(tile.dataset.stylePreview) },
                 className, facing: 'down', anim: 'idle', scale: 2
             }, 0);
