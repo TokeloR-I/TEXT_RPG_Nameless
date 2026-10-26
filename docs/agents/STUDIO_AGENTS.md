@@ -55,7 +55,7 @@ Tokelo — Creative Director (owner, merges main)
 | `studio-prototyper` | Pip | throwaway prototypes on `claude/proto-*` |
 | `studio-narrative-director` | Ashby | story, quests, lore canon |
 | `studio-writer` | Wick | dialogue, item and quest text |
-| `studio-art-director` | Saffron | visual direction (Mana Seed, in code only) |
+| `studio-art-director` | Saffron | visual direction; original ENSO art replacing Mana Seed (2026-10-26, `docs/art/ORIGINAL_ART_PLAN.md`) |
 | `studio-technical-artist` | Quill | VFX, sprite/tile pipeline, rendering polish |
 | `studio-ui-programmer`, `studio-ux-designer` | Pixie | `ui/`, CSS, HUD and menus |
 | `studio-accessibility-specialist` | Hollis | rebinding, readability, motion, input options |

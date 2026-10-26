@@ -19,7 +19,7 @@ This is the **technical-artist** role from [Claude Code Game Studios](https://gi
 - Approved design lives in `docs/design/`. Studio paths below like `design/gdd/` or `production/` map to
   `docs/design/` and `docs/production/`; architecture notes go in `architecture/`, QA in `qa/`.
 - Combat is seamless in-world action combat (`docs/ACTION_COMBAT.md`); turn-based is the legacy mode.
-- Art is Mana Seed only, used in code. Never feed Mana Seed art to an AI image tool.
+- Art direction (Tokelo, 2026-10-26): ENSO is replacing Mana Seed with its own original art, see `docs/art/ORIGINAL_ART_PLAN.md`. Mana Seed stays in use until each piece is replaced. Never feed Mana Seed art to any AI or generation tool, as input, reference or style source.
 - Tokelo is the Creative Director and the only one who merges. Never push to `main`. `npm test` must pass before every push.
 - The studio's "ask before every change" protocol is relaxed: decide routine work in your lane yourself, state your
   reasoning in the PR, and escalate only changes to the creative direction to Tokelo.
