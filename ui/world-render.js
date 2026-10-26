@@ -467,20 +467,17 @@
         const cx = px + 16, base = py + 30;
         const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
         g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
-        const MS = ENSO.spriteManifest && ENSO.spriteManifest.manaseed;
-        if (MS) {
-            // Mana Seed paper doll (assets/sprites/manaseed.js): the villager's colours pick the nearest skin, hair,
-            // outfit and hood or hat; helms and props are still drawn on top below.
-            const op = MS.options, near = (list, hex, from = 0) => nearest(list.map((x) => (x && x.swatch) || x), hex, from);
-            const cosmetics = {
-                hairStyle: o.hairStyle != null ? o.hairStyle % op.hairStyles.length : seed % op.hairStyles.length,
-                hairColor: o.hair ? near(op.hairColours, o.hair) : seed % op.hairColours.length,
-                outfit: o.cloak ? near(op.outfitSwatches, o.cloak) : seed % op.outfits.length,
-                hat: o.hood ? near(op.hatSwatches.slice(0, 6), o.hood, 1) : o.hat ? near(op.hatSwatches, o.hat, 1) : 0
-            };
-            const appearance = o.skin ? near(op.skins, o.skin) : o.appearance != null ? o.appearance : seed % op.skins.length;
-            ENSO.sprites.drawCharacter(g, cx, base, { appearance, cosmetics, character: MS, facing: 'down', anim: 'idle' }, t);
-            return personProps(g, cx, base - 30, { ...o, hat: null, hood: null });
+        const EN = ENSO.spriteManifest && ENSO.spriteManifest.enso;
+        if (EN) {
+            // The ENSO doll (assets/sprites/enso-player.js), unarmed, in the villager's own colours. Hoods, helms and
+            // hats are the doll's own; tools and crows are drawn on top below.
+            const hat = o.hood ? 1 : o.helm ? 4 : o.hat ? 2 : 0;
+            const outfit = o.outfit != null ? o.outfit : o.helm ? 2 : o.hood ? 3 : seed % 2 ? 5 : 0;
+            const palette = { cloth: o.cloak, ...(o.hair && { hair: o.hair }), ...(o.skin && { skin: o.skin }), ...(o.belt && { accent: o.belt }),
+                ...(hat && { hat: o.hood || o.hat || '#4a4038' }), ...(o.helm && { metal: o.helm }), ...(o.scarf && { accent: o.scarf }) };
+            const cosmetics = { hairStyle: o.hairStyle != null ? o.hairStyle : seed % EN.options.hairStyles.length, hairColor: seed % 6, outfit, hat, weapon: -1, shield: 0 };
+            ENSO.sprites.drawCharacter(g, cx, base, { appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics, palette, character: EN, facing: 'down', anim: 'idle' }, t);
+            return personProps(g, cx, base - 30, { ...o, hat: null, hood: null, helm: null, scarf: null });
         }
         const palette = { c: o.cloak, C: darker(o.cloak) };
         if (o.belt) palette.a = o.belt;
@@ -491,18 +488,6 @@
             facing: 'down', anim: 'idle', palette
         }, t + seed * 37);
         personProps(g, cx, base - 30, o);
-    }
-    /** Index of the colour in `list` (hex strings, nulls skipped) nearest to `hex`, from index `from`. */
-    function nearest(list, hex, from = 0) {
-        const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-        const [r, g2, b] = rgb(hex);
-        let best = from, bd = Infinity;
-        list.forEach((c, i) => {
-            if (i < from || !c) return;
-            const [r2, gg, b2] = rgb(c), d = (r - r2) ** 2 + (g2 - gg) ** 2 + (b - b2) ** 2;
-            if (d < bd) { bd = d; best = i; }
-        });
-        return best;
     }
     /** What a villager wears or carries over the body: hat, helm, hood, scarf, tools, crows. `top` is 30 px above the feet. */
     function personProps(g, cx, top, o) {
@@ -653,18 +638,6 @@
             Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
             Object.assign(OVERHANGS, HD.overhangs); Object.assign(TILE_LIGHTS, HD.lights);
         }
-        // Pack art (ui/tiles-manaseed.js) goes over the painters; while its sheet loads it returns false and the
-        // painter it replaced draws instead.
-        const PACK = ENSO.tilesManaseed;
-        if (PACK && !PACK.wrapped) {
-            PACK.wrapped = true;
-            for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs], [sprites, PACK.sprites || {}]]) {
-                for (const [name, fn] of Object.entries(extra)) {
-                    const prev = table[name];
-                    table[name] = (...args) => { if (fn(...args) === false && prev) prev(...args); };
-                }
-            }
-        }
         const g = canvas.getContext('2d');
         g.imageSmoothingEnabled = false;
         const dark = document.createElement('canvas');
@@ -704,6 +677,7 @@
         // and walls layers draw under the player and its overhead layer over them; any cell with no loaded art
         // under the player falls back to the procedural painter for its logical tile.
         const ATLAS = ENSO.atlas, TILED = ENSO.tiled;
+        const SCENE = ENSO.sceneArt;
         if (ATLAS) ATLAS.onLoad(() => cache.clear());
         function artCells(map, x, y, layers) {
             const art = map.art;
@@ -733,13 +707,17 @@
             c.width = map.tiles[0].length * T; c.height = map.tiles.length * T;
             const cg = c.getContext('2d');
             cg.imageSmoothingEnabled = false;
+            if (SCENE && SCENE.has(map)) {                       // a map painted whole (ui/scene-art.js)
+                cg.drawImage(SCENE.layers(map, nameAt).base, 0, 0);
+                cache.set(mapId, c);
+                return c;
+            }
             for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) {
                 const art = artCells(map, x, y, UNDER);
                 if (art.length) drawArt(cg, art, x * T, y * T);
                 else if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
             }
             if (HD) HD.shadePass(cg, map, nameAt, T);
-            if (PACK) PACK.decorPass(cg, map, nameAt, T);
             cache.set(mapId, c);
             return c;
         }
@@ -808,7 +786,9 @@
             const x0 = Math.max(0, Math.floor(camX / PT)), y0 = Math.max(0, Math.floor(camY / PT));
             const x1 = Math.min(src.tiles[0].length - 1, Math.ceil((camX + W) / PT)), y1 = Math.min(src.tiles.length - 1, Math.ceil((camY + H) / PT));
             T = PT;
-            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
+            const scene = SCENE && SCENE.has(src);
+            if (scene) SCENE.animate(g, src, time);
+            else for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
             T = cellOf(map);
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
@@ -825,7 +805,8 @@
             }
             // Foreground: crowns of trees reach into the row above and cover whoever stands there.
             T = PT;
-            for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
+            if (scene) g.drawImage(SCENE.layers(src, nameAt).over, 0, 0);
+            else for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
                 const name = nameAt(src, x, y);
                 if (OVERHANGS[name]) OVERHANGS[name](g, x * PT, y * PT, PT, { tx: x, ty: y, time, above: nameAt(src, x, y - 1) });
                 if (src.art) drawArt(g, artCells(src, x, y, ['overhead']), x * PT, y * PT);

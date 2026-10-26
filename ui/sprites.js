@@ -49,7 +49,7 @@
     // Action-combat one-shots (combat v3, Vesper), per character, built only from poses each character's sheets
     // already have. swing ≈ 350 ms (startup → active → recovery), heavy slower, dodge ≈ 250 ms crouch/lean,
     // guard a looping hold, hurt a short flinch. A character that doesn't define one of these gets it from here
-    // (see animDef), so the generated Mana Seed manifest (assets/sprites/manaseed.js) needs no edit.
+    // (see animDef).
     const st = (pose, ms, oy = 0) => ({ pose, ms, oy });
     const ACTION_ANIMATIONS = {
         player: {
@@ -58,13 +58,6 @@
             dodge: { once: true, then: 'idle', steps: [st('kneel', 70, 1), st('stepA', 110, 2), st('stepB', 70, 1)] },
             guard: [st('windup', 600, 0), st('windup', 600, 1)],
             hurt: { once: true, then: 'idle', steps: [st('hit', 110, -1), st('hit', 90), st('stand', 50)] }
-        },
-        manaseed: {
-            swing: { once: true, then: 'ready', steps: [st('slash1', 90), st('slash2', 50), st('slash3', 50), st('slash4', 160)] },
-            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash1', 200), st('slash2', 70), st('slash3', 90, 1), st('slash4', 240)] },
-            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk2', 120, 2), st('walk5', 70, 1)] },
-            guard: [st('parry', 600, 0), st('parry', 600, 1)],
-            hurt: { once: true, then: 'ready', steps: [st('hit', 160, -1), st('ready1', 90)] }
         }
     };
     const actionAnimationsFor = (character) => {
@@ -108,9 +101,21 @@
     };
 
     const FACINGS = ['down', 'up', 'left', 'right'];
+    // Sheets made on demand (assets/sprites/enso-player.js builds one per shape choice): a provider gets an id and
+    // returns a sheet or null. A provided sheet is registered like any other.
+    const providers = ENSO.sheetProviders || (ENSO.sheetProviders = []);
+    function getSheet(id) {
+        if (sheets[id] || id == null) return sheets[id];
+        for (const make of providers) { const made = make(id); if (made) return (sheets[id] = made); }
+        return undefined;
+    }
     const missing = new Set();                // sheet ids asked for but absent (reported once each)
     const warn = (id) => { if (missing.has(id)) return; missing.add(id); if (typeof console !== 'undefined') console.warn(`[sprites] missing sheet '${id}', using fallback`); };
-    const fill = (tpl, c) => tpl.replace(/\{(\w+)\}/g, (_, k) => (Number.isInteger(c[k]) ? c[k] : 0));
+    const fill = (tpl, c) => tpl.replace(/\{(\w+)\}/g, (_, k) => (Number.isInteger(c[k]) || typeof c[k] === 'string' ? c[k] : 0));
+    /** Template fields for a character: cosmetics, plus any it derives itself (enso-player.js: {shape}). */
+    const fieldsOf = (character, fields) => (character.sheetFields ? { ...fields, ...character.sheetFields(fields) } : fields);
+    /** The colours a character is drawn in: its own palette function, else the placeholder roles. */
+    const paletteOf = (character, opts) => (character.paletteFor || paletteFor)(opts);
 
     /** An animation as { steps, once, then }. Plain arrays are looping animations. */
     const animDef = (character, anim) => { const a = character.animations[anim] || actionAnimationsFor(character)[anim] || character.animations.idle; return Array.isArray(a) ? { steps: a, once: false } : a; };
@@ -140,7 +145,7 @@
     /** A registered sheet, or null. An IMAGE sheet whose picture isn't ready (still loading, failed, or no
      *  DOM) stands in as its `fallback` sheet, so the character is never drawn with a hole in it. */
     function sheetById(id, seen = 0) {
-        const sheet = sheets[id];
+        const sheet = getSheet(id);
         if (!sheet) return null;
         if (!sheet.src) return sheet;
         if (imageReady(sheet)) return sheet;
@@ -162,7 +167,7 @@
     }
     /** The real sheet id to draw for `id` right now (itself, or its fallback while its image isn't ready). */
     function resolveId(id) {
-        for (let i = 0, cur = id; i < 5 && cur; i++) { const s = sheets[cur]; if (!s) return null; if (!s.src || imageReady(s)) return cur; cur = s.fallback; }
+        for (let i = 0, cur = id; i < 5 && cur; i++) { const s = getSheet(cur); if (!s) return null; if (!s.src || imageReady(s)) return cur; cur = s.fallback; }
         return null;
     }
 
@@ -171,7 +176,7 @@
      * [{ layer, sheetId, frame, fallback }]. Pure: tests use it to check composition.
      */
     function characterLayers({ cosmetics = {}, appearance = 0, facing = 'down', anim = 'idle', time = 0, character = manifest.player } = {}) {
-        const fields = { appearance, ...cosmetics };                  // sheet templates may use {appearance} (skin)
+        const fields = fieldsOf(character, { appearance, ...cosmetics });   // sheet templates may use {appearance} (skin)
         const dir = FACINGS.includes(facing) ? facing : 'down';
         const step = animationStep(character, anim, time);
         const out = [];
@@ -180,7 +185,7 @@
             const want = fill(spec.sheet, fields);
             let id = resolveId(want), fallback = id !== want;
             if (!id) {
-                if (spec.optional && !sheets[want]) continue;          // e.g. a short style has no rear hair
+                if (spec.optional && !getSheet(want)) continue;          // e.g. a short style has no rear hair
                 warn(want);
                 const fb = character.fallbacks[layer] && resolveId(fill(character.fallbacks[layer], fields));
                 if (!fb) continue;
@@ -197,7 +202,7 @@
 
     /** One frame of a palette sheet as RGBA pixels: { w, h, data } (data: Uint8ClampedArray). Mirrors resolved. */
     function rasterize(sheetId, frame, palette, character = manifest.player) {
-        const sheet = sheets[sheetId];
+        const sheet = getSheet(sheetId);
         let src = sheet.frames[frame];
         let mirror = false;
         if (src && src.mirror) { mirror = true; src = sheet.frames[src.mirror]; }
@@ -222,11 +227,11 @@
     function composite(opts) {
         const character = opts.character || manifest.player;
         const { layers, oy, pose } = characterLayers(opts);
-        const palette = paletteFor(opts);
+        const palette = paletteOf(character, opts);
         const { w, h } = character.frame;
         const data = new Uint8ClampedArray(w * h * 4);
         for (const l of layers) {
-            if (sheets[l.sheetId].src) continue;                      // image layers only exist on a canvas
+            if (getSheet(l.sheetId).src) continue;                      // image layers only exist on a canvas
             const img = rasterize(l.sheetId, l.frame, palette, character);
             for (let i = 0; i < img.data.length; i += 4) if (img.data[i + 3]) data.set(img.data.subarray(i, i + 4), i);
         }
@@ -237,7 +242,7 @@
     // Canvas side: cached composites, drawn at whole pixels (nearest neighbour, no blur).
     // ---------------------------------------------------------------------
     /** The character drawn for a player class: a manifest entry that lists it in `classes` (a class name, or '*' for
-     *  every class, as the Mana Seed player in assets/sprites/manaseed.js does), else the layered placeholder player. */
+     *  every class), else the layered placeholder player. */
     function characterFor(className) {
         const k = String(className || '').toLowerCase();
         const all = Object.values(manifest).filter((c) => c.classes);
@@ -249,7 +254,7 @@
         const character = opts.character || characterFor(opts.className);
         const o = { ...opts, time, character };
         const { layers, oy } = characterLayers(o);
-        const palette = paletteFor(o);
+        const palette = paletteOf(character, o);
         const key = JSON.stringify([layers.map((l) => l.sheetId + '#' + l.frame), palette]);
         let c = cache.get(key);
         if (!c) {
@@ -259,7 +264,7 @@
             const cg = c.getContext('2d');
             cg.imageSmoothingEnabled = false;
             for (const l of layers) {
-                const sheet = sheets[l.sheetId];
+                const sheet = getSheet(l.sheetId);
                 if (sheet.src) {                                       // PNG sheet: frames are cells of a grid
                     const ref = sheet.frames[l.frame];
                     const cell = ref && ref.mirror ? sheet.frames[ref.mirror] : ref;
@@ -290,6 +295,7 @@
     /** Problems with the registered sheets for a character; [] = valid (tests and `npm run world`). */
     function validateSheets(character = manifest.player) {
         const errs = [];
+        const known = new Set([paletteFor(), ...Object.values(manifest).filter((c) => c.paletteFor).map((c) => c.paletteFor())].flatMap(Object.keys));
         for (const [id, sheet] of Object.entries(sheets)) {
             const { w, h } = sheet.frame || character.frame;   // a sheet for another character says its own frame size
             if (!sheet.frames || !Object.keys(sheet.frames).length) { errs.push(`${id}: no frames`); continue; }
@@ -303,12 +309,12 @@
                 if (!Array.isArray(f) || f.length !== h) { errs.push(`${id}.${k}: needs ${h} rows`); continue; }
                 f.forEach((row, y) => { if (row.length !== w) errs.push(`${id}.${k}: row ${y} is ${row.length} wide, expected ${w}`); });
                 const roles = new Set(f.join('').replace(/\./g, ''));
-                for (const r of roles) if (!(r in paletteFor())) errs.push(`${id}.${k}: unknown palette role '${r}'`);
+                for (const r of roles) if (!known.has(r)) errs.push(`${id}.${k}: unknown palette role '${r}'`);
             }
         }
         for (const ch of new Set([character, ...Object.values(manifest)])) for (const dir of FACINGS) for (const layer of ['body']) {
-            const id = fill(typeof ch.layers[layer] === 'string' ? ch.layers[layer] : ch.layers[layer].sheet, {});
-            for (const anim of Object.keys(animationsOf(ch))) for (const s of animDef(ch, anim).steps) if (!frameKey(sheets[id], dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
+            const id = fill(typeof ch.layers[layer] === 'string' ? ch.layers[layer] : ch.layers[layer].sheet, fieldsOf(ch, {}));
+            for (const anim of Object.keys(animationsOf(ch))) for (const s of animDef(ch, anim).steps) if (!frameKey(getSheet(id), dir, s.pose)) errs.push(`${id}: no frame for ${dir} ${s.pose}`);
         }
         return errs;
     }
@@ -339,12 +345,12 @@
         const fields = { appearance: opts.appearance || 0, ...(opts.cosmetics || {}) };
         return !character.layerOrder.down.some((layer) => {
             const spec = character.layers[layer];
-            const sheet = sheets[fill(typeof spec === 'string' ? spec : spec.sheet, fields)];
+            const sheet = getSheet(fill(typeof spec === 'string' ? spec : spec.sheet, fieldsOf(character, fields)));
             return sheet && sheet.src && images.get(sheet.src)?.state === 'loading';
         });
     }
 
-    const api = { ACTION_ANIMATIONS, animationsOf, characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
+    const api = { ACTION_ANIMATIONS, getSheet, animationsOf, characterFor, drawPortrait, paletteFor, characterLayers, animationStep, animationDone, frameKey, rasterize, composite, drawCharacter, validateSheets, missing, manifest, sheets, FACINGS };
     ENSO.sprites = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
