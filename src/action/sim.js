@@ -93,7 +93,41 @@
 
         buildSolids() {
             this.solid = new Uint8Array(this.w * this.h);
+            this.reach = null;
             for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.solid[y * this.w + x] = this.session.solidForAction(x, y) ? 1 : 0;
+        }
+
+        /** Cells the player can walk to from where they stand (4-way flood fill), built on first use after a rebuild. */
+        reachable() {
+            if (this.reach || !this.player) return this.reach;
+            const W = this.w, H = this.h, r = new Uint8Array(W * H);
+            const sx = Math.floor(this.player.x / this.T), sy = Math.floor(this.player.y / this.T);
+            if (this.solidAt(sx, sy)) return null;
+            const q = [sy * W + sx];
+            r[q[0]] = 1;
+            while (q.length) {
+                const c = q.pop(), cx = c % W, cy = (c - cx) / W;
+                for (const [nx, ny] of [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]]) {
+                    if (this.solidAt(nx, ny) || r[ny * W + nx]) continue;
+                    r[ny * W + nx] = 1;
+                    q.push(ny * W + nx);
+                }
+            }
+            return (this.reach = r);
+        }
+
+        /**
+         * An enemy may stand where the player can reach, or in a cell of its own gate that touches such a cell: gate
+         * guards hold the near face of the gateway and never back off out of reach (the orchard cultists did).
+         */
+        actorMayStand(a, x, y) {
+            const r = this.reachable();
+            if (!r) return true;
+            const tx = Math.floor(x / this.T), ty = Math.floor(y / this.T);
+            if (r[ty * this.w + tx] === 1) return true;
+            const gate = this.gateCellOf(a);
+            if (!gate || !gate(tx, ty)) return false;
+            return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const nx = tx + dx, ny = ty + dy; return nx >= 0 && ny >= 0 && nx < this.w && ny < this.h && r[ny * this.w + nx] === 1; });
         }
 
         solidAt(tx, ty) { return tx < 0 || ty < 0 || tx >= this.w || ty >= this.h || this.solid[ty * this.w + tx] === 1; }
@@ -133,6 +167,8 @@
         }
 
         /** Gate cells stay solid for the player until the gate is beaten; its own enemies walk through them. */
+        /** A cell of a gate whose guards are fighting you: your shots fly into the gateway they stand in. */
+        engagedGateCell(tx, ty) { return Object.values(this.groups).some((g) => g.engaged && g.gate && g.cells.includes(ty * this.w + tx)); }
         gateCellOf(actor) { const g = this.groups[actor.encounterId]; return g ? (tx, ty) => g.cells.includes(ty * this.w + tx) : null; }
 
         // =====================================================================
@@ -358,10 +394,15 @@
             s.facing = p.facing;
             if (tx === s.x && ty === s.y) return;
             if (this.engaged && (s.map.exits || []).some((e) => e.x === tx && e.y === ty && e.trigger === 'step')) {
-                // Leaving mid-fight would strand the engine in combat: the way out is barred until you shake them off.
-                p.x = (s.x + 0.5) * this.T; p.y = (s.y + 0.5) * this.T;
-                this.fx.push({ type: 'notice', text: "You can't leave while they're on you." });
-                return;
+                // Leaving mid-fight would strand the engine in combat: the way out is barred while an enemy is close.
+                // Nobody near (they can't reach you, or hang back): they give up and you slip away.
+                const near = this.actors.some((a) => !a.dead && a.engineId && dist(a, p) <= ((this.rules.combat || {}).exitBlockPx || 96));
+                if (near) {
+                    p.x = (s.x + 0.5) * this.T; p.y = (s.y + 0.5) * this.T;
+                    this.fx.push({ type: 'notice', text: "You can't leave while they're on you." });
+                    return;
+                }
+                for (const g of Object.values(this.groups)) if (g.engaged) this.leash(g);
             }
             const r = s.enterTile(tx, ty, p.facing);
             if (r.type !== 'none' && r.type !== 'moved') this.worldResults.push(r);
@@ -370,8 +411,10 @@
 
         /** Axis by axis. `slide` px: a move blocked by a corner it only clips slips around it (walking along walls). */
         moveBody(b, dx, dy, ignore = null, slide = 0) {
-            if (dx) { if (!this.bodyBlocked(b.x + dx, b.y, b.r, ignore)) b.x += dx; else if (!dy && slide) this.slideAround(b, dx, 0, ignore, slide); }
-            if (dy) { if (!this.bodyBlocked(b.x, b.y + dy, b.r, ignore)) b.y += dy; else if (!dx && slide) this.slideAround(b, 0, dy, ignore, slide); }
+            // an enemy standing in reach doesn't step out of it (one already outside, e.g. behind a locked door, can move)
+            const ok = b.encounterId && this.actorMayStand(b, b.x, b.y) ? (x, y) => this.actorMayStand(b, x, y) : () => true;
+            if (dx) { if (!this.bodyBlocked(b.x + dx, b.y, b.r, ignore) && ok(b.x + dx, b.y)) b.x += dx; else if (!dy && slide) this.slideAround(b, dx, 0, ignore, slide); }
+            if (dy) { if (!this.bodyBlocked(b.x, b.y + dy, b.r, ignore) && ok(b.x, b.y + dy)) b.y += dy; else if (!dx && slide) this.slideAround(b, 0, dy, ignore, slide); }
         }
 
         /** Find the nearest perpendicular offset (up to `max` px) that clears the corner and step toward it. */
@@ -789,7 +832,9 @@
         lineOfSight(a, b, wide = false) {
             const d = dist(a, b);
             const n = Math.ceil(d / 4);
-            const gate = a.encounterId ? this.gateCellOf(a) : null;   // a gate's guards see and shoot out of their own gate
+            // a gate's guards see and shoot out of their own gate, and can be seen (and hit) standing in it
+            const ga = a.encounterId ? this.gateCellOf(a) : null, gb = !wide && b.encounterId ? this.gateCellOf(b) : null;
+            const gate = ga && gb ? (tx, ty) => ga(tx, ty) || gb(tx, ty) : ga || gb;
             for (let i = 1; i < n; i++) {
                 const x = a.x + (b.x - a.x) * i / n, y = a.y + (b.y - a.y) * i / n;
                 if (wide ? this.bodyBlocked(x, y, a.r || 4, gate) : this.solidPxFor(x, y, gate)) return false;
@@ -806,7 +851,7 @@
             for (const pj of this.projectiles) {
                 const step = pj.speed * dt;
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
-                const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? null : this.gateCellOf(pj.actor));
+                const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
                     if (hit) { this.resolve(pj.castId, [hit]); continue; }

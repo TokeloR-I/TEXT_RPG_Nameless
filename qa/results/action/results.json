@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-25T18:22:50.278Z",
+  "when": "2026-10-26T08:47:34.981Z",
   "url": "file:///home/claude/text_rpg_nameless/world.html?combat=action",
   "cls": "warrior",
   "hooks": {
@@ -18,7 +18,7 @@
       "id": "a",
       "what": "Sub-tile movement (hold D 1 s -> non-integer tiles) and diagonal WASD",
       "status": "PASS",
-      "reason": "hold D 1 s: grounds(28.00,10.55) -> grounds(32.80,10.55) (dx 4.800 tiles, fractional samples true); hold W+A 0.6 s: grounds(32.80,10.55) -> grounds(30.56,8.38) (both axes true); source action",
+      "reason": "hold D 1 s: grounds(28.00,10.62) -> grounds(32.65,10.62) (dx 4.650 tiles, fractional samples true); hold W+A 0.6 s: grounds(32.65,10.62) -> grounds(30.20,8.10) (both axes true); source action",
       "shots": [
         "qa/results/action/02_a_hold_d_1s.png",
         "qa/results/action/03_a_diag_wa.png"
@@ -38,7 +38,7 @@
       "id": "c",
       "what": "1 / LMB near an enemy lowers its HP; the player can still move mid-fight",
       "status": "PASS",
-      "reason": "target grounds_weed_rats#0 HP 15 -> 4 after 1 swing(s) (LMB, 1, LMB, 1); engine mode combat; moved during fight true (grounds(13.28,30.13) -> grounds(11.66,30.77)); overlay false",
+      "reason": "target grounds_weed_rats#0 HP 15 -> 2 after 1 swing(s) (LMB, 1, LMB, 1); engine mode combat; moved during fight true (grounds(12.21,31.45) -> grounds(10.18,31.45)); overlay false",
       "shots": [
         "qa/results/action/07_c_after_attack.png",
         "qa/results/action/08_c_move_in_fight.png"
@@ -48,7 +48,7 @@
       "id": "d",
       "what": "Space dodges (moves further than a walk over the same 250 ms)",
       "status": "PASS",
-      "reason": "walk 250 ms: 1.50 tiles; Space + D 250 ms: 3.58 tiles (grounds(29.50,10.55) -> grounds(33.07,10.55)); dialog opened by Space: false",
+      "reason": "walk 250 ms: 1.42 tiles; Space + D 250 ms: 3.65 tiles (grounds(29.42,10.62) -> grounds(33.08,10.62)); dialog opened by Space: false",
       "shots": [
         "qa/results/action/09_d_dodge.png"
       ]
@@ -57,7 +57,7 @@
       "id": "e",
       "what": "After the enemies die a loot drop appears; walking over it collects it once (gold rises once)",
       "status": "PASS",
-      "reason": "drop drop:grounds_weed_rats at px (176,496) = tile (10.5,30.5), gold 0, items [{\"item\":\"Rough Hide\",\"name\":\"Rough Hide\",\"rarity\":null},{\"item\":\"Rough Hide\",\"name\":\"Rough Hide\",\"rarity\":null}]; gold 0 -> 0 -> 0, inventory 1 -> 3 -> 3 (walk over, then walk back over); drop gone true",
+      "reason": "drop drop:grounds_weed_rats at px (176,496) = tile (10.5,30.5), gold 0, items [{\"item\":\"Fang/Bone\",\"name\":\"Fang/Bone\",\"rarity\":null},{\"item\":\"Raw Meat\",\"name\":\"Raw Meat\",\"rarity\":null}]; gold 0 -> 0 -> 0, inventory 1 -> 3 -> 3 (walk over, then walk back over); drop gone true",
       "shots": [
         "qa/results/action/10_kill_start.png",
         "qa/results/action/11_kill_end.png",
@@ -97,7 +97,7 @@
       "id": "i",
       "what": "Leash: outrun an engaged group; it disengages, goes home, combat ends",
       "status": "PASS",
-      "reason": "engaged at start true; after running to the house: engaged false, engine explore; rats' distance from home (tiles) 0.0, 0.6",
+      "reason": "engaged at start true; after running to the house: engaged false, engine explore; rats' distance from home (tiles) 1.1, 0.6",
       "shots": [
         "qa/results/action/21_i_leash.png"
       ]
@@ -106,7 +106,7 @@
       "id": "j",
       "what": "Guard (RMB held, facing the wolf) loses <= 60% of the HP per second of standing open",
       "status": "PASS",
-      "reason": "open 10 s: 19 HP in 4 damaging hits (1.87 HP/s); guarding 10 s (sim guarding=true): 3 HP in 2 damaging hits (0.29 HP/s)",
+      "reason": "open 10 s: 17 HP in 4 damaging hits (1.66 HP/s); guarding 10 s (sim guarding=true): 1 HP in 1 damaging hits (0.10 HP/s)",
       "shots": [
         "qa/results/action/22_j_guard.png"
       ]
@@ -115,7 +115,7 @@
       "id": "k",
       "what": "Orchard acolytes: detect a player 3 tiles away in plain view, then fight at range (projectiles, damage from > 2 tiles)",
       "status": "PASS",
-      "reason": "trial 1: engaged after 133 ms, projectiles 1, ranged hits 3, HP lost 10, acolytes (26.6,6.8 chase) (25.8,6.8 chase) · trial 2: engaged after 139 ms, projectiles 1, ranged hits 3, HP lost 12, acolytes (27.0,7.0 chase) (25.8,6.9 chase) · trial 3: engaged after 125 ms, projectiles 1, ranged hits 2, HP lost 7, acolytes (27.0,6.6 chase) (26.2,6.5 recover)",
+      "reason": "trial 1: engaged after 134 ms, projectiles 1, ranged hits 2, HP lost 15, acolytes (27.1,6.9 chase) (26.5,6.8 chase) · trial 2: engaged after 131 ms, projectiles 1, ranged hits 3, HP lost 8, acolytes (27.1,7.0 chase) (26.5,7.0 chase) · trial 3: engaged after 131 ms, projectiles 1, ranged hits 3, HP lost 10, acolytes (26.5,7.0 chase) (25.8,7.0 chase)",
       "shots": [
         "qa/results/action/25_k_acolytes_trial1.png",
         "qa/results/action/26_k_acolytes_trial2.png",
@@ -126,7 +126,7 @@
       "id": "l",
       "what": "Death in the world respawns the player (half HP, enemies reset), no game over",
       "status": "PASS",
-      "reason": "engine explore, screen explore; HP 60/120; engaged false; wolf back true; at road(18.00,2.23); message \"You fall… and come to where you entered, aching but alive. ■\"",
+      "reason": "engine explore, screen explore; HP 60/120; engaged false; wolf back true; at road(18.00,2.00); message \"You fall… and come to where you entered, aching but alive. ■\"",
       "shots": [
         "qa/results/action/31_l_death.png",
         "qa/results/action/32_l_respawn.png"
@@ -155,7 +155,7 @@
       "id": "o",
       "what": "Parry: guard tapped just before a strike staggers the attacker and blocks the damage",
       "status": "PASS",
-      "reason": "1 timed attempts (RMB pressed with < 120 ms of wind-up left), 1 parried; attacker state / HP lost per attempt: stagger/-0",
+      "reason": "2 timed attempts (RMB pressed with < 120 ms of wind-up left), 1 parried; attacker state / HP lost per attempt: recover/-0, stagger/-0",
       "shots": [
         "qa/results/action/23_o_parry.png"
       ]
@@ -164,7 +164,7 @@
       "id": "p",
       "what": "Collision: holding each direction for 2.5 s ends against a wall/tree, never inside a solid tile",
       "status": "PASS",
-      "reason": "0/154 position samples inside a solid tile; a: grounds(28.00,8.00) -> grounds(16.53,8.00) · w: grounds(16.53,8.00) -> grounds(16.53,1.85) (stopped) · d: grounds(16.53,1.85) -> grounds(19.15,1.85) (stopped) · s: grounds(19.15,1.85) -> grounds(19.15,13.47)",
+      "reason": "0/181 position samples inside a solid tile; a: grounds(28.00,8.00) -> grounds(16.38,8.00) · w: grounds(16.38,8.00) -> grounds(16.38,1.85) (stopped) · d: grounds(16.38,1.85) -> grounds(19.15,1.85) (stopped) · s: grounds(19.15,1.85) -> grounds(19.15,13.55)",
       "shots": [
         "qa/results/action/24_p_collision.png"
       ]
