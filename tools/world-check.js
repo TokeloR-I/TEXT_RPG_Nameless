@@ -27,7 +27,6 @@ for (const [id, map] of Object.entries(world.maps)) {
 console.log('\nLegend: @ start  s spawn  E exit  ? inspect  $ pickup  ! enemy  | boundary');
 // Sprite sheets (GFX-1, docs/SPRITES.md) are checked here too.
 require('../assets/sprites/player-placeholder.js');
-require('../assets/sprites/manaseed.js');
 const spriteProblems = require('../ui/sprites.js').validateSheets().map((e) => `sprites: ${e}`);
 problems.push(...spriteProblems);
 console.log(problems.length ? `\n${problems.length} problem(s):\n- ${problems.join('\n- ')}` : '\nWorld data and sprite sheets are valid.');

@@ -49,7 +49,7 @@
     // Action-combat one-shots (combat v3, Vesper), per character, built only from poses each character's sheets
     // already have. swing ≈ 350 ms (startup → active → recovery), heavy slower, dodge ≈ 250 ms crouch/lean,
     // guard a looping hold, hurt a short flinch. A character that doesn't define one of these gets it from here
-    // (see animDef), so the generated Mana Seed manifest (assets/sprites/manaseed.js) needs no edit.
+    // (see animDef).
     const st = (pose, ms, oy = 0) => ({ pose, ms, oy });
     const ACTION_ANIMATIONS = {
         player: {
@@ -58,13 +58,6 @@
             dodge: { once: true, then: 'idle', steps: [st('kneel', 70, 1), st('stepA', 110, 2), st('stepB', 70, 1)] },
             guard: [st('windup', 600, 0), st('windup', 600, 1)],
             hurt: { once: true, then: 'idle', steps: [st('hit', 110, -1), st('hit', 90), st('stand', 50)] }
-        },
-        manaseed: {
-            swing: { once: true, then: 'ready', steps: [st('slash1', 90), st('slash2', 50), st('slash3', 50), st('slash4', 160)] },
-            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash1', 200), st('slash2', 70), st('slash3', 90, 1), st('slash4', 240)] },
-            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk2', 120, 2), st('walk5', 70, 1)] },
-            guard: [st('parry', 600, 0), st('parry', 600, 1)],
-            hurt: { once: true, then: 'ready', steps: [st('hit', 160, -1), st('ready1', 90)] }
         }
     };
     const actionAnimationsFor = (character) => {
@@ -237,7 +230,7 @@
     // Canvas side: cached composites, drawn at whole pixels (nearest neighbour, no blur).
     // ---------------------------------------------------------------------
     /** The character drawn for a player class: a manifest entry that lists it in `classes` (a class name, or '*' for
-     *  every class, as the Mana Seed player in assets/sprites/manaseed.js does), else the layered placeholder player. */
+     *  every class), else the layered placeholder player. */
     function characterFor(className) {
         const k = String(className || '').toLowerCase();
         const all = Object.values(manifest).filter((c) => c.classes);

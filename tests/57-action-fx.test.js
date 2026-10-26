@@ -5,7 +5,6 @@ const FX = require('../ui/action-fx.js');
 require('../ui/battle-hd.js');                      // the HD creature painters drawEnemy prefers
 const SPRITES = require('../ui/sprites.js');
 require('../assets/sprites/player-placeholder.js');
-require('../assets/sprites/manaseed.js');
 
 /** A 2D context that records every call and accepts any method or property the painters use. */
 function fakeCtx() {
@@ -101,9 +100,9 @@ test('Action FX: drawEnemy draws every enemy in every state, and a dead enemy fa
     assert.strictEqual(gone.calls.length, 0, 'a long-dead enemy draws nothing');
 });
 
-test('Sprites: action one-shots exist in all four facings for the palette and Mana Seed players', () => {
+test('Sprites: action one-shots exist in all four facings for every player character', () => {
     assert.deepStrictEqual(SPRITES.validateSheets(), []);
-    for (const key of ['player', 'manaseed']) {
+    for (const key of Object.keys(SPRITES.manifest)) {
         const ch = SPRITES.manifest[key];
         const anims = SPRITES.animationsOf(ch);
         for (const a of ['swing', 'heavy', 'dodge', 'guard', 'hurt']) assert.ok(anims[a], `${key}.${a}`);

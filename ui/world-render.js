@@ -467,21 +467,6 @@
         const cx = px + 16, base = py + 30;
         const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
         g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
-        const MS = ENSO.spriteManifest && ENSO.spriteManifest.manaseed;
-        if (MS) {
-            // Mana Seed paper doll (assets/sprites/manaseed.js): the villager's colours pick the nearest skin, hair,
-            // outfit and hood or hat; helms and props are still drawn on top below.
-            const op = MS.options, near = (list, hex, from = 0) => nearest(list.map((x) => (x && x.swatch) || x), hex, from);
-            const cosmetics = {
-                hairStyle: o.hairStyle != null ? o.hairStyle % op.hairStyles.length : seed % op.hairStyles.length,
-                hairColor: o.hair ? near(op.hairColours, o.hair) : seed % op.hairColours.length,
-                outfit: o.cloak ? near(op.outfitSwatches, o.cloak) : seed % op.outfits.length,
-                hat: o.hood ? near(op.hatSwatches.slice(0, 6), o.hood, 1) : o.hat ? near(op.hatSwatches, o.hat, 1) : 0
-            };
-            const appearance = o.skin ? near(op.skins, o.skin) : o.appearance != null ? o.appearance : seed % op.skins.length;
-            ENSO.sprites.drawCharacter(g, cx, base, { appearance, cosmetics, character: MS, facing: 'down', anim: 'idle' }, t);
-            return personProps(g, cx, base - 30, { ...o, hat: null, hood: null });
-        }
         const palette = { c: o.cloak, C: darker(o.cloak) };
         if (o.belt) palette.a = o.belt;
         if (o.hair) Object.assign(palette, { h: o.hair, H: darker(o.hair), L: darker(o.hair, 1.25) });
@@ -653,18 +638,6 @@
             Object.assign(ground, HD.ground); Object.assign(painters, HD.painters);
             Object.assign(OVERHANGS, HD.overhangs); Object.assign(TILE_LIGHTS, HD.lights);
         }
-        // Pack art (ui/tiles-manaseed.js) goes over the painters; while its sheet loads it returns false and the
-        // painter it replaced draws instead.
-        const PACK = ENSO.tilesManaseed;
-        if (PACK && !PACK.wrapped) {
-            PACK.wrapped = true;
-            for (const [table, extra] of [[ground, PACK.ground], [painters, PACK.painters], [OVERHANGS, PACK.overhangs], [sprites, PACK.sprites || {}]]) {
-                for (const [name, fn] of Object.entries(extra)) {
-                    const prev = table[name];
-                    table[name] = (...args) => { if (fn(...args) === false && prev) prev(...args); };
-                }
-            }
-        }
         const g = canvas.getContext('2d');
         g.imageSmoothingEnabled = false;
         const dark = document.createElement('canvas');
@@ -739,7 +712,6 @@
                 else if (!ANIMATED.has(nameAt(map, x, y))) paintTile(cg, map, x, y, 0);
             }
             if (HD) HD.shadePass(cg, map, nameAt, T);
-            if (PACK) PACK.decorPass(cg, map, nameAt, T);
             cache.set(mapId, c);
             return c;
         }

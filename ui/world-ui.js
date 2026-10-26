@@ -159,8 +159,8 @@
     const classes = Object.keys(DATA.basePlayerClasses);
     const looks = (STORY && STORY.appearances) || [{ id: 'default', label: 'Default' }];
     const NAME_MAX = 24;
-    // The choices come from the player character's art (the Mana Seed paper doll, assets/sprites/manaseed.js);
-    // the lists below are for the placeholder player when that art isn't loaded.
+    // The choices come from the player character's art (its manifest's `options`); the lists below are for the
+    // placeholder player when that art isn't loaded.
     const OPTS = (ENSO.sprites && ENSO.sprites.characterFor && ENSO.sprites.characterFor('*').options) || {};
     const HAIR_STYLES = OPTS.hairStyles || ['Wild Raven', 'Round Crop', 'Spiky', 'Straight Fringe', 'Long Side Strands', 'Swept', 'Soft Layers', 'Clean Crop', 'Side Part', 'Medium Layers', 'Braids', 'High Ponytail'];
     const HAIR_COLOURS = OPTS.hairColours ? OPTS.hairColours.map((c) => c.name) : ['Raven', 'Chestnut', 'Ash', 'Copper'];
