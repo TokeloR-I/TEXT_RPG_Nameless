@@ -102,6 +102,7 @@ use a `data:image/png;base64,...` URL as `src`, or a palette sheet.
 built on first use from a pose skeleton (head, shoulders, elbows, hands, hips, knees, feet, weapon angle) and
 shapes on it, shaded from the top left, with darker edges where parts overlap and a coloured outline.
 `node tools/preview-enso-player.js out.png 4 '{"outfit":2}'` writes a contact sheet for review.
+This is the first step of `docs/art/ORIGINAL_ART_PLAN.md`; Sprite Forge art can replace or refine it later.
 
 - **Frames:** 64×64, feet at (32, 43), the 19 poses `stand`, `walk1-6`, `ready1-4`, `slash1-4`, `parry`, `hit`,
   `down2`, `down3` in four facings (`left` mirrors `right`). Animations: `idle`, `walk`, `ready`, `attack`, `cast`,
