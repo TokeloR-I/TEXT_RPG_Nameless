@@ -153,7 +153,7 @@ On defeat, an enemy should leave an appropriate world pickup, loot container or 
 
 Rewards must remain once-only where intended, persist through save/load, and avoid duplication on retreat, respawn, or world transitions. Quest objectives and experience should update from actual events occurring in the world.
 
-Weapons should visibly match equipped artwork when possible and produce mechanically distinctive attacks. Avoid promising visual equipment layers that are not supported by available art; use the Mana Seed layered asset system and compatible licensed packs where appropriate.
+Weapons should visibly match equipped artwork when possible and produce mechanically distinctive attacks. Avoid promising visual equipment layers that are not supported by available art; use the Mana Seed layered asset system and compatible licensed packs where appropriate. *(Superseded 2026-10-26: Tokelo decided ENSO replaces Mana Seed with original art; the layered system stays, see `docs/art/ORIGINAL_ART_PLAN.md`.)*
 
 ---
 
@@ -182,7 +182,7 @@ A successful action-RPG conversion requires visible motion and feedback for dire
 
 The **Claude Gaming Studio** handles art and VFX production, sourcing and integration as part of its development workflow. **Wren** owns technical integration and renderer behavior; **Pixie** owns visual readability and interface presentation; **Tally** tests the actual in-game result. The studio can use its integrated specialist agents internally without creating additional external lead roles or waiting for role-by-role approval.
 
-Prioritize compatible licensed packs and existing Mana Seed artwork where appropriate. Original artwork should be reserved for distinctive ENSO identities, encounters, and supernatural abilities rather than rebuilding generic assets unnecessarily.
+Prioritize compatible licensed packs and existing Mana Seed artwork where appropriate. Original artwork should be reserved for distinctive ENSO identities, encounters, and supernatural abilities rather than rebuilding generic assets unnecessarily. *(Superseded 2026-10-26: all art becomes original ENSO art, see `docs/art/ORIGINAL_ART_PLAN.md`.)*
 
 The Mana Seed artist's permission and restriction on using their art as input or reference for AI image generation must be respected.
 
