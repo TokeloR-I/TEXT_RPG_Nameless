@@ -216,3 +216,47 @@ test('Sim: walking along a wall the body only clips slides past the corner inste
     assert.ok(r.sim.player.x / T < 14, `got past the shed corner (x ${(r.sim.player.x / T).toFixed(2)})`);
     assert.ok(!r.sim.bodyBlocked(r.sim.player.x, r.sim.player.y, r.sim.player.r), 'never inside a wall');
 });
+
+/** Fight a gate group from the near side: walk at the nearest living member, swing every 6 frames. */
+function fightGate(r, id, frames = 60 * 60) {
+    for (let i = 0; i < frames && !r.g.isDefeated(id); i++) {
+        const live = r.sim.actors.filter((a) => !a.dead && a.encounterId === id);
+        const t = live[0] || r.sim.player;
+        const d = Math.hypot(t.x - r.sim.player.x, t.y - r.sim.player.y) || 1;
+        r.sim.update(1000 / 60, { move: d > 14 ? { x: (t.x - r.sim.player.x) / d, y: (t.y - r.sim.player.y) / d } : { x: 0, y: 0 }, aim: { x: t.x, y: t.y }, attack: i % 6 === 0 });
+        for (const a of live) assert.ok(r.sim.actorMayStand(a, a.x, a.y), `${a.sid} slipped out of reach at (${(a.x / T).toFixed(1)}, ${(a.y / T).toFixed(1)})`);
+    }
+}
+
+test('Sim: the orchard cultists hold the near face of their gate, every class can beat them, and the way north opens', () => {
+    for (const cls of ['warrior', 'mage', 'rogue', 'necromancer']) {
+        const r = run(cls, 70);
+        r.g.player.hp = r.g.player.maxHp = 9999;
+        r.s.place('orchard', Object.keys(WORLD.maps.orchard.spawns)[0]);
+        const enc = r.s.visibleObjects().find((o) => o.id === 'orchard_cultists');
+        const [x, y] = freeNear(r.s, enc.x + 1, enc.y + (enc.h || 1) + 4);
+        r.s.x = x; r.s.y = y;
+        r.sim = new ActionSim({ engine: r.g, session: r.s, rules: r.g.data.actionRules, seed: 70 });
+        fightGate(r, 'orchard_cultists');
+        assert.ok(r.g.isDefeated('orchard_cultists'), `${cls} beat the cultists`);
+        assert.strictEqual(r.g.mode, 'explore', `${cls}: the fight ended`);
+        frames(r.sim, 60 * 6, { move: { x: 0, y: -1 } });
+        assert.notStrictEqual(r.sim.mapId, 'orchard', `${cls} walked north out of the orchard (stopped at ${(r.sim.player.x / T).toFixed(1)}, ${(r.sim.player.y / T).toFixed(1)})`);
+    }
+});
+
+test('Sim: an exit is barred only while an enemy is close; with nobody near, the group gives up and you leave', () => {
+    const r = near(run('warrior', 71));
+    r.g.player.hp = r.g.player.maxHp = 9999;
+    r.sim.engageGroup(r.sim.groups.grounds_weed_rats);
+    for (const a of ratsOf(r.sim)) { a.prof = { ...a.prof, speed: 0 }; }
+    const exit = WORLD.maps.grounds.exits.find((e) => e.trigger === 'step' && !r.s.solidForAction(e.x, e.y) && Math.hypot(e.x * T - ratsOf(r.sim)[0].x, e.y * T - ratsOf(r.sim)[0].y) > 200);
+    assert.ok(exit, 'an exit far from the rats');
+    const [fx, fy] = freeNear(r.s, exit.x, exit.y + 1);
+    r.sim.player.x = (fx + 0.5) * T; r.sim.player.y = (fy + 0.5) * T; r.s.x = fx; r.s.y = fy;
+    const dx = exit.x - fx, dy = exit.y - fy, n = Math.hypot(dx, dy) || 1;
+    frames(r.sim, 120, { move: { x: dx / n, y: dy / n } });
+    assert.notStrictEqual(r.sim.mapId, 'grounds', 'walked out');
+    assert.strictEqual(r.g.mode, 'explore');
+    assert.ok(!r.g.isDefeated('grounds_weed_rats'), 'no victory for leaving');
+});
