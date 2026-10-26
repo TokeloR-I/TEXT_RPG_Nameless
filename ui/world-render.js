@@ -677,6 +677,7 @@
         // and walls layers draw under the player and its overhead layer over them; any cell with no loaded art
         // under the player falls back to the procedural painter for its logical tile.
         const ATLAS = ENSO.atlas, TILED = ENSO.tiled;
+        const SCENE = ENSO.sceneArt;
         if (ATLAS) ATLAS.onLoad(() => cache.clear());
         function artCells(map, x, y, layers) {
             const art = map.art;
@@ -706,6 +707,11 @@
             c.width = map.tiles[0].length * T; c.height = map.tiles.length * T;
             const cg = c.getContext('2d');
             cg.imageSmoothingEnabled = false;
+            if (SCENE && SCENE.has(map)) {                       // a map painted whole (ui/scene-art.js)
+                cg.drawImage(SCENE.layers(map, nameAt).base, 0, 0);
+                cache.set(mapId, c);
+                return c;
+            }
             for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) {
                 const art = artCells(map, x, y, UNDER);
                 if (art.length) drawArt(cg, art, x * T, y * T);
@@ -780,7 +786,9 @@
             const x0 = Math.max(0, Math.floor(camX / PT)), y0 = Math.max(0, Math.floor(camY / PT));
             const x1 = Math.min(src.tiles[0].length - 1, Math.ceil((camX + W) / PT)), y1 = Math.min(src.tiles.length - 1, Math.ceil((camY + H) / PT));
             T = PT;
-            for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
+            const scene = SCENE && SCENE.has(src);
+            if (scene) SCENE.animate(g, src, time);
+            else for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
             T = cellOf(map);
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
@@ -797,7 +805,8 @@
             }
             // Foreground: crowns of trees reach into the row above and cover whoever stands there.
             T = PT;
-            for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
+            if (scene) g.drawImage(SCENE.layers(src, nameAt).over, 0, 0);
+            else for (let y = y0; y <= y1 + 1 && y < src.tiles.length; y++) for (let x = x0; x <= x1; x++) {
                 const name = nameAt(src, x, y);
                 if (OVERHANGS[name]) OVERHANGS[name](g, x * PT, y * PT, PT, { tx: x, ty: y, time, above: nameAt(src, x, y - 1) });
                 if (src.art) drawArt(g, artCells(src, x, y, ['overhead']), x * PT, y * PT);
