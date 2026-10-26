@@ -1,31 +1,72 @@
-# Claude Code Game Studios roles on ENSO
+# Claude studio on ENSO: team and hierarchy
 
-ENSO uses agent roles from [Claude Code Game Studios](https://github.com/TokeloR-I/Claude-Code-Game-Studios) (MIT).
-The work stays in this repo; the studio repo is only where the role definitions come from. Each role was copied into
-`.claude/agents/studio-<role>.md` with an ENSO header on top that wins over the studio text: who holds the role,
-their lane from `AGENTS.md`, our engine, and our paths. In a Claude Code session in this repo, ask for a role by name
-(e.g. "use the studio-qa-tester agent") or let Claude pick one by its description.
+Owner restructure, 2026-10-26 (Tokelo): every studio role ENSO needs is active, the technical artist and the gameplay
+programmer (Rook) included, and the earlier structure is replaced by this one. Roles come from
+[Claude Code Game Studios](https://github.com/TokeloR-I/Claude-Code-Game-Studios) (MIT) and live in
+`.claude/agents/studio-<role>.md`, each with an ENSO header that wins over the studio text. Ask for one by name
+("use the studio-level-designer agent"). The ENSO briefs `wren.md`, `pixel-ui-designer.md`, `thorne.md` and `gauge.md`
+win over their studio role text. Codex runs its own independent team (`docs/agents/CODEX_STUDIO.md`).
 
-| Studio role (`.claude/agents/`) | ENSO person | Lane (from `AGENTS.md`) |
+## Hierarchy
+
+```
+Tokelo — Creative Director (owner, merges main)
+├── Juniper — Producer: plan, milestones, assigns work across departments
+│   ├── Brook — Release Manager: builds, versions, release notes
+│   └── Tally — QA Lead (also qa-tester, performance-analyst)
+├── Wren — Lead Programmer
+│   ├── Rook — Gameplay Programmer (active)
+│   ├── Hawk — AI Programmer (enemy behaviour)
+│   ├── Forge — Engine Programmer
+│   └── Bolt — Tools Programmer
+├── Keel — Technical Director (architecture reviews, advises Wren)
+├── Thorne — Lead Game Designer
+│   ├── Gauge — Systems & Balance Designer
+│   ├── Ledger — Economy Designer
+│   ├── Moss — Level Designer
+│   ├── Cairn — World Builder
+│   └── Pip — Prototyper
+├── Ashby — Narrative Director
+│   └── Wick — Writer
+├── Saffron — Art Director
+│   └── Quill — Technical Artist (replaces the retired Sable)
+├── Pixie — UI/UX Lead (ui-programmer, ux-designer)
+│   └── Hollis — Accessibility Specialist
+└── Echo — Audio Director
+    └── Reed — Sound Designer
+```
+
+| Studio role (`.claude/agents/`) | Person | Lane |
 |---|---|---|
-| `studio-lead-programmer` | Wren, Primary Developer, dev lead | engine, tests, tools; assigns engineering work |
-| `studio-gameplay-programmer` | Rook, Secondary Developer | engine and tests on assigned tasks |
-| `studio-ui-programmer` | Pixie, UI/UX Lead | `ui/`, `world.css`, `style.css`, HTML shells |
-| `studio-ux-designer` | Pixie, UI/UX Lead | HUD and menu flows |
-| `studio-qa-tester` | Tally, QA & Balance | `qa/` only |
-| `studio-performance-analyst` | Tally, QA & Balance | `qa/` measurements |
-| `studio-systems-designer` | Gauge, Systems & Balance Designer | `docs/design/` balance specs, data values in `src/data.js` |
-| `studio-game-designer` | Thorne, Lead Game Designer | `docs/design/` mechanics, pending design values |
-| `studio-technical-director` | Keel, Technical Director | `architecture/` reviews |
-| `studio-technical-artist` | Sable, 2D VFX Artist | VFX once direction is approved |
+| `studio-producer` | Juniper | plan, milestones, backlog, `docs/production/` |
+| `studio-release-manager` | Brook | builds, versions, release notes |
+| `studio-qa-lead`, `studio-qa-tester`, `studio-performance-analyst` | Tally | `qa/` |
+| `studio-lead-programmer` | Wren | `src/`, `ui/`, `tests/`, `tools/` |
+| `studio-gameplay-programmer` | Rook | gameplay features in `src/`, `tests/` |
+| `studio-ai-programmer` | Hawk | enemy behaviour, `src/action/sim.js` |
+| `studio-engine-programmer` | Forge | core engine, save/load, performance |
+| `studio-tools-programmer` | Bolt | `tools/` |
+| `studio-technical-director` | Keel | `architecture/` reviews |
+| `studio-game-designer` | Thorne | `docs/design/` mechanics |
+| `studio-systems-designer` | Gauge | balance specs, values in `src/data.js` |
+| `studio-economy-designer` | Ledger | gold, shops, loot tables |
+| `studio-level-designer` | Moss | map layouts, encounter placement, pacing |
+| `studio-world-builder` | Cairn | regions, landmarks, world consistency |
+| `studio-prototyper` | Pip | throwaway prototypes on `claude/proto-*` |
+| `studio-narrative-director` | Ashby | story, quests, lore canon |
+| `studio-writer` | Wick | dialogue, item and quest text |
+| `studio-art-director` | Saffron | visual direction (Mana Seed, in code only) |
+| `studio-technical-artist` | Quill | VFX, sprite/tile pipeline, rendering polish |
+| `studio-ui-programmer`, `studio-ux-designer` | Pixie | `ui/`, CSS, HUD and menus |
+| `studio-accessibility-specialist` | Hollis | rebinding, readability, motion, input options |
+| `studio-audio-director` | Echo | music and sound direction |
+| `studio-sound-designer` | Reed | SFX, ambience, Web Audio hooks |
 
-The ENSO-specific agents (`wren.md`, `pixel-ui-designer.md`, `thorne.md`, `gauge.md`) are each person's own brief and
-win over the studio role text. Thorne and Gauge (added 2026-10-25) decide routine design and balance independently,
-research online instead of asking Tokelo for answers, and escalate only major changes to the creative direction; the
-studio designer roles' "ask first / defer to the user" protocol doesn't apply to them. Vaelis keeps narrative.
+## Not brought in, and why
 
-**Not imported:** the studio's engine specialists (Godot, Unity, Unreal), its slash-command skills, hooks and
-`project.yaml`. ENSO runs its own JavaScript engine and its own workflow (`AGENTS.md`), so those don't apply. Ask Wren
-if a studio skill (for example `team-combat`, `balance-check` or `playtest-report`) should be adapted next.
-
-First job for the studio roles: the real-time combat overhaul, `docs/REALTIME_COMBAT.md` ("Team plan").
+- Godot, Unity and Unreal specialists (15 roles): ENSO runs its own JavaScript engine.
+- Network programmer, live-ops designer, community manager, analytics engineer, security engineer: ENSO is a
+  single-player browser game with no servers, live service or player data. Add them if that changes.
+- Localization lead: English only for now; add before a translation.
+- DevOps engineer: Brook covers builds and releases.
+- Creative director: Tokelo.
