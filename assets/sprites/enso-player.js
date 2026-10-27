@@ -11,8 +11,8 @@
  * big eyes (lid, shine, iris), soft skin shading and a near-black outline.
  *
  * Contract (the same as the earlier 64x64 doll, so the world, hitboxes and camera need no change):
- *   frame 64x64, feet at (32, 43), facings down/up/left/right (left mirrors right), 19 poses:
- *   stand, walk1-6, ready1-4, slash1-4, parry, hit, down2, down3.
+ *   frame 64x64, feet at (32, 43), facings down/up/left/right (left mirrors right), poses (POSES):
+ *   stand, idle1-4, walk1-8, ready1-4, slash0-5, parry, hit, hit2, down1-4 (slash0/5, hit2, down1 are TWEENS).
  * Shape choices (hair style, outfit style, hat, weapon type, shield type) pick the sheet; colours (skin, hair
  * colour, outfit colour, metal) are palette roles, so one sheet serves every colour. Sheets are built when first
  * asked for (ENSO.sheetProviders, ui/sprites.js) and each frame only when first drawn.
@@ -26,8 +26,17 @@
 
     const W = 64, H = 64, FRAME = { w: W, h: H };
     const FACINGS = ['down', 'up', 'right', 'left'];
-    const POSES = ['stand', 'walk1', 'walk2', 'walk3', 'walk4', 'walk5', 'walk6', 'ready1', 'ready2', 'ready3', 'ready4',
-        'slash1', 'slash2', 'slash3', 'slash4', 'parry', 'hit', 'down2', 'down3'];
+    const WALK_N = 8;
+    const POSES = ['stand', 'idle1', 'idle2', 'idle3', 'idle4', ...Array.from({ length: WALK_N }, (_, i) => `walk${i + 1}`),
+        'ready1', 'ready2', 'ready3', 'ready4', 'slash0', 'slash1', 'slash2', 'slash3', 'slash4', 'slash5', 'parry', 'hit', 'hit2',
+        'down1', 'down2', 'down3', 'down4'];
+    // In-betweens: a pose part of the way from one keyed pose to another (fluid motion without hand-keying every frame).
+    const TWEENS = {
+        slash0: ['ready2', 'slash1', 0.55],     // gathering into the wind-up
+        slash5: ['slash4', 'ready1', 0.5],      // follow-through settling back to guard
+        hit2: ['hit', 'ready1', 0.5],           // recovering from the flinch
+        down1: ['hit', 'down2', 0.5]            // the stagger before the knees go
+    };
 
     // ---------------------------------------------------------------------
     // Materials: each is a ramp of 4 roles (highlight, base, shade, deep) plus its outline role.
@@ -289,15 +298,33 @@
     const elbow = (sh, hand, bx, by = 0) => [lerp(sh[0], hand[0], 0.5) + bx, lerp(sh[1], hand[1], 0.5) + by];
 
     /** The skeleton of one frame. */
+    const lerpPt = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+    /** A skeleton part of the way between two others: points and numbers blend, the weapon turns the short way round,
+     *  flags (eyes, smear, layering) come from whichever end is nearer. */
+    function tween(a, b, t) {
+        const k = { ...(t < 0.5 ? a : b) };
+        for (const j of ['head', 'neck', 'shR', 'elR', 'haR', 'shL', 'elL', 'haL', 'hipR', 'knR', 'ftR', 'hipL', 'knL', 'ftL']) k[j] = lerpPt(a[j], b[j], t);
+        for (const j of ['torsoTop', 'torsoBottom', 'torsoX', 'lean']) k[j] = lerp(a[j] || 0, b[j] || 0, t);
+        k.weapon = a.weapon + (((b.weapon - a.weapon + 540) % 360) - 180) * t;
+        k.smear = null;
+        if (a.eyes === 'shut' || b.eyes === 'shut') k.eyes = 'shut';
+        return k;
+    }
     function skeleton(facing, pose) {
+        if (TWEENS[pose]) { const [a, b, t] = TWEENS[pose]; return { ...tween(skeleton(facing, a), skeleton(facing, b), t), pose: TWEENS[pose][0].replace(/\d+$/, '') }; }
         const k = baseSkeleton(facing);
         const side = facing === 'right', back = facing === 'up', s = back ? 1 : -1;
         const m = /^([a-z]+)(\d?)$/.exec(pose), name = m[1], n = Number(m[2] || 0);
         k.pose = name;
         k.weaponBehind = back;
         k.shieldFront = !back;
-        if (name === 'walk') {
-            const ph = ((n - 1) / 6) * Math.PI * 2, sn = Math.sin(ph), cs = Math.cos(ph);
+        if (name === 'idle') {
+            // Breathing: the chest rises and falls 1 px, shoulders and hands with it, feet planted.
+            const b = [0, 0.5, 1, 0.5][n - 1];
+            shiftBody(k, 0, b);
+            k.head = add(k.head, 0, n === 3 ? 0.4 : 0);
+        } else if (name === 'walk') {
+            const ph = ((n - 1) / WALK_N) * Math.PI * 2, sn = Math.sin(ph), cs = Math.cos(ph);
             const bob = Math.abs(cs) > 0.7 ? 0 : -1;
             shiftBody(k, 0, bob);
             if (side) {
@@ -399,13 +426,16 @@
             }
             k.eyes = 'shut';
         } else if (name === 'down') {
-            // Lying on the ground, head to the left (all facings).
-            return {
+            // Lying on the ground, head to the left (all facings). down3 is the bounce on landing, down4 at rest.
+            const lift = n === 3 ? -1 : 0, up = (q) => [q[0], q[1] + lift];
+            const lying = {
                 pose: 'lying', head: [20.4, 37.6], lying: true, eyes: 'shut', torsoX: 0, lean: 0, weaponBehind: true,
                 shR: [25.6, 39.8], elR: [29.4, 41.6], haR: [33.2, 41.6], shL: [25.6, 36.6], elL: [29.4, 35.4], haL: [32.8, 36],
                 hipR: [36.4, 40], knR: [40.4, 40.4], ftR: [44.6, 40.8], hipL: [36.4, 38], knL: [40.2, 36.8], ftL: [44.2, 38.2],
                 weapon: 8, weaponAt: [36, 43]
             };
+            for (const j of ['head', 'shR', 'elR', 'haR', 'shL', 'elL', 'haL', 'hipR', 'knR', 'ftR', 'hipL', 'knL', 'ftL']) lying[j] = up(lying[j]);
+            return lying;
         }
         if (k.lean) { k.head = add(k.head, k.lean, 0); k.neck = add(k.neck, k.lean * 0.6, 0); k.shR = add(k.shR, k.lean * 0.5, 0); k.shL = add(k.shL, k.lean * 0.5, 0); }
         return k;
@@ -888,20 +918,21 @@
         frame: FRAME,
         anchor: { x: 32, y: 43 },
         animations: {
-            idle: steps(['stand'], 1000),
-            walk: steps(['walk1', 'walk2', 'walk3', 'walk4', 'walk5', 'walk6'], 120),
+            // Fluid set (docs/art/PLAYER_STYLE_SHEET.md): breathing idle, 8-frame walk, anticipation and follow-through.
+            idle: steps(['idle1', 'idle2', 'idle3', 'idle4'], [320, 240, 420, 240]),
+            walk: steps(Array.from({ length: WALK_N }, (_, i) => `walk${i + 1}`), 95),
             ready: steps(['ready1', 'ready2', 'ready3', 'ready4'], 220),
-            attack: { once: true, then: 'ready', steps: steps(['slash1', 'slash2', 'slash3', 'slash4'], [160, 65, 65, 200]) },
+            attack: { once: true, then: 'ready', steps: steps(['slash0', 'slash1', 'slash2', 'slash3', 'slash4', 'slash5'], [70, 130, 55, 55, 150, 90]) },
             cast: { once: true, then: 'ready', steps: steps(['parry', 'parry'], [160, 380]) },
-            hit: { once: true, then: 'ready', steps: steps(['hit', 'ready1'], [300, 100]) },
-            death: { once: true, steps: steps(['hit', 'down2', 'down3'], [160, 220, 1]) },
-            // Action combat (docs/ACTION_COMBAT.md): swing ≈ 350 ms startup → active → recovery, heavy slower,
-            // dodge ≈ 250 ms, guard a held block, hurt a short flinch.
-            swing: { once: true, then: 'ready', steps: [st('slash1', 90), st('slash2', 50), st('slash3', 50), st('slash4', 160)] },
-            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash1', 200), st('slash2', 70), st('slash3', 90, 1), st('slash4', 240)] },
-            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk2', 120, 2), st('walk5', 70, 1)] },
+            hit: { once: true, then: 'ready', steps: steps(['hit', 'hit2', 'ready1'], [200, 100, 100]) },
+            death: { once: true, steps: steps(['hit', 'down1', 'down2', 'down3', 'down4'], [140, 100, 200, 110, 1]) },
+            // Action combat (docs/ACTION_COMBAT.md): swing 350 ms (startup 90 → active → recovery), heavy 720 ms,
+            // dodge ≈ 250 ms, guard a held block, hurt a short flinch. Totals match the sim's timings.
+            swing: { once: true, then: 'ready', steps: [st('slash0', 40), st('slash1', 50), st('slash2', 50), st('slash3', 50), st('slash4', 100), st('slash5', 60)] },
+            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash0', 80), st('slash1', 120), st('slash2', 70), st('slash3', 90, 1), st('slash4', 150), st('slash5', 90)] },
+            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk3', 120, 2), st('walk7', 70, 1)] },
             guard: [st('parry', 600, 0), st('parry', 600, 1)],
-            hurt: { once: true, then: 'ready', steps: [st('hit', 160, -1), st('ready1', 90)] }
+            hurt: { once: true, then: 'ready', steps: [st('hit', 100, -1), st('hit2', 60), st('ready1', 90)] }
         },
         layerOrder: { down: ['body'], up: ['body'], left: ['body'], right: ['body'] },
         layers: { body: 'enso.{shape}' },

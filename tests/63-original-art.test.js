@@ -67,6 +67,21 @@ test('ENSO doll v2 (chibi): big eyes with iris and shine facing front and side, 
     assert.ok(widest >= 14, `head ${widest} px`);
 });
 
+test('ENSO doll v2: fluid animation set, every step a real pose, combat timings unchanged', () => {
+    const m = SPRITES.manifest.enso, sheet = SPRITES.getSheet(`enso.${m.sheetFields({}).shape}`);
+    const stepsOf = (a) => (Array.isArray(a) ? a : a.steps);
+    for (const [name, a] of Object.entries(m.animations)) for (const s of stepsOf(a)) assert.ok(ENSO_PLAYER.POSES.includes(s.pose), `${name}: ${s.pose}`);
+    const len = (n) => stepsOf(m.animations[n]).length, total = (n) => stepsOf(m.animations[n]).reduce((t, s) => t + s.ms, 0);
+    assert.ok(len('idle') >= 4 && len('walk') >= 8 && len('swing') >= 6 && len('hurt') >= 2 && len('death') >= 5);
+    assert.strictEqual(total('swing'), 350); assert.strictEqual(total('heavy'), 720); assert.strictEqual(total('hurt'), 250);
+    // Breathing moves the figure; the in-betweens differ from both of their ends.
+    assert.notDeepStrictEqual(sheet.frames['down.idle3'], sheet.frames['down.idle1']);
+    for (const [p, a, b] of [['slash5', 'slash4', 'ready1'], ['hit2', 'hit', 'ready1']]) for (const f of ['down', 'right', 'up']) {
+        const k = (x) => sheet.frames[`${f}.${x}`].join('');
+        assert.ok(k(p) !== k(a) && k(p) !== k(b), `${f}.${p}`);
+    }
+});
+
 test('Scene art: the homestead grounds paint whole, the same every time, with a crown layer over people', () => {
     const map = ZONE1.maps.grounds;
     assert.ok(SCENE.has(map) && !SCENE.has(ZONE1.maps.house));

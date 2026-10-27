@@ -35,21 +35,26 @@ drawn by code in `assets/sprites/enso-player.js` (no image input of any kind, se
 | Eyes | roles `e` lid, `r` shine, `u` iris, `s` deep iris; iris colour `#3f86c4` (a palette `eye` override is allowed) |
 | Palette | every colour is a palette role, so one sheet serves every colour choice in the creator |
 
-## Animation targets (next step, after Tokelo approves the master)
+## Animations (v2)
 
-| Animation | Frames now | Target | Notes |
+In-betweens (`TWEENS` in `enso-player.js`) blend two keyed skeletons, so new frames need no hand-keying.
+Combat timings are unchanged (swing 350 ms, heavy 720 ms, hurt 250 ms).
+
+| Animation | Before | Now | Notes |
 |---|---|---|---|
-| Idle | 1 (static) | 4, breathing | shoulders and head bob 1 px, hair follows a frame late |
-| Run | 6 | 8 | contact, down, pass, up; arms counter-swing; 1 px body bob |
-| Attack (swing) | 4 | 6 | anticipation, wind-up, smear, impact, follow-through, recover |
-| Hurt | 1 | 2 | squash back, eyes shut, recover |
-| Death | 3 | 5 | stagger, kneel, fall, settle |
+| Idle | 1 (static) | 4, breathing | chest and shoulders rise 1 px, feet planted |
+| Walk/run | 6 | 8 | arms counter-swing, 1 px body bob, 95 ms a frame |
+| Attack (swing) | 4 | 6 | gather (`slash0`), wind-up, smear, impact, follow-through (`slash5`) |
+| Hurt | 1 | 2 | flinch with eyes shut, recover (`hit2`), white hit flash |
+| Death | 3 | 5 | flinch, stagger (`down1`), kneel, fall with a 1 px bounce (`down3`), rest (`down4`) |
 
-## Attack VFX targets (Wren)
+## Attack VFX (Wren, v2)
 
-Slash arc that follows the weapon (bright core, cool falloff, dithered tail), impact sparks at the hit point, and a
-1 to 2 frame white hit flash on the target. All pixel-crisp and drawn by `ui/action-fx.js`.
+The swing smear (bright core, cool falloff, dithered tail) now throws blade glints and a tip flare. A hit draws a
+bright slash cut across the target over the sparks, a crit adds a shockwave ring, enemies flash white when hurt and
+the player flashes white for 140 ms (off when motion is reduced). All pixel-crisp, in `ui/action-fx.js`;
+`node tools/preview-action-fx.js out.png` renders the frames.
 
 ## Previews
 
-`docs/captures/player-v2/`: before and after, key poses and the sprite in the game.
+`docs/captures/player-v2/`: before and after, key poses, animation GIFs (`anim-*.gif`), VFX frames and in-game shots.
