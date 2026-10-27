@@ -1,6 +1,7 @@
 ENSO original art — made for and owned by the Enso's Last Stand project (Tokelo).
 
-assets/sprites/enso-player.js (the player and villager character) and ui/scene-art.js (the homestead grounds and
+assets/sprites/enso-player.js (the player and villager character), assets/sprites/enso-enemies.js (all enemy
+characters and their directional animation poses), and ui/scene-art.js (the homestead grounds and
 other scenes) are drawn entirely by code: every frame is built
 from shapes (ellipses, limbs, polygons) on a pose skeleton and coloured from our own ramps. No image, art pack,
 screenshot or generator output was used as input or reference. In particular no Mana Seed art

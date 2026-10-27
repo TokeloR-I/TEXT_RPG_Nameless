@@ -584,10 +584,16 @@
     // ---------------------------------------------------------------------
     // Enemies in the world
     // ---------------------------------------------------------------------
-    // The creature painters: ui/battle-hd.js (64x64 box, feet at y 58, facing right) are exported and preferred;
-    // ui/world-render.js's 32px map creatures are used when it exports `creatures` and `CREATURE_FOR`.
+    // Original 64px, eight-direction enemy frames are preferred at native resolution.
+    // Older 64px battle and 32px map painters remain the unknown-enemy fallback.
     const SCALE_HD = 0.5;                       // 64px HD painters at half size: about the height of the 64px-frame player
-    function painterFor(enemyKey, style) {
+    function painterFor(enemyKey, style, pose = {}) {
+        const art = ENSO.enemySprites;
+        if (art && art.keys.includes(enemyKey)) {
+            return { draw: (g) => art.draw(g, enemyKey, pose), box: art.frame.w,
+                bounds: () => art.bounds && art.bounds(enemyKey, pose),
+                feet: [art.anchor.x, art.anchor.y], scale: 1, directional: true };
+        }
         const HD = ENSO.battleHD, WR = ENSO.worldRender;
         if (style !== 'map' && HD && HD.creatures) {
             const name = (HD.CREATURE_FOR && HD.CREATURE_FOR[enemyKey]) || enemyKey;
@@ -631,7 +637,7 @@
     function drawEnemy(g, enemyKey, x, y, o = {}) {
         const state = o.state || 'idle', t = Math.max(0, o.t || 0), now = o.now || 0;
         const dir = o.facing === 'left' ? -1 : 1;
-        const P = painterFor(enemyKey, o.style);
+        const P = painterFor(enemyKey, o.style, { ...o, state, t, now });
         const scale = (o.scale || 1) * P.scale;
         let dx = 0, dy = 0, alpha = 1, tint = null, tintA = 0, animT = now;
         switch (state) {
@@ -647,6 +653,14 @@
             case 'stagger': dx = (Math.floor(now / 45) % 2 ? 1 : -1); tint = '#ffe040'; tintA = 0.12; break;
             case 'dead': { const k = Math.min(1, t / 650); alpha = 1 - k; dy = R(k * 5); tint = '#000000'; tintA = 0.35 * k; if (alpha <= 0) return; break; }
             default: break;
+        }
+        if (P.directional) {
+            const compass = { N: -Math.PI / 2, NE: -Math.PI / 4, E: 0, SE: Math.PI / 4,
+                S: Math.PI / 2, SW: Math.PI * 3 / 4, W: Math.PI, NW: -Math.PI * 3 / 4,
+                up: -Math.PI / 2, right: 0, down: Math.PI / 2, left: Math.PI };
+            const angle = Number.isFinite(o.angle) ? o.angle : compass[o.facing] == null ? Math.PI / 2 : compass[o.facing];
+            dx = R(Math.abs(dx) * Math.cos(angle) * (state === 'windup' || state === 'hurt' ? -1 : 1));
+            dy = (state === 'move' ? 0 : dy) + R((state === 'attack' ? 5 * Math.min(1, t / 70) * Math.max(0, 1 - Math.max(0, t - 70) / 220) : state === 'windup' ? -2 : 0) * Math.sin(angle));
         }
         // soft shadow, fixed to the ground (doesn't lunge or bob)
         const shR = R(P.box * scale * 0.28);
@@ -664,13 +678,13 @@
             g.save();
             g.globalAlpha *= alpha;
             g.imageSmoothingEnabled = false;
-            g.translate(X, Y); if (dir < 0) g.scale(-1, 1);
+            g.translate(X, Y); if (!P.directional && dir < 0) g.scale(-1, 1);
             g.drawImage(sc, -R(fx) - 4, -R(fy) - 4);
             g.restore();
         } else {                                                                // Node / no canvas: draw straight, no tint
             g.save();
             g.globalAlpha *= alpha;
-            g.translate(X, Y); g.scale(dir * scale, scale); g.translate(-P.feet[0], -P.feet[1]);
+            g.translate(X, Y); g.scale((P.directional ? 1 : dir) * scale, scale); g.translate(-P.feet[0], -P.feet[1]);
             P.draw(g, animT);
             g.restore();
         }
@@ -686,6 +700,10 @@
             const hy = Y - R(P.box * scale * 0.8) - 8;
             if (Math.floor(now / 90) % 2 === 0 || t > 200) pixelText(g, '!', X, hy, '#ff5a3a');
         }
+        // Frame margins vary dramatically between a rat and a crowned boss. Anchor UI to visible art.
+        const bounds = P.bounds && P.bounds();
+        return bounds ? { x: X - R(fx) + bounds.x * scale, y: Y - R(fy) + bounds.y * scale,
+            w: bounds.w * scale, h: bounds.h * scale } : null;
     }
 
     const api = {

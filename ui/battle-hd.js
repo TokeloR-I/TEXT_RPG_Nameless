@@ -208,7 +208,9 @@
         const g = c.getContext('2d');
         g.clearRect(0, 0, c.width, c.height);
         g.save(); g.scale(c.width / 64, c.height / 64);   // painted facing right; world.css mirrors foe cards to face the party
-        (creatures[CREATURE_FOR[enemyKey]] || creatures.shade)(g, time || 0);
+        const art = ENSO.enemySprites;
+        if (!art || !art.draw(g, enemyKey, { facing: 'E', state: 'idle', now: time || 0 }))
+            (creatures[CREATURE_FOR[enemyKey]] || creatures.shade)(g, time || 0);
         g.restore();
     }
 
