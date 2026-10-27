@@ -150,3 +150,30 @@ licence. Any external art added later needs its source and licence recorded here
 |---|---|---|
 | `assets/sprites/player-placeholder.js` | Generated in-repo | Repository licence |
 | `assets/sprites/enso-player.js` | Drawn by code in-repo, no image input (`assets/LICENSE-enso-art.txt`) | Repository licence |
+| `assets/sprites/enso-enemies.js` | Original code-drawn directional enemy art; no image input (`assets/LICENSE-enso-art.txt`) | Repository licence |
+
+## Original enemy animation (2026-10-27)
+
+All 13 enemy definitions, including James Newton and the Crow-Touched Warden, use original 64×64 frames at
+native 1× resolution. The feet anchor is (32, 54); this is a presentation anchor and does not change simulation
+radii, hitboxes, movement, targeting or combat numbers. Eight facings (`N NE E SE S SW W NW`) are selected from
+the simulation's continuous angle. They do not change the four-way player interaction-facing contract.
+
+`assets/sprites/enso-enemies.js` is editable authored source, not a generated file. It implements the original
+code-art route described in [Sprite Forge](art/SPRITE_FORGE.md); no external plugin installation or media provider
+is required or claimed. No third-party sprite, image, screenshot or palette was used as input or reference.
+`ENSO.enemySprites.draw(context, enemyKey, options)` draws one frame inside the 64×64 cell. The action renderer,
+classic battle cards and legacy encounter markers share it, with the older painter retained for unknown keys.
+
+Movement uses eight keyed gait positions. Attack poses use simulation-owned phase elapsed time and normalized
+progress, so a long boss wind-up holds its anticipation and each strike/recovery plays once per phase. The
+frontend retains telegraph overlays and hurt tinting. Simulation snapshots provide presentation timing without
+changing any combat deadlines or seeded random calls.
+
+Visible bounds are measured once when a frame enters the bounded cache and shared by drawing and health-bar
+placement. Bars follow the current pose's opaque top, so a small rat's transparent frame margin does not push
+its health bar up to the height of a boss.
+
+Run `node tools/preview-enemies.js /tmp/enso-enemies.html` and open the resulting standalone HTML to review every
+enemy, eight directions, movement keys and attack phases. It includes live pause/scrub controls, native 1×/2×
+scaling, greyscale and 25% brightness checks. `npm run build` inlines the authored enemy source for offline play.

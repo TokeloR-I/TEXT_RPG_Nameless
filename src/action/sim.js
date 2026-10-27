@@ -652,6 +652,7 @@
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
             a.state = 'windup';
+            a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
             a.angle = angleTo(a, this.player);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
@@ -689,6 +690,7 @@
             const w = a.windup;
             const st = w.atk;
             a.state = 'active';
+            a.visualStateStart = this.now;
             a.stateEnd = this.now + (st.activeMs != null ? st.activeMs : 110);
             w.shape = this.enemyShape(a);   // from where it stands now (a lunge started from here)
             if (st.shape === 'projectile') {
@@ -711,6 +713,7 @@
             let rec = (w && w.atk.recoveryMs != null ? w.atk.recoveryMs : a.prof.recoveryMs) || 600;
             for (const x of (b && b.phases) || []) if (x.recoveryMult && a.hp / a.maxHp <= x.fromHpPct + 1e-9) rec = Math.max(500, rec * x.recoveryMult);
             a.state = 'recover';
+            a.visualStateStart = this.now;
             a.stateEnd = this.now + rec;
             a.attackReadyAt = a.stateEnd + (b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700);
         }
@@ -922,7 +925,16 @@
                 },
                 actors: this.actors.filter((a) => !a.dead || this.now - a.deadAt < 700).map((a) => ({
                     sid: a.sid, engineId: a.engineId, encounterId: a.encounterId, key: a.key, name: a.name, x: a.x, y: a.y, r: a.r, angle: a.angle, facing: facingOf(a.angle),
-                    state: a.dead ? 'dead' : this.now < a.hurtUntil ? 'hurt' : a.state, t: a.dead ? this.now - a.deadAt : 0, hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss,
+                    state: a.dead ? 'dead' : this.now < a.hurtUntil ? 'hurt' : a.state,
+                    // Presentation timing follows the actual simulation phase, including boss/combo durations.
+                    t: a.dead ? this.now - a.deadAt : this.now < a.hurtUntil ? 160 - (a.hurtUntil - this.now) : Math.max(0, this.now - (a.visualStateStart == null ? this.now : a.visualStateStart)),
+                    attack: a.windup && ['windup', 'active', 'recover'].includes(a.state) ? {
+                        skill: a.windup.skill, name: a.windup.atk.name || a.windup.base.name,
+                        shape: a.windup.atk.shape, phase: a.state,
+                        duration: Math.max(1, a.stateEnd - a.visualStateStart),
+                        progress: Math.max(0, Math.min(1, (this.now - a.visualStateStart) / Math.max(1, a.stateEnd - a.visualStateStart)))
+                    } : null,
+                    hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss,
                     engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),

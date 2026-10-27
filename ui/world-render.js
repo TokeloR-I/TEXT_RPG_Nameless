@@ -797,7 +797,14 @@
                 if (d.kind === 'player') { drawPlayer(view.x * T, view.y * T, view, time); continue; }
                 if (d.kind === 'actor') { g.save(); try { d.a.draw(g, time); } finally { g.restore(); } continue; }   // combat v3 enemies (ui/world-ui.js)
                 const o = d.o;
-                if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, PT, time);
+                const enemyArt = ENSO.enemySprites;
+                const enemyKey = o.kind === 'encounter' && o.enemies && o.enemies[0];
+                if (enemyArt && enemyKey && enemyArt.keys.includes(enemyKey)) {
+                    g.save();
+                    g.translate(Math.round(o.x * T + T / 2 - enemyArt.anchor.x), Math.round(o.y * T + T - enemyArt.anchor.y));
+                    enemyArt.draw(g, enemyKey, { facing: 'S', state: 'idle', now: time });
+                    g.restore();
+                } else if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, PT, time);
                 if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
                     g.fillStyle = `rgba(255, 244, 200, ${a})`;

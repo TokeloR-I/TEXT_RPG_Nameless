@@ -1,0 +1,87 @@
+{
+  "live": {
+    "states": [
+      "idle",
+      "move",
+      "windup",
+      "attack",
+      "recover"
+    ],
+    "directions": [
+      "S",
+      "E"
+    ],
+    "progress": {
+      "min": 0,
+      "max": 0.9649122807017528
+    },
+    "mode": "combat",
+    "screen": "explore"
+  },
+  "cards": [
+    {
+      "key": "James_Newton",
+      "opaque": 479
+    },
+    {
+      "key": "weak_goblin",
+      "opaque": 331
+    },
+    {
+      "key": "hungry_wolf",
+      "opaque": 520
+    },
+    {
+      "key": "shackled_ghoul",
+      "opaque": 325
+    },
+    {
+      "key": "rust_rat",
+      "opaque": 331
+    },
+    {
+      "key": "cellar_vermin",
+      "opaque": 361
+    },
+    {
+      "key": "drunken_shade",
+      "opaque": 457
+    },
+    {
+      "key": "bone_gnawer",
+      "opaque": 327
+    },
+    {
+      "key": "mire_lurker",
+      "opaque": 555
+    },
+    {
+      "key": "cult_acolyte",
+      "opaque": 411
+    },
+    {
+      "key": "shackled_ghoul_stronger",
+      "opaque": 424
+    },
+    {
+      "key": "watch_constable",
+      "opaque": 422
+    },
+    {
+      "key": "crow_touched_warden",
+      "opaque": 603
+    },
+    {
+      "key": "unknown-future-enemy",
+      "opaque": 1363
+    }
+  ],
+  "mobile": {
+    "enemyCount": 13,
+    "frame": {
+      "w": 64,
+      "h": 64
+    }
+  },
+  "errors": []
+}
