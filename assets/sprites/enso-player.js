@@ -7,6 +7,9 @@
  * shape on that skeleton (ellipse, capsule or polygon) shaded by its own curvature, light from the top left,
  * with a darker edge where it overlaps something and a coloured outline round the whole figure.
  *
+ * Style (docs/art/PLAYER_STYLE_SHEET.md, v2): chibi proportions, the head and everything on it scaled by HEAD_S,
+ * big eyes (lid, shine, iris), soft skin shading and a near-black outline.
+ *
  * Contract (the same as the earlier 64x64 doll, so the world, hitboxes and camera need no change):
  *   frame 64x64, feet at (32, 43), facings down/up/left/right (left mirrors right), 19 poses:
  *   stand, walk1-6, ready1-4, slash1-4, parry, hit, down2, down3.
@@ -36,8 +39,8 @@
     const ROLE_MAT = {};
     for (const [m, roles] of Object.entries(MAT)) for (const r of roles) ROLE_MAT[r] = m;
     const OUTLINE_OF = Object.fromEntries(Object.entries(ROLE_MAT).map(([r, m]) => [r, MAT[m][4]]));
-    // Fixed roles: eyes, eye shine, mouth, the smear of a swing.
-    const EYE = 'e', SHINE = 'r', MOUTH = 't', SMEAR = 'Z', SMEAR2 = 'Y', BLACK = 'k';
+    // Fixed roles: eyes (lid, shine, iris light and deep), mouth, the smear of a swing.
+    const EYE = 'e', SHINE = 'r', MOUTH = 't', SMEAR = 'Z', SMEAR2 = 'Y', BLACK = 'k', IRIS = 'u', IRIS2 = 's';
 
     // ---------------------------------------------------------------------
     // Choices shown in the creator. Indices are what saves keep; any index wraps, so older saves still load.
@@ -108,18 +111,19 @@
     /** Shift a hue toward a target hue by up to `amt` degrees. */
     const toward = (h, target, amt) => { const d = ((target - h + 540) % 360) - 180; return h + Math.sign(d) * Math.min(Math.abs(d), amt); };
     /** [highlight, base, shade, deep, outline] from one base colour. */
-    function ramp(hex) {
+    function ramp(hex, soft = false) {
         const [h, s, l] = hexToHsl(hex);
+        const sh = soft ? 0.45 : 1;                // skin: gentler hue shift and saturation, so shadows never go red
         return [
             hslToHex(toward(h, 50, 12), s * 0.95 + 0.03, l + (1 - l) * 0.28),
             hex,
-            hslToHex(toward(h, 255, 14), Math.min(1, s * 1.05 + 0.04), l * 0.74),
-            hslToHex(toward(h, 260, 24), Math.min(1, s * 1.05 + 0.06), l * 0.52),
-            hslToHex(toward(h, 265, 30), Math.min(1, s * 0.9 + 0.08), Math.min(0.2, l * 0.34))
+            hslToHex(toward(h, 255, 14 * sh), Math.min(1, s * (soft ? 0.86 : 1.05) + 0.04 * sh), l * (soft ? 0.8 : 0.74)),
+            hslToHex(toward(h, 260, 24 * sh), Math.min(1, s * (soft ? 0.8 : 1.05) + 0.06 * sh), l * (soft ? 0.6 : 0.52)),
+            hslToHex(toward(h, 265, 40), Math.min(0.6, s * 0.6 + 0.1), Math.min(0.11, l * 0.2))
         ];
     }
     const ramps = new Map();
-    const rampOf = (hex) => { if (!ramps.has(hex)) ramps.set(hex, ramp(hex)); return ramps.get(hex); };
+    const rampOf = (hex, soft = false) => { const key = hex + (soft ? '~' : ''); if (!ramps.has(key)) ramps.set(key, ramp(hex, soft)); return ramps.get(key); };
 
     /** Role -> colour for one character: skin from `appearance`, the rest from the cosmetics. `palette` may give
      *  base colours directly ({ skin, hair, cloth, cloth2, accent, hat, metal }), as villagers do. */
@@ -137,8 +141,9 @@
             shieldFace: shield ? SHIELD_COLOURS[Math.floor((shield - 1) / SHIELD_TYPES.length)].swatch : '#7a5634',
             ...palette
         };
-        const out = { [BLACK]: '#17131c', [EYE]: '#1c1820', [SHINE]: '#f2ecdc', [MOUTH]: rampOf(base.skin)[3], [SMEAR]: '#fff6dc', [SMEAR2]: '#d8e4f0' };
-        for (const [m, roles] of Object.entries(MAT)) { const r = rampOf(base[m]); for (let i = 0; i < 5; i++) out[roles[i]] = r[i]; }
+        const iris = rampOf(base.eye || '#3f86c4');
+        const out = { [BLACK]: '#120e16', [EYE]: '#16121c', [SHINE]: '#fbf6ea', [IRIS]: iris[0], [IRIS2]: iris[2], [MOUTH]: rampOf(base.skin, true)[3], [SMEAR]: '#fff6dc', [SMEAR2]: '#d8e4f0' };
+        for (const [m, roles] of Object.entries(MAT)) { const r = rampOf(base[m], m === 'skin'); for (let i = 0; i < 5; i++) out[roles[i]] = r[i]; }
         return out;
     }
 
@@ -146,6 +151,18 @@
     // Raster: a frame is a grid of roles. Shapes are drawn as "parts" with their own shading.
     // ---------------------------------------------------------------------
     const LIGHT = [-0.58, -0.81];                // toward the light: top left
+    // Chibi proportions: the head, hair and hats are drawn on the head centre and scaled up by HEAD_S, so every hair
+    // style and hat grows with the head. While XF is set the shape helpers map their points and radii through it,
+    // and un(i) maps a pixel back into the unscaled space the cut-out rules are written in.
+    const HEAD_S = 1.16;
+    let XF = null;
+    const X = (x) => (XF ? XF.cx + (x - XF.cx) * XF.s : x), Y = (y) => (XF ? XF.cy + (y - XF.cy) * XF.s : y), RS = (r) => (XF ? r * XF.s : r);
+    const un = (i) => { const x = i % W, y = (i / W) | 0; return XF ? [XF.cx + (x + 0.5 - XF.cx) / XF.s - 0.5, XF.cy + (y + 0.5 - XF.cy) / XF.s - 0.5] : [x, y]; };
+    /** Run a head-part painter in head space (centred on k.head, scaled by HEAD_S). */
+    const inHead = (fn) => function (grid, k, ...rest) {
+        XF = { cx: k.head[0], cy: k.head[1], s: HEAD_S };
+        try { return fn(grid, k, ...rest); } finally { XF = null; }
+    };
     function newGrid() { return { role: new Array(W * H).fill(null), mat: new Array(W * H).fill(null) }; }
     /** A part under construction: pixel index -> shading value in [-1, 1] (1 = facing the light). */
     const part = () => new Map();
@@ -153,6 +170,7 @@
     function setPx(p, x, y, s) { x = Math.floor(x); y = Math.floor(y); if (inside(x, y)) p.set(y * W + x, Math.max(-1, Math.min(1, s))); }
     /** Filled ellipse, shaded as a dome. */
     function ellipse(p, cx, cy, rx, ry, bias = 0) {
+        cx = X(cx); cy = Y(cy); rx = RS(rx); ry = RS(ry);
         for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
             const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry, d = dx * dx + dy * dy;
             if (d <= 1) setPx(p, x, y, (dx * LIGHT[0] + dy * LIGHT[1]) * 0.95 + bias);
@@ -161,6 +179,7 @@
     }
     /** Thick line (a limb), shaded as a cylinder. */
     function capsule(p, ax, ay, bx, by, r, bias = 0) {
+        ax = X(ax); ay = Y(ay); bx = X(bx); by = Y(by); r = RS(r);
         const vx = bx - ax, vy = by - ay, len2 = vx * vx + vy * vy || 1e-6;
         for (let y = Math.floor(Math.min(ay, by) - r - 1); y <= Math.max(ay, by) + r + 1; y++) for (let x = Math.floor(Math.min(ax, bx) - r - 1); x <= Math.max(ax, bx) + r + 1; x++) {
             const px = x + 0.5, py = y + 0.5;
@@ -172,6 +191,7 @@
     }
     /** Filled polygon, shaded across its width at each row (a cloth tube). */
     function poly(p, pts, bias = 0, flat = false) {
+        if (XF) pts = pts.map(([x, y]) => [X(x), Y(y)]);
         const ys = pts.map((q) => q[1]);
         for (let y = Math.floor(Math.min(...ys)); y <= Math.max(...ys); y++) {
             const py = y + 0.5, xs = [];
@@ -187,9 +207,10 @@
         }
         return p;
     }
-    const rect = (p, x, y, w, h, s = 0) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) setPx(p, x + i, y + j, s); return p; };
+    const rect = (p, x, y, w, h, s = 0) => { if (XF) { const x1 = X(x + w), y1 = Y(y + h); x = Math.round(X(x)); y = Math.round(Y(y)); w = Math.max(1, Math.round(x1) - x); h = Math.max(1, Math.round(y1) - y); } for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) setPx(p, x + i, y + j, s); return p; };
     /** Line of single pixels (thin details: weapon edges, staves). */
     function line(p, ax, ay, bx, by, s = 0) {
+        ax = X(ax); ay = Y(ay); bx = X(bx); by = Y(by);
         const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay), 1);
         for (let i = 0; i <= n; i++) setPx(p, ax + ((bx - ax) * i) / n + 0.5, ay + ((by - ay) * i) / n + 0.5, s);
         return p;
@@ -197,7 +218,7 @@
 
     /** Put a part on the grid in a material. `edge` darkens the part's border where it lies over something
      *  already drawn, so overlapping shapes stay readable. `cut` removes pixels (used to carve). */
-    function paint(grid, p, mat, { edge = true, levels = [0.42, -0.2, -0.62] } = {}) {
+    function paint(grid, p, mat, { edge = true, levels = [0.42, -0.2, -0.62], edgeMax = 3 } = {}) {
         const roles = MAT[mat] || mat;
         for (const [i, s] of p) {
             const x = i % W, y = (i / W) | 0;
@@ -206,7 +227,7 @@
                 const nx = x + dx, ny = y + dy;
                 if (!inside(nx, ny)) continue;
                 const j = ny * W + nx;
-                if (!p.has(j) && grid.role[j] && grid.mat[j] !== mat) { k = Math.max(k, dy < 0 && dx === 0 ? 2 : 3); break; }
+                if (!p.has(j) && grid.role[j] && grid.mat[j] !== mat) { k = Math.max(k, Math.min(edgeMax, dy < 0 && dx === 0 ? 2 : 3)); break; }
             }
             grid.role[i] = roles[k]; grid.mat[i] = mat;
         }
@@ -487,7 +508,7 @@
     }
 
     // Hair: drawn round the head centre. `front` is everything over the face/head; `back` goes behind the body.
-    function drawHairBack(grid, k, style, facing) {
+    const drawHairBack = inHead(function drawHairBack(grid, k, style, facing) {
         const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right';
         const p = part();
         const dir = side ? -1 : 0;
@@ -509,13 +530,13 @@
         }
         void dir;
         if (p.size) paint(grid, p, 'hair');
-    }
-    function drawHairFront(grid, k, style, facing, hat) {
+    });
+    const drawHairFront = inHead(function drawHairFront(grid, k, style, facing, hat) {
         const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right';
         const helmet = hat === 4, hood = hat === 1;
         if (style === 7) {                                               // shorn: a dark cap close to the skull
             const p = part(); ellipse(p, hx - (side ? 0.6 : 0), hy - 2.4, side ? 5.4 : 6.2, 3.8);
-            for (const i of [...p.keys()]) { const y = (i / W) | 0; if (y > hy - 1 && !back) p.delete(i); }
+            for (const i of [...p.keys()]) { const y = un(i)[1]; if (y > hy - 1 && !back) p.delete(i); }
             if (!helmet && !hood) paint(grid, p, 'hair', { levels: [0.6, 0, -0.5] });
             return;
         }
@@ -525,7 +546,7 @@
         ellipse(cap, hx - (side ? 0.8 : 0), hy - 1.6, (side ? 5.6 : 6.6) + vol, 5.2 + vol * 0.6);
         // Cut the face out of the dome (front and side).
         for (const i of [...cap.keys()]) {
-            const x = i % W, y = (i / W) | 0;
+            const [x, y] = un(i);
             if (back) { if (y > hy + 4.4 + (style === 2 || style === 5 ? 3 : style === 1 || style === 4 || style === 6 ? -0.6 : 0)) cap.delete(i); continue; }
             if (side) { if (x > hx - 1.4 && y > hy - 1.6) cap.delete(i); if (y > hy + 2.6 && style !== 2 && style !== 5) cap.delete(i); continue; }
             const fringe = { 0: -0.6, 1: -1.6, 2: -1, 3: -1.8, 4: -2.2, 5: -1.4, 6: -1.6, 8: -0.8 }[style];
@@ -552,9 +573,19 @@
             if (style === 8) for (const [dx, dy] of [[-4, -4.6], [0, -6], [4, -4.6], [-5.6, -1], [5.6, -1]]) if (!side || dx <= 0) ellipse(p, hx + dx, hy + dy, 2, 1.8);
         }
         if (p.size) paint(grid, p, 'hair');
-    }
+        // Strands: thin darker lines fanning out from the crown break the dome into locks of hair.
+        const cx = hx - (side ? 2 : 0), cy = hy - (back ? 6 : 8), step = 0.44;
+        const [hl, base, shade] = MAT.hair;
+        for (let i = 0; i < W * H; i++) {
+            if (grid.mat[i] !== 'hair' || (grid.role[i] !== hl && grid.role[i] !== base)) continue;
+            const x = i % W + 0.5, y = ((i / W) | 0) + 0.5, r = Math.hypot(x - cx, y - cy);
+            if (r < 3.5 || y < cy + 1) continue;
+            const t = Math.atan2(y - cy, x - cx) / step, d = Math.abs(t - Math.round(t)) * step * r;
+            if (d < 0.5) grid.role[i] = grid.role[i] === hl ? base : shade;
+        }
+    });
 
-    function drawHead(grid, k, facing) {
+    const drawHead = inHead(function drawHead(grid, k, facing) {
         const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up';
         const head = part();
         if (k.lying) ellipse(head, hx, hy, 5.6, 5.4);
@@ -563,26 +594,29 @@
         // Ears.
         if (!side && !k.lying) { ellipse(head, hx - 6.2, hy + 0.8, 1, 1.4, -0.1); ellipse(head, hx + 6.2, hy + 0.8, 1, 1.4, -0.3); }
         if (side) ellipse(head, hx - 1.4, hy + 0.8, 1.1, 1.4, -0.2);
-        paint(grid, head, 'skin', { levels: [0.55, -0.5, -0.9] });
+        paint(grid, head, 'skin', { levels: [0.5, -0.7, -2], edge: false });          // soft: highlight, base and one shade
         if (back) return;
         const shut = k.eyes === 'shut';
         if (k.lying) { dot(grid, hx + 1, hy - 1, MAT.skin[3]); dot(grid, hx + 2, hy - 1, MAT.skin[3]); return; }
-        const ey = Math.floor(hy + 2.2);
+        // The face is placed pixel by pixel (big chibi eyes: a dark lid, a lit iris with a shine, a deeper iris below).
+        XF = null;
+        const ey = Math.floor(hy + 1.6), fx = Math.floor(hx);
+        const eye = (x, front) => {
+            if (shut) { dot(grid, x, ey, EYE); dot(grid, x + 1, ey, EYE); dot(grid, x + (front ? 1 : 0), ey - 1, MAT.skin[3]); return; }
+            dot(grid, x, ey - 1, EYE); dot(grid, x + 1, ey - 1, EYE);
+            dot(grid, x, ey, SHINE); dot(grid, x + 1, ey, IRIS);
+            dot(grid, x, ey + 1, IRIS2); dot(grid, x + 1, ey + 1, IRIS);
+        };
         if (side) {
-            const ex = Math.floor(hx + 3);
-            if (shut) dot(grid, ex, ey, MAT.skin[3]);
-            else { dot(grid, ex, ey, EYE); dot(grid, ex, ey - 1, EYE); }
-            dot(grid, ex + 1, ey + 2, MOUTH);
+            eye(fx + 3, true);
+            dot(grid, fx + 5, ey + 3, MOUTH);
         } else {
-            for (const ex of [Math.floor(hx - 3), Math.floor(hx + 2)]) {
-                if (shut) { dot(grid, ex, ey, MAT.skin[3]); dot(grid, ex + 1, ey, MAT.skin[3]); continue; }
-                dot(grid, ex, ey, EYE); dot(grid, ex, ey - 1, EYE); dot(grid, ex + 1, ey, EYE); dot(grid, ex + 1, ey - 1, SHINE);
-            }
-            dot(grid, Math.floor(hx), ey + 2, MOUTH);
+            eye(fx - 4, false); eye(fx + 2, true);
+            dot(grid, fx - 1, ey + 3, MOUTH); dot(grid, fx, ey + 3, MAT.skin[2]);
         }
-    }
+    });
 
-    function drawHat(grid, k, hat, facing, layer) {
+    const drawHat = inHead(function drawHat(grid, k, hat, facing, layer) {
         if (!hat) return;
         const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up';
         const p = part();
@@ -591,7 +625,7 @@
             ellipse(p, hx - (side ? 0.6 : 0), hy - 1.4, side ? 6.6 : 7.4, 6.4);
             if (back) { poly(p, [[hx - 7.4, hy], [hx + 7.4, hy], [hx + 7.6, hy + 7.4], [hx - 7.6, hy + 7.4]]); }
             for (const i of [...p.keys()]) {
-                const x = i % W, y = (i / W) | 0;
+                const [x, y] = un(i);
                 if (back) continue;
                 if (side) { if (x > hx - 0.4 && y > hy - 3) p.delete(i); continue; }
                 if (y > hy - 3.6 && Math.abs(x + 0.5 - hx) < 4.8) p.delete(i);
@@ -604,22 +638,22 @@
         if (hat === 2 || hat === 6) {                                    // wide brim / straw hat
             ellipse(p, hx - (side ? 0.4 : 0), hy - 4.4, side ? 9 : 10, 2.4, 0.1);
             const crown = part(); ellipse(crown, hx - (side ? 0.4 : 0), hy - 6.6, side ? 4.6 : 5.2, 3.4);
-            for (const i of [...crown.keys()]) if (((i / W) | 0) > hy - 4.6) crown.delete(i);
+            for (const i of [...crown.keys()]) if (un(i)[1] > hy - 4.6) crown.delete(i);
             paint(grid, p, 'hat'); paint(grid, crown, 'hat');
             const band = part(); rect(band, Math.floor(hx - (side ? 4.4 : 5)), Math.floor(hy - 5.6), side ? 9 : 10, 1, 0); paint(grid, band, hat === 6 ? 'accent' : 'leather', { edge: false });
             return;
         }
         if (hat === 3) {                                                 // bandana
-            if (back) { ellipse(p, hx, hy - 2, 6.6, 4.8); for (const i of [...p.keys()]) if (((i / W) | 0) > hy + 1) p.delete(i); capsule(p, hx, hy + 1, hx + 1.4, hy + 5, 1); capsule(p, hx, hy + 1, hx - 1.6, hy + 4.4, 1); }
-            else if (side) { ellipse(p, hx - 0.6, hy - 2.4, 6, 4.4); for (const i of [...p.keys()]) if (((i / W) | 0) > hy - 1.6) p.delete(i); capsule(p, hx - 5, hy - 2, hx - 7.4, hy + 2.4, 1); }
-            else { ellipse(p, hx, hy - 2.6, 6.8, 4.4); for (const i of [...p.keys()]) if (((i / W) | 0) > hy - 2) p.delete(i); }
+            if (back) { ellipse(p, hx, hy - 2, 6.6, 4.8); for (const i of [...p.keys()]) if (un(i)[1] > hy + 1) p.delete(i); capsule(p, hx, hy + 1, hx + 1.4, hy + 5, 1); capsule(p, hx, hy + 1, hx - 1.6, hy + 4.4, 1); }
+            else if (side) { ellipse(p, hx - 0.6, hy - 2.4, 6, 4.4); for (const i of [...p.keys()]) if (un(i)[1] > hy - 1.6) p.delete(i); capsule(p, hx - 5, hy - 2, hx - 7.4, hy + 2.4, 1); }
+            else { ellipse(p, hx, hy - 2.6, 6.8, 4.4); for (const i of [...p.keys()]) if (un(i)[1] > hy - 2) p.delete(i); }
             paint(grid, p, 'hat');
             return;
         }
         if (hat === 4) {                                                 // iron helm with a nasal guard
             ellipse(p, hx - (side ? 0.6 : 0), hy - 1.6, side ? 6.2 : 7, 5.8);
             for (const i of [...p.keys()]) {
-                const x = i % W, y = (i / W) | 0;
+                const [x, y] = un(i);
                 if (back) { if (y > hy + 3.4) p.delete(i); continue; }
                 if (side) { if (x > hx + 0.6 && y > hy - 0.6) p.delete(i); if (y > hy + 3) p.delete(i); continue; }
                 if (y > hy - 0.6 && Math.abs(x + 0.5 - hx) < 4.6) p.delete(i);
@@ -638,7 +672,7 @@
             paint(grid, p, 'accent', { edge: false });
             if (!back) dot(grid, side ? hx + 3 : hx, y, MAT.shieldFace[0]);
         }
-    }
+    });
 
     // Weapons: from the hand along `angle` (degrees, 0 = +x, 90 = down). Spear and mace are two-handed-length.
     function drawWeapon(grid, k, type, flags = {}) {
@@ -805,16 +839,16 @@
         paint(g, p, 'cloth');
         const belt = part(); rect(belt, 33, 36, 2, 6); paint(g, belt, style === 3 ? 'accent' : 'leather');
     }
-    function drawHairLying(g, k, hair, hat) {
+    const drawHairLying = inHead(function drawHairLying(g, k, hair, hat) {
         const [hx, hy] = k.head;
         const p = part();
         ellipse(p, hx - 2.2, hy, 4.2, 5.8 + (hair === 8 ? 1 : 0));
-        for (const i of [...p.keys()]) if ((i % W) > hx - 0.6) p.delete(i);
+        for (const i of [...p.keys()]) if (un(i)[0] > hx - 0.6) p.delete(i);
         if (hair === 7) return;
         if (hat === 4) { paint(g, p, 'metal'); return; }
         if (hat === 1) { paint(g, p, 'hat'); return; }
         paint(g, p, 'hair');
-    }
+    });
     function toRows(g) {
         const rows = [];
         for (let y = 0; y < H; y++) { let s = ''; for (let x = 0; x < W; x++) s += g.role[y * W + x] || '.'; rows.push(s); }

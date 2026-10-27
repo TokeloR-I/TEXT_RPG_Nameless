@@ -147,6 +147,7 @@
         hit(g, d, t, f) {
             const [c0, c1, c2] = dmgCol(d.damageType);
             const n = d.crit ? 9 : 6, reach = (d.crit ? 11 : 7) * ease(t);
+            if (d.crit && t < 0.5) pxRing(g, d.x, d.y, 3 + ease(t / 0.5) * 9, t < 0.25 ? c0 : c1);   // crit shockwave
             if (t < 0.22) {                                                    // impact star
                 const s = d.crit ? 3 : 2;
                 g.fillStyle = c0; g.fillRect(R(d.x) - s, R(d.y), s * 2 + 1, 1); g.fillRect(R(d.x), R(d.y) - s, 1, s * 2 + 1);
@@ -159,6 +160,17 @@
                 const tail = Math.max(1, r - 3);
                 if (t < 0.75) px(g, d.x + Math.cos(base) * tail, d.y + Math.sin(base) * tail + t * t * 3, t < 0.4 ? c1 : c2);
                 px(g, x, y, t < 0.5 ? c0 : c1);
+            }
+            if (d.angle != null && t < 0.4) {                                  // the cut: a bright slash line across the target
+                const k = t / 0.4, ca = d.angle + Math.PI / 2 + 0.5, L = (d.crit ? 15 : 11) * (0.55 + 0.45 * ease(Math.min(1, k * 2.5)));
+                const cx = Math.cos(ca), sy = Math.sin(ca);
+                for (let i = -L; i <= L; i += 0.5) {
+                    const edge = Math.abs(i) / L;                                  // thin at the ends, thick in the middle
+                    if (edge > 1 - k * 0.9) continue;                              // the line eats in from the ends as it fades
+                    const x = d.x + cx * i, y = d.y + sy * i;
+                    px(g, x, y, edge < 0.5 && k < 0.5 ? '#ffffff' : c0);
+                    if (edge < 0.45 && k < 0.6) px(g, x - Math.sin(ca), y + Math.cos(ca), c1);
+                }
             }
         },
         /** { x, y, amount?, text?, crit?, heal?, taken? (player lost HP), damageType? } floating number. */
@@ -448,6 +460,15 @@
             smear(g, o.x, o.y, o.angle || 0, arc, reach, Math.min(1, p * 1.6), cfg, false);
             if (p > 0.3) smear(g, o.x, o.y, o.angle || 0, arc * 0.85, reach * 0.92, (p - 0.3) / 0.7, cfg, true);
         } else smear(g, o.x, o.y, o.angle || 0, arc, reach, p, cfg, false);
+        // Glints thrown off the blade's leading edge while it moves fast (the middle of the swing).
+        if (p > 0.1 && p < 0.7) {
+            const lead = ease(Math.min(1, p * 1.15)), a = (o.angle || 0) - arc / 2 + arc * lead;
+            for (let i = 0; i < 3; i++) {
+                const h = hash(R(p * 40), i), r = reach - 1 + h * 3, back = a - (0.08 + 0.18 * hash(i, R(p * 40), 3));
+                px(g, o.x + Math.cos(back) * r, o.y + Math.sin(back) * r, i === 0 ? '#ffffff' : cfg.mid);
+            }
+            px(g, o.x + Math.cos(a) * reach, o.y + Math.sin(a) * reach, '#ffffff', 2);   // the tip's flare
+        }
     }
 
     // ---------------------------------------------------------------------

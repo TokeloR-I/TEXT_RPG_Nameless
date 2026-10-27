@@ -119,3 +119,13 @@ test('Sprites: action one-shots exist in all four facings for every player chara
             assert.ok(SPRITES.frameKey(body, facing, s.pose), `${key} ${a} ${facing} ${s.pose}`);
     }
 });
+
+test('Attack VFX v2: a directed hit draws a slash cut, a crit adds a shockwave, and a swing throws blade glints', () => {
+    const rects = (draw) => { const g = fakeCtx(); draw(g); return g.calls.filter((c) => c[0] === 'fillRect').length; };
+    const hit = (data) => rects((g) => { const fx = FX.createFx(); fx.spawn('hit', { x: 20, y: 20, ...data }, 0); fx.draw(g, 30); });
+    assert.ok(hit({ angle: 0.3 }) > hit({}) + 8, 'the cut adds a line of pixels');
+    assert.ok(hit({ angle: 0.3, crit: true }) > hit({ angle: 0.3 }) + 10, 'the crit ring');
+    const white = (p) => { const g = fakeCtx(); FX.swing(g, { x: 30, y: 30, angle: 0, reach: 20, progress: p, cls: 'warrior' }); return g.calls.some((c) => c[0] === 'fillRect' && c[3] === 2 && c[5] === '#ffffff'); };
+    assert.ok(white(0.4), 'tip flare mid-swing');
+    assert.ok(!white(0.9), 'no flare once the swing has slowed');
+});
