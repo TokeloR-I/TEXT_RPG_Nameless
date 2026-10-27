@@ -250,6 +250,7 @@
     }
 
     const cache = new Map();
+    let flashCanvas = null;
     function drawCharacter(g, x, y, opts, time) {
         const character = opts.character || characterFor(opts.className);
         const o = { ...opts, time, character };
@@ -284,6 +285,16 @@
             }
             if (cache.size > 400) cache.clear();
             cache.set(key, c);
+        }
+        if (opts.flash > 0) {                                          // hit flash: the same frame washed toward white
+            const f = flashCanvas || (flashCanvas = document.createElement('canvas'));
+            f.width = c.width; f.height = c.height;
+            const fg = f.getContext('2d');
+            fg.drawImage(c, 0, 0);
+            fg.globalCompositeOperation = 'source-atop'; fg.globalAlpha = Math.min(1, opts.flash);
+            fg.fillStyle = opts.flashColour || '#ffffff'; fg.fillRect(0, 0, f.width, f.height);
+            fg.globalCompositeOperation = 'source-over'; fg.globalAlpha = 1;
+            c = f;
         }
         const scale = opts.scale || 1;
         const prev = g.imageSmoothingEnabled;

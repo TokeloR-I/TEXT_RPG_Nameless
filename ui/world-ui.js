@@ -1587,6 +1587,7 @@
         if (!pose) playerAnim = { name: null, t0: 0, key: '' };
         view.anim = playerAnim.name;
         view.animT = playerAnim.name ? now - playerAnim.t0 : null;
+        view.reducedMotion = REDUCED;   // no hit flash on the player when motion is reduced
         view.actors = v.actors.map((a) => ({
             y: (a.y - T / 2 + 2) / T,
             draw: (g, time) => {
