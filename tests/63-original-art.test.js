@@ -54,6 +54,19 @@ test('ENSO doll: the feet stand on the anchor row and each shape choice changes 
     assert.ok(SPRITES.getSheet(`enso.${m.sheetFields({ hairStyle: 27, outfit: 9, hat: 10, weapon: 14, shield: 15 }).shape}`));
 });
 
+test('ENSO doll v2 (chibi): big eyes with iris and shine facing front and side, none from behind', () => {
+    const m = SPRITES.manifest.enso, sheet = SPRITES.getSheet(`enso.${m.sheetFields({}).shape}`);
+    const count = (key, ch) => sheet.frames[key].join('').split(ch).length - 1;
+    assert.strictEqual(count('down.stand', 'r'), 2, 'two shines');
+    assert.ok(count('down.stand', 'u') >= 4 && count('down.stand', 's') >= 2, 'two irises');
+    assert.ok(count('right.stand', 'u') >= 2, 'one eye in profile');
+    assert.strictEqual(count('up.stand', 'u'), 0);
+    assert.strictEqual(count('down.hit', 'u'), 0, 'shut when hit');
+    // The head is chibi-sized: at least 14 px across facing front.
+    const rows = sheet.frames['down.stand'], widest = Math.max(...rows.slice(8, 22).map((r) => r.replace(/^\.+|\.+$/g, '').length));
+    assert.ok(widest >= 14, `head ${widest} px`);
+});
+
 test('Scene art: the homestead grounds paint whole, the same every time, with a crown layer over people', () => {
     const map = ZONE1.maps.grounds;
     assert.ok(SCENE.has(map) && !SCENE.has(ZONE1.maps.house));

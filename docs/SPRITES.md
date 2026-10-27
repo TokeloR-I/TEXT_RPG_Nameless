@@ -101,6 +101,7 @@ use a `data:image/png;base64,...` URL as `src`, or a palette sheet.
 `assets/sprites/enso-player.js` draws the player and every villager. Nothing is stored as pixels: each frame is
 built on first use from a pose skeleton (head, shoulders, elbows, hands, hips, knees, feet, weapon angle) and
 shapes on it, shaded from the top left, with darker edges where parts overlap and a coloured outline.
+Its look follows `docs/art/PLAYER_STYLE_SHEET.md` (v2, chibi: big head and eyes, near-black outline).
 `node tools/preview-enso-player.js out.png 4 '{"outfit":2}'` writes a contact sheet for review.
 This is the first step of `docs/art/ORIGINAL_ART_PLAN.md`; Sprite Forge art can replace or refine it later.
 
