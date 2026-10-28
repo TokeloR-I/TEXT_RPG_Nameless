@@ -729,11 +729,12 @@
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
             ENSO.sprites.drawCharacter(g, cx, base, {
                 appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
-                facing: view.facing, anim: view.anim || (view.moving ? 'walk' : 'idle'),
+                facing: view.facing8 || view.facing, anim: view.anim || (view.moving ? 'walk' : 'idle'),
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
             }, view.anim && view.animT != null ? view.animT : time);   // combat v3: swing / dodge / guard / hurt
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
-            const hands = view.facing === 'left' || view.facing === 'right' ? [cx + (view.facing === 'left' ? -1 : 1)] : [cx - 5, cx + 5];
+            const facing = view.facing8 || view.facing;
+            const hands = facing === 'left' || facing === 'right' ? [cx + (facing === 'left' ? -1 : 1)] : facing.includes('-') ? [cx - 3, cx + 3].map((x) => x + (facing.endsWith('left') ? -1 : 1)) : [cx - 5, cx + 5];
             for (const hx of hands) {
                 const hy = base - 8;
                 const grad = g.createRadialGradient(hx, hy, 0, hx, hy, 6);

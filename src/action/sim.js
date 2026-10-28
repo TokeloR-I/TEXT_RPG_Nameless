@@ -48,6 +48,9 @@
     /** 4-way facing for sprites and for the tile in front of the player (interact). */
     const facingOf = (ang) => { const a = ((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); return a < Math.PI / 4 || a >= 7 * Math.PI / 4 ? 'right' : a < 3 * Math.PI / 4 ? 'down' : a < 5 * Math.PI / 4 ? 'left' : 'up'; };
     const FACING_ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+    /** 8-way facing for the player's sprite (N S E W and the diagonals): 45° sectors centred on each direction. */
+    const FACINGS8 = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
+    const facing8Of = (ang) => FACINGS8[((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8];
 
     class ActionSim {
         constructor({ engine, session, rules, seed = 1 }) {
@@ -80,7 +83,7 @@
             const old = this.player;
             this.player = {
                 x: (s.x + 0.5) * this.T, y: (s.y + 0.5) * this.T, r: pr.radius || 5,
-                angle: FACING_ANGLE[s.facing] || 0, facing: s.facing, moving: false,
+                angle: FACING_ANGLE[s.facing] || 0, facing: s.facing, facing8: s.facing, moving: false,
                 stamina: old ? old.stamina : (this.rules.stamina || {}).max || 100, staminaAt: 0,
                 state: 'idle', stateEnd: 0, attack: null, dodge: null, iframesUntil: 0, dodgeReadyAt: 0,
                 guarding: false, guardSince: null, hurtUntil: 0, sprinting: false
@@ -382,7 +385,8 @@
             const bx = p.x, by = p.y;
             this.moveBody(p, vx * dt, vy * dt, null, (R.player || {}).cornerSlidePx ?? 6);
             p.vx = (p.x - bx) / dt; p.vy = (p.y - by) / dt;   // for leading ground attacks
-            p.facing = facingOf(p.angle);
+            p.facing = facingOf(p.angle);     // 4-way: the tile in front (E), exits and saves
+            p.facing8 = facing8Of(p.angle);   // 8-way: what the sprite shows
             this.playerTile();
         }
 
@@ -919,7 +923,7 @@
             return {
                 mapId: this.mapId, now: this.now,
                 player: {
-                    x: p.x, y: p.y, angle: p.angle, facing: p.facing, state: p.state, moving: p.moving, sprinting: p.sprinting,
+                    x: p.x, y: p.y, angle: p.angle, facing: p.facing, facing8: p.facing8, state: p.state, moving: p.moving, sprinting: p.sprinting,
                     stamina: p.stamina, staminaMax: (this.rules.stamina || {}).max || 100, guarding: p.guarding, iframes: this.now < p.iframesUntil,
                     attack: at ? { skill: at.skill || null, shape: at.shape, progress: Math.min(1, (this.now - at.start) / Math.max(1, p.stateEnd - at.start)), isBasic: at.isBasic } : null
                 },
@@ -944,7 +948,7 @@
         }
     }
 
-    const api = { ActionSim, STEP, facingOf };
+    const api = { ActionSim, STEP, facingOf, facing8Of };
     ENSO.actionSim = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

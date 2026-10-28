@@ -11,7 +11,8 @@
  * big eyes (lid, shine, iris), soft skin shading and a near-black outline.
  *
  * Contract (the same as the earlier 64x64 doll, so the world, hitboxes and camera need no change):
- *   frame 64x64, feet at (32, 43), facings down/up/left/right (left mirrors right), poses (POSES):
+ *   frame 64x64, feet at (32, 43), facings down/up/left/right plus the diagonals down-right/down-left/up-right/up-left
+ *   (each -left facing mirrors its -right one), poses (POSES):
  *   stand, idle1-4, walk1-8, ready1-4, slash0-5, parry, hit, hit2, down1-4 (slash0/5, hit2, down1 are TWEENS).
  * Shape choices (hair style, outfit style, hat, weapon type, shield type) pick the sheet; colours (skin, hair
  * colour, outfit colour, metal) are palette roles, so one sheet serves every colour. Sheets are built when first
@@ -25,7 +26,12 @@
     const providers = ENSO.sheetProviders || (ENSO.sheetProviders = []);
 
     const W = 64, H = 64, FRAME = { w: W, h: H };
-    const FACINGS = ['down', 'up', 'right', 'left'];
+    const FACINGS = ['down', 'up', 'right', 'left', 'down-right', 'down-left', 'up-right', 'up-left'];
+    // A diagonal is the front or back view turned part of the way toward the profile (a 3/4 view): the skeleton is
+    // the blend of the two, and the parts are drawn as the front/back view with the face and details moved by k.turn.
+    const DIAG = { 'down-right': ['down', 'right'], 'up-right': ['up', 'right'] };
+    const MIRROR = { left: 'right', 'down-left': 'down-right', 'up-left': 'up-right' };
+    const TURN = 0.5;
     const WALK_N = 8;
     const POSES = ['stand', 'idle1', 'idle2', 'idle3', 'idle4', ...Array.from({ length: WALK_N }, (_, i) => `walk${i + 1}`),
         'ready1', 'ready2', 'ready3', 'ready4', 'slash0', 'slash1', 'slash2', 'slash3', 'slash4', 'slash5', 'parry', 'hit', 'hit2',
@@ -311,6 +317,14 @@
         return k;
     }
     function skeleton(facing, pose) {
+        if (DIAG[facing]) {
+            const [v, h] = DIAG[facing], a = skeleton(v, pose), b = skeleton(h, pose);
+            if (a.lying) return a;
+            const k = tween(a, b, TURN);
+            // Layering and expression follow the front/back view; the swing's smear follows the profile facing down
+            // (the arc sweeps out in front) and the back view facing up.
+            return { ...k, pose: a.pose, weaponBehind: a.weaponBehind, shieldFront: a.shieldFront, eyes: a.eyes, parry: a.parry, smear: v === 'down' ? b.smear || a.smear : a.smear, turn: TURN };
+        }
         if (TWEENS[pose]) { const [a, b, t] = TWEENS[pose]; return { ...tween(skeleton(facing, a), skeleton(facing, b), t), pose: TWEENS[pose][0].replace(/\d+$/, '') }; }
         const k = baseSkeleton(facing);
         const side = facing === 'right', back = facing === 'up', s = back ? 1 : -1;
@@ -447,10 +461,10 @@
     function drawLeg(grid, hip, kn, ft, style, side, near) {
         const robe = style === 3;
         const boot = part();
-        // Boots: a rounded block at the foot, toe pointing the way the character faces.
-        const toe = side ? 1.4 : 0;
-        ellipse(boot, ft[0] + toe * 0.5, ft[1] - 1.2, side ? 2.6 : 1.9, 1.7);
-        capsule(boot, kn[0], lerp(kn[1], ft[1], 0.45), ft[0], ft[1] - 1.4, side ? 1.7 : 1.6);
+        // Boots: a rounded block at the foot, toe pointing the way the character faces (`side` 0..1: how far turned).
+        const turn = +side || 0, toe = 1.4 * turn;
+        ellipse(boot, ft[0] + toe * 0.5, ft[1] - 1.2, lerp(1.9, 2.6, turn), 1.7);
+        capsule(boot, kn[0], lerp(kn[1], ft[1], 0.45), ft[0], ft[1] - 1.4, lerp(1.6, 1.7, turn));
         const leg = part();
         capsule(leg, hip[0], hip[1], kn[0], kn[1], 1.75);
         capsule(leg, kn[0], kn[1], ft[0], lerp(kn[1], ft[1], 0.5), 1.6);
@@ -476,8 +490,10 @@
     function drawTorso(grid, k, style, facing) {
         const side = facing === 'right', back = facing === 'up';
         const t = k.torsoTop, b = k.torsoBottom, cx = k.torsoX, lean = k.lean || 0;
-        const wTop = side ? 3.6 : 5.4, wWaist = side ? 3.2 : 4.2, wHip = side ? 3.6 : 4.8;
-        const chestF = side ? 0.9 : 0;
+        const turn = side ? 1 : k.turn || 0;
+        const wTop = lerp(5.4, 3.6, turn), wWaist = lerp(4.2, 3.2, turn), wHip = lerp(4.8, 3.6, turn);
+        const chestF = 0.9 * turn;
+        const fo = side ? 0 : (back ? -1 : 1) * turn * 1.6;   // a 3/4 view: the front (or back) details move round
         const waistY = lerp(t, b, 0.66);
         // Hem: how far the garment reaches below the hips.
         const hem = { 0: 3.2, 1: 7.4, 2: 2.6, 3: 8.4, 4: 1.8, 5: 1.2 }[style];
@@ -489,7 +505,7 @@
         // Round the shoulders.
         ellipse(body, cx - wTop + 1 + lean * 0.6, t + 1.3, 1.8, 1.6); ellipse(body, cx + wTop - 1 + lean * 0.6 + chestF, t + 1.3, 1.8, 1.6);
         paint(grid, body, 'cloth');
-        const P = (pts) => pts.map(([x, y]) => [x + cx, y]);
+        const P = (pts) => pts.map(([x, y]) => [x + cx + fo, y]);
         if (style === 1 && !back) {                       // open coat: the shirt shows down the front
             const shirt = part();
             if (side) poly(shirt, P([[1.4 + chestF, t + 0.6], [wTop + chestF - 0.4, t + 0.6], [wWaist + chestF * 0.4, waistY], [1.2, waistY]]), 0.2);
@@ -501,7 +517,7 @@
             if (side) poly(plate, P([[-wTop + 1, t + 1], [wTop + chestF, t + 1], [wWaist + chestF * 0.5, waistY + 0.6], [-wWaist + 1, waistY + 0.6]]));
             else poly(plate, P([[-wTop + 0.6, t + 0.8], [wTop - 0.6, t + 0.8], [wWaist - 0.2, waistY + 0.8], [-wWaist + 0.2, waistY + 0.8]]));
             paint(grid, plate, 'metal');
-            if (!back && !side) for (let y = Math.ceil(t + 2); y < waistY; y += 1) dot(grid, cx, y, MAT.metal[2]);
+            if (!back && !side) for (let y = Math.ceil(t + 2); y < waistY; y += 1) dot(grid, cx + fo, y, MAT.metal[2]);
         }
         if (style === 5 && !back) {                       // farmhand: light shirt under a vest
             const shirt = part();
@@ -512,30 +528,33 @@
         if (style === 4 && !back) {                       // leathers: a strap across the chest
             const strap = part();
             if (side) capsule(strap, cx - 1.6, t + 1, cx + 1.8 + chestF, waistY, 0.7);
-            else capsule(strap, cx + 3.6, t + 0.8, cx - 3.4, waistY + 0.6, 0.75);
+            else capsule(strap, cx + fo + 3.6, t + 0.8, cx + fo - 3.4, waistY + 0.6, 0.75);
             paint(grid, strap, 'leather', { edge: false });
         }
         // Belt or sash.
         const belt = part();
         poly(belt, [[cx - wWaist - 0.4, waistY + 0.4], [cx + wWaist + 0.4 + chestF * 0.5, waistY + 0.4], [cx + wHip, waistY + 2], [cx - wHip, waistY + 2]], 0, false);
         paint(grid, belt, style === 3 ? 'accent' : 'leather');
-        if (!back && !side && style !== 3) { dot(grid, cx - 0.5, waistY + 1, MAT.accent[0]); dot(grid, cx + 0.5, waistY + 1, MAT.accent[1]); }
+        if (!back && !side && style !== 3) { dot(grid, cx + fo - 0.5, waistY + 1, MAT.accent[0]); dot(grid, cx + fo + 0.5, waistY + 1, MAT.accent[1]); }
         if (side && style === 3) { const tail = part(); capsule(tail, cx - wWaist, waistY + 1.4, cx - wWaist - 0.6, waistY + 5, 0.8); paint(grid, tail, 'accent'); }
         // Neckline / collar.
         if (!back) {
-            if (style === 0) { const sc = part(); poly(sc, side ? [[cx - 1.8, t - 0.6], [cx + 2.8, t - 0.6], [cx + 2.2, t + 2], [cx - 1.4, t + 2]] : [[cx - 4, t - 0.6], [cx + 4, t - 0.6], [cx + 2.6, t + 2.4], [cx - 2.6, t + 2.4]], 0.1); paint(grid, sc, 'accent'); }
-            if (style === 4) { const sc = part(); ellipse(sc, cx + (side ? 0.8 : 0), t + 0.6, side ? 3 : 4.4, 1.9); paint(grid, sc, 'accent'); }
-            if (style === 3 && !side) { for (let y = Math.ceil(t + 1); y < waistY; y++) dot(grid, cx, y, MAT.accent[1]); }
+            if (style === 0) { const sc = part(); poly(sc, side ? [[cx - 1.8, t - 0.6], [cx + 2.8, t - 0.6], [cx + 2.2, t + 2], [cx - 1.4, t + 2]] : P([[-4 + turn, t - 0.6], [4 - turn, t - 0.6], [2.6 - turn, t + 2.4], [-2.6 + turn, t + 2.4]]), 0.1); paint(grid, sc, 'accent'); }
+            if (style === 4) { const sc = part(); ellipse(sc, cx + (side ? 0.8 : fo), t + 0.6, lerp(4.4, 3, turn), 1.9); paint(grid, sc, 'accent'); }
+            if (style === 3 && !side) { for (let y = Math.ceil(t + 1); y < waistY; y++) dot(grid, cx + fo, y, MAT.accent[1]); }
         } else {
             if (style === 0 || style === 4) {          // a short cape or hood falls over the back
                 const cape = part();
                 const cb = style === 0 ? b + 1.6 : t + 6;
-                poly(cape, [[cx - wTop + 0.6, t - 0.6], [cx + wTop - 0.6, t - 0.6], [cx + wTop + 0.4, cb - 1], [cx + 2, cb], [cx, cb - 1.4], [cx - 2, cb], [cx - wTop - 0.4, cb - 1]]);
+                poly(cape, P([[-wTop + 0.6, t - 0.6], [wTop - 0.6, t - 0.6], [wTop + 0.4, cb - 1], [2, cb], [0, cb - 1.4], [-2, cb], [-wTop - 0.4, cb - 1]]));
                 paint(grid, cape, 'accent');
-                for (const fx of [-2.4, 1.6]) for (let y = Math.ceil(t + 2); y < cb - 1.6; y++) dot(grid, cx + fx, y, MAT.accent[2]);
+                for (const fx of [-2.4, 1.6]) for (let y = Math.ceil(t + 2); y < cb - 1.6; y++) dot(grid, cx + fo + fx, y, MAT.accent[2]);
             }
         }
     }
+
+    /** How far (head-space px) the face has moved toward +x in a 3/4 view facing down; 0 otherwise. */
+    const faceShift = (k, facing) => (facing === 'down' ? (k.turn || 0) * 3 : 0);
 
     // Hair: drawn round the head centre. `front` is everything over the face/head; `back` goes behind the body.
     const drawHairBack = inHead(function drawHairBack(grid, k, style, facing) {
@@ -562,7 +581,7 @@
         if (p.size) paint(grid, p, 'hair');
     });
     const drawHairFront = inHead(function drawHairFront(grid, k, style, facing, hat) {
-        const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right';
+        const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right', fo = faceShift(k, facing);
         const helmet = hat === 4, hood = hat === 1;
         if (style === 7) {                                               // shorn: a dark cap close to the skull
             const p = part(); ellipse(p, hx - (side ? 0.6 : 0), hy - 2.4, side ? 5.4 : 6.2, 3.8);
@@ -580,7 +599,7 @@
             if (back) { if (y > hy + 4.4 + (style === 2 || style === 5 ? 3 : style === 1 || style === 4 || style === 6 ? -0.6 : 0)) cap.delete(i); continue; }
             if (side) { if (x > hx - 1.4 && y > hy - 1.6) cap.delete(i); if (y > hy + 2.6 && style !== 2 && style !== 5) cap.delete(i); continue; }
             const fringe = { 0: -0.6, 1: -1.6, 2: -1, 3: -1.8, 4: -2.2, 5: -1.4, 6: -1.6, 8: -0.8 }[style];
-            if (y > hy + fringe && Math.abs(x + 0.5 - hx) < 4.6) cap.delete(i);
+            if (y > hy + fringe && Math.abs(x + 0.5 - hx - fo) < 4.6 - Math.abs(fo) * 0.3) cap.delete(i);
             if (y > hy + 2.4 && style !== 2 && style !== 5 && style !== 8) cap.delete(i);
         }
         if (helmet) return;                                             // the helm covers it all
@@ -616,13 +635,14 @@
     });
 
     const drawHead = inHead(function drawHead(grid, k, facing) {
-        const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up';
+        const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up', turn = k.turn || 0;
         const head = part();
         if (k.lying) ellipse(head, hx, hy, 5.6, 5.4);
-        else ellipse(head, hx + (side ? 0.4 : 0), hy + 0.3, side ? 5.6 : 6.2, 6.2);
+        else ellipse(head, hx + (side ? 0.4 : turn * 0.4), hy + 0.3, side ? 5.6 : lerp(6.2, 5.6, turn), 6.2);
         if (side && !k.lying) { setPx(head, hx + 6, hy + 0.6, 0.2); setPx(head, hx + 5.6, hy + 1.6, 0); }   // nose
-        // Ears.
-        if (!side && !k.lying) { ellipse(head, hx - 6.2, hy + 0.8, 1, 1.4, -0.1); ellipse(head, hx + 6.2, hy + 0.8, 1, 1.4, -0.3); }
+        // Ears. Turned 3/4, only the one on the far side of the face shows (behind the cheek facing down, by the cheek facing up).
+        if (!side && !k.lying && !turn) { ellipse(head, hx - 6.2, hy + 0.8, 1, 1.4, -0.1); ellipse(head, hx + 6.2, hy + 0.8, 1, 1.4, -0.3); }
+        if (turn && !k.lying) ellipse(head, hx + (back ? 5.2 : -4.8), hy + 0.8, 1, 1.4, -0.2);
         if (side) ellipse(head, hx - 1.4, hy + 0.8, 1.1, 1.4, -0.2);
         paint(grid, head, 'skin', { levels: [0.5, -0.7, -2], edge: false });          // soft: highlight, base and one shade
         if (back) return;
@@ -640,6 +660,10 @@
         if (side) {
             eye(fx + 3, true);
             dot(grid, fx + 5, ey + 3, MOUTH);
+        } else if (turn) {                                               // 3/4: the face has turned toward +x
+            eye(fx - 2, false); eye(fx + 3, true);
+            dot(grid, fx + 1, ey + 3, MOUTH); dot(grid, fx + 2, ey + 3, MAT.skin[2]);
+            dot(grid, fx + 6, ey + 1, MAT.skin[1]);                     // the cheek's edge
         } else {
             eye(fx - 4, false); eye(fx + 2, true);
             dot(grid, fx - 1, ey + 3, MOUTH); dot(grid, fx, ey + 3, MAT.skin[2]);
@@ -648,7 +672,7 @@
 
     const drawHat = inHead(function drawHat(grid, k, hat, facing, layer) {
         if (!hat) return;
-        const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up';
+        const [hx, hy] = k.head, side = facing === 'right', back = facing === 'up', fo = faceShift(k, facing);
         const p = part();
         if (hat === 1) {                                                 // hood: drawn in two layers
             if (layer === 'back') { if (!back) { poly(p, [[hx - 7.2, hy - 2], [hx + 7.2, hy - 2], [hx + 7.6, hy + 7.6], [hx - 7.6, hy + 7.6]]); paint(grid, p, 'hat'); } return; }
@@ -658,7 +682,7 @@
                 const [x, y] = un(i);
                 if (back) continue;
                 if (side) { if (x > hx - 0.4 && y > hy - 3) p.delete(i); continue; }
-                if (y > hy - 3.6 && Math.abs(x + 0.5 - hx) < 4.8) p.delete(i);
+                if (y > hy - 3.6 && Math.abs(x + 0.5 - hx - fo) < 4.8) p.delete(i);
             }
             if (side) poly(p, [[hx - 6.4, hy - 1], [hx - 1, hy - 1], [hx - 0.4, hy + 7], [hx - 6.6, hy + 6]]);
             paint(grid, p, 'hat');
@@ -686,10 +710,10 @@
                 const [x, y] = un(i);
                 if (back) { if (y > hy + 3.4) p.delete(i); continue; }
                 if (side) { if (x > hx + 0.6 && y > hy - 0.6) p.delete(i); if (y > hy + 3) p.delete(i); continue; }
-                if (y > hy - 0.6 && Math.abs(x + 0.5 - hx) < 4.6) p.delete(i);
+                if (y > hy - 0.6 && Math.abs(x + 0.5 - hx - fo) < 4.6) p.delete(i);
                 if (y > hy + 3) p.delete(i);
             }
-            if (!back) { if (side) rect(p, Math.floor(hx + 3.4), Math.floor(hy - 1), 1, 3, 0.2); else rect(p, Math.floor(hx) - 0.5, Math.floor(hy - 1), 1, 3, 0.3); }
+            if (!back) { if (side) rect(p, Math.floor(hx + 3.4), Math.floor(hy - 1), 1, 3, 0.2); else rect(p, Math.floor(hx + fo) - 0.5, Math.floor(hy - 1), 1, 3, 0.3); }
             paint(grid, p, 'metal');
             const rim = part(); rect(rim, Math.floor(hx - (side ? 6 : 7)), Math.floor(hy - 1.8), side ? 12 : 14, 1, -0.3);
             for (const i of [...rim.keys()]) if (grid.mat[i] !== 'metal') rim.delete(i);
@@ -700,7 +724,7 @@
             const y = Math.floor(hy - 3.2);
             for (let x = Math.floor(hx - (side ? 5 : 6)); x <= hx + (side ? 4 : 6); x++) if (grid.role[y * W + x]) setPx(p, x, y, 0.4);
             paint(grid, p, 'accent', { edge: false });
-            if (!back) dot(grid, side ? hx + 3 : hx, y, MAT.shieldFace[0]);
+            if (!back) dot(grid, side ? hx + 3 : hx + fo * HEAD_S, y, MAT.shieldFace[0]);
         }
     });
 
@@ -762,9 +786,10 @@
             ellipse(rim, cx + 2.4, cy + (type === 1 ? 0.8 : 0), 0.8, h - 0.6); paint(grid, rim, 'metal', { edge: false });
             return;
         }
-        if (type === 0) { ellipse(p, cx, cy, 5, 5); }
-        else if (type === 1) poly(p, [[cx - 4.6, cy - 4.8], [cx + 4.6, cy - 4.8], [cx + 4.2, cy + 1.6], [cx, cy + 6.8], [cx - 4.2, cy + 1.6]]);
-        else ellipse(p, cx, cy, 3.4, 3.4);
+        const sq = 1 - (k.turn || 0) * 0.35;                            // turned 3/4, the face is seen a little edge-on
+        if (type === 0) { ellipse(p, cx, cy, 5 * sq, 5); }
+        else if (type === 1) poly(p, [[cx - 4.6 * sq, cy - 4.8], [cx + 4.6 * sq, cy - 4.8], [cx + 4.2 * sq, cy + 1.6], [cx, cy + 6.8], [cx - 4.2 * sq, cy + 1.6]]);
+        else ellipse(p, cx, cy, 3.4 * sq, 3.4);
         paint(grid, p, 'shieldFace');
         // Rim and boss in metal.
         for (const i of p.keys()) {
@@ -772,7 +797,7 @@
             if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !p.has((y + dy) * W + x + dx))) rim.set(i, p.get(i));
         }
         paint(grid, rim, 'metal', { edge: false });
-        if (type === 1) { for (let y = Math.ceil(cy - 3.6); y < cy + 5; y++) dot(grid, cx, y, MAT.accent[1]); for (let x = Math.ceil(cx - 3.4); x < cx + 3.4; x++) dot(grid, x, Math.floor(cy - 1), MAT.accent[1]); }
+        if (type === 1) { for (let y = Math.ceil(cy - 3.6); y < cy + 5; y++) dot(grid, cx, y, MAT.accent[1]); for (let x = Math.ceil(cx - 3.4 * sq); x < cx + 3.4 * sq; x++) dot(grid, x, Math.floor(cy - 1), MAT.accent[1]); }
         else { ellipse(boss, cx, cy, 1.4, 1.4); paint(grid, boss, 'metal', { edge: false }); }
     }
 
@@ -796,6 +821,7 @@
     /** Draw one frame. Returns 64 strings of roles ('.' = transparent). */
     function drawFrame(shape, facing, pose) {
         const k = skeleton(facing, pose);
+        if (DIAG[facing]) facing = DIAG[facing][0];                      // drawn as the front/back view, turned by k.turn
         const g = newGrid();
         const side = facing === 'right', back = facing === 'up';
         const { hair, outfit, hat, weapon, shield } = shape;
@@ -835,8 +861,8 @@
             outline(g);
             return toRows(g);
         }
-        drawLeg(g, k.hipR, k.knR, k.ftR, outfit, false);
-        drawLeg(g, k.hipL, k.knL, k.ftL, outfit, false);
+        drawLeg(g, k.hipR, k.knR, k.ftR, outfit, k.turn || false);
+        drawLeg(g, k.hipL, k.knL, k.ftL, outfit, k.turn || false);
         drawTorso(g, k, outfit, facing);
         if (back) {                                                      // seen from behind: arms, then the head over them
             drawArm(g, k.shL, k.elL, k.haL, outfit, true);
@@ -902,7 +928,7 @@
             Object.defineProperty(frames, key, {
                 enumerable: true,
                 get() {
-                    if (!rows) rows = facing === 'left' ? mirrorRows(sheets[id].frames[`right.${pose}`]) : drawFrame(shape, facing, pose);
+                    if (!rows) rows = MIRROR[facing] ? mirrorRows(sheets[id].frames[`${MIRROR[facing]}.${pose}`]) : drawFrame(shape, facing, pose);
                     return rows;
                 }
             });
@@ -934,7 +960,7 @@
             guard: [st('parry', 600, 0), st('parry', 600, 1)],
             hurt: { once: true, then: 'ready', steps: [st('hit', 100, -1), st('hit2', 60), st('ready1', 90)] }
         },
-        layerOrder: { down: ['body'], up: ['body'], left: ['body'], right: ['body'] },
+        layerOrder: Object.fromEntries(FACINGS.map((f) => [f, ['body']])),
         layers: { body: 'enso.{shape}' },
         fallbacks: { body: 'enso.0.0.0.0.-1' },
         /** Sheet-id fields from cosmetics (the template's {shape}). */

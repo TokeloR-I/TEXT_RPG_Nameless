@@ -1580,6 +1580,7 @@
         view.x = p.x / T - 0.5;
         view.y = (p.y - T / 2 + 2) / T;   // drawPlayer puts the feet at y*T + T - 2: the body's centre is a little above the feet
         view.facing = p.facing;
+        view.facing8 = p.facing8;   // the sprite turns 8 ways; view.facing stays the 4-way world facing
         view.moving = p.moving;
         const pose = p.state === 'attack' ? (p.attack && !p.attack.isBasic ? 'heavy' : 'swing') : p.state === 'dodge' ? 'dodge' : p.state === 'hurt' ? 'hurt' : p.guarding ? 'guard' : null;
         const key = pose ? `${pose}:${p.state === 'attack' && p.attack ? p.attack.shape && p.attack.skill : ''}` : '';
