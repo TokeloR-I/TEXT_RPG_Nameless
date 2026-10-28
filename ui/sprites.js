@@ -101,6 +101,9 @@
     };
 
     const FACINGS = ['down', 'up', 'left', 'right'];
+    // Diagonal facings (8-way movement). A character with art for them lists them in its layerOrder; any other
+    // character turns to the side it is moving toward.
+    const SIDEWAYS = { 'down-right': 'right', 'up-right': 'right', 'down-left': 'left', 'up-left': 'left' };
     // Sheets made on demand (assets/sprites/enso-player.js builds one per shape choice): a provider gets an id and
     // returns a sheet or null. A provided sheet is registered like any other.
     const providers = ENSO.sheetProviders || (ENSO.sheetProviders = []);
@@ -177,7 +180,7 @@
      */
     function characterLayers({ cosmetics = {}, appearance = 0, facing = 'down', anim = 'idle', time = 0, character = manifest.player } = {}) {
         const fields = fieldsOf(character, { appearance, ...cosmetics });   // sheet templates may use {appearance} (skin)
-        const dir = FACINGS.includes(facing) ? facing : 'down';
+        const dir = character.layerOrder[facing] ? facing : SIDEWAYS[facing] || (FACINGS.includes(facing) ? facing : 'down');
         const step = animationStep(character, anim, time);
         const out = [];
         for (const layer of character.layerOrder[dir]) {
