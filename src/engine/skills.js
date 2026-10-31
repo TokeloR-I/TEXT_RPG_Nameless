@@ -31,7 +31,9 @@
             if (s.base_damage) detail = `${s.base_damage[0]}-${s.base_damage[1]} dmg`;
             else if ((s.effects || []).some((e) => e.type === 'summon')) detail = 'Summon';
             else if (s.effects) detail = 'Effect';
-            return { name, description: s.description, cost, detail, target: s.target, implemented: this.isCastable(s), missing: this.missingEffects(s) };
+            // Timed fights (real-time, action) show the skill in seconds when it has a liveDescription.
+            const description = (this.combatMode !== 'turn' && s.liveDescription) || s.description;
+            return { name, description, cost, detail, target: s.target, implemented: this.isCastable(s), missing: this.missingEffects(s) };
         }
 
         newHit(target) {

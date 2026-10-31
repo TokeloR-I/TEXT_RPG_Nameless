@@ -78,3 +78,26 @@ test('Turn mode is untouched: Guard and Evasion stay one stack', () => {
     assert.strictEqual(st.stacks, 1);
     assert.strictEqual(g.maxStacks('Evasion'), 1);
 });
+
+test('Every skill written in turns has a liveDescription in seconds, and timed fights show it', () => {
+    const turny = Object.entries(data.skillDefinitions).filter(([, s]) => /\bturns?\b/i.test(s.description || ''));
+    for (const [name, s] of turny) {
+        assert.ok(s.liveDescription, `${name} has no liveDescription`);
+        assert.ok(!/\bturns?\b/i.test(s.liveDescription), `${name}: ${s.liveDescription}`);
+    }
+    const rt = newton();
+    assert.strictEqual(rt.describeSkill('Guard').description, data.skillDefinitions.Guard.liveDescription);
+    const turn = new GameEngine({ seed: 1 });
+    assert.strictEqual(turn.describeSkill('Guard').description, data.skillDefinitions.Guard.description, 'turn mode keeps the turn text');
+});
+
+test('Haste in a timed fight is a buff, not an extra turn; turn mode still gives the extra turn', () => {
+    const g = newton('mage');
+    g.player.skills.push('haste');
+    g.castSkill(g.player, g.data.skillDefinitions.haste, [g.player]);
+    assert.ok(g.findStatus(g.player, 'Haste'));
+    assert.strictEqual(g.combat.extraTurn, false);
+    const base = g.rtIntervalMs(g.player);
+    g.removeStatus(g.player, g.findStatus(g.player, 'Haste'));
+    assert.ok(base < g.rtIntervalMs(g.player), 'basic swings are faster while hasted');
+});
