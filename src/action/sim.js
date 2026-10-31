@@ -214,6 +214,7 @@
             const e = this.engine;
             if (e.mode !== 'explore' && e.mode !== 'combat') return;   // a menu (level-up path, dialogue) holds the world
             if (this.engaged) this.collect(e.tick(STEP));
+            else if (e.actionCalmTick) this.collect(e.actionCalmTick(STEP));   // pre-buffs and cooldowns run out of a fight too
             this.syncFromEngine();
             this.stepPlayer();
             for (const a of this.actors) this.stepActor(a);
@@ -521,6 +522,16 @@
                 this.collect(r.events);
                 if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
                 this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
+            } else if (e.actionPrebuff && (shape.shape || 'arc') === 'self') {
+                // A self buff works for real: cast now, it lasts its usual time and comes into the next fight.
+                const problem = e.actionPrebuffProblem(name);
+                if (problem && problem.code !== 'FIGHT_ONLY') { this.fx.push({ type: 'refused', code: problem.code, text: problem.message }); return; }
+                if (problem) this.fx.push({ type: 'notice', text: problem.message });
+                else {
+                    const r = e.actionPrebuff(name);
+                    this.collect(r.events);
+                    if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
+                }
             }
             const startup = shape.startupMs != null ? shape.startupMs : (shape.castMs || 150);
             const recovery = shape.recoveryMs != null ? shape.recoveryMs : 200;

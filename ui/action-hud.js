@@ -112,7 +112,7 @@
         const avail = typeof engine.getAvailableActions === 'function' ? engine.getAvailableActions() : null;
         const inCombat = st.mode === 'combat' || !!rt;
         const sim = simView || {};
-        const fightNow = rt && num(rt.now) ? rt.now : null;
+        const fightNow = rt && num(rt.now) ? rt.now : num(sim.calmNow) ? sim.calmNow : null;   // out of a fight, pre-buffs run on the calm clock
         const defs = (ENSO.data && ENSO.data.statusDefinitions) || null;
 
         const actions = (inCombat && avail && avail.actions) || [];
