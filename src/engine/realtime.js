@@ -151,7 +151,7 @@
             c.rt.targetId = (this.alive(c.enemies)[0] || {}).id || null;
             this.ensureSkillBar();
             c.awaitingPlayer = true;
-            if (this.combatMode === 'action') {   // combat v3: the action sim decides when enemies attack (action.js)
+            if (this.combatMode === 'action') {   // combat v3: the action sim decides when enemies and minions attack (action.js)
                 c.rt.external = true;
                 c.action = { groups: {}, casts: {}, nextCastId: 0, nextEnemyId: c.enemies.length, windups: {} };
                 return;
@@ -202,7 +202,7 @@
         /** Pure: is nothing due in the next `ms`? (Every living non-player already has its clock, so rtNextEventAt won't book one.) */
         rtQuietUntil(ms) {
             const rt = this.combat.rt;
-            for (const x of this.rtLiving()) if (!x.isPlayer && !(rt.external && !x.isMinion) && !rt.actors[x.id]) return false;
+            for (const x of this.rtLiving()) if (!x.isPlayer && !rt.external && !rt.actors[x.id]) return false;
             const next = this.rtNextEventAt();
             return next != null && next > rt.now + ms;
         }
@@ -216,7 +216,7 @@
             const take = (v) => { if (isNum(v) && v < t) t = v; };
             for (const x of this.rtLiving()) {
                 for (const s of x.statusEffects) { take(s.rtEndsAt); if (s.type === 'dot') take(s.rtNextTickAt); }
-                if (x.isPlayer || (rt.external && !x.isMinion)) continue;
+                if (x.isPlayer || rt.external) continue;
                 const a = rt.actors[x.id];
                 if (!a) { this.rtSchedule(x); take(rt.actors[x.id].nextActionAt); continue; }   // a new summon
                 take(a.windup ? a.windup.landsAt : a.nextActionAt);
@@ -245,7 +245,7 @@
             }
             // 2. wind-ups that land, 3. actions that start
             for (const x of this.rtLiving()) {
-                if (x.isPlayer || (rt.external && !x.isMinion)) continue;
+                if (x.isPlayer || rt.external) continue;
                 const a = rt.actors[x.id];
                 if (!a) continue;
                 if (a.windup && a.windup.landsAt <= now) { this.rtLand(x); if (ended()) return true; }

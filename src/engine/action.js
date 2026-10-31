@@ -231,8 +231,9 @@
         /**
          * The enemy's attack comes out. `hit`: it reached the player (not dodged). `guarded`: the player's guard
          * faced it (damage × actionRules.guard.damageTaken). `parried`: blocked, and the sim staggers the enemy.
+         * `targetId`: whose body it reached (the player's id or a minion's); guard and parry only ever apply to the player.
          */
-        actionEnemyStrike(enemyId, { hit = true, guarded = false, parried = false, damageMult = 1 } = {}) {
+        actionEnemyStrike(enemyId, { hit = true, guarded = false, parried = false, damageMult = 1, targetId = null } = {}) {
             return this.actionRun(() => {
                 const e = this.actionEnemy(enemyId);
                 if (!e) return null;
@@ -257,7 +258,8 @@
                 let skill = e.skills.find((s) => s.name === w.skill) || this.data.skillDefinitions['Basic Attack'];
                 if (this.statusOfType(e, 'silence')) { skill = this.data.skillDefinitions['Basic Attack']; this.say(`${e.name} is silenced and can only flail.`); }
                 e.lastSkillUsed = skill.name;
-                const target = this.rtEnemyTarget(e);
+                // The sim says whose body the blow reached (the player, or a minion standing in it). Without one, taunt decides.
+                const target = (targetId != null && (targetId === this.player.id ? this.player : this.alive(c.minions).find((m) => m.id === targetId))) || this.rtEnemyTarget(e);
                 let guard = null, heavy = null;
                 if (damageMult > 0 && damageMult !== 1) {   // an attack table's damageMult (Murder of Crows): after DEF, like a damage_reduction below 0
                     heavy = { name: 'Heavy Blow', type: 'damage_reduction', value: 1 - damageMult, duration: null, stacks: 1, appliedBy: e.id };
@@ -274,6 +276,32 @@
                 end();
                 this.checkBattleEnd();
                 return { result: guard ? 'guarded' : 'hit' };
+            });
+        }
+
+        // =====================================================================
+        // Minions (the sim moves them and decides when their attack lands)
+        // =====================================================================
+        /**
+         * A minion's attack comes out (Raise Skeleton's Bone Club). `targetId`: the engaged enemy it reached, or null
+         * for a swing that hit nothing. Same rules path as a turn-based minion turn: castSkill with its first skill.
+         */
+        actionMinionStrike(minionId, targetId = null) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                const c = this.combat;
+                const m = this.alive(c.minions).find((x) => x.id === minionId);
+                if (!m) { this.refuse('INVALID_TARGET', `No living minion '${minionId}'.`); return null; }
+                if (m.statusEffects.some((s) => s.type === 'skip_turn')) { this.refuse('STUNNED', `${m.name} is unable to act!`); return null; }
+                const target = targetId != null ? this.alive(c.enemies).find((e) => e.id === targetId && e.encounterId && c.action.groups[e.encounterId]) : null;
+                if (targetId != null && !target) { this.refuse('INVALID_TARGET', `No engaged enemy '${targetId}'.`); return null; }
+                c.rt.actorId = m.id;
+                this.beginOpportunity(m);
+                if (!target) this.say(`${m.name}'s ${(m.skills[0] || {}).name || 'attack'} hits nothing.`);
+                else this.castSkill(m, m.skills[0] || this.data.skillDefinitions['Basic Attack'], [target]);
+                if (this.actionActive()) this.endOpportunity(m);
+                this.checkBattleEnd();
+                return { result: target ? 'hit' : 'miss' };
             });
         }
 
@@ -377,7 +405,11 @@
                     id: e.id, encounterId: e.encounterId, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp,
                     stunned: stunned(e), speedMult: speedMult(e), statuses: statuses(e), windup: c.action.windups[e.id] ? c.action.windups[e.id].skill : null
                 })),
-                minions: this.alive(c.minions).map((m) => ({ id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp })),
+                minions: this.alive(c.minions).map((m) => ({
+                    id: m.id, name: m.name, summonType: m.summonType, hp: m.hp, maxHp: m.maxHp,
+                    stunned: stunned(m), speedMult: speedMult(m), statuses: statuses(m), taunting: m.statusEffects.some((s) => s.type === 'taunt')
+                })),
+                minionFocusId: (this.hasTrait('Grave Command') && c.graveCommandTargetId) || null,   // Bone Warden: minions focus your last target
                 player: { stunned: stunned(this.player), speedMult: speedMult(this.player), statuses: statuses(this.player) },
                 groups: Object.keys(c.action.groups),
                 casts: Object.values(c.action.casts).map((x) => ({ castId: x.castId, skill: x.skill })),
