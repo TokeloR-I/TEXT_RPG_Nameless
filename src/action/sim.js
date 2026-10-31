@@ -19,9 +19,11 @@
  * the attack state machine (startup → active → recovery), hit tests (arc,
  * cone, circle, line, projectiles), dodge i-frames, guard arc, parry window,
  * stamina, and enemy AI (idle/wander → detect with range + line of sight →
- * engage → chase with grid pathfinding → wind up → strike → recover; leash home).
+ * engage → chase with grid pathfinding → wind up → strike → recover; leash home),
+ * and the player's minions (Raise Skeleton): a body that rises where you aim,
+ * follows you, fights enemies near you, and draws their attacks.
  * What it tells the engine: engage, cast, resolve, cancel, windup, strike,
- * disengage, tick (engine/action.js).
+ * minion strike, disengage, tick (engine/action.js).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -91,6 +93,8 @@
             this.projectiles = [];
             this.groups = {};
             this.actors = [];
+            this.minions = [];        // the player's summons: bodies for the engine's combat.minions
+            this.pendingSummon = null;
             for (const enc of s.visibleObjects().filter((o) => o.kind === 'encounter')) this.addGroup(enc);
         }
 
@@ -204,6 +208,7 @@
             this.syncFromEngine();
             this.stepPlayer();
             for (const a of this.actors) this.stepActor(a);
+            for (const m of this.minions) this.stepMinion(m);
             this.stepProjectiles();
             this.separate();
             this.checkDrops();
@@ -256,6 +261,7 @@
                     if (en.hp <= 0) this.kill(a);
                 }
             }
+            this.syncMinions(v);
             if (this.respawned) { this.respawned = false; this.onRespawn(); return; }
             for (const g of Object.values(this.groups)) {
                 if (!g.engaged) continue;
@@ -294,6 +300,7 @@
             for (const g of Object.values(this.groups)) if (g.engaged) this.resetGroup(g);
             for (const a of this.actors) if (!a.dead) { a.x = a.homeX; a.y = a.homeY; a.state = 'idle'; }
             this.projectiles = [];
+            this.minions = [];
             const s = this.session;
             s.x = this.entry.x; s.y = this.entry.y;
             const p = this.player;
@@ -448,6 +455,11 @@
             const e = this.engine;
             if (!this.engaged) this.engageNearest();
             const weapon = (((this.rules.classes || {})[e.player.className] || {}).weapon) || { kind: 'arc', reach: 20, arcDeg: 100, startupMs: 120, activeMs: 80, recoveryMs: 220 };
+            if (!this.engaged && slot != null && this.isSummonSkill(e.ensureSkillBar()[slot])) {
+                // A summon needs a fight to join: say so instead of swinging a weapon at nothing.
+                this.fx.push({ type: 'notice', text: `${e.ensureSkillBar()[slot]}: no enemy near to raise against.` });
+                return;
+            }
             if (!this.engaged) {   // a swing at nothing: it looks right and costs nothing
                 p.attack = { shape: { ...weapon, shape: weapon.kind }, castId: null, start: this.now, fired: true, cosmetic: true, isBasic: slot == null };
                 p.state = 'attack';
@@ -459,6 +471,7 @@
             this.collect(r.events);
             if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
             const shape = r.shape || {};
+            if (shape.shape === 'summon') this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
             const startup = shape.startupMs != null ? shape.startupMs : (shape.castMs || 150);
             const recovery = shape.recoveryMs != null ? shape.recoveryMs : 200;
             p.attack = { shape, castId: r.castId, skill: r.skill, start: this.now, fireAt: this.now + startup, fired: r.resolved, isBasic: slot == null, aim: this.input.aim ? { ...this.input.aim } : null };
@@ -569,6 +582,8 @@
                 return;
             }
             if (!a.engineId) return;
+            const t = this.foeOf(a);   // the player, or a minion nearer to it (Thorne §2: nearest hostile body)
+            const dt2 = dist(a, t);
             if (a.stunned && a.state !== 'windup' && a.state !== 'active') { a.state = 'stunned'; return; }
             if (a.state === 'stunned') a.state = 'chase';
             if (a.state === 'stagger') { if (this.now >= a.stateEnd) a.state = 'chase'; return; }
@@ -576,7 +591,7 @@
             const home = { x: a.homeX, y: a.homeY };
             if (dist(a, home) > (pr.leash || 200) && dist(p, home) > (pr.leash || 200)) { this.leash(g); return; }
             if (a.state === 'windup') {
-                if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, p);   // tracks, then locks (Thorne §4)
+                if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, this.liveBody(a.windup.foe) || p);   // tracks, then locks (Thorne §4)
                 if (this.now >= a.stateEnd) this.enemyActive(a);
                 return;
             }
@@ -587,12 +602,12 @@
             }
             if (a.state === 'recover') { if (this.now >= a.stateEnd) a.state = 'chase'; return; }
             // chase: pick an attack that fits the distance, else close in (or keep the preferred distance)
-            a.angle = angleTo(a, p);
-            const atk = this.now >= a.attackReadyAt && this.attackers() < ((this.rules.combat || {}).maxSimultaneousAttackers || 2) ? this.pickAttack(a, d) : null;
+            a.angle = angleTo(a, t);
+            const atk = this.now >= a.attackReadyAt && this.attackers() < ((this.rules.combat || {}).maxSimultaneousAttackers || 2) ? this.pickAttack(a, dt2, t) : null;
             if (atk) { this.enemyWindup(a, atk); return; }
             const [kmin, kmax] = this.keepRange(a);
-            if (d < kmin - 2) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
-            if (d > kmax + p.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, p))) this.chase(a, dt);
+            if (dt2 < kmin - 2) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
+            if (dt2 > kmax + t.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, t))) this.chase(a, dt, t);
         }
 
         attackers() { return this.actors.filter((x) => !x.dead && (x.state === 'windup' || x.state === 'active')).length; }
@@ -632,8 +647,7 @@
         }
         attackRanged(a) { return this.attacksOf(a).every((x) => x.shape === 'projectile' || x.shape === 'ground'); }
         /** The attack to start at distance d, or null. Phase openers first; then attacks whose useAt fits; then any in reach. */
-        pickAttack(a, d) {
-            const p = this.player;
+        pickAttack(a, d, p = this.player) {
             const list = this.attacksOf(a).filter((x) => !(a.atkReady[x.name] > this.now));
             if (a.roleIdx != null) {
                 const roles = a.prof.roles || [];
@@ -668,15 +682,16 @@
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
-            a.angle = angleTo(a, this.player);
+            const foe = this.foeOf(a);
+            a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
-            a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd };
+            a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
         }
 
         /** Crow shadows: one on the player, the rest where they're heading (Thorne §5). */
         groundTargets(a, st) {
-            const p = this.player;
+            const p = (a.windup && this.liveBody(a.windup.foe)) || this.foeOf(a);
             const ph = this.bossPhase(a);
             const n = (ph && ph.summonCrowsCount) || st.count || 1;
             const lead = (st.leadMs || 300) / 1000;
@@ -711,8 +726,8 @@
                 this.projectiles.push({ owner: 'enemy', actor: a, atk: st, x: a.x, y: a.y, angle: a.angle, speed: st.projSpeed || a.prof.projSpeed || 140, range: (st.reach || 100) + 20, travelled: 0, r: st.radius || (st.width ? st.width / 2 : 4), kind: st.projectile || a.prof.projectile || (st.skill === 'Chain Lock' ? 'feather' : 'shadow') });
                 return;
             }
-            const hit = w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, this.player)) : this.inShape(w.shape, this.player);
-            this.strikePlayer(a, hit, st);
+            const touches = (b) => (w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, b)) : this.inShape(w.shape, b));
+            this.strikeBodies(a, touches, st);
             if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
         }
 
@@ -756,7 +771,7 @@
             const p = this.player;
             const R = this.rules;
             if (!touching || this.now < p.iframesUntil) {
-                const r = this.engine.actionEnemyStrike(a.engineId, { hit: false });
+                const r = this.engine.actionEnemyStrike(a.engineId, { hit: false, targetId: this.engine.player.id });
                 this.collect(r.events);
                 if (touching) this.fx.push({ type: 'perfect_dodge', x: p.x, y: p.y });
                 return;
@@ -770,7 +785,7 @@
             const raised = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
             const parried = raised && !!g.parry && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= (g.parry.windowMs || 160);
             const guarded = raised && (!g.parryOnly || parried);
-            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1 });
+            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1, targetId: this.engine.player.id });
             this.collect(r.events);
             if (!r.ok) return;
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }
@@ -818,8 +833,7 @@
         }
 
         /** Chase the player: straight when the way is clear, else follow a grid path (refreshed every 250 ms). */
-        chase(a, dt) {
-            const p = this.player;
+        chase(a, dt, p = this.player) {
             if (this.lineOfSight(a, p, true)) { a.path = null; this.walkTo(a, p, dt); return; }
             if (!a.path || this.now >= a.repathAt) { a.path = this.findPath(a, p); a.repathAt = this.now + 250 + this.rng() * 100; }
             if (!a.path || !a.path.length) return;
@@ -874,6 +888,200 @@
         }
 
         // =====================================================================
+        // Minions (Raise Skeleton): bodies for the engine's combat.minions
+        // =====================================================================
+        /** Does this skill summon (an effect of type 'summon')? Data decides, never the skill's name. */
+        isSummonSkill(name) {
+            const sk = name && this.engine.data.skillDefinitions[name];
+            return !!(sk && (sk.effects || []).some((x) => x.type === 'summon'));
+        }
+
+        /** Where a summon rises: the aim point, at most `range` px away, on walkable ground (else nearer you). */
+        summonSpot(shape) {
+            const p = this.player;
+            const aim = this.input.aim || { x: p.x + Math.cos(p.angle) * 24, y: p.y + Math.sin(p.angle) * 24 };
+            const ang = angleTo(p, aim);
+            const r = (shape.minion && shape.minion.radius) || 5;
+            for (let d = Math.min(dist(p, aim), shape.range || 40); d >= 0; d -= 4) {
+                const x = p.x + Math.cos(ang) * d, y = p.y + Math.sin(ang) * d;
+                if (!this.bodyBlocked(x, y, r)) return { x, y };
+            }
+            return { x: p.x, y: p.y };
+        }
+
+        /**
+         * A minion's body profile (follow distances, speed, attack): the `minion` block of the summon skill that makes
+         * this summon type, else the first one any summon skill has (Raise Ghoul has none of its own yet).
+         */
+        minionProfile(type) {
+            const by = (this.rules.skillShapes || {}).bySkill || {};
+            const defs = this.engine.data.skillDefinitions;
+            let first = null;
+            for (const [name, sh] of Object.entries(by)) {
+                if (!sh.minion) continue;
+                first = first || sh.minion;
+                if (((defs[name] || {}).effects || []).some((x) => x.type === 'summon' && x.summon_type === type)) return sh.minion;
+            }
+            return first || { radius: 5, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220, attack: { shape: 'arc', reach: 16, arcDeg: 70, windupMs: 350, activeMs: 80, recoveryMs: 450, cooldownMs: 1500 } };
+        }
+
+        liveMinions() { return this.minions.filter((m) => !m.dead); }
+        /** The body if it's still standing (a minion that died mid-windup stops being a target). */
+        liveBody(b) { return b && !b.dead ? b : null; }
+
+        /** Engine → sim: a new minion rises (where you aimed), a fallen one crumbles, HP and statuses follow. */
+        syncMinions(v) {
+            const list = v ? v.minions || [] : [];
+            this.minionFocusId = v ? v.minionFocusId || null : null;
+            const ids = new Set(list.map((m) => m.id));
+            for (const m of this.minions) if (!m.dead && !ids.has(m.engineId)) {
+                m.dead = true; m.deadAt = this.now; m.state = 'dead';
+                this.fx.push({ type: 'death', x: m.x, y: m.y, key: m.key });
+            }
+            this.minions = this.minions.filter((m) => !m.dead || this.now - m.deadAt < 700);
+            for (const en of list) {
+                let m = this.minions.find((x) => x.engineId === en.id && !x.dead);
+                if (!m) {
+                    const ps = this.pendingSummon;
+                    this.pendingSummon = null;
+                    const prof = { ...this.minionProfile(en.summonType), ...((ps && ps.profile) || {}) };
+                    const p = this.player;
+                    const n = this.liveMinions().length;
+                    const at = ps ? ps.at : { x: p.x + Math.cos(p.angle + Math.PI / 2 + n) * 16, y: p.y + Math.sin(p.angle + Math.PI / 2 + n) * 16 };
+                    const spot = this.bodyBlocked(at.x, at.y, prof.radius || 5) ? { x: p.x, y: p.y } : at;
+                    m = {
+                        sid: `minion:${en.id}`, engineId: en.id, key: en.summonType || 'skeleton', name: en.name, prof,
+                        x: spot.x, y: spot.y, r: prof.radius || 5, angle: p.angle,
+                        state: 'rise', stateEnd: this.now + ((ps && ps.riseMs) || 0), visualStateStart: this.now,
+                        readyAt: 0, path: null, repathAt: 0, targetId: null, hp: en.hp, maxHp: en.maxHp, hurtUntil: 0, dead: false, deadAt: 0
+                    };
+                    this.minions.push(m);
+                    this.fx.push({ type: 'summon', x: m.x, y: m.y, key: m.key, ms: (ps && ps.riseMs) || 0 });
+                }
+                if (m.hp != null && en.hp < m.hp) { m.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: m.x, y: m.y - 12, amount: m.hp - en.hp, ally: true }); }
+                Object.assign(m, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, statuses: en.statuses, taunting: en.taunting, name: en.name });
+            }
+        }
+
+        /**
+         * Who an enemy goes for: a taunting minion (Shield of the Dead), else the nearest hostile body, the player or a
+         * minion (a tie goes to the player, Thorne §2). It keeps its pick until another body is clearly (8 px) nearer.
+         */
+        foeOf(a) {
+            const p = this.player;
+            const mins = this.liveMinions().filter((m) => m.state !== 'rise');
+            if (!mins.length) return p;
+            const taunter = mins.find((m) => m.taunting);
+            if (taunter) return taunter;
+            const cur = a.foe && (a.foe === p || mins.includes(a.foe)) ? a.foe : p;
+            let best = cur, bd = dist(a, cur);
+            for (const b of [p, ...mins]) { const d = dist(a, b) + (b === p ? 0 : 0.01); if (d < bd - 8) { best = b; bd = d; } }
+            a.foe = best;
+            return best;
+        }
+
+        /** An enemy blow comes out: its intended body if the shape reaches it, else any body it reaches, else a miss. */
+        strikeBodies(a, touches, st) {
+            const want = this.liveBody(a.windup && a.windup.foe) || this.player;
+            const hit = [this.player, ...this.liveMinions().filter((m) => m.state !== 'rise')].filter(touches);
+            const body = hit.includes(want) ? want : hit[0];
+            if (body && body !== this.player) this.strikeMinion(a, body, st);
+            else this.strikePlayer(a, body === this.player, st);
+        }
+
+        /** A blow lands on a minion: no guard or parry, just damage (the engine's rules) and a small shove. */
+        strikeMinion(a, m, st = {}) {
+            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, damageMult: st.damageMult || 1, targetId: m.engineId });
+            this.collect(r.events);
+            if (!r.ok || r.result !== 'hit') return;
+            const away = angleTo(a, m);
+            this.moveBody(m, Math.cos(away) * (st.knockbackPx || 4), Math.sin(away) * (st.knockbackPx || 4));
+            this.fx.push({ type: 'hit', x: m.x, y: m.y - 6, angle: away, ally: true });
+        }
+
+        /** The engaged enemy a minion should fight: Grave Command's focus, else the nearest one near its owner. */
+        minionTarget(m) {
+            const p = this.player;
+            const reach = m.prof.engageRadius || 110;
+            const near = this.liveActors().filter((a) => dist(p, a) <= reach + a.r);
+            const focus = this.minionFocusId && near.find((a) => a.engineId === this.minionFocusId);
+            if (focus) return focus;
+            const cur = near.find((a) => a.engineId === m.targetId);
+            if (cur) return cur;
+            near.sort((x, y) => dist(m, x) - dist(m, y));
+            return near[0] || null;
+        }
+
+        /** Rise → follow you → close on an enemy near you → wind up → club → recover. Teleports back if left behind. */
+        stepMinion(m) {
+            if (m.dead) return;
+            const p = this.player;
+            const pr = m.prof;
+            const atk = pr.attack || {};
+            const dt = STEP / 1000;
+            if (m.state === 'rise') { if (this.now >= m.stateEnd) { m.state = 'idle'; m.visualStateStart = this.now; } return; }
+            if (dist(m, p) > (pr.teleportBeyond || 220)) {
+                const back = { x: p.x - Math.cos(p.angle) * (pr.followMin || 24), y: p.y - Math.sin(p.angle) * (pr.followMin || 24) };
+                const spot = this.bodyBlocked(back.x, back.y, m.r) ? { x: p.x, y: p.y } : back;
+                this.fx.push({ type: 'teleport', x: m.x, y: m.y, toX: spot.x, toY: spot.y });
+                Object.assign(m, { x: spot.x, y: spot.y, state: 'idle', windup: null, path: null });
+                return;
+            }
+            if (m.stunned && m.state !== 'active') { m.state = 'stunned'; m.windup = null; return; }
+            if (m.state === 'stunned') m.state = 'idle';
+            if (m.state === 'windup') {
+                const t = m.windup.target;
+                if (t && !t.dead) m.angle = angleTo(m, t);
+                if (this.now >= m.stateEnd) this.minionStrike(m);
+                return;
+            }
+            if (m.state === 'recover') { if (this.now >= m.stateEnd) m.state = 'idle'; return; }
+            const t = this.engaged ? this.minionTarget(m) : null;
+            m.targetId = t ? t.engineId : null;
+            if (t) {
+                m.angle = angleTo(m, t);
+                const reach = (atk.reach || 16) + t.r + m.r * 0.5;
+                if (dist(m, t) <= reach) {
+                    if (this.now >= m.readyAt) {
+                        m.state = 'windup'; m.visualStateStart = this.now; m.stateEnd = this.now + (atk.windupMs || 350);
+                        m.windup = { target: t, start: this.now, end: m.stateEnd };
+                        m.readyAt = this.now + (atk.cooldownMs || 1500);
+                    } else m.state = 'idle';
+                    return;
+                }
+                this.chase(m, dt, t);
+                m.state = 'move';
+                return;
+            }
+            // no fight near: keep 24-40 px from the owner
+            const d = dist(m, p);
+            if (d > (pr.followMax || 40)) { this.chase(m, dt, p); m.state = 'move'; }
+            else if (d > (pr.followMin || 24) && p.moving) { this.walkTo(m, p, dt, 0.8); m.state = 'move'; }
+            else m.state = 'idle';
+        }
+
+        /** The club comes down: the arc in front decides who it touches (the target first); the engine does the rest. */
+        minionStrike(m) {
+            const atk = m.prof.attack || {};
+            const half = ((atk.arcDeg || 70) / 2) * DEG;
+            const reach = atk.reach || 16;
+            const touches = (a) => dist(m, a) <= reach + a.r && (dist(m, a) < a.r + m.r || angleDiff(m.angle, angleTo(m, a)) <= half);
+            const want = m.windup && m.windup.target;
+            const hits = this.liveActors().filter(touches).sort((x, y) => dist(m, x) - dist(m, y));
+            const t = want && hits.includes(want) ? want : hits[0] || null;
+            const r = this.engine.actionMinionStrike(m.engineId, t ? t.engineId : null);
+            this.collect(r.events);
+            this.fx.push({ type: 'swing', x: m.x, y: m.y, angle: m.angle, minion: true, shape: { shape: 'arc', reach, arcDeg: atk.arcDeg || 70 } });
+            if (r.ok && t && r.result === 'hit') {
+                this.fx.push({ type: 'hit', x: t.x, y: t.y - 6, angle: angleTo(m, t) });
+                if (!t.prof.boss && t.state !== 'windup' && t.state !== 'active') this.knock(t, angleTo(m, t), 3);
+            }
+            m.windup = null;
+            m.state = 'recover'; m.visualStateStart = this.now;
+            m.stateEnd = this.now + (atk.activeMs || 80) + (atk.recoveryMs || 450);
+        }
+
+        // =====================================================================
         // Projectiles, bodies, pickups, interact
         // =====================================================================
         stepProjectiles() {
@@ -892,6 +1100,8 @@
                     if (a.dead || !a.engineId || !a.windup) continue;
                     const p = this.player;
                     if (Math.hypot(p.x - pj.x, p.y - pj.y) <= p.r + pj.r) { this.strikePlayer(a, true, pj.atk); continue; }
+                    const m = this.liveMinions().find((x) => Math.hypot(x.x - pj.x, x.y - pj.y) <= x.r + pj.r);
+                    if (m) { this.strikeMinion(a, m, pj.atk); continue; }
                     if (wall || pj.travelled >= pj.range) { this.strikePlayer(a, false, pj.atk); continue; }
                 }
                 keep.push(pj);
@@ -907,7 +1117,9 @@
                 const a = live[i];
                 for (let j = i + 1; j < live.length; j++) this.pushApart(a, live[j], 0.5);
                 if (p.state !== 'dodge') this.pushApart(p, a, a.prof.boss ? 1 : 0.7);
+                for (const m of this.liveMinions()) this.pushApart(m, a, a.prof.boss ? 1 : 0.6);
             }
+            for (const m of this.liveMinions()) if (p.state !== 'dodge') this.pushApart(m, p, 1);   // a minion steps out of your way
         }
 
         pushApart(a, b, share) {
@@ -965,6 +1177,13 @@
                     hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss,
                     engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
+                })),
+                minions: (this.minions || []).map((m) => ({
+                    sid: m.sid, engineId: m.engineId, key: m.key, name: m.name, x: m.x, y: m.y, r: m.r, angle: m.angle, facing: facingOf(m.angle),
+                    state: m.dead ? 'dead' : this.now < m.hurtUntil ? 'hurt' : m.state === 'recover' && this.now - m.visualStateStart < ((m.prof.attack || {}).activeMs || 80) ? 'active' : m.state,
+                    t: m.dead ? this.now - m.deadAt : Math.max(0, this.now - (m.visualStateStart == null ? this.now : m.visualStateStart)),
+                    riseMs: m.state === 'rise' ? Math.max(1, m.stateEnd - m.visualStateStart) : null,
+                    hp: m.hp, maxHp: m.maxHp, statuses: m.statuses || [], stunned: !!m.stunned, taunting: !!m.taunting
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
                 engaged: this.engaged

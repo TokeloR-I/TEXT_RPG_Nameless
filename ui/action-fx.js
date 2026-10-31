@@ -560,7 +560,7 @@
     // Tiny world-space HP bar
     // ---------------------------------------------------------------------
     /**
-     * enemyBar(g, x, y, w, hp, maxHp, { chipHp?, statuses?: [name | { name, colour }], boss?, stunned? })
+     * enemyBar(g, x, y, w, hp, maxHp, { chipHp?, statuses?: [name | { name, colour }], boss?, stunned?, ally? })
      * x is the bar's centre, y its top. chipHp (the HP shown a moment ago, kept by the caller) draws the recent
      * damage in a lighter colour. Statuses are 2x2 pips in a row under the bar.
      */
@@ -569,9 +569,9 @@
         const frac = maxHp > 0 ? clamp01(hp / maxHp) : 0, chip = maxHp > 0 && opts.chipHp != null ? clamp01(opts.chipHp / maxHp) : frac;
         const fill = R(frac * W), chipW = Math.max(fill, R(chip * W));
         g.fillStyle = '#0c0608'; g.fillRect(X - 1, Y - 1, W + 2, 4);              // frame
-        g.fillStyle = '#3a1418'; g.fillRect(X, Y, W, 2);                          // empty
+        g.fillStyle = opts.ally ? '#14301e' : '#3a1418'; g.fillRect(X, Y, W, 2);  // empty (an ally's bar is green: your summons)
         if (chipW > fill) { g.fillStyle = '#ffd8a0'; g.fillRect(X + fill, Y, chipW - fill, 2); }
-        const col = opts.boss ? ['#c83a8a', '#ff7ac0'] : frac > 0.5 ? ['#c83a2a', '#ff6a4a'] : frac > 0.25 ? ['#d0701c', '#ffa040'] : ['#e8301c', '#ff8a6a'];
+        const col = opts.ally ? ['#3aa86a', '#7cf0a0'] : opts.boss ? ['#c83a8a', '#ff7ac0'] : frac > 0.5 ? ['#c83a2a', '#ff6a4a'] : frac > 0.25 ? ['#d0701c', '#ffa040'] : ['#e8301c', '#ff8a6a'];
         if (fill > 0) { g.fillStyle = col[0]; g.fillRect(X, Y, fill, 2); g.fillStyle = col[1]; g.fillRect(X, Y, fill, 1); }
         if (opts.stunned) { g.fillStyle = '#ffe040'; g.fillRect(X - 1, Y - 1, W + 2, 1); }   // a stunned foe's bar gets a yellow lid
         const st = opts.statuses || [];

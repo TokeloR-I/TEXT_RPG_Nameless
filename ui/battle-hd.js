@@ -104,6 +104,30 @@
             for (let i = 0; i < 4; i++) poly(g, '#f8f0dc', [55 + i * 2.2, 39 + b, 56 + i * 2.2, 44 + b, 57 + i * 2.2, 39 + b]);
             poly(g, '#a89c84', [44, 24 + b, 40, 14 + b, 47, 22 + b]);
         },
+        /** The player's raised skeleton (Raise Skeleton): bone-white, a cracked club, a faint green soul light. */
+        skeleton(g, t) {
+            const b = Math.sin(t / 240) * 1.2, sw = Math.sin(t / 330) * 1.5;
+            shadow(g, 32, 58, 13);
+            line(g, '#d8d0b8', 3, [27, 44 + b, 25, 57]); line(g, '#d8d0b8', 3, [37, 44 + b, 39, 57]);           // legs
+            line(g, '#a89c84', 1, [26, 50 + b, 27, 51 + b]); line(g, '#a89c84', 1, [38, 50 + b, 37, 51 + b]);     // knees
+            rect(g, 22, 56, 5, 2, '#c8c0a8'); rect(g, 37, 56, 5, 2, '#c8c0a8');                                  // feet
+            shaded(g, 32, 43 + b, 7, 3, '#d0c8b0', '#9a907a', '#f0e8d4');                                        // pelvis
+            line(g, '#e0d8c0', 2.5, [32, 42 + b, 32, 24 + b]);                                                   // spine
+            for (let i = 0; i < 4; i++) {                                                                        // ribs
+                line(g, '#ece4cc', 1.8, [32, 27 + i * 3.6 + b, 24 + i * 0.6, 30 + i * 3.6 + b]);
+                line(g, '#ece4cc', 1.8, [32, 27 + i * 3.6 + b, 40 - i * 0.6, 30 + i * 3.6 + b]);
+            }
+            line(g, '#d8d0b8', 2.5, [25, 25 + b, 19, 36 + b + sw]);                                              // off arm
+            line(g, '#d8d0b8', 2.5, [39, 25 + b, 45, 33 + b - sw]);                                              // club arm
+            line(g, '#6a4a30', 3.5, [45, 33 + b - sw, 53, 19 + b - sw]); oval(g, 53, 18 + b - sw, 3.5, 4, '#7a5a3a');   // the club
+            line(g, '#3a2818', 1, [52, 16 + b - sw, 54, 21 + b - sw]);
+            shaded(g, 32, 16 + b, 8.5, 8, '#efe7d2', '#b0a68e', '#fffaf0');                                      // skull
+            rect(g, 28, 22 + b, 8, 3, '#d8d0b8'); for (let i = 0; i < 4; i++) rect(g, 28.5 + i * 2, 23 + b, 1, 1.5, '#5a5040');
+            oval(g, 29, 16 + b, 2.4, 2.8, '#101410'); oval(g, 35, 16 + b, 2.4, 2.8, '#101410');
+            const gl = 0.6 + 0.4 * Math.sin(t / 200);
+            oval(g, 29, 16 + b, 1.1 * gl, 1.1 * gl, '#90ffb0'); oval(g, 35, 16 + b, 1.1 * gl, 1.1 * gl, '#90ffb0');   // soul light: yours
+            poly(g, '#101410', [31, 19 + b, 33, 19 + b, 32, 21 + b]);
+        },
         cultist(g, t) {
             const b = Math.sin(t / 300) * 1, sw = Math.sin(t / 420) * 1.5;
             shadow(g, 32, 58, 16);
@@ -201,7 +225,8 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', crow_touched_warden: 'warden'
+        watch_constable: 'constable', crow_touched_warden: 'warden',
+        skeleton: 'skeleton', ghoul: 'ghoul'   // the necromancer's summons (minionDefinitions keys)
     };
     /** Draw a foe into a canvas of any size (the painters work in a 64 x 64 box). */
     function drawFoe(c, enemyKey, time) {

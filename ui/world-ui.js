@@ -1550,7 +1550,9 @@
         const P = sim.player;
         switch (ev.type) {
             case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical' }, now); break;
-            case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount }, now); break;
+            case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally }, now); break;
+            case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
+            case 'teleport': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.toX, y: ev.toY, radius: 10, damageType: 'shadow' }, now); break;
             case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); break;
             case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); break;
@@ -1597,7 +1599,18 @@
                 if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(barY), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
                 if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);
             }
-        }));
+        })).concat((v.minions || []).map((m) => ({   // your summons: the same body art pipeline, an ally bar, rising out of the ground
+            y: (m.y - T / 2 + 2) / T,
+            draw: (g, time) => {
+                const rise = m.state === 'rise' ? Math.min(1, m.t / Math.max(1, m.riseMs || 1)) : 1;
+                g.save();
+                if (rise < 1) { g.globalAlpha *= 0.25 + 0.75 * rise; g.translate(0, Math.round((1 - rise) * 6)); }
+                const visible = AFX.drawEnemy(g, m.key, Math.round(m.x), Math.round(m.y + (m.r || 5)), { facing: m.facing, angle: m.angle, state: m.state === 'move' ? 'move' : m.state === 'active' ? 'attack' : m.state === 'stunned' ? 'stagger' : m.state === 'rise' ? 'idle' : m.state, t: m.t, now: time });
+                g.restore();
+                const barY = visible ? visible.y - 4 : m.y - 18;
+                if (m.state !== 'dead' && m.hp != null) AFX.enemyBar(g, Math.round(m.x), Math.round(barY), 14, m.hp, m.maxHp, { ally: true, statuses: (m.statuses || []).map((s) => s.name), stunned: m.stunned });
+            }
+        })));
     }
 
     /** What Pixie's HUD reads from the world (ui/action-hud.js viewModel). */
@@ -1638,7 +1651,7 @@
             if (!sim || screen === 'title') return;
             const v = sim.view();
             const p = v.player;
-            if (p.attack && p.attack.shape && (p.attack.shape.shape || p.attack.shape.kind) !== 'projectile' && (p.attack.shape.shape || '') !== 'self') {
+            if (p.attack && p.attack.shape && !['projectile', 'self', 'summon'].includes(p.attack.shape.shape || p.attack.shape.kind)) {   // a summon is a cast at the aim point, not a swing
                 const s = p.attack.shape;
                 AFX.swing(g, { x: Math.round(p.x), y: Math.round(p.y), angle: p.angle, arc: ((s.arcDeg || 100) * Math.PI) / 180, reach: s.reach || s.radius || 20, progress: p.attack.progress, cls: engine.player.className });
             }
