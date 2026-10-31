@@ -32,6 +32,7 @@
     const STEP = 1000 / 60;
     const MAX_STEPS = 5;
     const DEG = Math.PI / 180;
+    const MINION_CRUMBLE_MS = 1600;   // a fallen or dismissed summon's bones fall apart (ui: AFX.crumble)
 
     function mulberry32(seed) {
         let a = seed >>> 0;
@@ -93,7 +94,7 @@
             this.projectiles = [];
             this.groups = {};
             this.actors = [];
-            this.minions = [];        // the player's summons: bodies for the engine's combat.minions
+            this.minions = [];        // the player's summons: bodies for combat.minions (and world.followers between fights)
             this.pendingSummon = null;
             for (const enc of s.visibleObjects().filter((o) => o.kind === 'encounter')) this.addGroup(enc);
         }
@@ -209,6 +210,7 @@
             this.stepPlayer();
             for (const a of this.actors) this.stepActor(a);
             for (const m of this.minions) this.stepMinion(m);
+            this.stepFollowerTimer();
             this.stepProjectiles();
             this.separate();
             this.checkDrops();
@@ -931,14 +933,14 @@
 
         /** Engine → sim: a new minion rises (where you aimed), a fallen one crumbles, HP and statuses follow. */
         syncMinions(v) {
-            const list = v ? v.minions || [] : [];
+            const list = v ? v.minions || [] : (this.engine.actionFollowers ? this.engine.actionFollowers() : []);
             this.minionFocusId = v ? v.minionFocusId || null : null;
             const ids = new Set(list.map((m) => m.id));
             for (const m of this.minions) if (!m.dead && !ids.has(m.engineId)) {
-                m.dead = true; m.deadAt = this.now; m.state = 'dead';
-                this.fx.push({ type: 'death', x: m.x, y: m.y, key: m.key });
+                m.dead = true; m.deadAt = this.now; m.state = 'dead';   // the bones fall apart (ui: AFX.crumble)
+                this.fx.push({ type: 'crumble', x: m.x, y: m.y, key: m.key });
             }
-            this.minions = this.minions.filter((m) => !m.dead || this.now - m.deadAt < 700);
+            this.minions = this.minions.filter((m) => !m.dead || this.now - m.deadAt < MINION_CRUMBLE_MS);
             for (const en of list) {
                 let m = this.minions.find((x) => x.engineId === en.id && !x.dead);
                 if (!m) {
@@ -961,6 +963,21 @@
                 if (m.hp != null && en.hp < m.hp) { m.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: m.x, y: m.y - 12, amount: m.hp - en.hp, ally: true }); }
                 Object.assign(m, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, statuses: en.statuses, taunting: en.taunting, name: en.name });
             }
+        }
+
+        /** Ms of calm your summons have left before they fall apart (null in a fight or with none). */
+        followerTimeLeft() {
+            if (this.engaged || this.calmSince == null) return null;
+            return Math.max(0, ((this.rules.summons || {}).lingerOutOfCombatMs ?? 60000) - (this.now - this.calmSince));
+        }
+
+        /** Out of a fight your summons follow you for actionRules.summons.lingerOutOfCombatMs, then crumble. A fight resets it. */
+        stepFollowerTimer() {
+            if (this.engaged || !this.liveMinions().length) { this.calmSince = null; return; }
+            if (this.calmSince == null) this.calmSince = this.now;
+            if (this.followerTimeLeft() > 0 || !this.engine.actionDismissFollowers) return;
+            this.calmSince = null;
+            this.collect(this.engine.actionDismissFollowers().events);
         }
 
         /**
@@ -1183,7 +1200,8 @@
                     state: m.dead ? 'dead' : this.now < m.hurtUntil ? 'hurt' : m.state === 'recover' && this.now - m.visualStateStart < ((m.prof.attack || {}).activeMs || 80) ? 'active' : m.state,
                     t: m.dead ? this.now - m.deadAt : Math.max(0, this.now - (m.visualStateStart == null ? this.now : m.visualStateStart)),
                     riseMs: m.state === 'rise' ? Math.max(1, m.stateEnd - m.visualStateStart) : null,
-                    hp: m.hp, maxHp: m.maxHp, statuses: m.statuses || [], stunned: !!m.stunned, taunting: !!m.taunting
+                    hp: m.hp, maxHp: m.maxHp, statuses: m.statuses || [], stunned: !!m.stunned, taunting: !!m.taunting,
+                    timeLeftMs: m.dead || !this.followerTimeLeft ? null : this.followerTimeLeft()   // out of a fight: time before it crumbles
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
                 engaged: this.engaged

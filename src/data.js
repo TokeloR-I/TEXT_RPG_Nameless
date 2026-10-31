@@ -820,6 +820,8 @@
                     guard: { damageTaken: 0.5, arcDeg: 360, staminaMult: 1.2, moveMult: 0.4, parry: null }
                 }
             },
+            // Summons outlive a fight and follow you; after this long without one they fall apart (Tokelo, 2026-10-31).
+            summons: { lingerOutOfCombatMs: 60000 },
             skillShapes: {
                 byTarget: {
                     enemy_single:   { shape: 'projectile', range: 140, speed: 240, radius: 5, castMs: 220, maxTargets: 1 },

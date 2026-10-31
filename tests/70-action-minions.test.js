@@ -107,16 +107,92 @@ test('Raise Skeleton: it follows you, and catches up by teleporting when left 22
     assert.ok(Math.hypot(m.x - p.x, m.y - p.y) <= 30);
 });
 
-test('Raise Skeleton: when it dies or the fight ends its body crumbles', () => {
+test('Raise Skeleton: when it dies its bones fall apart', () => {
     const r = necro();
     summon(r);
     frames(r.sim, 50);
     r.g.combat.minions[0].hp = 0;
     const out = frames(r.sim, 1);
-    assert.ok(out[0].fx.some((f) => f.type === 'death' && f.key === 'skeleton'));
+    assert.ok(out[0].fx.some((f) => f.type === 'crumble' && f.key === 'skeleton'));
     assert.strictEqual(r.sim.liveMinions().length, 0);
-    frames(r.sim, 60);
-    assert.strictEqual(r.sim.view().minions.length, 0, 'gone after the fade');
+    assert.strictEqual(r.sim.view().minions[0].state, 'dead', 'the body stays to fall apart (ui: AFX.crumble)');
+    frames(r.sim, 100);
+    assert.strictEqual(r.sim.view().minions.length, 0, 'gone once it has turned to dust');
+});
+
+/** Win the rats fight with the skeleton alive: kill them through the engine. */
+function winFight(r) {
+    for (const e of r.g.combat.enemies) { e.hp = 1; }
+    for (const e of r.g.combat.enemies.slice()) if (r.g.actionActive()) r.g.actionMinionStrike(r.g.combat.minions[0].id, e.id);
+    frames(r.sim, 2);
+}
+
+test('Followers: the skeleton outlives the fight, follows you, then crumbles after 60 s without a fight', () => {
+    const r = necro();
+    summon(r);
+    frames(r.sim, 50);
+    const id = r.g.combat.minions[0].id;
+    r.g.combat.minions[0].atk = 999;   // one club per rat
+    winFight(r);
+    assert.strictEqual(r.g.mode, 'explore', 'the fight is over');
+    assert.deepStrictEqual(r.g.world.followers.map((m) => m.id), [id], 'kept in world.followers (saved, snapshotted)');
+    const v = r.sim.view();
+    assert.strictEqual(v.minions.length, 1);
+    assert.strictEqual(v.minions[0].engineId, id);
+    assert.ok(v.minions[0].state !== 'dead');
+    const linger = r.g.data.actionRules.summons.lingerOutOfCombatMs;
+    assert.strictEqual(linger, 60000);
+    assert.ok(Math.abs(v.minions[0].timeLeftMs - linger) < 100, `timer started (${v.minions[0].timeLeftMs})`);
+    frames(r.sim, Math.floor((linger - 1000) / STEP));
+    assert.strictEqual(r.sim.liveMinions().length, 1, 'still there at 59 s');
+    assert.ok(r.sim.view().minions[0].timeLeftMs <= 1100);
+    const out = frames(r.sim, 90);
+    assert.ok(out.some((o) => o.fx.some((f) => f.type === 'crumble')), 'it falls apart');
+    assert.ok(texts(out).some((t) => /Skeleton crumbles to dust/.test(t)));
+    assert.strictEqual(r.g.world.followers.length, 0);
+    assert.strictEqual(r.sim.liveMinions().length, 0);
+});
+
+test('Followers: a new fight brings the same skeleton back in (same id and HP) and resets its timer', () => {
+    const r = necro();
+    summon(r);
+    frames(r.sim, 50);
+    const m0 = r.g.combat.minions[0];
+    m0.atk = 999; m0.hp = 9;
+    winFight(r);
+    frames(r.sim, 600);   // 10 s of calm
+    const g = r.g;
+    // engage another group: the follower joins it
+    const res = g.actionEngage('test_group', ['rust_rat'], null, null);
+    assert.ok(res.ok, JSON.stringify(res.error));
+    assert.deepStrictEqual(g.combat.minions.map((m) => [m.id, m.hp]), [[m0.id, 9]]);
+    assert.ok(texts([{ engineEvents: res.events }]).some((t) => /Skeleton joins the fight/.test(t)));
+    assert.strictEqual(g.world.followers.length, 0, 'in the fight it lives in combat.minions');
+    frames(r.sim, 1);
+    assert.strictEqual(r.sim.liveMinions().length, 1, 'the same body carries on');
+    assert.strictEqual(r.sim.view().minions[0].timeLeftMs, null, 'no timer in a fight');
+    // a fresh summon in that fight gets a new id
+    g.player.resource.current = 5;
+    g.combat.rt.cooldowns = {}; g.combat.rt.gcdUntil = 0;
+    const cast = g.actionCast('Raise Skeleton');
+    assert.ok(cast.ok, JSON.stringify(cast.error));
+    const ids = g.combat.minions.map((m) => m.id);
+    assert.strictEqual(new Set(ids).size, ids.length, `ids never repeat (${ids})`);
+    assert.strictEqual(g.actionDismissFollowers().error.code, 'IN_COMBAT');
+});
+
+test('Followers: falling in battle scatters them', () => {
+    const r = necro();
+    summon(r);
+    frames(r.sim, 50);
+    r.g.combat.minions[0].atk = 999;
+    winFight(r);
+    assert.strictEqual(r.g.world.followers.length, 1);
+    r.g.actionEngage('test_group', ['rust_rat'], null, null);
+    r.g.player.hp = 0;
+    r.g.checkBattleEnd();
+    assert.strictEqual(r.g.mode, 'explore');
+    assert.strictEqual(r.g.world.followers.length, 0);
 });
 
 test('Raise Skeleton out of a fight: a clear notice, no fake swing, nothing spent', () => {
@@ -155,4 +231,16 @@ test('Minion bodies: a summon type without its own profile (Raise Ghoul) borrows
     assert.strictEqual(HD.CREATURE_FOR.skeleton, 'skeleton');
     assert.strictEqual(typeof HD.creatures.skeleton, 'function');
     assert.strictEqual(HD.CREATURE_FOR.ghoul, 'ghoul');
+});
+
+test('Crumble art: the bones drop, lie in a heap, then turn to dust and are gone (headless canvas probe)', () => {
+    const AFX = require('../ui/action-fx.js');
+    const rects = [];
+    const g = { save() {}, restore() {}, set fillStyle(v) {}, set globalAlpha(v) { this.a = v; }, get globalAlpha() { return this.a; }, fillRect(x, y, w, h) { rects.push({ x, y, w, h, a: this.a }); } };
+    const at = (t) => { rects.length = 0; AFX.crumble(g, 'skeleton', 100, 100, t); return rects.filter((r) => r.a > 0).slice(); };
+    const start = at(0), lying = at(700), dust = at(1300), end = at(AFX.CRUMBLE_MS);
+    assert.ok(Math.min(...start.map((r) => r.y)) <= 100 - 20, 'it starts as a standing skeleton');
+    assert.ok(Math.min(...lying.map((r) => r.y)) >= 100 - 8, 'then lies in a heap on the ground');
+    assert.ok(dust.length > lying.length, 'dust rises off the bones');
+    assert.strictEqual(end.length, 0, 'nothing left at the end');
 });

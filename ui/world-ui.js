@@ -1552,6 +1552,7 @@
             case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical' }, now); break;
             case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally }, now); break;
             case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
+            case 'crumble': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'teleport': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.toX, y: ev.toY, radius: 10, damageType: 'shadow' }, now); break;
             case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); break;
@@ -1602,9 +1603,11 @@
         })).concat((v.minions || []).map((m) => ({   // your summons: the same body art pipeline, an ally bar, rising out of the ground
             y: (m.y - T / 2 + 2) / T,
             draw: (g, time) => {
+                if (m.state === 'dead') { AFX.crumble(g, m.key, Math.round(m.x), Math.round(m.y + (m.r || 5)), m.t); return; }   // the bones fall apart
                 const rise = m.state === 'rise' ? Math.min(1, m.t / Math.max(1, m.riseMs || 1)) : 1;
                 g.save();
                 if (rise < 1) { g.globalAlpha *= 0.25 + 0.75 * rise; g.translate(0, Math.round((1 - rise) * 6)); }
+                if (m.timeLeftMs != null && m.timeLeftMs < 5000 && Math.floor(time / 120) % 2) g.globalAlpha *= 0.55;   // its last 5 s out of a fight: it flickers
                 const visible = AFX.drawEnemy(g, m.key, Math.round(m.x), Math.round(m.y + (m.r || 5)), { facing: m.facing, angle: m.angle, state: m.state === 'move' ? 'move' : m.state === 'active' ? 'attack' : m.state === 'stunned' ? 'stagger' : m.state === 'rise' ? 'idle' : m.state, t: m.t, now: time });
                 g.restore();
                 const barY = visible ? visible.y - 4 : m.y - 18;
