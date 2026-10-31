@@ -369,7 +369,7 @@
             }
             const dodge = this.statusOfType(target, 'dodge');
             if (dodge) {
-                this.removeStatus(target, dodge);
+                this.consumeStatusStack(target, dodge);
                 if (this.rng() < dodge.value) {
                     this.say(`${attacker.name} attacks — but ${target.name} ${dodge.name === 'Mirror Image' ? 'was an illusion' : 'dodges'}! (${dodge.name})`, { important: true });
                     if (target.isPlayer) this.resourceEvent('onDodge', 1, 'dodge');
@@ -382,7 +382,7 @@
             // even if another defense would have reduced its damage.
             const absorb = this.statusOfType(target, 'absorb');
             if (absorb) {
-                this.removeStatus(target, absorb);
+                this.consumeStatusStack(target, absorb);
                 this.say(`${target.name}'s ${absorb.name} absorbs ${attacker.name}'s hit entirely!`, { important: true });
                 return false;
             }
@@ -393,7 +393,7 @@
         counterAttack(holder, attacker) {
             const counter = this.statusOfType(holder, 'counter');
             if (!counter || attacker.hp <= 0 || holder.hp <= 0) return;
-            this.removeStatus(holder, counter);
+            this.consumeStatusStack(holder, counter);
             const skill = holder.isPlayer ? this.playerSkill(this.basicAttackName()) : (holder.skills && holder.skills[0]) || this.data.skillDefinitions['Basic Attack'];
             const hit = this.newHit(attacker);
             this.rollDamage(holder, attacker, skill, hit);

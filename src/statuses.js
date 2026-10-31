@@ -72,6 +72,9 @@
             // Real-time combat: every damage-over-time status stacks to realtimeRules.statuses.dotMaxStacks (99).
             const rt = this.rtActive && this.rtActive() && (this.data.realtimeRules || {}).statuses;
             if (rt && (def.category === 'dot' || (def.type || type) === 'dot') && isNum(rt.dotMaxStacks)) return rt.dotMaxStacks;
+            // Timed fights (real-time and action, in or out of a fight): Gauge's per-buff stack cap (realtimeRules.statuses.buffs).
+            const buff = this.rtBuffRule && this.rtBuffRule(name);
+            if (buff && isNum(buff.maxStacks)) return buff.maxStacks;
             return isNum(def.maxStacks) ? def.maxStacks : (this.statusRules().defaultMaxStacks || 1);
         };
 
@@ -171,6 +174,12 @@
         /** Compatibility shim: older code adds statuses with (target, status[, source]). */
         P.addStatus = function (target, status, source) {
             return this.applyStatus(source || this.currentActor(), target, status);
+        };
+
+        /** A charge buff (dodge, absorb, counter) was used: drop one stack, or the status at its last. */
+        P.consumeStatusStack = function (c, inst) {
+            if ((inst.stacks || 1) > 1) { inst.stacks -= 1; return; }
+            this.removeStatus(c, inst);
         };
 
         P.removeStatus = function (c, inst) {

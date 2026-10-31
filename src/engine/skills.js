@@ -66,7 +66,7 @@
                 final = Math.max(0, dmg - def);
                 // Action fights only: DEF blocks at most (1 - minDamageShare) of a blow that lands on the player (Gauge).
                 if (target.isPlayer && this.combat && this.combat.action) final = Math.max(final, dmg * ((this.actionRules().defence || {}).minDamageShare || 0));
-                for (const s of target.statusEffects) if (s.type === 'damage_reduction') final *= (1 - s.value);
+                for (const s of target.statusEffects) if (s.type === 'damage_reduction') final *= Math.pow(1 - s.value, s.stacks || 1);   // each stack multiplies
                 if (target.isPlayer && this.progression.branch === 'bone_warden') {
                     const cap = target.traits.some((t) => t.name === 'Bone Fortress') ? 0.15 : 0.10;
                     final *= 1 - Math.min(this.alive(this.combat.minions).length * 0.02, cap);
@@ -195,7 +195,7 @@
             if (affinities[effectName] === 'immune' || affinities.magic === 'immune') return 0;
             const shield = this.statusOfType(target, 'absorb');
             if (shield) {
-                this.removeStatus(target, shield);
+                this.consumeStatusStack(target, shield);
                 this.say(`${target.name}'s ${shield.name} absorbs the incoming soul damage!`);
                 return 0;
             }
@@ -203,7 +203,7 @@
             // Wound Transfer independently of later group cleanup or member deaths.
             let adjusted = raw * (owner && owner.isPlayer && this.hasTrait('Wound Transfer') ? 1.1 : 1);
             for (const status of target.statusEffects) {
-                if (status.type === 'damage_reduction') adjusted *= 1 - status.value;
+                if (status.type === 'damage_reduction') adjusted *= Math.pow(1 - status.value, status.stacks || 1);
             }
             return this.damage(target, Math.floor(adjusted), owner, { secondaryLink: true, alreadyScaled: true });
         }

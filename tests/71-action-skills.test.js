@@ -127,7 +127,7 @@ test('Pre-buff: Guard out of a fight puts the real status on you, timed as in a 
     const st = r.g.player.statusEffects.find((x) => x.name === 'Guard');
     assert.ok(st, 'Guard is on you');
     assert.strictEqual(st.type, 'damage_reduction');
-    const secs = (r.g.data.realtimeRules.statuses || {}).guardSeconds || 3;
+    const secs = r.g.data.realtimeRules.statuses.buffs.Guard.seconds;
     assert.strictEqual(st.rtTotalMs, secs * 1000, 'the same timing a fight gives it');
     assert.ok(fxOf(out).some((f) => f.type === 'cast' && f.skill === 'Guard'));
     const again = frames(r.sim, 30, { slot: r.slot('Guard') });

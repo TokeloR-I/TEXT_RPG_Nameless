@@ -45,6 +45,23 @@
         rtRules() { return this.data.realtimeRules || {}; }
         rtTurnsToMs(turns) { return Math.round(turns * (this.rtRules().secondsPerTurn || 3) * 1000); }
 
+        /** Gauge's per-buff rule in timed fights (realtimeRules.statuses.buffs[name]), or null. Never read in turn mode. */
+        rtBuffRule(name) {
+            if (this.combatMode === 'turn') return null;
+            const buffs = (this.rtRules().statuses || {}).buffs || {};
+            return buffs[name] || null;
+        }
+
+        /** How long a status lasts on a timed clock, in ms (null: until used or until the fight ends). */
+        rtStatusTotalMs(inst) {
+            const r = this.rtRules().statuses || {};
+            const buff = this.rtBuffRule(inst.name);
+            if (buff && isNum(buff.seconds)) return Math.round(buff.seconds * 1000);
+            if (inst.policy === 'holder_next_turn_start') return Math.round((r.guardSeconds || 3) * 1000);
+            if (isNum(inst.duration) && inst.duration > 0) return this.rtTurnsToMs(inst.duration);
+            return null;
+        }
+
         /** Seconds between two actions of this combatant (faster SPD, shorter interval). */
         rtIntervalMs(actor) {
             const r = this.rtRules();
@@ -460,10 +477,7 @@
         // =====================================================================
         rtStatusApplied(inst) {
             const rt = this.combat.rt;
-            const r = this.rtRules().statuses || {};
-            let total = null;
-            if (inst.policy === 'holder_next_turn_start') total = Math.round((r.guardSeconds || 3) * 1000);
-            else if (isNum(inst.duration) && inst.duration > 0) total = this.rtTurnsToMs(inst.duration);
+            const total = this.rtStatusTotalMs(inst);   // a recast refreshes the timer to full
             if (inst.policy) { inst.rtPolicy = inst.policy; inst.policy = null; }   // timed now, not by opportunity
             inst.rtTotalMs = total;
             inst.rtEndsAt = total != null ? rt.now + total : null;

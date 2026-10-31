@@ -535,12 +535,9 @@
                 if (cost > 0) { p.resource.current -= cost; this.say(`Used ${cost} ${p.resource.type}.`); }
                 this.say(`${p.name} uses ${name}.`);
                 this.castSkill(p, skill, [p]);
-                const r = this.rtRules().statuses || {};
                 for (const x of p.statusEffects) {
                     if (before.has(x) && before.get(x) === JSON.stringify(x)) continue;   // untouched by this cast
-                    let total = null;   // the same timing rtStatusApplied gives it in a fight
-                    if (x.policy === 'holder_next_turn_start') total = Math.round((r.guardSeconds || 3) * 1000);
-                    else if (typeof x.duration === 'number' && x.duration > 0) total = this.rtTurnsToMs(x.duration);
+                    const total = this.rtStatusTotalMs(x);   // the same timing rtStatusApplied gives it in a fight
                     if (x.policy) { x.rtPolicy = x.policy; x.policy = null; }
                     x.calm = true; x.rtTotalMs = total; x.rtEndsAt = total != null ? calm.now + total : null;
                 }
