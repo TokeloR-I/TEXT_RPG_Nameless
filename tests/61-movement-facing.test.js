@@ -137,3 +137,14 @@ test('8-way sprite: the ENSO doll has its own 3/4 views, the -left ones mirror, 
         layerOrder: { down: ['body'], up: ['body'], left: ['body'], right: ['body'] }, layers: { body: 'test.fourway' }, fallbacks: {} };
     assert.strictEqual(SPRITES.characterLayers({ character: fourWay, facing: 'up-left' }).layers[0].frame, 'left.stand', 'a 4-way character turns to its side');
 });
+
+test('8-way release: letting go of a diagonal a few frames apart keeps the diagonal facing; a held cardinal still turns', () => {
+    const s = body(); const step = (x, y, ms) => { s.input.move = { x, y }; s.stepPlayer(); s.now += ms; };
+    step(Math.SQRT1_2, Math.SQRT1_2, 17);        // walking down-right
+    step(0, 1, 17); step(0, 1, 17);              // 'right' lifted two frames before 'down'
+    step(0, 0, 17);
+    assert.strictEqual(s.player.facing8, 'down-right', 'the stray frames of the last key held did not snap the sprite');
+    step(1, 1, 17);
+    for (let i = 0; i < 12; i++) step(1, 0, 17);  // then really walk right
+    assert.strictEqual(s.player.facing8, 'right');
+});

@@ -232,7 +232,7 @@
             for (const ev of events) {
                 if (ev.type === 'world.respawn') this.respawned = true;
                 if (ev.type === 'action.cleared') this.groupCleared(ev.encounterId);
-                if (ev.type === 'action.parry') { const a = this.actors.find((x) => x.engineId === ev.enemyId); if (a) this.stagger(a, (this.rules.parry || {}).staggerMs || 900); }
+                if (ev.type === 'action.parry') { const a = this.actors.find((x) => x.engineId === ev.enemyId); if (a) this.stagger(a, (this.guardProfile().parry || {}).staggerMs || 900); }
             }
         }
 
@@ -316,7 +316,13 @@
             // Commit an action's direction before starting its cast. Walking must not rotate a swing.
             if (!stunned && (p.state === 'idle' || p.state === 'move')) {
                 if (inp.aim) p.angle = angleTo(p, inp.aim);
-                else if (inp.move.x || inp.move.y) p.angle = Math.atan2(inp.move.y, inp.move.x);
+                else if (inp.move.x || inp.move.y) {
+                    // Letting go of a diagonal never lifts both keys on the same frame: the one still held for a few
+                    // frames must not snap the facing to a cardinal. A cardinal held past the grace turns as usual.
+                    const ang = Math.atan2(inp.move.y, inp.move.x);
+                    if (inp.move.x && inp.move.y) { p.angle = ang; p.diagonalUntil = this.now + ((R.player || {}).diagonalReleaseMs ?? 100); }
+                    else if (!(this.now < (p.diagonalUntil || 0))) p.angle = ang;
+                }
             }
 
             // stamina
@@ -343,10 +349,14 @@
                 }
             }
 
-            // guard (held). A fresh press opens the parry window.
+            // guard (held). A fresh press opens the parry window. A parry-only guard (Rogue's Deflect) costs stamina per press.
             const canAct = !stunned && (p.state === 'idle' || p.state === 'move');
+            const gp = this.guardProfile();
             const wantGuard = inp.guard && canAct && p.stamina > 0;
-            if (wantGuard && !p.guarding) p.guardSince = this.now;
+            if (wantGuard && !p.guarding) {
+                p.guardSince = this.now;
+                if (gp.parryOnly && gp.stamina) { p.stamina = Math.max(0, p.stamina - gp.stamina); p.staminaAt = this.now + (st.regenDelayMs || 600); }
+            }
             p.guarding = wantGuard;
 
             // attacks and skills
@@ -374,7 +384,7 @@
                         if (this.engaged) { p.stamina = Math.max(0, p.stamina - (st.sprintPerSec || 18) * dt); p.staminaAt = this.now + (st.regenDelayMs || 600); }
                     }
                     if (p.state === 'attack') speed *= pr.attackMoveMult || 0.35;
-                    if (p.guarding) speed *= (R.guard || {}).moveMult || 0.45;
+                    if (p.guarding) speed *= gp.moveMult ?? 0.45;
                     speed *= slow;
                     vx = (m.x / Math.max(1, len)) * speed; vy = (m.y / Math.max(1, len)) * speed;
                 }
@@ -751,15 +761,21 @@
                 if (touching) this.fx.push({ type: 'perfect_dodge', x: p.x, y: p.y });
                 return;
             }
-            const facingIt = angleDiff(p.angle, angleTo(p, a)) <= (((R.guard || {}).arcDeg || 140) / 2) * DEG;
-            const guarded = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
-            const parried = guarded && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= ((R.parry || {}).windowMs || 160);
+            // The class's guard profile (actionRules.classes[cls].guard over actionRules.guard): its arc (the Mage and
+            // Necromancer wards are 360°), its parry window (none for a ward: `parry: null`) and parryOnly (Deflect:
+            // outside the window the hit lands in full).
+            const g = this.guardProfile();
+            const arc = g.arcDeg || 140;
+            const facingIt = arc >= 360 || angleDiff(p.angle, angleTo(p, a)) <= (arc / 2) * DEG;
+            const raised = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
+            const parried = raised && !!g.parry && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= (g.parry.windowMs || 160);
+            const guarded = raised && (!g.parryOnly || parried);
             const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1 });
             this.collect(r.events);
             if (!r.ok) return;
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }
             if (r.result === 'guarded') {
-                p.stamina = Math.max(0, p.stamina - (st.blockCost || (R.guard || {}).staminaPerHit || 14));
+                p.stamina = Math.max(0, p.stamina - (st.blockCost || g.staminaPerHit || 14) * (g.staminaMult ?? 1));
                 p.staminaAt = this.now + ((R.stamina || {}).regenDelayMs || 600);
                 this.fx.push({ type: 'guard', x: p.x, y: p.y, angle: p.angle });
                 return;
@@ -777,6 +793,14 @@
                 }
                 this.fx.push({ type: 'player_hit', x: p.x, y: p.y });
             }
+        }
+
+        /** The player's guard: the class's `guard` block over `actionRules.guard`, and its parry (null = cannot parry). */
+        guardProfile() {
+            const R = this.rules;
+            const cls = (((R.classes || {})[this.engine.player.className] || {}).guard) || {};
+            const parry = cls.parry === null ? null : { ...(R.parry || {}), ...(cls.parry || {}) };
+            return { ...(R.guard || {}), ...cls, parry };
         }
 
         stagger(a, ms) { a.state = 'stagger'; a.stateEnd = this.now + ms; a.windup = null; this.fx.push({ type: 'stagger', x: a.x, y: a.y }); }
