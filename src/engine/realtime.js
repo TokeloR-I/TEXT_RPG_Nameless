@@ -67,7 +67,7 @@
             const r = this.rtRules();
             const rule = actor.isPlayer ? r.basicAttack : actor.isMinion ? r.minion : r.enemy;
             const base = rule.swingSeconds != null ? rule.swingSeconds : rule.actionSeconds;
-            const s = base * (rule.referenceSpeed || 10) / this.speedOf(actor);
+            const s = base * (rule.referenceSpeed || 10) / this.speedOf(actor) * this.rtHasteMult(actor);
             return Math.round(clamp(s, rule.minSeconds || 0.5, rule.maxSeconds || 10) * 1000);
         }
 
@@ -75,9 +75,17 @@
         rtCooldownMs(name) {
             const skill = this.data.skillDefinitions[name] || {};
             const r = this.rtRules().cooldowns || {};
-            if (isNum(skill.cooldown)) return Math.round(skill.cooldown * 1000);
-            if (skill.cost === 'all') return Math.round((r.allCostSeconds || 15) * 1000);
-            return Math.round(((r.baseSeconds || 3) + (r.perCostSeconds || 2) * (Number(skill.cost) || 0)) * 1000);
+            // Haste speeds up every other skill's cooldown, never its own (it would keep itself up).
+            const haste = (skill.effects || []).some((e) => e.type === 'extra_turn') ? 1 : this.rtHasteMult(this.player);
+            if (isNum(skill.cooldown)) return Math.round(skill.cooldown * 1000 * haste);
+            if (skill.cost === 'all') return Math.round((r.allCostSeconds || 15) * 1000 * haste);
+            return Math.round(((r.baseSeconds || 3) + (r.perCostSeconds || 2) * (Number(skill.cost) || 0)) * 1000 * haste);
+        }
+
+        /** Timed fights: a Haste status (value = speed-up share) shortens cooldowns and swings. 1 without one. */
+        rtHasteMult(actor) {
+            const h = actor && actor.statusEffects && actor.statusEffects.find((x) => x.type === 'haste');
+            return h ? Math.max(0.1, 1 - (Number(h.value) || 0)) : 1;
         }
 
         /** DoT tick interval: each stack above 1 shortens it, down to the floor. */

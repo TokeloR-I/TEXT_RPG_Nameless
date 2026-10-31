@@ -158,15 +158,29 @@ test('Pre-buff: a buff still running when a fight starts comes into it with the 
     assert.strictEqual(st.type, 'dodge');
 });
 
-test('Pre-buff: a self skill that needs a fight (Haste) only plays its cast and says so; costs and statuses untouched', () => {
-    const r = make('mage', { skills: ['haste'] });
+test('Pre-buff: a self skill that needs a fight (Overchannel) only plays its cast and says so; costs and statuses untouched', () => {
+    const r = make('mage', { skills: ['Overchannel'] });
     calm(r);
     r.g.player.resource.current = r.g.player.resource.max;   // full, so the out-of-fight refill can't hide a spend
     const res = r.g.player.resource.current;
-    const out = frames(r.sim, 1, { slot: r.slot('haste') });
+    const out = frames(r.sim, 1, { slot: r.slot('Overchannel') });
     assert.ok(fxOf(out).some((f) => f.type === 'notice' && /only works in a fight/.test(f.text)));
     assert.strictEqual(r.g.player.resource.current, res);
     assert.strictEqual(r.g.player.statusEffects.length, 0);
+});
+
+test('Live Haste: a timed buff (no extra turn) that pre-buffs, and speeds every other cooldown but its own', () => {
+    const r = make('mage', { skills: ['haste'] });
+    calm(r);
+    r.g.player.resource.current = r.g.player.resource.max;
+    const plain = r.g.rtCooldownMs('Arcane Bolt');
+    frames(r.sim, 1, { slot: r.slot('haste') });
+    const st = r.g.player.statusEffects.find((x) => x.name === 'Haste');
+    assert.ok(st, 'Haste is on you out of a fight');
+    assert.strictEqual(st.rtTotalMs, r.g.data.realtimeRules.statuses.buffs.Haste.seconds * 1000);
+    const speed = r.g.data.skillDefinitions.haste.effects[0].liveSpeedup;
+    assert.strictEqual(r.g.rtCooldownMs('Arcane Bolt'), Math.round(plain * (1 - speed)));
+    assert.strictEqual(r.g.rtCooldownMs('haste'), r.g.data.skillDefinitions.haste.cooldown * 1000, 'never its own');
 });
 
 test('Buffs outlive the fight on the calm clock with the time they had left; a fall still clears them', () => {

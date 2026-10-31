@@ -378,6 +378,7 @@
     });
     register('rearrange_turn_order', { // Eternal Architect (D-09): you set the turn order for N rounds (src/engine/turn-order.js)
         requires(ctx) {
+            if (ctx.engine.combatMode !== 'turn') return `${ctx.skill.name} has no live-combat version yet (live fights have no turn order).`;
             const min = ctx.effect.minResource || 0;
             const r = ctx.caster.resource;
             return r && r.current < min ? `${ctx.skill.name} needs at least ${min} ${r.type}.` : null;
@@ -441,8 +442,14 @@
     });
 
     // ---------- time ----------
-    register('extra_turn', { // Haste: act again immediately
+    register('extra_turn', { // Haste: act again immediately (turn mode); a timed Haste buff in timed fights
         apply(ctx) {
+            if (ctx.engine.combatMode !== 'turn') {   // live: cooldowns and swings run faster (realtimeRules.statuses.buffs.Haste)
+                const t = (ctx.targets || []).find((x) => x && x.hp > 0) || ctx.caster;
+                if (ctx.engine.applyStatus(ctx.caster, t, { name: 'Haste', type: 'haste', value: ctx.effect.liveSpeedup || 0.3, duration: 1 }))
+                    ctx.engine.say(`Time bends around ${t.isPlayer ? 'you' : t.name}: ${Math.round((ctx.effect.liveSpeedup || 0.3) * 100)}% faster.`, { important: true });
+                return;
+            }
             ctx.engine.combat.extraTurn = true;
             ctx.engine.say('Time bends around you. You may act again!', { important: true });
         }

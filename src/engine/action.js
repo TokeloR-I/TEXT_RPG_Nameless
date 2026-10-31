@@ -31,7 +31,7 @@
     // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
     // touch its own HP and resource. A skill with any other handled effect works in a fight only.
     const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
-        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage']);
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
