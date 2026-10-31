@@ -425,6 +425,49 @@
             });
         }
 
+        /**
+         * Pure. A skill pressed out of a fight: is it yours, and what shape does it have? The sim plays it for real
+         * (a bolt flies, a dash moves you, a summon rises) with nothing to hit, so it never looks like a weapon swing.
+         */
+        actionSkillPreview(name) {
+            const sk = name && this.data.skillDefinitions[name];
+            if (!sk) return { ok: false, error: { code: 'UNKNOWN_SKILL', message: `Unknown skill '${name}'.` } };
+            if (!this.player || !this.player.skills.includes(name)) return { ok: false, error: { code: 'SKILL_NOT_KNOWN', message: `You don't know the skill '${name}'.` } };
+            const skill = this.playerSkill(name);
+            return { ok: true, skill: name, shape: this.actionShape(name, false, skill.target || 'enemy_single'), summon: (skill.effects || []).some((x) => x.type === 'summon') };
+        }
+
+        /**
+         * A summon skill cast out of a fight: pay its cost and the minion follows you (world.followers) until the
+         * linger timer runs out or the next fight starts, which it joins. Same cap as in a fight.
+         */
+        actionSummonFollower(name) {
+            return this.actionRun(() => {
+                if (this.actionActive()) { this.refuse('IN_COMBAT', 'Cast it with actionCast in a fight.'); return null; }
+                if (!this.world || this.mode !== 'explore') { this.refuse('WRONG_MODE', 'Not now.'); return null; }
+                const pre = this.actionSkillPreview(name);
+                if (!pre.ok) { this.refuse(pre.error.code, pre.error.message); return null; }
+                const skill = this.playerSkill(name);
+                const eff = (skill.effects || []).find((x) => x.type === 'summon');
+                if (!eff) { this.refuse('NOT_A_SUMMON', `${name} doesn't summon.`); return null; }
+                const p = this.player;
+                const cost = this.skillCost(skill);
+                if (p.resource.current < cost) { this.refuse('NOT_ENOUGH_RESOURCE', `Not enough ${p.resource.type}! (${name} needs ${cost}, you have ${p.resource.current})`); return null; }
+                const f = this.world.followers || (this.world.followers = []);
+                if (f.filter((m) => m.hp > 0).length >= this.minionCap()) { this.refuse('REQUIREMENT_FAILED', `You can't control more than ${this.minionCap()} minions.`); return null; }
+                const tpl = this.data.minionDefinitions[eff.summon_type];
+                if (!tpl) { this.refuse('INVALID_SUMMON', `No minion '${eff.summon_type}'.`); return null; }
+                const id = `minion_${this.world.nextFollowerId || 1001}`;   // apart from a fight's own minion_1, 2, … (restore keeps ids unique)
+                this.world.nextFollowerId = (this.world.nextFollowerId || 1001) + 1;
+                const m = { ...JSON.parse(JSON.stringify(tpl)), id, summonType: eff.summon_type, ownerId: p.id, isPlayer: false, isMinion: true, statusEffects: [] };
+                if (eff.apply_effect && m.skills[0]) m.skills[0] = { ...m.skills[0], effects: [...(m.skills[0].effects || []), eff.apply_effect] };   // as the summon effect does
+                if (cost > 0) { p.resource.current -= cost; this.say(`Used ${cost} ${p.resource.type}.`); }
+                f.push(m);
+                this.say(`${p.name} summons a ${m.name}!`);
+                return { id, shape: pre.shape };
+            });
+        }
+
         /** Pure. Your summons out of a fight, in actionView().minions' shape (none in a fight: actionView has them). */
         actionFollowers() {
             if (this.actionActive() || !this.world) return [];
