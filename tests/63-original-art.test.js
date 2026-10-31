@@ -95,3 +95,24 @@ test('Scene art: the homestead grounds paint whole, the same every time, with a 
     assert.strictEqual(at(15 * 32 + 16, 12 * 32 + 16), 0);
     assert.ok(a.water.length > 50, 'the river shimmers');
 });
+
+test('Scene art: Shamefield paints whole after the reference, the same every time, with its own moving parts', () => {
+    require('../ui/scene-shamefield.js');
+    const map = ZONE1.maps.shamefield;
+    assert.ok(SCENE.has(map), 'shamefield opts in with scene: shamefield');
+    const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+    assert.strictEqual(a.w, map.tiles[0].length * 32); assert.strictEqual(a.h, map.tiles.length * 32);
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    assert.strictEqual(sha(a.base), sha(b.base), 'deterministic');
+    assert.strictEqual(sha(a.over), sha(b.over), 'deterministic crowns');
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
+    const at = (x, y) => a.over[(y * a.w + x) * 4 + 3];
+    assert.strictEqual(at(22 * 32 + 16, 10 * 32 + 16), 0, 'nothing hangs over the open square');
+    assert.ok(at(17 * 32 + 16, 9 * 32 + 16) > 0, 'the raven tree\'s limbs reach over the cobbles behind it');
+    assert.ok(a.water.length > 50 && typeof a.animate === 'function', 'the river shimmers; falls, flames and smoke move');
+    // Every thing the map names is something the scene knows how to paint (no tile left as bare ground by accident).
+    const painted = new Set(['grass', 'dirt_path', 'cobble', 'bridge', 'water', 'waterfall', 'cliff', 'ruin', 'stone_stairs', 'tree', 'dead_tree',
+        'raven_tree', 'banner', 'lantern', 'notice_board', 'stall', 'well', 'fountain', 'memorial', 'cart', 'crate', 'barrel', 'fence', 'crops',
+        'chickens', 'hen_hut', 'house', 'slate_house', 'watermill', 'mill_wheel', 'church']);
+    for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
+});
