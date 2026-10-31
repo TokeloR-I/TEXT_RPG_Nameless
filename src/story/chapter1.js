@@ -62,9 +62,9 @@
             summary: 'Elian said the village of Shamefield lies past the bridge. Its elder knows the roads north.',
             objectives: [
                 { id: 'village', text: 'Cross the bridge and reach Shamefield', on: { type: 'enter', id: 'shamefield' }, marker: { map: 'tollway', x: 9, y: 19 } },
-                { id: 'elder', text: 'Speak to Tamsin, the village elder', on: { type: 'talk', id: 'tamsin' }, marker: { map: 'shamefield', x: 9, y: 8 } },
-                { id: 'trader', text: 'Collect Mara’s supply parcel', on: { type: 'story', id: 'village_supplies_collected' }, marker: { map: 'shamefield', x: 12, y: 7 } },
-                { id: 'delivery', text: 'Deliver Mara’s supply parcel to Tamsin', on: { type: 'story', id: 'village_supplies_delivered' }, marker: { map: 'shamefield', x: 9, y: 8 } }
+                { id: 'elder', text: 'Speak to Tamsin, the village elder', on: { type: 'talk', id: 'tamsin' }, marker: { map: 'shamefield', x: 15, y: 12 } },
+                { id: 'trader', text: 'Collect Mara’s supply parcel', on: { type: 'story', id: 'village_supplies_collected' }, marker: { map: 'shamefield', x: 24, y: 10 } },
+                { id: 'delivery', text: 'Deliver Mara’s supply parcel to Tamsin', on: { type: 'story', id: 'village_supplies_delivered' }, marker: { map: 'shamefield', x: 15, y: 12 } }
             ],
             onComplete: [{ gold: 8, key: 'village_assistance' }, { start: 'Q05' }]
         },
@@ -72,10 +72,10 @@
             title: 'The Orchard Ledger', kind: 'main', xp: 20,
             summary: 'The north orchard road is closed by the watch until someone finds the missing tollway register.',
             objectives: [
-                { id: 'captain', text: 'Ask the Watch Captain about the orchard gate', on: { type: 'talk', id: 'watch_captain' }, marker: { map: 'shamefield', x: 6, y: 5 } },
+                { id: 'captain', text: 'Ask the Watch Captain about the orchard gate', on: { type: 'talk', id: 'watch_captain' }, marker: { map: 'shamefield', x: 17, y: 4 } },
                 { id: 'register', text: 'Find the toll register in the tollway wrecks', on: { type: 'inspect', id: 'tollway_register' }, marker: { map: 'tollway', x: 16, y: 16 },
                     effects: [{ item: 'Tollway Register', key: 'item:tollway_register' }] },
-                { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 6, y: 5 } }
+                { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
             onComplete: [{ gold: 8, key: 'orchard_register' }, { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
         },
@@ -142,13 +142,13 @@
             title: 'Shame on Shane!', kind: 'side', xp: 20, candidate: true,
             summary: 'A crowd by the well chants at a man called Shane. The watch is looking for him.',
             objectives: [
-                { id: 'hear', text: 'Hear Shane out', on: { type: 'story', id: 'shane_asked' }, marker: { map: 'shamefield', x: 13, y: 10 },
+                { id: 'hear', text: 'Hear Shane out', on: { type: 'story', id: 'shane_asked' }, marker: { map: 'shamefield', x: 24, y: 11 },
                     effects: [{ flag: 'shane_asked_ledger' }] },
                 { id: 'watch', text: "Get past the constables at Shane's allotment", on: { type: 'defeat', id: 'allotment_watch' }, marker: { map: 'allotment', x: 13, y: 9 },
                     effects: [{ flag: 'shane_watch_resolved' }] },
                 { id: 'wagon', text: "Take Shane's ledger from the confiscation wagon", on: { type: 'inspect', id: 'allotment_wagon' }, marker: { map: 'allotment', x: 12, y: 9 },
                     effects: [{ item: "Shane's Ledger", key: 'item:shane_ledger' }, { flag: 'shane_ledger_found' }] },
-                { id: 'return', text: 'Bring the ledger back to Shane', on: { type: 'story', id: 'shane_ledger_returned' }, marker: { map: 'shamefield', x: 13, y: 10 } }
+                { id: 'return', text: 'Bring the ledger back to Shane', on: { type: 'story', id: 'shane_ledger_returned' }, marker: { map: 'shamefield', x: 24, y: 11 } }
             ],
             onComplete: [{ removeItem: "Shane's Ledger" }, { flag: 'shane_recruited' }, { flag: 'shane_stall_unlocked' }]
         },
@@ -165,7 +165,7 @@
             objectives: [
                 { id: 'gather', text: 'Gather wild herbs in the north orchard', on: { type: 'pickup', id: 'orchard_herbs' }, marker: { map: 'orchard', x: 23, y: 18 },
                     effects: [{ flag: 'herbs_gathered' }] },
-                { id: 'deliver', text: 'Bring the herbs to Iona', on: { type: 'story', id: 'iona_herbs' }, marker: { map: 'shamefield', x: 23, y: 13 } }
+                { id: 'deliver', text: 'Bring the herbs to Iona', on: { type: 'story', id: 'iona_herbs' }, marker: { map: 'shamefield', x: 21, y: 14 } }
             ],
             onComplete: []
         }

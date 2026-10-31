@@ -253,7 +253,7 @@
     // ---------------------------------------------------------------------
     // Things that stand on the ground. Each painter gets the cell (cx, cy) and paints into base and/or over.
     // ---------------------------------------------------------------------
-    function tree(L, cx, cy, seed, { big = 1, autumn = false, overhead = true, dy = 0 } = {}) {
+    function tree(L, cx, cy, seed, { big = 1, autumn = false, overhead = true, dy = 0, ramp: leafRamp = null } = {}) {
         const x = cx * C + 16 + (hash(cx, cy, seed) - 0.5) * 8, gy = cy * C + 28 + dy;
         const r = (15 + hash(cx, cy, seed + 1) * 5) * big;
         shadow(L.base, x + 6, gy + 1, r * 0.9, 6, 0.42);
@@ -273,7 +273,7 @@
             const br = r * (0.42 + hash(cx, cy, seed + 10 + b) * 0.2);
             ellipse(crown, CL, x + Math.cos(a) * r * 0.55, cy0 + Math.sin(a) * r * 0.48, br, br * 0.9);
         }
-        const ramp = autumn ? PAL.leafAutumn : PAL.leaf;
+        const ramp = leafRamp || (autumn ? PAL.leafAutumn : PAL.leaf);
         // Leaf clumps: the shade value plus clumpy noise, so the crown reads as many small leaf masses.
         for (const [i, v] of crown.px) {
             const px = i % CL.w, py = (i / CL.w) | 0;
@@ -835,7 +835,7 @@
             c.getContext('2d').putImageData(new ImageData(data, p.w, p.h), 0, 0);
             return c;
         };
-        const out = { base: mk(p.base), over: mk(p.over), water: p.water, w: p.w };
+        const out = { base: mk(p.base), over: mk(p.over), water: p.water, w: p.w, animate: p.animate };
         cache.set(map, out);
         return out;
     }
@@ -843,6 +843,7 @@
     function animate(g, map, time) {
         const l = cache.get(map);
         if (!l) return;
+        if (l.animate) l.animate(g, time);                   // a scene's own moving parts (falls, smoke, flames)
         for (let k = 0; k < l.water.length; k++) {
             const i = l.water[k], a = Math.sin(time / 600 + k * 1.7);
             if (a < 0.55) continue;
@@ -852,7 +853,10 @@
         }
     }
 
-    const api = { has, paint, layers, animate, scenes, PAL };
+    // The painting kit, for scenes kept in their own files (ui/scene-shamefield.js adds 'shamefield').
+    const kit = { C, hash, vnoise, fbm, hex, R, PAL, Img, put, alphaAt, rectFill, shape, sset, ellipse, box, poly, thick, fill, shadow,
+        field, paintDetails, tree, deadTree, rock, bush, stump, barrel, crate, cart, fence, well, blockOf, masonry, slates, windowAt, ivy };
+    const api = { has, paint, layers, animate, scenes, PAL, kit };
     ENSO.sceneArt = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -50,3 +50,15 @@ test('Shamefield expansion: every new villager and inspectable responds, and non
     }
     assert.strictEqual(g.player.xp, xp); assert.strictEqual(g.player.gold, gold); assert.strictEqual(g.player.inventory.length, inv);
 });
+
+test('Shamefield rebuild: every quest marker in the square stands on the villager or thing it points at', () => {
+    const story = require('../src/story/chapter1.js');
+    const map = ZONE1.maps.shamefield;
+    let n = 0;
+    for (const q of Object.values(story.quests)) for (const o of q.objectives || []) {
+        if (!o.marker || o.marker.map !== 'shamefield') continue;
+        n++;
+        assert.ok(map.interactables.some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
+    }
+    assert.ok(n >= 6);
+});
