@@ -117,3 +117,63 @@ test('Shadowstep with nobody in reach (or out of a fight): a notice, you stay pu
         assert.strictEqual(r.g.player.resource.current, 5);
     }
 });
+
+// ---- Pre-buffing (Tokelo, 2026-10-31): self buffs cast out of a fight are real, timed, and come into the next fight
+test('Pre-buff: Guard out of a fight puts the real status on you, timed as in a fight, then wears off', () => {
+    const r = make('warrior');
+    calm(r);
+    const out = frames(r.sim, 1, { slot: r.slot('Guard') });
+    const st = r.g.player.statusEffects.find((x) => x.name === 'Guard');
+    assert.ok(st, 'Guard is on you');
+    assert.strictEqual(st.type, 'damage_reduction');
+    const secs = (r.g.data.realtimeRules.statuses || {}).guardSeconds || 3;
+    assert.strictEqual(st.rtTotalMs, secs * 1000, 'the same timing a fight gives it');
+    assert.ok(fxOf(out).some((f) => f.type === 'cast' && f.skill === 'Guard'));
+    const again = frames(r.sim, 30, { slot: r.slot('Guard') });
+    assert.ok(fxOf(again).some((f) => f.type === 'refused' && f.code === 'ON_COOLDOWN'), 'its cooldown runs out of a fight too');
+    const texts = frames(r.sim, Math.ceil(secs * 60) + 5).flatMap((o) => o.engineEvents).map((e) => e.text || '');
+    assert.ok(!r.g.player.statusEffects.some((x) => x.name === 'Guard'), 'it wore off');
+    assert.ok(texts.some((t) => /\[Guard\] wears off/.test(t)));
+});
+
+test('Pre-buff: a buff still running when a fight starts comes into it with the time it had left', () => {
+    const r = make('rogue');
+    const p = r.sim.player;
+    // stand away from the rats, buff, then walk into them
+    for (const a of r.sim.actors) { a.x = p.x + 400; a.y = p.y; }
+    const out = frames(r.sim, 1, { slot: r.slot('Evasion') });
+    assert.ok(r.g.player.statusEffects.some((x) => x.name === 'Evasion'), JSON.stringify(fxOf(out)));
+    const total = r.g.player.statusEffects.find((x) => x.name === 'Evasion').rtTotalMs;
+    frames(r.sim, 60);   // 1 s later
+    for (const a of r.sim.actors) { a.x = a.homeX; a.y = a.homeY; }
+    const res = r.g.actionEngage('grounds_weed_rats', r.sim.groups.grounds_weed_rats.keys, null, null);
+    assert.ok(res.ok);
+    const st = r.g.player.statusEffects.find((x) => x.name === 'Evasion');
+    assert.ok(st, 'Evasion came into the fight');
+    const left = st.rtEndsAt - r.g.combat.rt.now;
+    assert.ok(Math.abs(left - (total - 1000)) < 50, `${left} ms left of ${total}`);
+    assert.ok(res.events.some((e) => /You go in with Evasion up/.test(e.text || '')));
+    // and it works in the fight: the dodge status is there for the next blow
+    assert.strictEqual(st.type, 'dodge');
+});
+
+test('Pre-buff: a self skill that needs a fight (Haste) only plays its cast and says so; costs and statuses untouched', () => {
+    const r = make('mage', { skills: ['haste'] });
+    calm(r);
+    const res = r.g.player.resource.current;
+    const out = frames(r.sim, 1, { slot: r.slot('haste') });
+    assert.ok(fxOf(out).some((f) => f.type === 'notice' && /only works in a fight/.test(f.text)));
+    assert.strictEqual(r.g.player.resource.current, res);
+    assert.strictEqual(r.g.player.statusEffects.length, 0);
+});
+
+test('Pre-buff: fight end and a fall still clear every status', () => {
+    const r = make('rogue');
+    const p = r.sim.player;
+    for (const a of r.sim.actors) { a.x = p.x + 400; a.y = p.y; }
+    frames(r.sim, 1, { slot: r.slot('Evasion') });
+    r.g.actionEngage('grounds_weed_rats', r.sim.groups.grounds_weed_rats.keys, null, null);
+    r.g.actionDisengage('grounds_weed_rats');
+    assert.strictEqual(r.g.mode, 'explore');
+    assert.strictEqual(r.g.player.statusEffects.length, 0, 'buffs used in a fight end with it');
+});

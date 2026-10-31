@@ -1629,6 +1629,7 @@
             stamina: { cur: p.stamina, max: p.staminaMax },
             dodgeReadyInMs: Math.max(0, sim.player.dodgeReadyAt - sim.now),
             guarding: p.guarding,
+            calmNow: engine.world && engine.world.calm ? engine.world.calm.now : null,   // pre-buff timers out of a fight
             lockTargetId: lockId,
             enemies,
             boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp, phase: boss.phase, phases: boss.phases } : null,

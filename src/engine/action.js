@@ -28,6 +28,10 @@
 
     // Target kinds the caster doesn't aim: they resolve the moment they're cast.
     const AT_ONCE = new Set(['self', 'minions', 'ground', 'corpse', 'linked_enemies']);
+    // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
+    // touch its own HP and resource. A skill with any other handled effect works in a fight only.
+    const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
@@ -61,9 +65,11 @@
                 const scope = `world:${id}`;
                 let enemies;
                 if (this.mode === 'explore') {
+                    const buffs = this.actionCarriedBuffs();     // startCombat clears statuses: your pre-buffs come along
                     this.startCombat(enemyKeys, scope, loot);   // combatMode 'action': rtBegin() sets combat.action
                     enemies = this.combat.enemies;
                     this.actionRestoreFollowers();
+                    this.actionRestoreBuffs(buffs);
                 } else if (this.actionActive()) {
                     if (this.combat.action.groups[id]) { this.refuse('ALREADY_ENGAGED', 'They are already on you.'); return null; }
                     // A second group joins without startCombat(): that would wipe the player's statuses and CR.
@@ -466,6 +472,101 @@
                 this.say(`${p.name} summons a ${m.name}!`);
                 return { id, shape: pre.shape };
             });
+        }
+
+        // =====================================================================
+        // Pre-buffing: self buffs cast out of a fight (Tokelo, 2026-10-31)
+        // =====================================================================
+        /**
+         * The calm clock: time out of a fight (world.calm.now, ms), which the sim advances with actionCalmTick. A buff
+         * cast out of a fight lasts as long as it would in one (turns × secondsPerTurn) on this clock, and skills
+         * cool down on it. Only `world` holds it, so it's saved and in every transaction snapshot.
+         */
+        actionCalm() {
+            if (!this.world) return null;
+            return this.world.calm || (this.world.calm = { now: 0, cooldowns: {} });
+        }
+
+        /** Out of a fight: advance the calm clock; pre-buffs and cooldowns run out. Returns the events (like tick). */
+        actionCalmTick(ms) {
+            const calm = this.actionCalm();
+            if (!calm || this.mode === 'combat' || !this.player) return [];
+            calm.now += Math.max(0, Number(ms) || 0);
+            for (const k of Object.keys(calm.cooldowns)) if (calm.cooldowns[k] <= calm.now) delete calm.cooldowns[k];
+            const gone = this.player.statusEffects.filter((x) => x.calm && x.rtEndsAt != null && x.rtEndsAt <= calm.now);
+            if (!gone.length) return [];
+            this.player.statusEffects = this.player.statusEffects.filter((x) => !gone.includes(x));
+            for (const x of gone) this.say(`[${x.name}] wears off ${this.player.name}.`);
+            return this.flush();
+        }
+
+        /** Why this skill can't be cast as a pre-buff right now, or null. Pure. */
+        actionPrebuffProblem(name) {
+            const pre = this.actionSkillPreview(name);
+            if (!pre.ok) return pre.error;
+            const skill = this.playerSkill(name);
+            const kind = skill.target || 'enemy_single';
+            const handled = (skill.effects || []).filter((x) => this.effects[x.type]);
+            if (!(kind === 'self' || (kind === 'ally_single' && !skill.base_damage)) || !handled.length || handled.some((x) => !CALM_EFFECTS.has(x.type)))
+                return { code: 'FIGHT_ONLY', message: `${name} only works in a fight.` };
+            const calm = this.actionCalm();
+            const ready = calm && calm.cooldowns[name];
+            if (ready != null && ready > calm.now) return { code: 'ON_COOLDOWN', message: `${name} is on cooldown (${Math.ceil((ready - calm.now) / 1000)}s).` };
+            const cost = this.skillCost(skill);
+            if (this.player.resource.current < cost) return { code: 'NOT_ENOUGH_RESOURCE', message: `Not enough ${this.player.resource.type}! (${name} needs ${cost}, you have ${this.player.resource.current})` };
+            return null;
+        }
+
+        /**
+         * Cast a self buff out of a fight: same cost, same effects (castSkill) and same duration as in a fight, timed on
+         * the calm clock. What's still running when a fight starts comes into it (actionRestoreBuffs).
+         */
+        actionPrebuff(name) {
+            return this.actionRun(() => {
+                if (this.actionActive()) { this.refuse('IN_COMBAT', 'Cast it with actionCast in a fight.'); return null; }
+                if (!this.world || this.mode !== 'explore') { this.refuse('WRONG_MODE', 'Not now.'); return null; }
+                const problem = this.actionPrebuffProblem(name);
+                if (problem) { this.refuse(problem.code, problem.message); return null; }
+                const p = this.player;
+                const skill = this.playerSkill(name);
+                const calm = this.actionCalm();
+                const cost = this.skillCost(skill);
+                const before = new Map(p.statusEffects.map((x) => [x, JSON.stringify(x)]));
+                if (cost > 0) { p.resource.current -= cost; this.say(`Used ${cost} ${p.resource.type}.`); }
+                this.say(`${p.name} uses ${name}.`);
+                this.castSkill(p, skill, [p]);
+                const r = this.rtRules().statuses || {};
+                for (const x of p.statusEffects) {
+                    if (before.has(x) && before.get(x) === JSON.stringify(x)) continue;   // untouched by this cast
+                    let total = null;   // the same timing rtStatusApplied gives it in a fight
+                    if (x.policy === 'holder_next_turn_start') total = Math.round((r.guardSeconds || 3) * 1000);
+                    else if (typeof x.duration === 'number' && x.duration > 0) total = this.rtTurnsToMs(x.duration);
+                    if (x.policy) { x.rtPolicy = x.policy; x.policy = null; }
+                    x.calm = true; x.rtTotalMs = total; x.rtEndsAt = total != null ? calm.now + total : null;
+                }
+                calm.cooldowns[name] = calm.now + this.rtCooldownMs(name);
+                return { skill: name };
+            });
+        }
+
+        /** Pure. Your pre-buffs with the time they have left (null: until used), before startCombat clears them. */
+        actionCarriedBuffs() {
+            const calm = this.actionCalm();
+            if (!calm || !this.player) return [];
+            return this.player.statusEffects.filter((x) => x.calm).map((x) => ({ inst: x, leftMs: x.rtEndsAt != null ? Math.max(0, x.rtEndsAt - calm.now) : null }))
+                .filter((b) => b.leftMs == null || b.leftMs > 0);
+        }
+
+        /** The fight started: put the pre-buffs back on its clock with the time they had left. */
+        actionRestoreBuffs(buffs) {
+            if (!buffs.length || !this.combat) return;
+            const now = this.combat.rt.now;
+            for (const { inst, leftMs } of buffs) {
+                const x = { ...inst, rtEndsAt: leftMs != null ? now + leftMs : null };
+                delete x.calm;
+                this.player.statusEffects.push(x);
+            }
+            this.say(`You go in with ${buffs.map((b) => b.inst.name).join(', ')} up.`);
         }
 
         /** Pure. Your summons out of a fight, in actionView().minions' shape (none in a fight: actionView has them). */
