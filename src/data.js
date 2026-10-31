@@ -756,7 +756,8 @@
                 guardSeconds: 3,           // statuses that ended at the holder's next turn (Guard) last this long
                 // Gauge (2026-10-31, Tokelo: "3 s of buffing has no chance of helping in a fight"): buffs in timed fights
                 // (real-time and action, pre-buffs included) last `seconds`, not turns × secondsPerTurn, and stack to
-                // `maxStacks`. A recast adds one stack and refreshes the timer to full. Damage reduction multiplies per
+                // `maxStacks`. A recast adds one stack and refreshes the timer to full. They outlive an action fight (Tokelo):
+                // the time left keeps ticking on the out-of-fight clock. Damage reduction multiplies per
                 // stack (25% -> 44% at 2); a charge buff (dodge, absorb, counter) spends one stack per use.
                 // Turn mode never reads this. Reasoning and sources: docs/design/BALANCE_BUFFS.md.
                 buffs: {

@@ -33,7 +33,11 @@ ENSO's enemy cycle (about 2.5 s) and short cooldowns (4 to 7 s) sit between the 
 3. **Damage reduction multiplies per stack**: 25% Guard at 2 stacks is 1 − 0.75² = 44%, never 50%. Multiplying keeps
    any stack count below 100%.
 4. **Charge buffs** (dodge, absorb, counter) spend **one stack per use**, so stacks are charges. The timer is not reset by a use.
-5. Once-per-fight and setup buffs don't stack (cap 1): stacking them would only bank them.
+5. **Buffs outlive the fight** (Tokelo, 2026-10-31: "let them last as long as the timers set"). When an action fight
+   ends, a buff in the table moves onto the out-of-fight clock with the time it had left and keeps ticking down; it
+   comes back into the next fight if it is still up. Debuffs, control and fight bookkeeping still end with the fight,
+   and a fall clears everything.
+6. Once-per-fight and setup buffs don't stack (cap 1): stacking them would only bank them.
 
 ## Values (old → new)
 | Buff | Class | Effect per stack | Old | New | Stacks | Why |

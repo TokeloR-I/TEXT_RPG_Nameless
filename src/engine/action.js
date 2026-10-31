@@ -366,8 +366,10 @@
             this.combat = null;
             this.stats.fights++;
             this.stats.rounds += c.round;
+            const kept = this.actionBuffsLeavingFight(c);   // your buffs run on out of the fight (Tokelo, 2026-10-31)
             p.statusEffects = [];
             this.actionKeepFollowers(c);
+            this.actionCalmBuffs(kept);
             if (won) {
                 const healed = this.heal(p, Math.floor(p.maxHp * this.data.gameRules.postFightHealPct));
                 if (healed > 0) this.say(`You catch your breath. +${healed} HP (${p.hp}/${p.maxHp}).`);
@@ -552,6 +554,25 @@
             if (!calm || !this.player) return [];
             return this.player.statusEffects.filter((x) => x.calm).map((x) => ({ inst: x, leftMs: x.rtEndsAt != null ? Math.max(0, x.rtEndsAt - calm.now) : null }))
                 .filter((b) => b.leftMs == null || b.leftMs > 0);
+        }
+
+        /**
+         * Pure. The player's buffs still running as an action fight ends, with the time they have left (null: until
+         * used). Only buffs in realtimeRules.statuses.buffs carry: debuffs, control and fight bookkeeping end with it.
+         */
+        actionBuffsLeavingFight(c) {
+            if (!c || !c.rt || !this.player) return [];
+            return this.player.statusEffects.filter((x) => this.rtBuffRule(x.name))
+                .map((x) => ({ inst: x, leftMs: x.rtEndsAt != null ? Math.max(0, x.rtEndsAt - c.rt.now) : null }))
+                .filter((b) => b.leftMs == null || b.leftMs > 0);
+        }
+
+        /** Out of a fight: put buffs on the calm clock with the time they had left, so they keep ticking down. */
+        actionCalmBuffs(buffs) {
+            const calm = this.actionCalm();
+            if (!buffs.length || !calm) return;
+            for (const { inst, leftMs } of buffs) this.player.statusEffects.push({ ...inst, calm: true, rtEndsAt: leftMs != null ? calm.now + leftMs : null });
+            this.say(`Still up: ${buffs.map((b) => b.inst.name).join(', ')}.`);
         }
 
         /** The fight started: put the pre-buffs back on its clock with the time they had left. */

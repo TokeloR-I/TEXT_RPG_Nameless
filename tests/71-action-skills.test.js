@@ -169,13 +169,30 @@ test('Pre-buff: a self skill that needs a fight (Haste) only plays its cast and 
     assert.strictEqual(r.g.player.statusEffects.length, 0);
 });
 
-test('Pre-buff: fight end and a fall still clear every status', () => {
+test('Buffs outlive the fight on the calm clock with the time they had left; a fall still clears them', () => {
     const r = make('rogue');
     const p = r.sim.player;
     for (const a of r.sim.actors) { a.x = p.x + 400; a.y = p.y; }
     frames(r.sim, 1, { slot: r.slot('Evasion') });
     r.g.actionEngage('grounds_weed_rats', r.sim.groups.grounds_weed_rats.keys, null, null);
-    r.g.actionDisengage('grounds_weed_rats');
+    r.g.tick(2000);
+    const inFight = r.g.player.statusEffects.find((x) => x.name === 'Evasion');
+    const left = inFight.rtEndsAt - r.g.combat.rt.now;
+    r.g.player.statusEffects.push({ name: 'Poison', type: 'dot', value: 1, duration: 3, stacks: 1, rtEndsAt: r.g.combat.rt.now + 9000 });
+    const res = r.g.actionDisengage('grounds_weed_rats');
     assert.strictEqual(r.g.mode, 'explore');
-    assert.strictEqual(r.g.player.statusEffects.length, 0, 'buffs used in a fight end with it');
+    assert.deepStrictEqual(r.g.player.statusEffects.map((x) => x.name), ['Evasion'], 'the buff stays, the debuff ends with the fight');
+    const st = r.g.player.statusEffects[0];
+    assert.ok(st.calm);
+    assert.strictEqual(st.rtEndsAt - r.g.actionCalm().now, left, 'same time left, now on the calm clock');
+    assert.ok(res.events.some((e) => /Still up: Evasion/.test(e.text || '')));
+    r.g.actionCalmTick(left + 10);
+    assert.strictEqual(r.g.player.statusEffects.length, 0, 'and it runs out out of combat');
+    // a buff carried out can come back into the next fight, and a fall clears everything
+    frames(r.sim, 600);
+    frames(r.sim, 1, { slot: r.slot('Evasion') });
+    r.g.actionEngage('grounds_weed_rats', r.sim.groups.grounds_weed_rats.keys, null, null);
+    assert.ok(r.g.player.statusEffects.some((x) => x.name === 'Evasion'));
+    r.g.actionRespawn();
+    assert.strictEqual(r.g.player.statusEffects.length, 0, 'a fall clears every status');
 });
