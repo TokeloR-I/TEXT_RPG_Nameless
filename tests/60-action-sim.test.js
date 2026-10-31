@@ -260,3 +260,15 @@ test('Sim: an exit is barred only while an enemy is close; with nobody near, the
     assert.strictEqual(r.g.mode, 'explore');
     assert.ok(!r.g.isDefeated('grounds_weed_rats'), 'no victory for leaving');
 });
+
+test('Sim: the orchard gate opens the moment the Captain takes the register, without leaving Shamefield', () => {
+    const r = run('warrior', 71);
+    r.s.place('shamefield', 'from_orchard');           // just below the chained north gate
+    r.sim = new ActionSim({ engine: r.g, session: r.s, rules: r.g.data.actionRules, seed: 71 });
+    const north = { move: { x: 0, y: -1 } };
+    frames(r.sim, 90, north);
+    assert.strictEqual(r.s.mapId, 'shamefield', 'the chained gate holds before the register');
+    r.g.story.flags.push('north_gate_open');           // what Q05 sets when the register is handed over
+    for (let i = 0; i < 180 && r.s.mapId === 'shamefield'; i++) r.sim.update(1000 / 60, north);
+    assert.strictEqual(r.s.mapId, 'orchard', 'walked straight through to the orchard (the cultists)');
+});

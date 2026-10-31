@@ -103,6 +103,14 @@
             this.solid = new Uint8Array(this.w * this.h);
             this.reach = null;
             for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.solid[y * this.w + x] = this.session.solidForAction(x, y) ? 1 : 0;
+            // Cells a story change can open or close without a fight: locked ways on and story-conditional objects.
+            const map = this.session.map, cells = new Set();
+            for (const e of map.exits || []) if (e.requires) cells.add(e.y * this.w + e.x);
+            for (const o of [...(map.interactables || []), ...(map.encounters || [])]) {
+                if (!o.when && o.kind !== 'pickup') continue;
+                for (let y = o.y; y < o.y + (o.h || 1); y++) for (let x = o.x; x < o.x + (o.w || 1); x++) cells.add(y * this.w + x);
+            }
+            this.storyCells = [...cells].filter((c) => c >= 0 && c < this.solid.length);
         }
 
         /** Cells the player can walk to from where they stand (4-way flood fill), built on first use after a rebuild. */
@@ -218,7 +226,8 @@
             if (++this.steps % 15 === 0) this.syncEncounters();
         }
 
-        /** A story flag can show or hide an encounter mid-map (the Warden after "Stand aside"): match the sim to it. */
+        /** A story flag can show or hide an encounter mid-map (the Warden after "Stand aside"), or open a locked way on
+         *  (the orchard gate after the register): match the sim to it without leaving the map. */
         syncEncounters() {
             const visible = this.session.visibleObjects().filter((o) => o.kind === 'encounter');
             let solids = false;
@@ -230,7 +239,13 @@
                 this.actors = this.actors.filter((a) => a.encounterId !== g.encounterId);
                 solids = solids || g.gate;
             }
-            if (solids) this.buildSolids();
+            if (solids || this.solidsStale()) this.buildSolids();
+        }
+
+        /** True when a story change since the last build moved a wall: a locked way on that now opens (the orchard
+         *  gate once the Captain has the register) or a story-conditional person who came or went. */
+        solidsStale() {
+            return (this.storyCells || []).some((c) => (this.session.solidForAction(c % this.w, Math.floor(c / this.w)) ? 1 : 0) !== this.solid[c]);
         }
 
         collect(events) {
