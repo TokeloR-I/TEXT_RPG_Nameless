@@ -135,8 +135,8 @@ test('RT-06: policy statuses (Guard, Expose, Marked for Death) are timed, not op
     const guard = g.findStatus(g.player, 'Guard');
     assert.ok(guard, 'guarding');
     assert.strictEqual(guard.policy, null);
-    assert.strictEqual(guard.rtTotalMs, RT.statuses.guardSeconds * 1000);
-    g.run(RT.statuses.guardSeconds * 1000 + 100);
+    assert.strictEqual(guard.rtTotalMs, RT.statuses.buffs.Guard.seconds * 1000, "Gauge's buff timing wins over guardSeconds");
+    g.run(RT.statuses.buffs.Guard.seconds * 1000 + 100);
     assert.ok(!g.findStatus(g.player, 'Guard'), 'Guard ran out on the clock');
     assertHealthy(g);
 });

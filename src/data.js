@@ -753,7 +753,23 @@
                 tickSeconds: 1,            // a DoT ticks every second at 1 stack...
                 perStackSpeedup: 0.02,     // ...and each stack above 1 shortens the tick: interval = tick / (1 + 0.02 x (stacks - 1))
                 minTickSeconds: 0.25,      // never faster than this
-                guardSeconds: 3            // statuses that ended at the holder's next turn (Guard) last this long
+                guardSeconds: 3,           // statuses that ended at the holder's next turn (Guard) last this long
+                // Gauge (2026-10-31, Tokelo: "3 s of buffing has no chance of helping in a fight"): buffs in timed fights
+                // (real-time and action, pre-buffs included) last `seconds`, not turns × secondsPerTurn, and stack to
+                // `maxStacks`. A recast adds one stack and refreshes the timer to full. They outlive an action fight (Tokelo):
+                // the time left keeps ticking on the out-of-fight clock. Damage reduction multiplies per
+                // stack (25% -> 44% at 2); a charge buff (dodge, absorb, counter) spends one stack per use.
+                // Turn mode never reads this. Reasoning and sources: docs/design/BALANCE_BUFFS.md.
+                buffs: {
+                    'Guard':           { seconds: 8,  maxStacks: 2 },   // warrior, 25% damage reduction per stack
+                    'Bone Wall':       { seconds: 12, maxStacks: 2 },   // necromancer, each stack absorbs one hit
+                    'Evasion':         { seconds: 10, maxStacks: 2 },   // rogue, each stack: 50% to dodge one attack
+                    'Riposte':         { seconds: 10, maxStacks: 2 },   // each stack counters one attack for +50%
+                    'Mirror Image':    { seconds: 15, maxStacks: 3 },   // three images, each takes one hit
+                    'Guaranteed Crit': { maxStacks: 1 },                // Shadowstep: until used; one banked crit only
+                    'Dragon’s Dominion': { seconds: 10, maxStacks: 1 }, // once per fight ultimate: a 10 s burst window
+                    'Taunt':           { seconds: 6,  maxStacks: 1 }    // Shield of the Dead: minions hold aggro
+                }
             },
             skillBar: { slots: 6 }
         };
