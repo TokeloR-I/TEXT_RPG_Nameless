@@ -195,15 +195,22 @@ test('Followers: falling in battle scatters them', () => {
     assert.strictEqual(r.g.world.followers.length, 0);
 });
 
-test('Raise Skeleton out of a fight: a clear notice, no fake swing, nothing spent', () => {
+test('Raise Skeleton out of a fight: it rises and follows you (paid, no swing); without Soul Energy it is refused', () => {
     const r = necro();
     r.sim.groups = {}; r.sim.actors = [];   // nobody near
-    const se = r.g.player.resource.current;
-    const out = frames(r.sim, 1, { slot: r.slot });
-    assert.ok(out[0].fx.some((f) => f.type === 'notice' && /Raise Skeleton/.test(f.text)), JSON.stringify(out[0].fx));
-    assert.ok(!out[0].fx.some((f) => f.type === 'swing'));
+    r.g.player.resource.current = 1;
+    let out = frames(r.sim, 1, { slot: r.slot });
+    assert.ok(out[0].fx.some((f) => f.type === 'refused' && f.code === 'NOT_ENOUGH_RESOURCE'));
     assert.strictEqual(r.sim.player.attack, null);
-    assert.strictEqual(r.g.player.resource.current, se);
+    r.g.player.resource.current = 5;
+    out = frames(r.sim, 2, { slot: r.slot });
+    assert.strictEqual(r.g.player.resource.current, 3, 'paid 2 Soul Energy');
+    assert.strictEqual(r.g.world.followers.length, 1);
+    assert.strictEqual(r.sim.liveMinions().length, 1, 'its body rose');
+    assert.ok(out.some((o) => o.fx.some((f) => f.type === 'summon')));
+    assert.ok(!out.some((o) => o.fx.some((f) => f.type === 'swing')), 'no weapon swing');
+    assert.strictEqual(r.sim.player.attack.shape.shape, 'summon');
+    assert.ok(r.sim.view().minions[0].timeLeftMs > 59000, 'the follower timer runs');
 });
 
 test('actionMinionStrike: the same rules path, with refusals for a bad minion or target', () => {

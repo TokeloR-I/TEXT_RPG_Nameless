@@ -397,6 +397,7 @@
             let vx = 0, vy = 0;
             const pr = R.player || {};
             if (p.state === 'dodge') { vx = Math.cos(p.dodge.angle) * p.dodge.speed; vy = Math.sin(p.dodge.angle) * p.dodge.speed; }
+            else if (p.state === 'attack' && p.attack && p.attack.dash && this.now < p.attack.dash.until) { vx = Math.cos(p.attack.dash.angle) * p.attack.dash.speed; vy = Math.sin(p.attack.dash.angle) * p.attack.dash.speed; }   // Quick Slash
             else if (!stunned && p.state !== 'hurt' && !(this.now < (p.rootUntil || 0))) {
                 const m = inp.move;
                 const len = Math.hypot(m.x, m.y);
@@ -472,17 +473,20 @@
             const e = this.engine;
             if (!this.engaged) this.engageNearest();
             const weapon = (((this.rules.classes || {})[e.player.className] || {}).weapon) || { kind: 'arc', reach: 20, arcDeg: 100, startupMs: 120, activeMs: 80, recoveryMs: 220 };
-            if (!this.engaged && slot != null && this.isSummonSkill(e.ensureSkillBar()[slot])) {
-                // A summon needs a fight to join: say so instead of swinging a weapon at nothing.
-                this.fx.push({ type: 'notice', text: `${e.ensureSkillBar()[slot]}: no enemy near to raise against.` });
-                return;
-            }
+            if (!this.engaged && slot != null) { this.startCalmSkill(slot); return; }
             if (!this.engaged) {   // a swing at nothing: it looks right and costs nothing
                 p.attack = { shape: { ...weapon, shape: weapon.kind }, castId: null, start: this.now, fired: true, cosmetic: true, isBasic: slot == null };
                 p.state = 'attack';
                 p.stateEnd = this.now + (weapon.startupMs || 120) + (weapon.activeMs || 0) + (weapon.recoveryMs || 200);
                 this.fx.push({ type: 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape: p.attack.shape });
                 return;
+            }
+            // Shadowstep: pick who to step behind before paying anything (no one in reach = not cast)
+            const pre = slot != null && e.actionSkillPreview ? e.actionSkillPreview(e.ensureSkillBar()[slot]) : null;
+            let blink = null;
+            if (pre && pre.ok && pre.shape.teleport) {
+                blink = this.blinkTarget(pre.shape);
+                if (!blink) { this.fx.push({ type: 'notice', text: `${pre.skill}: no enemy in reach to step behind.` }); return; }
             }
             const r = slot != null ? e.actionCast(null, { slot }) : e.actionCast('attack');
             this.collect(r.events);
@@ -495,6 +499,94 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
             this.fx.push({ type: r.resolved ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: r.skill });
+            if (shape.shape === 'dash') this.beginDash(p.attack, blink);
+        }
+
+        /**
+         * A skill pressed with no fight on: it plays exactly as it would in one (the bolt flies, the buff glows, the
+         * dash moves you, a summon rises and follows you) with nothing to hit. Only summons change anything (they
+         * pay and join world.followers); nothing else is spent. Never a weapon swing.
+         */
+        startCalmSkill(slot) {
+            const p = this.player;
+            const e = this.engine;
+            const name = e.ensureSkillBar()[slot];
+            if (!name) { this.fx.push({ type: 'refused', code: 'EMPTY_SLOT', text: `Skill bar slot ${Number(slot) + 1} is empty.` }); return; }
+            const pre = e.actionSkillPreview(name);
+            if (!pre.ok) { this.fx.push({ type: 'refused', code: pre.error.code, text: pre.error.message }); return; }
+            const shape = pre.shape;
+            if (shape.teleport) { this.fx.push({ type: 'notice', text: `${name}: no enemy in reach to step behind.` }); return; }
+            if (pre.summon) {
+                const r = e.actionSummonFollower(name);
+                this.collect(r.events);
+                if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
+                this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
+            }
+            const startup = shape.startupMs != null ? shape.startupMs : (shape.castMs || 150);
+            const recovery = shape.recoveryMs != null ? shape.recoveryMs : 200;
+            const kind = shape.shape || 'arc';
+            const atOnce = kind === 'self' || kind === 'summon';
+            p.attack = { shape, castId: null, skill: name, start: this.now, fireAt: this.now + startup, fired: atOnce, cosmetic: true, isBasic: false, aim: this.input.aim ? { ...this.input.aim } : null };
+            p.state = 'attack';
+            p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
+            this.fx.push({ type: atOnce ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: name });
+            if (kind === 'dash') this.beginDash(p.attack, null);
+        }
+
+        /**
+         * Shadowstep's anchor (design §3): the Tab-locked enemy (the aim sits on it), else the nearest engaged enemy
+         * within `aimConeDeg` of where you face, within `range` and in sight. Returns { actor, spot } or null.
+         */
+        blinkTarget(shape) {
+            const p = this.player;
+            const range = shape.range || 110;
+            const inReach = this.liveActors().filter((a) => dist(p, a) <= range + a.r && this.lineOfSight(p, a));
+            const aim = this.input.aim;
+            const locked = aim && inReach.find((a) => Math.hypot(a.x - aim.x, a.y - aim.y) <= 2);
+            const half = ((shape.aimConeDeg || 30) / 2) * DEG;
+            const cone = inReach.filter((a) => angleDiff(p.angle, angleTo(p, a)) <= half).sort((a, b) => dist(p, a) - dist(p, b));
+            for (const a of locked ? [locked] : cone) {
+                const spot = this.behind(a, shape.behindPx || 16);
+                if (spot) return { actor: a, spot };
+            }
+            return null;
+        }
+
+        /** A walkable point `px` behind an actor (opposite its facing), turning up to 90° either way to find room. */
+        behind(a, px) {
+            const r = this.player.r;
+            for (const turn of [0, 30, -30, 60, -60, 90, -90]) {
+                const ang = a.angle + Math.PI + turn * DEG;
+                const d = px + a.r * 0.5;
+                const x = a.x + Math.cos(ang) * d, y = a.y + Math.sin(ang) * d;
+                if (!this.bodyBlocked(x, y, r) && this.lineOfSight(a, { x, y })) return { x, y };
+            }
+            return null;
+        }
+
+        /**
+         * A dash skill moves you for real. Quick Slash: dashPx over dashMs along your facing, then its slash comes out.
+         * Shadowstep: vanish, reappear behind the anchor facing its back, i-frames for iframeMs, then the strike.
+         */
+        beginDash(at, blink) {
+            const p = this.player;
+            const s = at.shape;
+            if (s.teleport && blink) {
+                const from = { x: p.x, y: p.y };
+                p.x = blink.spot.x; p.y = blink.spot.y;
+                p.angle = angleTo(p, blink.actor);
+                p.iframesUntil = Math.max(p.iframesUntil, this.now + (s.iframeMs || 150));
+                at.target = blink.actor;
+                this.fx.push({ type: 'teleport', x: from.x, y: from.y, toX: p.x, toY: p.y });
+                this.playerTile();
+                return;
+            }
+            const ms = s.dashMs || 110;
+            at.dash = { angle: p.angle, speed: (s.dashPx || 32) / (ms / 1000), until: this.now + ms };
+            if (at.fireAt < this.now + ms) {   // the slash comes out at the end of the dash
+                p.stateEnd += this.now + ms - at.fireAt;
+                at.fireAt = this.now + ms;
+            }
         }
 
         stepAttack() {
@@ -515,7 +607,20 @@
             const s = at.shape;
             const kind = s.shape || s.kind || 'arc';
             if (kind === 'projectile') {
-                this.projectiles.push({ owner: 'player', castId: at.castId, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane' });
+                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane' });
+                return;
+            }
+            if (at.cosmetic) {   // out of a fight: the shape shows, nothing is hit
+                if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
+                if (kind === 'ground') {
+                    const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
+                    const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
+                    this.fx.push({ type: 'aoe', x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, radius: s.radius || 30 });
+                }
+                return;
+            }
+            if (kind === 'dash' && s.teleport) {   // Shadowstep lands on its anchor (gone already: a whiff)
+                this.resolve(at.castId, at.target && !at.target.dead && at.target.engineId ? [at.target] : []);
                 return;
             }
             let hits;
@@ -1123,7 +1228,9 @@
                 const step = pj.speed * dt;
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
                 const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
-                if (pj.owner === 'player') {
+                if (pj.owner === 'player' && pj.cosmetic) {   // cast out of a fight: flies to its range or a wall
+                    if (wall || pj.travelled >= pj.range) { this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                } else if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
                     if (hit) { this.resolve(pj.castId, [hit]); continue; }
                     if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
