@@ -63,6 +63,7 @@
                 if (this.mode === 'explore') {
                     this.startCombat(enemyKeys, scope, loot);   // combatMode 'action': rtBegin() sets combat.action
                     enemies = this.combat.enemies;
+                    this.actionRestoreFollowers();
                 } else if (this.actionActive()) {
                     if (this.combat.action.groups[id]) { this.refuse('ALREADY_ENGAGED', 'They are already on you.'); return null; }
                     // A second group joins without startCombat(): that would wipe the player's statuses and CR.
@@ -360,6 +361,7 @@
             this.stats.fights++;
             this.stats.rounds += c.round;
             p.statusEffects = [];
+            this.actionKeepFollowers(c);
             if (won) {
                 const healed = this.heal(p, Math.floor(p.maxHp * this.data.gameRules.postFightHealPct));
                 if (healed > 0) this.say(`You catch your breath. +${healed} HP (${p.hp}/${p.maxHp}).`);
@@ -378,10 +380,57 @@
             this.mode = 'explore';
             this.combat = null;
             p.statusEffects = [];
+            if (this.world) this.world.followers = [];   // a fall scatters your summons
             p.hp = Math.max(1, Math.floor(p.maxHp * ((this.actionRules().respawn || {}).hpPct ?? 0.5)));
             if (this.world) { this.world.lastEncounter = groups[0] || null; this.world.lastResult = 'defeat'; }
             this.say(`You wake somewhere safe, aching. (${p.hp}/${p.maxHp} HP)`, { important: true });
             this.out.push({ type: 'world.respawn', encounters: groups, hp: p.hp });
+        }
+
+        // =====================================================================
+        // Followers: summons that outlive a fight (Tokelo, 2026-10-31)
+        // =====================================================================
+        /**
+         * The fight is over: living minions follow you out of it (HP kept, statuses cleared) in world.followers,
+         * so they're in the save and in every transaction snapshot. The sim dismisses them after
+         * actionRules.summons.lingerOutOfCombatMs without a fight (actionDismissFollowers).
+         */
+        actionKeepFollowers(c) {
+            if (!this.world) return;
+            this.world.followers = this.alive(c.minions).map((m) => ({ ...m, statusEffects: [] }));
+        }
+
+        /** A new fight starts: your followers join it with the ids they had (their bodies don't change). */
+        actionRestoreFollowers() {
+            const f = (this.world && this.world.followers) || [];
+            if (!f.length || !this.combat) return;
+            const c = this.combat;
+            c.minions.push(...f);
+            c.nextMinionId = Math.max(c.nextMinionId || 1, ...f.map((m) => Number(String(m.id).split('_')[1]) + 1 || 1));
+            this.world.followers = [];
+            const names = [...new Set(f.map((m) => m.name))];
+            this.say(`Your ${names.join(' and ')} ${f.length > 1 ? 'join' : 'joins'} the fight.`);
+        }
+
+        /** Out of a fight: your followers fall apart (the sim calls this when their time without a fight runs out). */
+        actionDismissFollowers() {
+            return this.actionRun(() => {
+                if (this.actionActive()) { this.refuse('IN_COMBAT', 'Your summons stay while you fight.'); return null; }
+                const f = (this.world && this.world.followers) || [];
+                if (!f.length) return { ids: [] };
+                this.world.followers = [];
+                for (const m of f) this.say(`Your ${m.name} crumbles to dust.`);
+                this.out.push({ type: 'action.followers_gone', ids: f.map((m) => m.id) });
+                return { ids: f.map((m) => m.id) };
+            });
+        }
+
+        /** Pure. Your summons out of a fight, in actionView().minions' shape (none in a fight: actionView has them). */
+        actionFollowers() {
+            if (this.actionActive() || !this.world) return [];
+            return (this.world.followers || []).filter((m) => m.hp > 0).map((m) => ({
+                id: m.id, name: m.name, summonType: m.summonType, hp: m.hp, maxHp: m.maxHp, stunned: false, speedMult: 1, statuses: [], taunting: false
+            }));
         }
 
         // =====================================================================

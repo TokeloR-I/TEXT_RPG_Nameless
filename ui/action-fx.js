@@ -706,8 +706,54 @@
             w: bounds.w * scale, h: bounds.h * scale } : null;
     }
 
+    // ---------------------------------------------------------------------
+    // A summon falls apart: the bones drop, scatter and turn to dust
+    // ---------------------------------------------------------------------
+    // Pieces of a 32 px skeleton relative to its feet: [x, y, w, h, colour]. Skull, ribs, pelvis, arms, legs, club.
+    const BONES = {
+        skeleton: [[-4, -24, 8, 7, '#efe7d2'], [-5, -16, 10, 2, '#ece4cc'], [-4, -13, 8, 2, '#e0d8c0'], [-4, -10, 8, 2, '#e0d8c0'],
+            [-3, -7, 7, 3, '#d0c8b0'], [-7, -15, 2, 6, '#d8d0b8'], [5, -15, 2, 6, '#d8d0b8'], [-3, -4, 2, 5, '#d8d0b8'],
+            [1, -4, 2, 5, '#d8d0b8'], [7, -20, 2, 8, '#6a4a30'], [-1, -18, 2, 10, '#e0d8c0']],
+        ghoul: [[-4, -24, 8, 7, '#8a9a7c'], [-6, -17, 12, 6, '#6e7e62'], [-5, -11, 10, 5, '#3a3028'], [-8, -16, 2, 7, '#6e7e62'],
+            [6, -16, 2, 7, '#48563e'], [-3, -5, 3, 5, '#5a6a50'], [1, -5, 3, 5, '#4a5a42']]
+    };
+    const CRUMBLE_MS = 1600;
+    /**
+     * crumble(g, enemyKey, x, y, t): a dead or dismissed summon at feet (x, y), t ms after it fell. The pieces drop
+     * and bounce apart (0-700 ms), lie there, then break into dust that drifts up and fades (to CRUMBLE_MS).
+     */
+    function crumble(g, enemyKey, x, y, t) {
+        const pieces = BONES[enemyKey] || BONES.skeleton;
+        const k = clamp01(t / CRUMBLE_MS);
+        const dustAt = 0.55;                                                    // when the bones start to turn to dust
+        g.save();
+        pieces.forEach(([px0, py0, w, h, c], i) => {
+            const spread = (hash(i, 7, 31) - 0.5) * 22, hop = 6 + hash(i, 3, 31) * 8;
+            const fall = Math.min(1, t / 700);
+            const bx = x + px0 + spread * fall;
+            const ground = y - Math.min(h, 3) - (i % 3);                       // pieces settle in a small heap
+            const arc = Math.sin(Math.min(1, fall * 1.2) * Math.PI) * hop * (1 - fall);
+            const by = y + py0 + (ground - (y + py0)) * fall * fall - arc;
+            const lying = fall >= 1;
+            const ww = lying && h > w ? h : w, hh = lying && h > w ? w : h;    // long bones topple onto their side
+            const a = k < dustAt ? 1 : 1 - (k - dustAt) / (1 - dustAt);
+            if (a <= 0) return;
+            g.globalAlpha = a;
+            g.fillStyle = c; g.fillRect(R(bx), R(by), Math.max(1, R(ww * (k < dustAt ? 1 : a))), Math.max(1, R(hh)));
+            if (k >= dustAt) {                                                  // dust rising off each piece
+                for (let j = 0; j < 3; j++) {
+                    const d = (k - dustAt) / (1 - dustAt);
+                    g.globalAlpha = 0.85 * (1 - d);
+                    g.fillStyle = j ? '#b8b0a0' : '#d8d0c0';
+                    g.fillRect(R(bx + (hash(i, j, 5) - 0.5) * 8 * d), R(by - d * (8 + hash(j, i, 9) * 8)), 1, 1);
+                }
+            }
+        });
+        g.restore();
+    }
+
     const api = {
-        createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy,
+        createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS,
         pixelText, textWidth, // helpers
         TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth
     };
