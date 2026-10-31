@@ -822,6 +822,22 @@
             },
             // Summons outlive a fight and follow you; after this long without one they fall apart (Tokelo, 2026-10-31).
             summons: { lingerOutOfCombatMs: 60000 },
+            // Skill resource recovery (Tokelo, 2026-10-31: "recover some during combat, then get it back out of combat so
+            // you're ready for the next fight"). Action fights only; the turn-based and v2 modes keep resourceRules as is.
+            // Per pool (keyed by resource type; a type not listed keeps the old rule: reset to startOfFight each fight):
+            //   combatPerSec  passive trickle in a fight, on top of the class's own income (Mana/Energy regen, Soul Energy
+            //                 for dealing damage and kills). Paid on the pulse; fractions carry over.
+            //   calmPerSec    refill out of a fight, up to calmTo (default: max). Fractions carry over.
+            // A listed pool is carried into the next fight: startOfFight becomes a floor, not a reset.
+            // Gauge's first pass: every pool refills from empty in about 10 s of calm (docs/ACTION_COMBAT.md).
+            resources: {
+                pools: {
+                    'Soul Energy': { combatPerSec: 0.25, calmPerSec: 1 },          // +1 every 4 s in a fight; 0 -> 10 in 10 s out of one
+                    'Mana':        { combatPerSec: 0,    calmPerSec: 2 },          // already regens 1/s in a fight; 0 -> 20 in 10 s
+                    'Energy':      { combatPerSec: 0,    calmPerSec: 1.5 },        // already regens 1.5/s in a fight; 0 -> 15 in 10 s
+                    'Momentum':    { combatPerSec: 0.25, calmPerSec: 0.5, calmTo: 2 }   // had no income at all; walk in with one Power Strike
+                }
+            },
             skillShapes: {
                 byTarget: {
                     enemy_single:   { shape: 'projectile', range: 140, speed: 240, radius: 5, castMs: 220, maxTargets: 1 },

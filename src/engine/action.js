@@ -569,6 +569,53 @@
             this.say(`You go in with ${buffs.map((b) => b.inst.name).join(', ')} up.`);
         }
 
+        // =====================================================================
+        // Skill resource recovery (Tokelo, 2026-10-31): numbers in actionRules.resources
+        // =====================================================================
+        /** Pure. The recovery rule for a resource type, or null (not listed: the old reset-each-fight rule). */
+        actionResourcePool(type) {
+            const pools = (this.actionRules().resources || {}).pools || {};
+            return pools[type] || null;
+        }
+
+        /** Add `perSec` × `ms` to the player's pool, keeping the fraction in `holder.regenCarry`, up to `cap`. Returns the gain. */
+        actionRegen(holder, perSec, ms, cap) {
+            const r = this.player && this.player.resource;
+            if (!r || !(perSec > 0) || !(ms > 0)) return 0;
+            const top = Math.min(r.max, cap != null ? cap : r.max);
+            if (r.current >= top) { holder.regenCarry = 0; return 0; }
+            holder.regenCarry = (holder.regenCarry || 0) + perSec * ms / 1000;
+            const whole = Math.floor(holder.regenCarry + 1e-9);
+            if (whole < 1) return 0;
+            holder.regenCarry -= whole;
+            const g = Math.min(whole, top - r.current);
+            r.current += g;
+            return g;
+        }
+
+        /** In an action fight, on each pulse: the pool's passive trickle (combatPerSec). */
+        actionCombatRegen(ms) {
+            if (!this.player || this.player.isHollowKing) return 0;
+            const pool = this.actionResourcePool(this.player.resource.type);
+            if (!pool || !this.combat || !this.combat.action) return 0;
+            const g = this.actionRegen(this.combat.action, pool.combatPerSec, ms);
+            if (g > 0) this.say(`You recover ${g} ${this.player.resource.type}.`);
+            return g;
+        }
+
+        /**
+         * Out of a fight: the pool refills (calmPerSec, up to calmTo or max) so you walk into the next fight ready.
+         * The sim calls it every step it isn't fighting; quiet (the HUD shows the bar fill). Returns the events.
+         */
+        actionCalmRegen(ms) {
+            if (this.mode !== 'explore' || !this.world || !this.player || this.player.isHollowKing) return [];
+            const pool = this.actionResourcePool(this.player.resource.type);
+            if (!pool) return [];
+            const g = this.actionRegen(this.world, pool.calmPerSec, ms, pool.calmTo);
+            if (g > 0) this.out.push({ type: 'action.resource_regen', resource: this.player.resource.type, amount: g, current: this.player.resource.current });
+            return this.flush();
+        }
+
         /** Pure. Your summons out of a fight, in actionView().minions' shape (none in a fight: actionView has them). */
         actionFollowers() {
             if (this.actionActive() || !this.world) return [];

@@ -27,6 +27,7 @@ const calm = (r) => { r.sim.groups = {}; r.sim.actors = []; r.sim.syncEncounters
 test('Out of a fight a bolt skill flies as a bolt (no sword swing), spends nothing and touches no rules', () => {
     const r = make('mage');
     calm(r);
+    r.g.player.resource.current = r.g.player.resource.max;   // full, so the out-of-fight refill can't hide a spend
     const res = r.g.player.resource.current;
     const p = r.sim.player;
     const out = frames(r.sim, 1, { slot: r.slot('Arcane Bolt') });
@@ -160,6 +161,7 @@ test('Pre-buff: a buff still running when a fight starts comes into it with the 
 test('Pre-buff: a self skill that needs a fight (Haste) only plays its cast and says so; costs and statuses untouched', () => {
     const r = make('mage', { skills: ['haste'] });
     calm(r);
+    r.g.player.resource.current = r.g.player.resource.max;   // full, so the out-of-fight refill can't hide a spend
     const res = r.g.player.resource.current;
     const out = frames(r.sim, 1, { slot: r.slot('haste') });
     assert.ok(fxOf(out).some((f) => f.type === 'notice' && /only works in a fight/.test(f.text)));

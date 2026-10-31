@@ -267,6 +267,7 @@
             const c = this.combat;
             const rt = c.rt;
             this.endRoundResources();
+            if (c.action) this.actionCombatRegen((this.rtRules().pulseSeconds || 3) * 1000);   // action fights: passive trickle
             // QA-1 applier-death ruling: an orphaned mark lasts to the end of this pulse
             for (const x of this.rtLiving()) for (const s of x.statusEffects.filter((st) => st.orphaned)) {
                 this.removeStatus(x, s);

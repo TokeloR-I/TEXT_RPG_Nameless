@@ -67,6 +67,27 @@ Events: `action.engage`, `action.cleared` (`{ encounterId, xp }`), `action.disen
 `tick()` skips the transaction when no engine event is due before the step ends (Keel's review), so a 60 Hz sim can call
 it every step.
 
+## Skill resource recovery
+
+Tokelo (2026-10-31): a necromancer who spent Soul Energy on Raise Skeleton was left too low to cast anything, and every
+fight reset the pool to its start value anyway. Action fights now recover the class pools listed in
+`actionRules.resources.pools` (Soul Energy, Mana, Energy, Momentum); the turn-based and v2 modes are unchanged.
+
+- **In a fight** (`actionCombatRegen`, on each pulse): a passive trickle (`combatPerSec`) on top of each class's own
+  income (Mana and Energy regen, Soul Energy for dealing damage and kills). Fractions carry over between pulses.
+- **Out of a fight** (`actionCalmRegen(ms)`, which the sim calls every step it isn't fighting): the pool refills at
+  `calmPerSec` up to `calmTo` (default the max). Each pool goes from empty to its refill cap in about 10 s.
+  Event `action.resource_regen` (`{ resource, amount, current }`) on each whole point.
+- **Into the next fight**: a listed pool is carried in, so `resourceRules[type].startOfFight` becomes a floor, not a
+  reset. A resource with no pool entry (branch resources such as Combo Points, Fury Gauge) keeps the old reset.
+
+| Pool | In a fight | Out of a fight | Why |
+|---|---|---|---|
+| Soul Energy (max 10) | +0.25/s (+1 every 4 s) | +1/s, to 10 | Grave Bolt and Soul Leech at their 4 s cooldowns spend exactly the +1 per damaging pulse, so Raise Skeleton never came up. The trickle pays for one every ~8 s. Out of a fight, 2 s is enough to raise a skeleton that then follows you for 60 s. |
+| Mana (max 20) | unchanged (regen 2 per pulse = 1/s) | +2/s, to 20 | Mana never bound in a fight; the refill is about walking in full. |
+| Energy (max 15) | unchanged (regen 3 per pulse = 1.5/s) | +1.5/s, to 15 | As Mana. |
+| Momentum (max 10) | +0.25/s (+1 every 4 s) | +0.5/s, to 2 only | The warrior's starting kit had no way to earn Momentum, so Power Strike (2) never came up. The refill stops at 2: one Power Strike to open with, while the rest is still built in the fight. |
+
 ## World drops
 
 `dropVictoryLoot()` rolls the same once-only loot claims as before but leaves them pending and records a drop in
