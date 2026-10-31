@@ -31,7 +31,9 @@
             const rule = this.resourceRule();
             if (rule.startOfFight != null) {
                 const r = this.player.resource;
-                r.current = Math.min(r.max, rule.startOfFight);
+                // Action fights carry a recovering pool in (actionRules.resources): the start value is a floor, not a reset.
+                const carry = this.combatMode === 'action' && this.actionResourcePool(r.type);
+                r.current = Math.min(r.max, carry ? Math.max(r.current, rule.startOfFight) : rule.startOfFight);
                 this.say(`(${r.type}: ${r.current}/${r.max} to start the fight)`);
             }
 

@@ -27,6 +27,7 @@ const calm = (r) => { r.sim.groups = {}; r.sim.actors = []; r.sim.syncEncounters
 test('Out of a fight a bolt skill flies as a bolt (no sword swing), spends nothing and touches no rules', () => {
     const r = make('mage');
     calm(r);
+    r.g.player.resource.current = r.g.player.resource.max;   // full, so the out-of-fight refill can't hide a spend
     const res = r.g.player.resource.current;
     const p = r.sim.player;
     const out = frames(r.sim, 1, { slot: r.slot('Arcane Bolt') });

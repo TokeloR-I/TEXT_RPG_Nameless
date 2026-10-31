@@ -221,6 +221,7 @@
             for (const m of this.minions) this.stepMinion(m);
             this.stepFollowerTimer();
             this.stepProjectiles();
+            if (!this.engaged && e.actionCalmRegen) this.collect(e.actionCalmRegen(STEP));   // out of a fight your skill resource refills
             this.separate();
             this.checkDrops();
             if (this.input.interact) { this.input.interact = false; this.interact(); }
