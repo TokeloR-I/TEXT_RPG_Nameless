@@ -88,7 +88,7 @@ test('Integration: the on-screen hint says what E would do', () => {
     assert.strictEqual(s.prompt(), null, 'once taken, nothing is left to do there');
     travel(s, 'grounds'); walkTo(s, 23, 8); s.move('up');
     assert.deepStrictEqual(s.prompt(), { verb: 'Climb down the well', name: null, kind: 'exit' });
-    travel(s, 'road'); walkTo(s, 13, 11); s.move('up');
+    travel(s, 'road'); walkTo(s, 25, 14); s.move('up');
     assert.deepStrictEqual(s.prompt(), { verb: 'Walk into it to fight', name: 'Hungry Wolf', kind: 'encounter' });
 });
 

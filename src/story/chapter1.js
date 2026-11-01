@@ -50,7 +50,7 @@
             title: 'The Road Keeps Its Dead', kind: 'main', xp: 25,
             summary: 'Beyond the fog the old trade road runs on to a tollway, and someone is still out there.',
             objectives: [
-                { id: 'fog', text: 'Follow the road into the fog', on: { type: 'enter', id: 'tollway' }, marker: { map: 'road', x: 12, y: 21 } },
+                { id: 'fog', text: 'Follow the road into the fog', on: { type: 'enter', id: 'tollway' }, marker: { map: 'road', x: 15, y: 21 } },
                 { id: 'traveller', text: 'Speak to the traveller at the tollway', on: { type: 'talk', id: 'elian' }, marker: { map: 'tollway', x: 12, y: 6 } },
                 { id: 'story', text: 'Hear Elian out', on: { type: 'story', id: 'elian_journey' }, marker: { map: 'tollway', x: 12, y: 6 } }
             ],
@@ -123,7 +123,7 @@
             title: 'The Mason Who Waited', kind: 'main', xp: 0,
             summary: 'With the north road open, a mason has come to look at the old foundations of your home.',
             objectives: [
-                { id: 'home', text: 'Return to the homestead', on: { type: 'enter', id: 'grounds' }, marker: { map: 'road', x: 9, y: 0 } },
+                { id: 'home', text: 'Return to the homestead', on: { type: 'enter', id: 'grounds' }, marker: { map: 'road', x: 16, y: 0 } },
                 { id: 'mason', text: 'Speak to the mason waiting at the homestead', on: { type: 'talk', id: 'orin' }, marker: { map: 'grounds', x: 18, y: 10 } },
                 { id: 'repair', text: 'Repair the broken gate (Orin\'s construction ledger)', on: { type: 'build', id: 'homestead_gate' }, marker: { map: 'grounds', x: 22, y: 12 } }
             ],
@@ -156,7 +156,7 @@
         J01: {
             title: 'Wolf on the Road', kind: 'job', xp: 10, candidate: true,
             summary: 'The notice board asks someone to deal with the wolf on the homestead road.',
-            objectives: [{ id: 'wolf', text: 'Deal with the wolf on the homestead road', on: { type: 'defeat', id: 'road_wolf' }, marker: { map: 'road', x: 13, y: 10 } }],
+            objectives: [{ id: 'wolf', text: 'Deal with the wolf on the homestead road', on: { type: 'defeat', id: 'road_wolf' }, marker: { map: 'road', x: 25, y: 13 } }],
             onComplete: []
         },
         J02: {

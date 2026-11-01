@@ -5,6 +5,7 @@ const fs = require('fs');
 const zone = require('../src/world/zone1.js');
 const SCENE = require('../ui/scene-art.js');
 require('../ui/scene-shamefield.js');                      // adds the 'shamefield' scene
+require('../ui/scene-road.js');                            // adds the 'overgrown_road' scene
 const { encode } = require('./lib/png.js');
 const [mapId = 'grounds', out = 'scene.png', scaleArg = '1'] = process.argv.slice(2);
 const S = Number(scaleArg);
