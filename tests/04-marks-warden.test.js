@@ -81,15 +81,23 @@ test("Hunter's Instinct: the first mark each turn is free", () => {
     assert.strictEqual(g.player.resource.current, 0);
 });
 
-test('Raise Ghoul: the ghoul\'s hits apply [Weaken]', () => {
+test('Raise Ghoul (turn mode): the ghoul soaks the hits meant for you, then bursts on an enemy', () => {
     const g = newGame(4).do('necromancer', 'n', 'engage');
     g.player.hp = g.player.maxHp = 999;
     g.player.resource.current = 10;
+    for (const e of g.combat.enemies) e.hp = e.maxHp = 500;
     g.player.skills.push('Raise Ghoul');
     g.do('raise ghoul');
-    for (let i = 0; i < 4 && g.mode === 'combat'; i++) g.do('soul leech 1');
-    assert.match(g.text(), /Ghoul uses Claw Attack/);
-    assert.match(g.text(), /is marked: \[Weaken\]/);
+    const ghoul = g.combat.minions.find((m) => m.ghoul);
+    assert.ok(ghoul, 'a ghoul rose');
+    let hpWhileGuarded = null;
+    for (let i = 0; i < 8 && g.mode === 'combat' && ghoul.ghoul.phase === 'shield'; i++) { g.do('attack 1'); if (ghoul.ghoul.phase === 'shield') hpWhileGuarded = g.player.hp; }
+    assert.match(g.text(), /Ghoul takes \d+ for you/);
+    assert.strictEqual(hpWhileGuarded, 999, 'while it guarded, every hit went to the ghoul');
+    assert.ok(ghoul.ghoul.stored > 0);
+    assert.match(g.text(), /Ghoul bursts/);
+    assert.ok(!/Ghoul uses Claw Attack/.test(g.text()), 'it never swings');
+    assert.ok(ghoul.hp <= 0 && ghoul.ghoul.phase === 'spent');
     assertHealthy(g);
 });
 

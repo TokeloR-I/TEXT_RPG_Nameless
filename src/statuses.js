@@ -201,6 +201,7 @@
         /** Called once at the end of every round. */
         P.tickStatusesEndOfRound = function () {
             const c = this.combat;
+            const expired = [];
             for (const x of [this.player, ...c.enemies, ...c.minions]) {
                 if (x.hp <= 0) continue;
                 x.statusEffects = x.statusEffects.filter((s) => {
@@ -213,9 +214,11 @@
                     if (!s.armed) return true;          // holder hasn't had a turn with it yet
                     if (--s.duration > 0) return true;
                     if (s.type !== 'dodge' && s.type !== 'counter') this.say(`[${s.name}] wears off ${x.name}.`);
+                    expired.push([x, s]);
                     return false;
                 });
             }
+            for (const [x, s] of expired) this.statusExpired(x, s);   // Raise Ghoul (src/engine/skills.js)
             // A link whose members expired on different initiative turns never
             // survives as an orphaned, one-member group.
             for (const actor of [this.player, ...c.enemies, ...c.minions]) {
@@ -299,19 +302,29 @@
         // ---------------------------------------------------------------
         // Damage over time
         // ---------------------------------------------------------------
-        P.dotTickDamage = function (s) {
+        P.dotTickDamage = function (s, holder = null) {
             let dmg = this.intensity(s);
             if (s.name === 'Infection' && this.player && this.hasTrait('All infections deal +2 dmg/turn')) dmg += 2;
+            if (holder) for (const w of holder.statusEffects) if (w.type === 'dot_amp') dmg *= 1 + (Number(w.value) || 0);   // Withering Curse
             return Math.floor(dmg);
+        };
+
+        /** Plague Reservoir (Plaguecaller L8, live rework): every 6th tick of your Infection refunds 1 Soul Energy. */
+        P.plagueReservoirTick = function (dot) {
+            const p = this.player;
+            if (!this.combat || !p || dot.name !== 'Infection' || dot.appliedBy !== p.id || !this.hasTrait('Plague Reservoir')) return;
+            this.combat.reservoirTicks = (this.combat.reservoirTicks || 0) + 1;
+            if (this.combat.reservoirTicks % 6 === 0 && this.gainResource(p, 1) > 0) this.say('Plague Reservoir: +1 Soul Energy.');
         };
 
         P.tickDots = function (actor) {
             for (const dot of actor.statusEffects.filter((s) => s.type === 'dot')) {
                 if (actor.hp <= 0) break;
-                const dmg = this.dotTickDamage(dot);
+                const dmg = this.dotTickDamage(dot, actor);
                 const after = Math.max(0, actor.hp - dmg);
                 this.say(`${actor.name} suffers ${dmg} ${dot.name} damage${dot.stacks > 1 ? ` (x${dot.stacks})` : ''}. (${after}/${actor.maxHp} HP)`);
                 this.damage(actor, dmg, this.findCombatant(dot.appliedBy));
+                this.plagueReservoirTick(dot);
             }
         };
 

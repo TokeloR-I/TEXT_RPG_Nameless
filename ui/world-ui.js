@@ -1608,13 +1608,29 @@
                 g.save();
                 if (rise < 1) { g.globalAlpha *= 0.25 + 0.75 * rise; g.translate(0, Math.round((1 - rise) * 6)); }
                 if (m.timeLeftMs != null && m.timeLeftMs < 5000 && Math.floor(time / 120) % 2) g.globalAlpha *= 0.55;   // its last 5 s out of a fight: it flickers
-                const visible = AFX.drawEnemy(g, m.key, Math.round(m.x), Math.round(m.y + (m.r || 5)), { facing: m.facing, angle: m.angle, state: m.state === 'move' ? 'move' : m.state === 'active' ? 'attack' : m.state === 'stunned' ? 'stagger' : m.state === 'rise' ? 'idle' : m.state, t: m.t, now: time });
+                const champion = m.key === 'skeleton_champion';   // March of Endless Bones: a bigger skeleton
+                const visible = AFX.drawEnemy(g, champion ? 'skeleton' : m.key, Math.round(m.x), Math.round(m.y + (m.r || 5)), { facing: m.facing, angle: m.angle, scale: champion ? 1.35 : 1, state: m.state === 'move' ? 'move' : m.state === 'active' ? 'attack' : m.state === 'stunned' ? 'stagger' : m.state === 'rise' ? 'idle' : m.state, t: m.t, now: time });
                 g.restore();
                 const barY = visible ? visible.y - 4 : m.y - 18;
                 if (m.state !== 'dead' && m.hp != null) AFX.enemyBar(g, Math.round(m.x), Math.round(barY), 14, m.hp, m.maxHp, { ally: true, statuses: (m.statuses || []).map((s) => s.name), stunned: m.stunned });
             }
+        }))).concat(((engine.player && engine.player.statusEffects) || []).filter((s) => s.ghost).map((s, i, all) => ({   // Channel the Grave: the ghosts circle you
+            y: (p.y - T / 2 + 3) / T,
+            draw: (g, time) => {
+                const a = time / 700 + (i * Math.PI * 2) / all.length;
+                const x = Math.round(p.x + Math.cos(a) * 12), y = Math.round(p.y - 12 + Math.sin(a) * 4 + Math.sin(time / 260 + i) * 1.5);
+                g.save();
+                g.globalAlpha *= 0.6;
+                g.fillStyle = GHOST_TINT[s.type] || '#d8ecff';
+                g.beginPath(); g.arc(x, y, 3, Math.PI, 0); g.lineTo(x + 3, y + 4); g.lineTo(x + 1, y + 3); g.lineTo(x - 1, y + 4); g.lineTo(x - 3, y + 3); g.closePath(); g.fill();
+                g.globalAlpha = 0.9; g.fillStyle = '#10141c'; g.fillRect(x - 2, y - 1, 1, 1); g.fillRect(x + 1, y - 1, 1, 1);
+                g.restore();
+            }
         })));
     }
+
+    /** Channel the Grave's ghosts, tinted by what they give (damage red, Soul Energy violet, speed cyan, poison green, bleed crimson). */
+    const GHOST_TINT = { damage_boost: '#ffb0a0', resource_regen: '#d6b8ff', haste: '#b8f4ff', on_hit_dot: '#c8ffb0' };
 
     /** What Pixie's HUD reads from the world (ui/action-hud.js viewModel). */
     function hudView(now) {

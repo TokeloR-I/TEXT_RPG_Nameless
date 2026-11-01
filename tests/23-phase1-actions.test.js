@@ -65,7 +65,7 @@ test('Phase 1: availability lists every option with reasons, and is pure and JSO
     assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), a, 'JSON-safe');
     assert.deepStrictEqual([a.mode, a.awaiting], ['combat', 'action']);
     assert.deepStrictEqual(a.actions.map((o) => o.type + (o.skillId ? `:${o.skillId}` : '')),
-        ['attack:Basic Attack', 'skill:Grave Bolt', 'skill:Raise Skeleton', 'skill:Soul Leech', 'flee'], 'every known skill is listed');
+        ['attack:Basic Attack', 'skill:Grave Bolt', 'skill:Raise Skeleton', 'skill:Soul Leech', 'skill:Channel the Grave', 'flee'], 'every known skill is listed');
     const raise = a.actions.find((o) => o.skillId === 'Raise Skeleton');
     assert.deepStrictEqual([raise.enabled, raise.reason.code], [false, 'NOT_ENOUGH_RESOURCE']);
     assert.match(raise.reason.message, /Not enough Soul Energy! \(Raise Skeleton needs 2, you have 1\)/, 'same words as the text game');

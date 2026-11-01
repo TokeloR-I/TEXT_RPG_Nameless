@@ -31,7 +31,7 @@
     // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
     // touch its own HP and resource. A skill with any other handled effect works in a fight only.
     const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
-        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn']);
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn', 'channel_ghosts']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
@@ -300,6 +300,7 @@
                 const m = this.alive(c.minions).find((x) => x.id === minionId);
                 if (!m) { this.refuse('INVALID_TARGET', `No living minion '${minionId}'.`); return null; }
                 if (m.statusEffects.some((s) => s.type === 'skip_turn')) { this.refuse('STUNNED', `${m.name} is unable to act!`); return null; }
+                if (m.ghoul) { this.refuse('WRONG_MODE', `${m.name} guards and bursts; it doesn't swing (actionGhoulBurst).`); return null; }
                 const target = targetId != null ? this.alive(c.enemies).find((e) => e.id === targetId && e.encounterId && c.action.groups[e.encounterId]) : null;
                 if (targetId != null && !target) { this.refuse('INVALID_TARGET', `No engaged enemy '${targetId}'.`); return null; }
                 c.rt.actorId = m.id;
@@ -405,7 +406,7 @@
          */
         actionKeepFollowers(c) {
             if (!this.world) return;
-            this.world.followers = this.alive(c.minions).map((m) => ({ ...m, statusEffects: [] }));
+            this.world.followers = this.alive(c.minions).filter((m) => !m.ghoul).map((m) => ({ ...m, statusEffects: [] }));   // a ghoul's job ends with the fight
         }
 
         /** A new fight starts: your followers join it with the ids they had (their bodies don't change). */
@@ -430,6 +431,24 @@
                 for (const m of f) this.say(`Your ${m.name} crumbles to dust.`);
                 this.out.push({ type: 'action.followers_gone', ids: f.map((m) => m.id) });
                 return { ids: f.map((m) => m.id) };
+            });
+        }
+
+        /**
+         * Raise Ghoul (Tokelo 2026-11-01): the charging ghoul reached an enemy (the sim decides when and who is in the
+         * blast). `targetIds`: engaged enemies within its burst radius, the one it ran at first.
+         */
+        actionGhoulBurst(minionId, targetIds = []) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                const c = this.combat;
+                const g = this.alive(c.minions).find((m) => m.id === minionId);
+                if (!g || !g.ghoul || g.ghoul.phase !== 'charging') { this.refuse('INVALID_TARGET', `No charging ghoul '${minionId}'.`); return null; }
+                const living = this.alive(c.enemies);
+                const targets = (Array.isArray(targetIds) ? targetIds : []).map((id) => living.find((e) => e.id === id)).filter(Boolean);
+                this.ghoulBurst(g, targets);
+                this.checkBattleEnd();
+                return { hit: targets.map((t) => t.id) };
             });
         }
 
@@ -665,7 +684,8 @@
                 })),
                 minions: this.alive(c.minions).map((m) => ({
                     id: m.id, name: m.name, summonType: m.summonType, hp: m.hp, maxHp: m.maxHp,
-                    stunned: stunned(m), speedMult: speedMult(m), statuses: statuses(m), taunting: m.statusEffects.some((s) => s.type === 'taunt')
+                    stunned: stunned(m), speedMult: speedMult(m), statuses: statuses(m), taunting: m.statusEffects.some((s) => s.type === 'taunt'),
+                    ghoul: m.ghoul ? { phase: m.ghoul.phase, stored: m.ghoul.stored, capacity: m.ghoul.capacity } : null   // Raise Ghoul: 'shield' then 'charging'
                 })),
                 minionFocusId: (this.hasTrait('Grave Command') && c.graveCommandTargetId) || null,   // Bone Warden: minions focus your last target
                 player: { stunned: stunned(this.player), speedMult: speedMult(this.player), statuses: statuses(this.player) },
