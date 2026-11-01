@@ -183,6 +183,19 @@
                 specialFlags: ['undead'],
                 skills: [{ name: 'Bone Club', description: 'Deals 5-7 damage.', base_damage: [5, 7], target: 'enemy_single', damage_type: 'physical' }]
             },
+            'skeleton_champion': {   // March of Endless Bones: double a skeleton (Tokelo 2026-11-01)
+                name: 'Skeleton Champion',
+                hp: 30,
+                maxHp: 30,
+                atk: 10,
+                def: 2,
+                spd: 7,
+                critChance: 0.05,
+                critMultiplier: 1.5,
+                resistances: [],
+                specialFlags: ['undead'],
+                skills: [{ name: 'Champion Cleave', description: 'Deals 10-14 damage.', base_damage: [10, 14], target: 'enemy_single', damage_type: 'physical' }]
+            },
             'ghoul': {
                 name: 'Ghoul',
                 hp: 25,
@@ -230,15 +243,26 @@
             'Fortress': { description: 'Create a zone lasting 3 turns, allies take -20% dmg inside.', liveDescription: 'Create a zone for 9 s; allies inside take -20% damage.', cost: 2, resource: 'Vigil', effects: [{ type: 'create_zone', zone: 'Fortress', duration: 3, effect: { type: 'damage_reduction', value: 0.2 } }], target: 'self', damage_type: 'utility' },
 
             // Necromancer Base Skills
-            'Grave Bolt': { description: '10–14 dmg, +2 dmg per corpse on the battlefield.', cost: 1, cooldown: 4, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_corpse', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
+            'Grave Bolt': { description: '10–14 dmg, +2 dmg for each minion you have raised.', cost: 1, cooldown: 4, resource: 'Soul Energy', base_damage: [10, 14], effects: [{ type: 'bonus_damage_per_minion', value: 2 }], target: 'enemy_single', damage_type: 'magic' },
             'Raise Skeleton': { description: 'Summon skeleton (5–7 dmg/turn).', liveDescription: 'Summon a skeleton (5–7 dmg per hit).', cost: 2, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'skeleton', damage: [5, 7], duration: 'permanent' }], target: 'self' },
             'Soul Leech': { description: 'Deal 8 dmg, heal for half dmg dealt.', cost: 1, cooldown: 4, resource: 'Soul Energy', base_damage: [8, 8], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
-            'Channel the Grave': { description: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 1 turn)', liveDescription: 'Gain +1 Soul Energy, take 2 true damage. (Cooldown: 4 s)', cost: 0, resource: 'Soul Energy', effects: [{ type: 'gain_resource', resource: 'Soul Energy', value: 1 }, { type: 'take_true_damage', value: 2 }, { type: 'apply_status', status: 'Channel Cooldown', duration: 1 }], target: 'self' }, // Safety valve
+            // Tokelo 2026-11-01: was "+1 Soul Energy for 2 true damage" (a turn-based valve). Now two random ghosts buff you.
+            // Pool and numbers: docs/design/NECROMANCER_LIVE_KIT.md (Gauge). Ghost lifetime in timed fights: realtimeRules.statuses.buffs.
+            'Channel the Grave': { description: 'Call 2 ghosts for 5 turns; each grants a random buff (damage, Soul Energy, speed, poison or bleed on hit).', liveDescription: 'Call 2 ghosts for 20 s; each grants a random buff: +25% damage, Soul Energy recovery, 25% faster swings and cooldowns, poison on hit or bleed on hit.', cost: 2, cooldown: 30, resource: 'Soul Energy', effects: [{ type: 'channel_ghosts', count: 2, duration: 5, pool: [
+                { name: 'Wrath Ghost', type: 'damage_boost', value: 0.25, text: '+25% damage' },
+                { name: 'Siphon Ghost', type: 'resource_regen', value: 1, text: '+1 Soul Energy every pulse' },
+                { name: 'Swift Ghost', type: 'haste', value: 0.25, text: 'swings and cooldowns 25% faster' },
+                { name: 'Venom Ghost', type: 'on_hit_dot', dot: 'Poison', value: 2, dotDuration: 1, text: 'your hits poison' },
+                { name: 'Rend Ghost', type: 'on_hit_dot', dot: 'Bleed', value: 2, dotDuration: 1, text: 'your hits cause bleeding' }
+            ] }], target: 'self' },
 
             // Bone Warden Branch Skills
             'Bone Wall': { description: 'Absorbs the next hit entirely.', liveDescription: 'Absorb the next hit entirely. Lasts 12 s; stacks to 2 (two hits).', cost: 1, resource: 'Soul Energy', effects: [{ type: 'absorb_hit', duration: 1 }], target: 'self' },
             'Shield of the Dead': { description: 'All minions taunt for 2 turns.', liveDescription: 'All minions taunt for 6 s.', cost: 2, resource: 'Soul Energy', effects: [{ type: 'minion_taunt', duration: 2 }], target: 'minions' },
-            'Raise Ghoul': { description: 'Summon ghoul (9–12 dmg/turn, applies [Weaken]).', liveDescription: 'Summon a ghoul (9–12 dmg per hit, applies [Weaken] for 6 s).', cost: 3, resource: 'Soul Energy', effects: [{ type: 'summon', summon_type: 'ghoul', damage: [9, 12], duration: 'permanent', apply_effect: { type: 'apply_mark', mark: 'Weaken', value: 0.2, duration: 2 } }], target: 'self' },
+            // Team pick (Tokelo asked for a researched swap, 2026-11-01): Shield of the Dead did nothing without minions.
+            'Bone Cage': { description: 'Bone spikes burst from the ground: 8–12 dmg to enemies in the area, slowed by 90% for 1 turn.', liveDescription: 'Bone spikes burst from the ground: 8–12 dmg to enemies in the area, who are held (90% slower) for 3 s.', cost: 2, cooldown: 12, resource: 'Soul Energy', base_damage: [8, 12], effects: [{ type: 'slow', value: 0.9, duration: 1 }], target: 'enemy_aoe', damage_type: 'physical' },
+            // Tokelo 2026-11-01: a meat shield. It takes every hit meant for you, then runs at an enemy and bursts.
+            'Raise Ghoul': { description: 'Raise a ghoul that takes all damage meant for you for 3 turns, then bursts on an enemy: half the stored damage as a blast, half as bleeding.', liveDescription: 'Raise a ghoul that takes all damage meant for you for 10 s (up to 60), then runs at an enemy and bursts: 10 + half the stored damage at once, the other half as bleeding over 6 s.', cost: 3, cooldown: 25, resource: 'Soul Energy', effects: [{ type: 'ghoul_shield', summon_type: 'ghoul', seconds: 10, duration: 3, capacity: 60, burstBase: 10, burstShare: 0.5, bleedShare: 0.5, bleedTurns: 2, chargeSeconds: 4 }], target: 'self' },
             'Reaper’s Charge': { description: '20–28 dmg + stun 1 turn.', liveDescription: '20–28 dmg + stun 3 s.', cost: 3, resource: 'Soul Energy', base_damage: [20, 28], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_single', damage_type: 'physical' },
 
             // Plaguecaller Branch Skills
@@ -304,7 +328,8 @@
             'Oblivion Reign': { description: 'Next 3 turns, all attacks are true dmg & heal you.', liveDescription: 'For 9 s, all attacks are true dmg & heal you.', cost: 'all', resource: 'Sin Marks', oncePerFight: true, effects: [{ type: 'true_damage_attacks', duration: 3 }, { type: 'heal_on_attack_percent', value: 1 }], target: 'self' },
             'Dragon’s Dominion': { description: 'Triple dmg vs bosses for 1 turn.', liveDescription: 'Triple dmg vs bosses for 10 s.', cost: 'all', resource: 'Fury Gauge', oncePerFight: true, effects: [{ type: 'bonus_damage_vs_flag_percent', flag: 'boss', value: 2, duration: 1 }], target: 'self' }, // 200% bonus = triple
             'Total Lockdown': { description: 'Enemies can’t move or leave zones for 2 turns.', liveDescription: 'Enemies can’t move or leave zones for 6 s.', cost: 'all', resource: 'Vigil', oncePerFight: true, effects: [{ type: 'immobilize_enemies', duration: 2 }], target: 'all_enemies' },
-            'March of Endless Bones': { description: 'Instantly resurrect all fallen minions and summon 1 free ghoul.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'resurrect_all_minions' }], target: 'self' }, // Black Pharaoh Ascended
+            // Tokelo 2026-11-01: fill your army and raise a champion; costed and on a cooldown instead of once per fight.
+            'March of Endless Bones': { description: 'Raise skeletons up to your minion limit, plus a Skeleton Champion with double a skeleton\'s stats.', cost: 6, cooldown: 45, resource: 'Soul Energy', effects: [{ type: 'raise_army', summon_type: 'skeleton', champion: 'skeleton_champion' }], target: 'self' }, // Black Pharaoh Ascended
             'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe' }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
             'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', liveDescription: 'All enemies become undead under your control for 3 s.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
             
@@ -403,7 +428,7 @@
                 startingResource: { type: 'Soul Energy', initial: 1, max: 10 },
                 baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, def: 4, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
                 levelGrowth: { hp: 8, intelligence: 2, agility: 0.5, def: 1, resource: 2 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
-                startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech'],
+                startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech', 'Channel the Grave'],
                 startingTraits: []
             }
         };
@@ -469,7 +494,7 @@
                         resourceEvolution: [],
                         stages: [
                             { level: 3, name: 'Bone Warden', trait: 'Grave Command', traitEffect: 'Minions focus the last enemy you attacked.', skill: 'Bone Wall', lore: "Your minions stand in a ring of brittle bone, a shield wall from another world." },
-                            { level: 5, name: 'Ossified Champion', trait: 'Minions gain +20% HP', traitEffect: 'Your summoned minions are tougher, granting them increased durability.', skill: 'Shield of the Dead', upgrade: 'Skeletons now deal 6–9 dmg/turn.', lore: "Your summons no longer creak like rotted wood — they march with the weight of stone." },
+                            { level: 5, name: 'Ossified Champion', trait: 'Minions gain +20% HP', traitEffect: 'Your summoned minions are tougher, granting them increased durability.', skill: 'Bone Cage', upgrade: 'Skeletons now deal 6–9 dmg/turn.', lore: "Your summons no longer creak like rotted wood — they march with the weight of stone." },
                             { level: 8, name: 'Gravekeeper', trait: 'Bone Fortress', traitEffect: '+1% dmg reduction per minion (max 15%).', skill: 'Raise Ghoul', lore: "You no longer wait for death to find your army — you harvest it." },
                             { level: 11, name: 'Death Knight', trait: 'Summons deal +25% dmg', traitEffect: 'Your summoned creatures strike with terrifying force.', skill: 'Reaper’s Charge', upgrade: 'All summons gain +25% dmg.', lore: "You ride at the head of your host, steel and shadow made one." },
                             { level: 14, name: 'Black Pharaoh', trait: '+3 max minions; all summons gain AOE attacks', traitEffect: 'Your legion grows vast, each servant capable of sweeping strikes.', skill: 'March of Endless Bones', ascended: true, lore: "Your throne is a tomb. Your crown, the dust of empires." }
@@ -773,7 +798,13 @@
                     'Guaranteed Crit': { maxStacks: 1 },                // Shadowstep: until used; one banked crit only
                     'Dragon’s Dominion': { seconds: 10, maxStacks: 1 }, // once per fight ultimate: a 10 s burst window
                     'Taunt':           { seconds: 6,  maxStacks: 1 },   // Shield of the Dead: minions hold aggro
-                    'Haste':           { seconds: 8,  maxStacks: 1 }    // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
+                    'Haste':           { seconds: 8,  maxStacks: 1 },   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
+                    // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
+                    'Wrath Ghost':     { seconds: 20, maxStacks: 1 },
+                    'Siphon Ghost':    { seconds: 20, maxStacks: 1 },
+                    'Swift Ghost':     { seconds: 20, maxStacks: 1 },
+                    'Venom Ghost':     { seconds: 20, maxStacks: 1 },
+                    'Rend Ghost':      { seconds: 20, maxStacks: 1 }
                 }
             },
             skillBar: { slots: 6 }
@@ -897,6 +928,21 @@
                     },
                     'Soul Leech':        { shape: 'line', reach: 96, width: 10, castMs: 320, los: true, maxTargets: 1 },
                     'Channel the Grave': { shape: 'self', castMs: 400 },
+                    'Bone Cage':         { shape: 'ground', range: 140, radius: 40, castMs: 350, los: true },
+                    'Raise Ghoul':       {
+                        shape: 'summon', range: 40, castMs: 600,
+                        // the meat shield sticks close to you, then sprints at an enemy (chargeSpeed) and bursts within burstRadius
+                        minion: { radius: 6, speed: 72, followMin: 10, followMax: 18, engageRadius: 0, teleportBeyond: 120, chargeSpeed: 120, burstRadius: 40, attack: null }
+                    },
+                    'March of Endless Bones': {
+                        shape: 'summon', range: 40, castMs: 900,
+                        minions: {
+                            skeleton_champion: {
+                                radius: 7, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220,
+                                attack: { skill: 'Champion Cleave', shape: 'arc', reach: 20, arcDeg: 90, windupMs: 400, activeMs: 90, recoveryMs: 450, cooldownMs: 1600 }
+                            }
+                        }
+                    },
                     'Shield Bash':       { shape: 'arc', reach: 22, arcDeg: 80, castMs: 260, poise: 3, stepPx: 12, maxTargets: 1 },
                     'Hemorrhage':        { shape: 'arc', reach: 28, arcDeg: 90, castMs: 300, maxTargets: 1 },
                     'Pincushion':        { shape: 'projectile', range: 160, speed: 320, radius: 4, castMs: 300 },

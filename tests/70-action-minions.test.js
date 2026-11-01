@@ -227,13 +227,16 @@ test('actionMinionStrike: the same rules path, with refusals for a bad minion or
     assert.ok(hit.ok && hit.result === 'hit');
     assert.ok(foe.hp < before);
     const v = r.g.actionView();
-    assert.deepStrictEqual(Object.keys(v.minions[0]).sort(), ['hp', 'id', 'maxHp', 'name', 'speedMult', 'statuses', 'stunned', 'summonType', 'taunting'].sort());
+    assert.deepStrictEqual(Object.keys(v.minions[0]).sort(), ['ghoul', 'hp', 'id', 'maxHp', 'name', 'speedMult', 'statuses', 'stunned', 'summonType', 'taunting'].sort());
 });
 
-test('Minion bodies: a summon type without its own profile (Raise Ghoul) borrows the skeleton profile; the art knows both', () => {
+test('Minion bodies: each summon type finds its own profile (the ghoul and the champion have theirs); the art knows both', () => {
     const r = necro();
-    const prof = r.sim.minionProfile('ghoul');
-    assert.strictEqual(prof, r.g.data.actionRules.skillShapes.bySkill['Raise Skeleton'].minion);
+    const by = r.g.data.actionRules.skillShapes.bySkill;
+    assert.strictEqual(r.sim.minionProfile('skeleton'), by['Raise Skeleton'].minion);
+    assert.strictEqual(r.sim.minionProfile('ghoul'), by['Raise Ghoul'].minion);
+    assert.strictEqual(r.sim.minionProfile('skeleton_champion'), by['March of Endless Bones'].minions.skeleton_champion);
+    assert.strictEqual(r.sim.minionProfile('nobody'), by['Raise Skeleton'].minion, 'an unknown type borrows a fighter profile');
     const HD = require('../ui/battle-hd.js');
     assert.strictEqual(HD.CREATURE_FOR.skeleton, 'skeleton');
     assert.strictEqual(typeof HD.creatures.skeleton, 'function');

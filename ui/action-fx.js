@@ -717,6 +717,7 @@
         ghoul: [[-4, -24, 8, 7, '#8a9a7c'], [-6, -17, 12, 6, '#6e7e62'], [-5, -11, 10, 5, '#3a3028'], [-8, -16, 2, 7, '#6e7e62'],
             [6, -16, 2, 7, '#48563e'], [-3, -5, 3, 5, '#5a6a50'], [1, -5, 3, 5, '#4a5a42']]
     };
+    BONES.skeleton_champion = BONES.skeleton;
     const CRUMBLE_MS = 1600;
     /**
      * crumble(g, enemyKey, x, y, t): a dead or dismissed summon at feet (x, y), t ms after it fell. The pieces drop

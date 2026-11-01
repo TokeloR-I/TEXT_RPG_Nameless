@@ -118,6 +118,10 @@
                 const g = this.gainResource(p, p.resource.regen);
                 if (g > 0) this.say(`You regenerate ${g} ${p.resource.type}.`);
             }
+            for (const st of p.statusEffects.filter((x) => x.type === 'resource_regen')) {   // Siphon Ghost
+                const g = this.gainResource(p, Number(st.value) || 0);
+                if (g > 0) this.say(`${st.name} feeds you ${g} ${p.resource.type}.`);
+            }
             const rule = this.resourceRule();
             if (rule.onMarkedHitRound && c.markedEnemyHitThisRound) {
                 if (this.gainResource(p, rule.onMarkedHitRound) > 0) this.say(`A marked foe bleeds. Your ${p.resource.type} grows (+${rule.onMarkedHitRound}).`);
@@ -353,6 +357,7 @@
         }
 
         minionTurn(minion) {
+            if (minion.ghoul) return;   // Raise Ghoul guards and bursts; it never swings
             const living = this.alive(this.combat.enemies);
             const focusId = this.hasTrait('Grave Command') && this.combat.graveCommandTargetId;
             const target = living.find(e => e.id === focusId) || living[0];

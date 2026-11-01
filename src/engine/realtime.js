@@ -57,6 +57,7 @@
             const r = this.rtRules().statuses || {};
             const buff = this.rtBuffRule(inst.name);
             if (buff && isNum(buff.seconds)) return Math.round(buff.seconds * 1000);
+            if (isNum(inst.seconds)) return Math.round(inst.seconds * 1000);   // a status that names its own seconds (Ghoul Shield)
             if (inst.policy === 'holder_next_turn_start') return Math.round((r.guardSeconds || 3) * 1000);
             if (isNum(inst.duration) && inst.duration > 0) return this.rtTurnsToMs(inst.duration);
             return null;
@@ -266,7 +267,9 @@
                 for (const s of gone) {
                     this.removeStatus(x, s);
                     if (x.hp > 0) this.say(`[${s.name}] wears off ${x.name}.`);
+                    this.statusExpired(x, s);   // Raise Ghoul: the shield ends, the charge bursts
                 }
+                if (gone.length && ended()) return true;
             }
             // 2. wind-ups that land, 3. actions that start
             for (const x of this.rtLiving()) {

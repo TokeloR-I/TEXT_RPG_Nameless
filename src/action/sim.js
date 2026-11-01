@@ -499,11 +499,13 @@
             if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
             const shape = r.shape || {};
             if (shape.shape === 'summon') this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
-            const startup = shape.startupMs != null ? shape.startupMs : (shape.castMs || 150);
-            const recovery = shape.recoveryMs != null ? shape.recoveryMs : 200;
+            // Haste (Swift Ghost, Time Mage): the weapon's swing runs faster too, not just skill cooldowns
+            const haste = slot == null && e.rtHasteMult ? e.rtHasteMult(e.player) : 1;
+            const startup = Math.round((shape.startupMs != null ? shape.startupMs : (shape.castMs || 150)) * haste);
+            const recovery = Math.round((shape.recoveryMs != null ? shape.recoveryMs : 200) * haste);
             p.attack = { shape, castId: r.castId, skill: r.skill, start: this.now, fireAt: this.now + startup, fired: r.resolved, isBasic: slot == null, aim: this.input.aim ? { ...this.input.aim } : null };
             p.state = 'attack';
-            p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
+            p.stateEnd = this.now + startup + Math.round((shape.activeMs || 0) * haste) + recovery;
             this.fx.push({ type: r.resolved ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: r.skill });
             if (shape.shape === 'dash') this.beginDash(p.attack, blink);
         }
@@ -522,6 +524,7 @@
             if (!pre.ok) { this.fx.push({ type: 'refused', code: pre.error.code, text: pre.error.message }); return; }
             const shape = pre.shape;
             if (shape.teleport) { this.fx.push({ type: 'notice', text: `${name}: no enemy in reach to step behind.` }); return; }
+            if (shape.shape === 'summon' && !pre.summon) { this.fx.push({ type: 'notice', text: `${name} only works in a fight.` }); return; }   // Raise Ghoul, March
             if (pre.summon) {
                 const r = e.actionSummonFollower(name);
                 this.collect(r.events);
@@ -1086,10 +1089,11 @@
             const by = (this.rules.skillShapes || {}).bySkill || {};
             const defs = this.engine.data.skillDefinitions;
             let first = null;
+            for (const sh of Object.values(by)) if (sh.minions && sh.minions[type]) return sh.minions[type];   // March's champion
             for (const [name, sh] of Object.entries(by)) {
                 if (!sh.minion) continue;
-                first = first || sh.minion;
-                if (((defs[name] || {}).effects || []).some((x) => x.type === 'summon' && x.summon_type === type)) return sh.minion;
+                if (sh.minion.attack) first = first || sh.minion;   // a fighter's profile is the fallback (not the ghoul's)
+                if (((defs[name] || {}).effects || []).some((x) => x.summon_type === type && (x.type === 'summon' || x.type === 'ghoul_shield'))) return sh.minion;
             }
             return first || { radius: 5, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220, attack: { shape: 'arc', reach: 16, arcDeg: 70, windupMs: 350, activeMs: 80, recoveryMs: 450, cooldownMs: 1500 } };
         }
@@ -1105,6 +1109,7 @@
             const ids = new Set(list.map((m) => m.id));
             for (const m of this.minions) if (!m.dead && !ids.has(m.engineId)) {
                 m.dead = true; m.deadAt = this.now; m.state = 'dead';   // the bones fall apart (ui: AFX.crumble)
+                if (m.ghoul && m.ghoul.phase === 'charging' && !m.burst) this.fx.push({ type: 'aoe', x: m.x, y: m.y, radius: m.prof.burstRadius || 40 });   // it burst where it stood
                 this.fx.push({ type: 'crumble', x: m.x, y: m.y, key: m.key });
             }
             this.minions = this.minions.filter((m) => !m.dead || this.now - m.deadAt < MINION_CRUMBLE_MS);
@@ -1128,7 +1133,7 @@
                     this.fx.push({ type: 'summon', x: m.x, y: m.y, key: m.key, ms: (ps && ps.riseMs) || 0 });
                 }
                 if (m.hp != null && en.hp < m.hp) { m.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: m.x, y: m.y - 12, amount: m.hp - en.hp, ally: true }); }
-                Object.assign(m, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, statuses: en.statuses, taunting: en.taunting, name: en.name });
+                Object.assign(m, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, statuses: en.statuses, taunting: en.taunting, name: en.name, ghoul: en.ghoul || null });
             }
         }
 
@@ -1204,6 +1209,7 @@
             const atk = pr.attack || {};
             const dt = STEP / 1000;
             if (m.state === 'rise') { if (this.now >= m.stateEnd) { m.state = 'idle'; m.visualStateStart = this.now; } return; }
+            if (m.ghoul && m.ghoul.phase === 'charging') { if (!m.burst) this.stepGhoulCharge(m, STEP / 1000); return; }   // Raise Ghoul: no leash while it charges
             if (dist(m, p) > (pr.teleportBeyond || 220)) {
                 const back = { x: p.x - Math.cos(p.angle) * (pr.followMin || 24), y: p.y - Math.sin(p.angle) * (pr.followMin || 24) };
                 const spot = this.bodyBlocked(back.x, back.y, m.r) ? { x: p.x, y: p.y } : back;
@@ -1220,7 +1226,7 @@
                 return;
             }
             if (m.state === 'recover') { if (this.now >= m.stateEnd) m.state = 'idle'; return; }
-            const t = this.engaged ? this.minionTarget(m) : null;
+            const t = this.engaged && !m.ghoul ? this.minionTarget(m) : null;   // a guarding ghoul only sticks to you
             m.targetId = t ? t.engineId : null;
             if (t) {
                 m.angle = angleTo(m, t);
@@ -1242,6 +1248,28 @@
             if (d > (pr.followMax || 40)) { this.chase(m, dt, p); m.state = 'move'; }
             else if (d > (pr.followMin || 24) && p.moving) { this.walkTo(m, p, dt, 0.8); m.state = 'move'; }
             else m.state = 'idle';
+        }
+
+        /** Raise Ghoul's charge: sprint at the nearest engaged enemy and burst on contact (everyone in burstRadius). */
+        stepGhoulCharge(m, dt) {
+            const pr = m.prof;
+            const foes = this.liveActors().sort((x, y) => dist(m, x) - dist(m, y));
+            const t = foes[0];
+            if (!t) { m.state = 'idle'; return; }
+            m.angle = angleTo(m, t);
+            m.state = 'move';
+            if (dist(m, t) > t.r + m.r + 4) {
+                const mult = (pr.chargeSpeed || 120) / (pr.speed || 64);
+                if (this.lineOfSight(m, t, true)) { m.path = null; this.walkTo(m, t, dt, mult); } else this.chase(m, dt, t);
+                return;
+            }
+            const radius = pr.burstRadius || 40;
+            const hits = foes.filter((a) => dist(m, a) <= radius + a.r);
+            const r = this.engine.actionGhoulBurst(m.engineId, hits.map((a) => a.engineId));
+            this.collect(r.events);
+            m.burst = true;
+            this.fx.push({ type: 'aoe', x: m.x, y: m.y, radius });
+            if (r.ok) for (const a of hits) if ((r.hit || []).includes(a.engineId)) this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(m, a) });
         }
 
         /** The club comes down: the arc in front decides who it touches (the target first); the engine does the rest. */

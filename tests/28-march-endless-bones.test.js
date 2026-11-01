@@ -1,34 +1,37 @@
 const {test,assert,newGame}=require('./helpers.js');
+// March of Endless Bones (Tokelo 2026-11-01, docs/design/NECROMANCER_LIVE_KIT.md): skeletons up to the minion cap plus one
+// Skeleton Champion (double a skeleton); costed and on a cooldown instead of once per fight.
 function march(){
  const g=newGame(95).do('necromancer','n','engage');
  g.player.skills.push('March of Endless Bones');
  g.player.traits.push({name:'+3 max minions; all summons gain AOE attacks'});
- g.player.resource.current=7;
+ g.player.resource.current=10;
  return g;
 }
-test('N-1 March: resurrects oldest fallen at half HP as new IDs and adds Ghoul',()=>{
+const skill=(g)=>g.data.skillDefinitions['March of Endless Bones'];
+test('March: fills the army to the cap and adds a Skeleton Champion with double a skeleton\'s stats',()=>{
  const g=march();
- const a=g.summon('skeleton'),b=g.summon('ghoul');
- g.damage(a,a.hp,g.combat.enemies[0]);g.damage(b,b.hp,g.combat.enemies[0]);
- g.castSkill(g.player,g.data.skillDefinitions['March of Endless Bones'],[g.player]);
+ g.summon('skeleton');
+ g.castSkill(g.player,skill(g),[g.player]);
  const alive=g.alive(g.combat.minions);
- assert.strictEqual(alive.length,3);
- assert.strictEqual(alive[0].resurrectedFrom,a.id);
- assert.strictEqual(alive[1].resurrectedFrom,b.id);
- assert.strictEqual(alive[0].hp,Math.ceil(a.maxHp/2));
- assert.strictEqual(alive[1].hp,Math.ceil(b.maxHp/2));
- assert.strictEqual(alive[2].summonType,'ghoul');
- assert.ok(a.resurrectionConsumed&&b.resurrectionConsumed);
- assert.ok(new Set(alive.map(m=>m.id)).size===3);
- assert.ok(!g.combat.order.includes(alive[0]),'resurrected minions join next round');
+ const champs=alive.filter(m=>m.summonType==='skeleton_champion');
+ assert.strictEqual(champs.length,1);
+ assert.strictEqual(alive.length-1,g.minionCap(),'skeletons up to the cap, the champion on top');
+ const sk=g.data.minionDefinitions.skeleton, ch=g.data.minionDefinitions.skeleton_champion;
+ assert.strictEqual(ch.maxHp,sk.maxHp*2); assert.strictEqual(ch.atk,sk.atk*2); assert.strictEqual(ch.def,sk.def*2);
+ assert.deepStrictEqual(ch.skills[0].base_damage,sk.skills[0].base_damage.map(x=>x*2));
 });
-test('N-1 March: no fallen and full capacity refuses; no overflow',()=>{
+test('March: costed with a cooldown, not once per fight or all Soul Energy',()=>{
+ const s=newGame().data.skillDefinitions['March of Endless Bones'];
+ assert.ok(!s.oncePerFight); assert.strictEqual(typeof s.cost,'number'); assert.ok(s.cooldown>=30);
+});
+test('March: a full army with its champion refuses; no overflow',()=>{
  const g=march();
- for(let i=0;i<6;i++)g.summon('skeleton');
- const skill=g.data.skillDefinitions['March of Endless Bones'];
- const reason=g.effects.resurrect_all_minions.requires({engine:g,caster:g.player,targets:[g.player],skill,effect:skill.effects[0]});
- assert.match(reason,/no capacity/i);
- assert.strictEqual(g.alive(g.combat.minions).length,6);
+ g.castSkill(g.player,skill(g),[g.player]);
+ const n=g.alive(g.combat.minions).length;
+ const reason=g.effects.raise_army.requires({engine:g,caster:g.player,targets:[g.player],skill:skill(g),effect:skill(g).effects[0]});
+ assert.match(reason,/full strength/i);
+ assert.strictEqual(g.alive(g.combat.minions).length,n);
 });
 test('N-1 March: splash spreads half actual minion damage without recursion',()=>{
  const g=march(),[a,b,c]=g.combat.enemies;

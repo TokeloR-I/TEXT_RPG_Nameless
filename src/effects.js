@@ -53,6 +53,18 @@
         }
     });
 
+    register('bonus_damage_per_minion', { // Grave Bolt (Tokelo 2026-11-01): your raised minions, not corpses (boss fights have none)
+        afterCalc(ctx, hit) {
+            const e = ctx.engine;
+            const n = e.alive(e.combat.minions).filter((m) => m.ownerId === ctx.caster.id).length;
+            const bonus = n * ctx.effect.value;
+            if (bonus > 0) {
+                hit.damage += bonus;
+                e.say(`(${ctx.skill.name} gains ${bonus} bonus damage from your ${n} minion${n > 1 ? 's' : ''}!)`);
+            }
+        }
+    });
+
     register('bonus_damage_vs_flag_percent', {
         // Temporary self-buff; the shared status lifecycle handles its one-turn expiry.
         apply(ctx) {
@@ -611,6 +623,7 @@
     });
 
     register('minion_taunt', {
+        requires(ctx) { return ctx.engine.alive(ctx.engine.combat.minions).length ? null : 'You have no minions to taunt with.'; },
         apply(ctx) {
             const minions = ctx.engine.combat.minions.filter(m => m.hp > 0 && ctx.engine.applyStatus(ctx.caster, m, { name: 'Taunt', type: 'taunt', duration: ctx.effect.duration }));
             ctx.engine.say(minions.length ? 'Your minions are now taunting enemies!' : 'You have no minions to taunt with.');
@@ -640,6 +653,41 @@
                 ctx.engine.say(`The Hollow King gestures at ${t.name}. It flickers and is GONE.`, { important: true });
                 ctx.engine.erase(t);
             }
+        }
+    });
+
+    // ---------- Necromancer live kit (Tokelo 2026-11-01, docs/design/NECROMANCER_LIVE_KIT.md) ----------
+    register('channel_ghosts', { // Channel the Grave: N different random ghosts, each a buff status on the caster
+        apply(ctx) { ctx.engine.channelGhosts(ctx.caster, ctx.effect); }
+    });
+
+    register('ghoul_shield', { // Raise Ghoul: a meat shield that stores the damage meant for you, then bursts on an enemy
+        requires(ctx) {
+            const e = ctx.engine;
+            if (e.alive(e.combat.minions).some((m) => m.ghoul && m.ownerId === ctx.caster.id)) return 'Your ghoul is already guarding you.';
+            return e.alive(e.combat.minions).length >= e.minionCap() ? `You can't control more than ${e.minionCap()} minions.` : null;
+        },
+        apply(ctx) { ctx.engine.raiseGhoulShield(ctx.caster, ctx.effect); }
+    });
+
+    register('raise_army', { // March of Endless Bones: skeletons up to the cap, plus one champion
+        requires(ctx) {
+            const e = ctx.engine;
+            const live = e.alive(e.combat.minions);
+            const room = live.filter((m) => m.summonType !== ctx.effect.champion).length < e.minionCap();
+            const champ = live.some((m) => m.summonType === ctx.effect.champion);
+            return room || !champ ? null : 'Your army is already at full strength.';
+        },
+        apply(ctx) {
+            const e = ctx.engine;
+            const raised = [];
+            const count = () => e.alive(e.combat.minions).filter((m) => m.summonType !== ctx.effect.champion).length;
+            while (count() < e.minionCap()) { const m = e.summon(ctx.effect.summon_type); if (!m) break; raised.push(m.name); }
+            if (ctx.effect.champion && !e.alive(e.combat.minions).some((m) => m.summonType === ctx.effect.champion)) {
+                const c = e.summon(ctx.effect.champion);
+                if (c) raised.push(c.name);
+            }
+            e.say(raised.length ? `The March of Endless Bones raises ${raised.length > 1 ? raised.slice(0, -1).join(', ') + ' and ' + raised[raised.length - 1] : raised[0]}!` : 'Your army already stands ready.', { important: true });
         }
     });
 

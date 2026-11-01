@@ -201,6 +201,7 @@
         /** Called once at the end of every round. */
         P.tickStatusesEndOfRound = function () {
             const c = this.combat;
+            const expired = [];
             for (const x of [this.player, ...c.enemies, ...c.minions]) {
                 if (x.hp <= 0) continue;
                 x.statusEffects = x.statusEffects.filter((s) => {
@@ -213,9 +214,11 @@
                     if (!s.armed) return true;          // holder hasn't had a turn with it yet
                     if (--s.duration > 0) return true;
                     if (s.type !== 'dodge' && s.type !== 'counter') this.say(`[${s.name}] wears off ${x.name}.`);
+                    expired.push([x, s]);
                     return false;
                 });
             }
+            for (const [x, s] of expired) this.statusExpired(x, s);   // Raise Ghoul (src/engine/skills.js)
             // A link whose members expired on different initiative turns never
             // survives as an orphaned, one-member group.
             for (const actor of [this.player, ...c.enemies, ...c.minions]) {

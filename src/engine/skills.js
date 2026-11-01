@@ -82,6 +82,7 @@
                 if (status.type === 'bonus_damage_vs_flag_percent' &&
                     (target.specialFlags || []).includes(status.flag)) final *= 1 + status.value;
             }
+            for (const status of attacker.statusEffects) if (status.type === 'damage_boost') final *= 1 + (Number(status.value) || 0);   // Wrath Ghost
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.
@@ -133,7 +134,7 @@
                         for (const x of active) if (x.handler.beforeHit) x.handler.beforeHit({ ...ctx, effect: x.effect }, hit);
                         this.rollDamage(caster, target, skill, hit);
                         for (const x of active) if (x.handler.afterCalc) x.handler.afterCalc({ ...ctx, effect: x.effect }, hit);
-                        const hpNote = target.isPlayer ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
+                        const hpNote = target.isPlayer && !this.statusOfType(target, 'ghoul_shield') ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
                         this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer });
                         const actual = this.damage(target, hit.damage, caster, { alreadyScaled: true });
                         if (caster.isMinion && this.hasTrait('+3 max minions; all summons gain AOE attacks') && actual > 0) {
@@ -141,6 +142,9 @@
                                 this.secondaryDamage(other, Math.floor(actual * 0.5), this.player,
                                     { kind: 'Black Pharaoh Splash' });
                             }
+                        }
+                        if (caster.isPlayer && actual > 0 && target.hp > 0) {   // Venom / Rend Ghost: your hits poison or bleed
+                            for (const st of caster.statusEffects.filter((x) => x.type === 'on_hit_dot')) this.applyDot(caster, target, { name: st.dot, value: st.value, duration: st.dotDuration || 1 });
                         }
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
@@ -240,6 +244,12 @@
         // ---------- primitives the effect registry uses ----------
         damage(target, amount, source, options = {}) {
             if (amount <= 0 || target.hp <= 0) return 0;
+            if (target.ghoul) return this.ghoulAbsorb(target, amount), 0;   // Raise Ghoul: it stores what it takes, it never loses HP
+            if (target.isPlayer && this.combat) {
+                const taken = this.ghoulAbsorb(target, amount);
+                if (taken >= amount) return 0;
+                amount -= taken;
+            }
             // Attack hits were already multiplied in rollDamage; direct magical,
             // DoT and environmental damage must still receive Wound Transfer once.
             const adjusted = options.alreadyScaled ? amount :
@@ -300,6 +310,102 @@
             Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, summonType: type, ownerId: this.player.id, isPlayer: false, isMinion: true, statusEffects: [] });
             this.combat.minions.push(m);
             return m; // joins the turn order next round
+        }
+
+        // ---------- Necromancer live kit (Tokelo 2026-11-01, docs/design/NECROMANCER_LIVE_KIT.md) ----------
+        /** Channel the Grave: dismiss your ghosts, then call `count` different random ones from the pool (one buff each). */
+        channelGhosts(caster, effect) {
+            caster.statusEffects = caster.statusEffects.filter((s) => !s.ghost);
+            const pool = [...(effect.pool || [])];
+            const picks = [];
+            for (let i = 0; i < (effect.count || 2) && pool.length; i++) picks.push(pool.splice(Math.floor(this.rng() * pool.length), 1)[0]);
+            for (const g of picks) {
+                const { name, type, value, text, ...rest } = g;
+                this.applyStatus(caster, caster, { ...rest, name, type, value, text, duration: effect.duration, ghost: true });
+            }
+            if (picks.length) this.say(`${picks.length > 1 ? 'Ghosts answer' : 'A ghost answers'} your call: ${picks.map((g) => `${g.name} (${g.text})`).join(' and ')}.`, { important: true });
+        }
+
+        /** Raise Ghoul: a ghoul rises beside you and takes the damage meant for you (the 'Ghoul Shield' status on you). */
+        raiseGhoulShield(caster, effect) {
+            const m = this.summon(effect.summon_type || 'ghoul');
+            if (!m) return;
+            m.ghoul = { phase: 'shield', stored: 0, capacity: effect.capacity || 60, effect };
+            this.applyStatus(caster, caster, { name: 'Ghoul Shield', type: 'ghoul_shield', minionId: m.id, duration: effect.duration || 3, seconds: effect.seconds });
+            this.say(`${caster.name} raises a Ghoul! It throws itself in front of every blow meant for you.`, { important: true });
+        }
+
+        /** The guarding ghoul (if any) that takes damage aimed at `target`, and how much of `amount` it took. */
+        ghoulAbsorb(target, amount) {
+            let g = null;
+            if (target.ghoul) g = target;
+            else if (target.isPlayer && this.combat) {
+                const s = this.statusOfType(target, 'ghoul_shield');
+                g = s && this.alive(this.combat.minions).find((m) => m.id === s.minionId);
+            }
+            if (!g || !g.ghoul || g.ghoul.phase !== 'shield') return 0;
+            const take = Math.min(Math.max(0, g.ghoul.capacity - g.ghoul.stored), amount);
+            if (take <= 0) return 0;
+            g.ghoul.stored += take;
+            this.say(`${g.name} takes ${take} for you (${g.ghoul.stored}/${g.ghoul.capacity} stored).`);
+            if (g.ghoul.stored >= g.ghoul.capacity) this.ghoulShieldEnds(g);
+            return take;
+        }
+
+        /** The shield is over (time up, or the ghoul is full): it charges an enemy. Action fights let the sim run it there. */
+        ghoulShieldEnds(g) {
+            if (!g.ghoul || g.ghoul.phase !== 'shield') return;
+            const p = this.player;
+            const s = p.statusEffects.find((x) => x.type === 'ghoul_shield' && x.minionId === g.id);
+            if (s) this.removeStatus(p, s);
+            g.ghoul.phase = 'charging';
+            this.say(`${g.name} has soaked up ${g.ghoul.stored} damage and charges!`, { important: true });
+            if (this.combat && this.combat.action && g.hp > 0) {
+                // the sim runs it at an enemy (actionGhoulBurst); if it never gets there, it bursts when this runs out
+                this.applyStatus(p, g, { name: 'Ghoul Charge', type: 'ghoul_charge', duration: 1, seconds: g.ghoul.effect.chargeSeconds || 4 });
+                return;
+            }
+            const target = this.combat ? this.alive(this.combat.enemies)[0] : null;
+            this.ghoulBurst(g, target ? [target] : []);
+        }
+
+        /**
+         * The ghoul bursts on `targets`: burstBase + burstShare of what it stored at once (no DEF, like a DoT), and
+         * bleedShare as 'Grave Bleed' spread over bleedTurns. Then it's gone.
+         */
+        ghoulBurst(g, targets) {
+            if (!g.ghoul || g.ghoul.phase === 'spent') return;
+            const e = g.ghoul.effect || {};
+            const stored = g.ghoul.stored;
+            g.ghoul.phase = 'spent';
+            g.statusEffects = [];
+            const hit = (targets || []).filter((t) => t && t.hp > 0 && !t.erased);
+            const burst = (e.burstBase || 0) + Math.floor(stored * (e.burstShare != null ? e.burstShare : 0.5));
+            const bleed = Math.floor(stored * (e.bleedShare != null ? e.bleedShare : 0.5));
+            this.say(hit.length ? `${g.name} bursts in a spray of rot and bone!` : `${g.name} collapses with nothing to burst on.`, { important: true });
+            const turns = e.bleedTurns || 2;
+            const ticks = this.rtActive && this.rtActive() ? Math.max(1, Math.round(turns * (this.rtRules().secondsPerTurn || 3) / (((this.rtRules().statuses || {}).tickSeconds) || 1))) : turns;
+            for (const t of hit) {
+                this.say(`The blast hits ${t.name} for ${burst} damage!`);
+                this.damage(t, burst, this.player);
+                if (bleed > 0 && t.hp > 0) this.applyDot(this.player, t, { name: 'Grave Bleed', value: Math.max(1, Math.ceil(bleed / ticks)), duration: turns });
+            }
+            g.hp = 0;
+            g.dead = true;
+            if (this.combat) g.fallenOrder = ++this.combat.nextFallenOrder;
+            this.out.push({ type: 'action.ghoul_burst', minionId: g.id, targets: hit.map((t) => t.id), burst, bleed });
+        }
+
+        /** A timed status ran out (both clocks call this after removing it): the ghoul's shield and charge. */
+        statusExpired(holder, s) {
+            if (!this.combat) return;
+            if (s.type === 'ghoul_shield') {
+                const g = this.alive(this.combat.minions).find((m) => m.id === s.minionId);
+                if (g) this.ghoulShieldEnds(g);
+            } else if (s.type === 'ghoul_charge' && holder.ghoul && holder.ghoul.phase === 'charging') {
+                const target = this.alive(this.combat.enemies)[0];
+                this.ghoulBurst(holder, target ? [target] : []);
+            }
         }
 
         erase(target) {
