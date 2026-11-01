@@ -801,6 +801,7 @@
             // smallest round share at which the weakest Chapter One blow, a 3-damage rat bite, still deals 1). Guard applies after.
             defence: { minDamageShare: 0.35 },
             engageRadius: 120,                  // pressing attack with an enemy group this close engages it
+            openerConeDeg: 30,                  // a shot out of a fight engages the group it is aimed at (this cone), as far as it flies
             classes: {
                 warrior: {
                     weapon: {
@@ -827,12 +828,12 @@
                     guard: { parryOnly: true, damageTaken: 1.0, stamina: 10, whiffRecoveryMs: 350, parry: { windowMs: 200, staggerMs: 800 } }
                 },
                 mage: {
-                    weapon: { kind: 'projectile', range: 128, speed: 220, radius: 4, projectile: 'arcane', startupMs: 180, activeMs: 0, recoveryMs: 260, moveMult: 0.6, poise: 1 },
+                    weapon: { kind: 'projectile', range: 160, speed: 220, radius: 4, projectile: 'arcane', startupMs: 180, activeMs: 0, recoveryMs: 260, moveMult: 0.6, poise: 1 },   // Gauge 2026-11-01: range 128 -> 160, outranges every Chapter One detect radius (max 112)
                     dodge: { teleport: true, distance: 60, ms: 120, iframeStartMs: 0, iframeMs: 220, recoveryMs: 160, stamina: 30, cooldownMs: 600 },
                     guard: { damageTaken: 0.6, arcDeg: 360, staminaMult: 1.5, moveMult: 0.4, parry: null }
                 },
                 necromancer: {
-                    weapon: { kind: 'projectile', range: 120, speed: 190, radius: 4, projectile: 'bone', startupMs: 200, activeMs: 0, recoveryMs: 300, moveMult: 0.6, poise: 1 },
+                    weapon: { kind: 'projectile', range: 150, speed: 190, radius: 4, projectile: 'bone', startupMs: 200, activeMs: 0, recoveryMs: 300, moveMult: 0.6, poise: 1 },   // Gauge 2026-11-01: range 120 -> 150, as Grave Bolt
                     dodge: { distance: 40, ms: 300, iframeMs: 280, recoveryMs: 140, stamina: 25 },
                     guard: { damageTaken: 0.5, arcDeg: 360, staminaMult: 1.2, moveMult: 0.4, parry: null }
                 }

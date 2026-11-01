@@ -30,6 +30,11 @@ ui/action-fx.js                         damage, skills, resources, cooldowns, st
   fights use (`castSkill`, `applyStatus`, `useSkill` checks, `awardVictoryLoot`, `storyEvent`).
 - **Combat state is world state.** The engine is in `mode: 'combat'` while any enemy group is engaged. Groups join and
   leave that fight one by one; the fight ends when none is left. There is no battle screen, transition or result screen.
+- **Who starts a fight.** An enemy that sees you (its `detect` radius) engages its group. Pressing attack out of a fight
+  engages the nearest group within `actionRules.engageRadius`. A projectile attack or bolt skill instead engages the
+  group it is aimed at (within `openerConeDeg` of the aim, in sight) as far as the projectile flies, so the mage and
+  necromancer can open from range (Tokelo, 2026-11-01). Their weapon ranges (160 and 150 px) outrange every Chapter One
+  detect radius.
 - **One combat implementation.** v3 runs on v2's real-time engine (`combatMode: 'action'` is real time with the enemy
   schedules switched off, because the sim decides when an enemy attacks). The turn-based mode stays as the legacy and
   test reference (`combatMode: 'turn'`, the text game, the balance bot). v2's battle overlay stays reachable for testing
