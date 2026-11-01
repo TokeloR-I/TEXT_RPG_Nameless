@@ -12,7 +12,7 @@
 // Checks: a sub-tile + diagonal movement · b no overlay, enemies approach · c attack lowers HP, move mid-fight · d dodge
 //   e loot drop collected once · f no console errors · g Crow Warden challenged by dialogue and fought in the map
 //   h save/load keeps the dead dead · i leash · j guard · k ranged acolytes · l death -> respawn · m save refused in a fight
-//   n map exit mid-fight · o parry · p collision
+//   n map exit mid-fight · o parry (N/A for classes whose guard has no parry) · p collision
 // Results: PASS / FAIL / NOT YET. NOT YET = the feature's hook or mode isn't in the build yet (window.ensoDebug.action
 // missing, or the game still uses grid steps / the battle overlay); the observed behaviour is still reported.
 // Exit code 1 on any FAIL (and on NOT YET with --strict). Screenshots + results.json: qa/results/action/.
@@ -513,7 +513,10 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
         await goto('road', 'from_grounds'); await buff();
         const wolf = await encOf('road', 'road_wolf');
         let s = await S();
+        const noParry = await page.evaluate((c) => { const g = enso.data.actionRules.classes[c]; return !!(g && g.guard && g.guard.parry === null); }, CLS);
         if (!isAction(s)) rec('o', 'Parry: guard tapped just before a strike staggers the attacker and blocks the damage', 'NOT YET', 'no action mode', []);
+        // #195: the mage and necromancer guard profiles have no parry window (guard.parry: null), by design
+        else if (noParry) rec('o', 'Parry: guard tapped just before a strike staggers the attacker and blocks the damage', 'N/A', `${CLS} has no parry (actionRules.classes.${CLS}.guard.parry is null)`, []);
         else {
             await travel(wolf.x, wolf.y + 2, 0.6, 10000, async (t) => t.engaged);
             let tries = 0, parried = 0, log = [];
@@ -673,6 +676,6 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
     console.log('|----|---------|-------|----------|');
     for (const r of results) console.log(`| ${r.id}  | ${r.status.padEnd(7)} | ${r.what} | ${r.reason.replace(/\|/g, '/')}${r.shots.filter(Boolean).length ? ` [${r.shots.filter(Boolean).join(', ')}]` : ''} |`);
     const n = (st) => results.filter((r) => r.status === st).length;
-    console.log(`\n${n('PASS')} pass · ${n('FAIL')} fail · ${n('NOT YET')} not yet${STRICT ? ' (strict)' : ''}`);
+    console.log(`\n${n('PASS')} pass · ${n('FAIL')} fail · ${n('NOT YET')} not yet · ${n('N/A')} n/a${STRICT ? ' (strict)' : ''}`);
     process.exit(n('FAIL') || (STRICT && n('NOT YET')) ? 1 : 0);
 })().catch((e) => { console.error('HARNESS ERROR', e); process.exit(2); });

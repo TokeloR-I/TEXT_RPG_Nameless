@@ -1,0 +1,12 @@
+Crow Warden, level 3, 20 seeds, react 0.3, cap 240 s
+
+| class / branch | pre-buff | win | time to kill (wins) | HP lost per fight | HP left (wins) | timeouts | pre-buff state |
+|---|---|---|---|---|---|---|---|
+| warrior / Vanguard | no | 100% | 37.8 s | 86 | 59% | 0 | - |
+| warrior / Vanguard | yes | 100% | 36.2 s | 85 | 60% | 0 | {"Guard":2}, 4 s to set up |
+| rogue / Duelist | no | 40% | 38.1 s | 100 | 32% | 0 | - |
+| rogue / Duelist | yes | 45% | 40.0 s | 95 | 42% | 0 | {"Evasion":2,"Riposte":2}, 13 s to set up |
+| necromancer / Bone Warden | no | 60% | 99.8 s | 61 | 81% | 1 | - |
+| necromancer / Bone Warden | yes | 55% | 100.8 s | 60 | 89% | 0 | {"Bone Wall":2} +1 follower, 8 s to set up |
+| mage / Illusionist | no | 55% | 65.5 s | 59 | 80% | 0 | - |
+| mage / Illusionist | yes | 75% | 76.2 s | 43 | 85% | 0 | {"mirrorImage":3}, 14 s to set up |
