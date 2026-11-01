@@ -518,9 +518,9 @@
     // Changes to the Forgotten Homestead maps (zone1.js keeps the base maps).
     const homestead = {
         // the fog edge becomes a road on
-        roadExit: { id: 'road_tollway', x: 12, y: 21, trigger: 'step', toMap: 'tollway', toSpawn: 'from_road',
+        roadExit: { id: 'road_tollway', x: 15, y: 21, trigger: 'step', toMap: 'tollway', toSpawn: 'from_road',
             text: 'You walk into the fog. It thins, and the road goes on: broken, but passable.' },
-        roadSpawn: { from_tollway: { x: 12, y: 20, facing: 'up' } },
+        roadSpawn: { from_tollway: { x: 15, y: 20, facing: 'up' } },
         interactables: {
             cellar: [
                 { id: 'cellar_inscription', kind: 'inspect', x: 0, y: 4, name: 'Cracked inscription',

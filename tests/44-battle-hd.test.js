@@ -15,7 +15,8 @@ test('HD-2D battle: each map fights on a stage that matches it', () => {
     assert.strictEqual(theme('house').stage, 'interior');
     assert.strictEqual(theme('shamefield').stage, 'village');
     assert.strictEqual(theme('road').stage, 'forest');
-    assert.ok(theme('road').night && !theme('shamefield').night);
+    assert.ok(!theme('road').night && !theme('shamefield').night, 'the road and the village fight by day (their references are daylight and dusk)');
+    assert.ok(theme('well').night, 'the bottom of the well is dark');
     for (const id of Object.keys(ZONE1.maps)) assert.ok(['crypt', 'interior', 'village', 'forest', 'field'].includes(theme(id).stage), id);
 });
 

@@ -85,11 +85,11 @@ test('Zone 1: fleeing keeps the enemy, and it ignores you until you step away (n
     assert.strictEqual(g.mode, 'explore');
     assert.strictEqual(g.world.lastResult, 'fled');
     s.fightOver('road_wolf', 'fled');
-    assert.ok(s.objectAt(13, 10), 'the wolf is still there');
+    assert.ok(s.objectAt(25, 13), 'the wolf is still there');
     const again = s.move(s.facing);
     assert.deepStrictEqual([again.type, again.cooling], ['blocked', 'road_wolf'], 'holding the key into it does nothing');
     assert.strictEqual(g.mode, 'explore');
-    assert.deepStrictEqual([s.x, s.y, s.facing], [13, 11, 'up'], 'standing just below the wolf');
+    assert.deepStrictEqual([s.x, s.y, s.facing], [25, 14, 'up'], 'standing just below the wolf');
     s.move('left'); assert.strictEqual(s.cooldown, 'road_wolf', 'still next to it (diagonally): still ignored');
     s.move('down'); assert.strictEqual(s.cooldown, null, 'out of reach: it notices you again');
     assert.strictEqual(contact(s, 'road_wolf').type, 'encounter', 'and you can choose to fight it');
@@ -125,7 +125,7 @@ test('Zone 1: a world fight uses exactly the current battle rules (same log as t
 test('Zone 1: the road goes on through the fog to the Broken Tollway (Chapter One), and you can turn back', () => {
     const { s } = worldRun();
     travel(s, 'road');
-    walkTo(s, 12, 20);
+    walkTo(s, 15, 20);
     const r = s.move('down');
     assert.deepStrictEqual([r.type, r.to], ['transition', 'tollway']);
     assert.match(r.text, /fog/);
@@ -144,7 +144,7 @@ test('Zone 1: no boss, no forced fights, no test dummy; every optional area has 
     // you can cross the whole zone to its far edge without touching an enemy
     const { g, s } = worldRun();
     travel(s, 'road');
-    walkTo(s, 12, 20);
+    walkTo(s, 15, 20);
     assert.strictEqual(s.move('down').type, 'transition');
     assert.strictEqual(g.stats.fights, 0, 'no fight was needed');
     for (const id of ['shed', 'well']) {

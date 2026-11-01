@@ -250,7 +250,8 @@
         const night = (amb.darkness || 0) >= 0.2;
         if (top[0] === 'stone_floor' || top[0] === 'floor') return { stage: 'crypt', night: true, warm: (amb.darkness || 0) < 0.6 };
         if (top[0] === 'wood_floor') return { stage: 'interior', night: true };
-        const trees = (count.tree || 0) / (map.tiles.length * map.tiles[0].length);
+        // Woodland: every kind of tree and undergrowth a map paints (the Overgrown Road adds red trees and bushes).
+        const trees = ((count.tree || 0) + (count.red_tree || 0) + (count.bush || 0)) / (map.tiles.length * map.tiles[0].length);
         if (has('cobble') || has('house_wall') || has('timber_wall')) return { stage: 'village', night };
         return { stage: trees > 0.3 ? 'forest' : 'field', night };
     }

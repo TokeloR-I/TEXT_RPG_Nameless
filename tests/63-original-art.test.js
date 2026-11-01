@@ -116,3 +116,23 @@ test('Scene art: Shamefield paints whole after the reference, the same every tim
         'chickens', 'hen_hut', 'house', 'slate_house', 'watermill', 'mill_wheel', 'church']);
     for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
 });
+
+test('Scene art: the Overgrown Road paints whole after the reference, the same every time, with its own moving parts', () => {
+    require('../ui/scene-road.js');
+    const map = ZONE1.maps.road;
+    assert.ok(SCENE.has(map), 'the road opts in with scene: overgrown_road');
+    const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+    assert.strictEqual(a.w, map.tiles[0].length * 32); assert.strictEqual(a.h, map.tiles.length * 32);
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    assert.strictEqual(sha(a.base), sha(b.base), 'deterministic');
+    assert.strictEqual(sha(a.over), sha(b.over), 'deterministic crowns');
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
+    const at = (x, y) => a.over[(y * a.w + x) * 4 + 3];
+    assert.strictEqual(at(15 * 32 + 16, 13 * 32 + 16), 0, 'nothing hangs over the open crossroads');
+    assert.ok(at(28 * 32 + 16, 5 * 32 - 10) > 0, 'the stone arch spans over the way through it');
+    assert.ok(a.water.length > 50 && typeof a.animate === 'function', 'the stream shimmers; falls, fire and lanterns move');
+    // Every thing the map names is something the scene knows how to paint (no tile left as bare ground by accident).
+    const painted = new Set(['grass', 'dirt_path', 'water', 'waterfall', 'bridge', 'bank_rocks', 'reeds', 'flowers', 'tree', 'red_tree', 'bush',
+        'rock', 'stump', 'ruin', 'arch', 'tent', 'campfire', 'barrel', 'crate', 'log', 'banner', 'lantern', 'fence', 'wagon', 'signpost']);
+    for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
+});

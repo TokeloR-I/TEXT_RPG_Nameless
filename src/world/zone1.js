@@ -280,48 +280,78 @@
         road: {
             zoneId: 'forgotten_homestead',
             name: 'The Overgrown Road',
-            ambient: { darkness: 0.3, tint: 'rgba(58, 62, 80, 0.32)', fog: 'bottom' },
+            // Original scene art (ui/scene-road.js, Saffron/Quill) paints this map whole after Tokelo's reference
+            // (2026-11-01): a crossroads in the wood, the stream with its two falls and the plank bridge to the west,
+            // a travellers' camp, crow banners with lanterns, broken walls, a stone arch and a covered wagon.
+            // Its tiles still decide collision.
+            scene: 'overgrown_road',
+            ambient: { tint: 'rgba(70, 80, 40, 0.06)', particles: { kind: 'fireflies', count: 8 },
+                grade: { ambient: 0.92, exposure: 1.04, highlights: [0.06, 0.05, -0.02] } },
+            legend: {
+                ',': { name: 'grass' }, ':': { name: 'dirt_path' }, '~': { name: 'water', solid: true }, 'W': { name: 'waterfall', solid: true },
+                '_': { name: 'bridge' }, 'c': { name: 'bank_rocks', solid: true }, 'r': { name: 'reeds' }, '*': { name: 'flowers' },
+                'T': { name: 'tree', solid: true }, 'A': { name: 'red_tree', solid: true }, 'h': { name: 'bush', solid: true },
+                'o': { name: 'rock', solid: true }, 'u': { name: 'stump', solid: true }, 'R': { name: 'ruin', solid: true },
+                'G': { name: 'arch', solid: true }, 'N': { name: 'tent', solid: true }, 'F': { name: 'campfire', solid: true },
+                'b': { name: 'barrel', solid: true }, 'x': { name: 'crate', solid: true }, 'l': { name: 'log', solid: true },
+                'B': { name: 'banner', solid: true }, 'L': { name: 'lantern', solid: true }, 'f': { name: 'fence', solid: true },
+                'V': { name: 'wagon', solid: true }, 'I': { name: 'signpost', solid: true }
+            },
             tiles: [
-                'TTTTTTTTT:TTTTTTTTTT',
-                'TTTTT,,,,:,,,T,TTTTT',
-                'TTTTT,T,,::,,,,TTTTT',
-                'TTTTT,,,,,:,,,,TTTTT',
-                'TTTTTT,,,,:,,,TTTTTT',
-                'TTTTT,,,,::,,o,TTTTT',
-                'TTTTT,,,,:,,,,,TTTTT',
-                'TTTTT,Y,,:,,,,,TTTTT',
-                'TTTTT,,,,::,,,,TTTTT',
-                'TTTTT,,,,,::,,,TTTTT',
-                'TTTTT,,,o,,:,,,TTTTT',
-                'TTTTT,,,,,,:,,TTTTTT',
-                'TTTTT,T,,,::,,,TTTTT',
-                'TTTTT,,,,,:,,,,TTTTT',
-                'TTTTT,,,,::,,,,TTTTT',
-                'TTTTT,,x,:,I,,,TTTTT',
-                'TTTTT,,,,:,,,,,TTTTT',
-                'TTTTTT,,,::,,,,TTTTT',
-                'TTTTT,,,,,::,,,TTTTT',
-                'TTTTT,,T,,,:,,,TTTTT',
-                'TTTTT,,,,,,::,,TTTTT',
-                'TTTTT,,,,,,,:,,TTTTT'
+                'TcWWcTTTTTTTTTTT:TTTTTTTTTTTTTTT',
+                'TcWWcTTTATTAATT,::,TTTTTTTTTAATT',
+                'Tc~~cTTT,,T,,,,,::ffff,TTT,,,*AT',
+                'Tc~~cT,,,,,,,B,:::,,,,**,TT*,,,T',
+                'Tc~~ch,,,bL,,,o::,,RRRR,,,,,,,*T',
+                'Tc~~r,NNN,,**,,::,,RRRRRR,,G:GTT',
+                'Tc~~,,NNN,,,T,,::,,RRRRRR,,G:GTT',
+                'Tc~~c,NNN,,,TT,::,,h,,,,fffh:,TT',
+                'Tc~~c,,,,F,,T,,:::::::::::,,:,TT',
+                'Tc~~r,ll,,,L,h,:::::::::::::::::',
+                'Tc~~,,,,,x,T,,,::,B,,TT,,,*T,,TT',
+                'Tc~~cT,,,,,,ff,::,,,TTTVVV,,TTTT',
+                'Tc~~cTT,***,,::::I,*,llVVVb,,TTT',
+                ':____:::::::::::::o,,,,,,,u,TTTT',
+                ':____:::::::::::::,T,*,,,,,**,TT',
+                'Tc~~r,,,h*A,,u:::h,fff,h,,T,,ATT',
+                'Tc~~rT,,,,,,o,::,,,RRRRR,uTT,,AT',
+                'Tc~~cTT,,TRRR,::,,,RRRRR,,T,,,,T',
+                'Tc~~cTT,,,RRRB::,T,RRRRR,,,TTTTT',
+                'TcWWcTTh,,,,,,f:,TT,,,*,,,TTTTTT',
+                'TcWWcTTTTThhhh,:hhTTTTTTTTTTTTTT',
+                'Tc~~cTTTTTTTTTh:hTTTTTTTTTTTTTTT'
             ],
-            spawns: { from_grounds: { x: 9, y: 1, facing: 'down' } },
+            // The campfire and the lanterns on the banner posts glow warm (presentation only).
+            lights: [
+                { x: 9, y: 8, radius: 2.2, color: 'rgba(255, 150, 60, 0.3)' }, { x: 10, y: 4, radius: 1.2, color: 'rgba(255, 180, 80, 0.2)' },
+                { x: 11, y: 9, radius: 1.2, color: 'rgba(255, 180, 80, 0.2)' }, { x: 13, y: 3, radius: 1.2, color: 'rgba(255, 180, 80, 0.2)' },
+                { x: 18, y: 10, radius: 1.2, color: 'rgba(255, 180, 80, 0.2)' }, { x: 13, y: 18, radius: 1.2, color: 'rgba(255, 180, 80, 0.2)' }
+            ],
+            spawns: { from_grounds: { x: 16, y: 1, facing: 'down' } },
             exits: [
-                { id: 'road_back', x: 9, y: 0, trigger: 'step', toMap: 'grounds', toSpawn: 'from_road' }
+                { id: 'road_back', x: 16, y: 0, trigger: 'step', toMap: 'grounds', toSpawn: 'from_road' }
             ],
             encounters: [
-                { id: 'road_wolf', x: 13, y: 10, name: 'Hungry Wolf', enemies: ['hungry_wolf'], trigger: 'contact', sprite: 'wolf',
-                    text: 'A gaunt wolf, nosing at the verge. It hasn\'t seen you. You could walk on by, or walk into it.' }
+                { id: 'road_wolf', x: 25, y: 13, name: 'Hungry Wolf', enemies: ['hungry_wolf'], trigger: 'contact', sprite: 'wolf',
+                    text: 'A gaunt wolf, nosing round the abandoned wagon. It hasn\'t seen you. You could walk on by, or walk into it.' }
             ],
             interactables: [
-                { id: 'road_signpost', kind: 'inspect', x: 11, y: 15, name: 'Signpost',
+                { id: 'road_signpost', kind: 'inspect', x: 17, y: 12, name: 'Signpost',
                     text: 'The letters have weathered away. One arrow is left, pointing on down the road.' },
-                { id: 'road_cart', kind: 'inspect', x: 7, y: 15, name: 'Overturned handcart',
-                    text: 'A handcart tipped on its side. Whatever it carried was taken, or walked off on its own.' }
+                { id: 'road_cart', kind: 'inspect', x: 23, y: 12, name: 'Abandoned wagon',
+                    text: 'A covered wagon, its canvas torn and its horse long gone. Whatever it carried was taken, or walked off on its own.' },
+                { id: 'road_campfire', kind: 'inspect', x: 9, y: 8, name: 'Campfire',
+                    text: 'A fire still burns under the pot, and the stew in it is warm. Whoever made camp here meant to come back.' },
+                { id: 'road_banner', kind: 'inspect', x: 18, y: 10, name: 'Crow banner',
+                    text: 'A red banner with a black crow on it, hung beside a lantern someone keeps lit. It marks the road, or claims it.' }
             ],
             boundaries: [
-                { id: 'road_zone_edge', x: 5, y: 21, w: 10, h: 1, title: 'Beyond the Homestead',
-                    text: 'The road runs on into the fog, toward the wider world. The way beyond isn\'t open yet. (Coming later.)' }
+                { id: 'road_zone_edge', x: 15, y: 21, w: 1, h: 1, title: 'Beyond the Homestead',
+                    text: 'The road runs on into the fog, toward the wider world. The way beyond isn\'t open yet. (Coming later.)' },
+                { id: 'road_west_track', x: 0, y: 13, w: 1, h: 2, title: 'The west track',
+                    text: 'Past the bridge the track sinks into bramble and dark trees. There is nothing that way yet.' },
+                { id: 'road_east_track', x: 31, y: 9, w: 1, h: 1, title: 'The east track',
+                    text: 'The track bends away east under the trees and is lost in the undergrowth. There is nothing that way yet.' }
             ]
         }
     });

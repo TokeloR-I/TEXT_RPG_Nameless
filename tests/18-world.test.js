@@ -35,7 +35,7 @@ test('World: the validator catches broken map data', () => {
         broken((w) => { delete w.maps.grounds.exits.find((e) => e.trigger === 'interact').prompt; }, /needs a prompt/);
         broken((w) => { w.maps.road.encounters[0].enemies = ['James_Newton']; }, /test dummy/);
         broken((w) => { w.maps.road.encounters[0].enemies = ['dragon']; }, /unknown enemy 'dragon'/);
-        broken((w) => { w.maps.road.encounters[0].x = 9; w.maps.road.encounters[0].y = 2; }, /right next to spawn from_grounds/);
+        broken((w) => { w.maps.road.encounters[0].x = 16; w.maps.road.encounters[0].y = 2; }, /right next to spawn from_grounds/);
         broken((w) => { w.maps.shed.interactables[0].item = 'Golden Apple'; }, /unknown item 'Golden Apple'/);
         broken((w) => { w.maps.road.boundaries = [{ id: 'edge', x: 0, y: 0, w: 1, h: 1, text: 'x' }]; }, /boundary edge can't be reached/);
         // Chapter One additions: locked exits say why; npcs name their story npc; only a `gate` fight may hold the only way on
