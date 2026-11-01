@@ -23,14 +23,40 @@
                 p.xp -= p.xpToNext;
                 p.level++;
                 p.xpToNext = Math.floor(p.xpToNext * 1.5);
-                p.strength++; p.intelligence++; p.agility++; p.spd++; p.def++;
-                p.maxHp += 10; p.hp = p.maxHp;
-                p.critChance = Math.min(0.5, p.critChance + 0.01);
-                p.resource.max += 2; p.resource.current = p.resource.max;
+                const gains = this.applyLevelGrowth(p);
                 this.say(`Congratulations! You have reached Level ${p.level}!`, { important: true });
-                this.say(`Stats increased! HP and ${p.resource.type} refilled.`);
+                this.say(`Stats increased: ${gains.join(', ')}. HP and ${p.resource.type} refilled.`);
                 this.evolve();
             }
+        }
+
+        /** Per-class stat growth for one level (`levelGrowth` on the class in src/data.js, Gauge's numbers).
+         *  Returns the gains as short labels for the level-up line. Agility growth also raises speed. */
+        levelGrowthFor(p) {
+            const cls = this.data.basePlayerClasses[p.className] || {};
+            return cls.levelGrowth || this.data.gameRules.defaultLevelGrowth;
+        }
+
+        applyLevelGrowth(p) {
+            const g = this.levelGrowthFor(p), gains = [];
+            // A rate below 1 (e.g. 0.5 = every other level) is paid as whole points: the gain at level L is
+            // floor(L x rate) - floor((L - 1) x rate). Stateless, so a save needs nothing extra.
+            const step = (rate) => Math.floor(p.level * (rate || 0) + 1e-9) - Math.floor((p.level - 1) * (rate || 0) + 1e-9);
+            const add = (stat, label) => { const v = step(g[stat]); if (v) { p[stat] += v; gains.push(`+${v} ${label}`); } return v; };
+            const hp = step(g.hp);
+            if (hp) { p.maxHp += hp; gains.push(`+${hp} HP`); }
+            p.hp = p.maxHp;
+            add('strength', 'STR'); add('intelligence', 'INT'); p.spd += add('agility', 'AGI'); add('def', 'DEF');
+            if (g.critChance) {
+                const before = p.critChance;
+                p.critChance = Math.min(this.data.gameRules.critChanceCap, p.critChance + g.critChance);
+                const pts = Math.round((p.critChance - before) * 1000) / 10;
+                if (pts > 0) gains.push(`+${pts}% crit`);
+            }
+            const res = step(g.resource);
+            if (res) { p.resource.max += res; gains.push(`+${res} max ${p.resource.type}`); }
+            p.resource.current = p.resource.max;
+            return gains;
         }
 
         evolve() {

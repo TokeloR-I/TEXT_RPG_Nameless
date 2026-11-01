@@ -357,6 +357,7 @@
                 startingItems: ['rusty sword', 'wooden shield', 'old key'],
                 startingResource: { type: 'Momentum', initial: 1, max: 10 },
                 baseStats: { hp: 120, strength: 10, intelligence: 5, agility: 7, def: 5, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 8, baseDamageMax: 12 },
+                levelGrowth: { hp: 12, strength: 0.5, agility: 0.5, def: 1, resource: 1 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
                 startingSkills: ['Slash', 'Guard', 'Power Strike'],
                 startingTraits: [{ name: 'Battle-Ready', effect: 'Start each fight with 1 Momentum.' }]
             },
@@ -371,6 +372,7 @@
                 startingItems: ['wooden staff', 'spellbook', 'old key'],
                 startingResource: { type: 'Mana', initial: 6, max: 20, regen: 2 },
                 baseStats: { hp: 70, strength: 6, intelligence: 10, agility: 7, def: 2, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
+                levelGrowth: { hp: 6, intelligence: 2, agility: 0.5, def: 0.5, critChance: 0.01, resource: 3 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
                 startingSkills: ['Arcane Bolt', 'Focus', 'Mana Burst'],
                 startingTraits: []
             },
@@ -385,6 +387,7 @@
                 startingItems: ['short sword', 'lockpicks', 'old key'],
                 startingResource: { type: 'Energy', initial: 6, max: 15, regen: 3 },
                 baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, def: 3, critChance: 0.2, critMultiplier: 2.0, baseDamageMin: 5, baseDamageMax: 9 },
+                levelGrowth: { hp: 8, strength: 0.5, agility: 2, def: 1, critChance: 0.02, resource: 2 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
                 startingSkills: ['Backstab', 'Evasion', 'Quick Slash'],
                 startingTraits: []
             },
@@ -399,6 +402,7 @@
                 startingItems: ['cracked bone staff', 'small black journal'],
                 startingResource: { type: 'Soul Energy', initial: 1, max: 10 },
                 baseStats: { hp: 80, strength: 6, intelligence: 9, agility: 6, def: 4, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 6, baseDamageMax: 10 },
+                levelGrowth: { hp: 8, intelligence: 2, agility: 0.5, def: 1, resource: 2 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
                 startingSkills: ['Grave Bolt', 'Raise Skeleton', 'Soul Leech'],
                 startingTraits: []
             }
@@ -1026,12 +1030,15 @@
         // Global balance knobs.
         const gameRules = {
             statDamagePer: 4,          // +1 damage per 4 points of the scaling stat
-            physicalStat: { default: 'strength', rogue: 'agility' },
+            physicalStat: { default: 'strength', rogue: 'agility', mage: 'intelligence', necromancer: 'intelligence' },   // Gauge 2026-11-01: caster staff bolts scale with INT
             magicStat: 'intelligence',
             magicTypes: ['magic', 'fire', 'ice', 'lightning', 'radiant'],
             postFightHealPct: 0.2,     // catch your breath after a victory
             baseMinionCap: 3,          // Black Pharaoh adds +3
-            defaultEnemyXp: 15
+            defaultEnemyXp: 15,
+            critChanceCap: 0.5,        // level-up crit growth stops here
+            // Fallback growth for a class without its own `levelGrowth` (the old flat increase).
+            defaultLevelGrowth: { hp: 10, strength: 1, intelligence: 1, agility: 1, def: 1, critChance: 0.01, resource: 2 }
         };
 
         // Item swaps per class when picking things up (was referenced but never defined).
