@@ -473,8 +473,12 @@
         startAttack(slot) {
             const p = this.player;
             const e = this.engine;
-            if (!this.engaged) this.engageNearest();
             const weapon = (((this.rules.classes || {})[e.player.className] || {}).weapon) || { kind: 'arc', reach: 20, arcDeg: 100, startupMs: 120, activeMs: 80, recoveryMs: 220 };
+            if (!this.engaged) {
+                // A shot opens the fight on whoever it is aimed at, as far as it flies; anything else engages the nearest group.
+                const opener = this.openerRange(weapon, slot);
+                if (!opener || !this.engageAimed(opener)) this.engageNearest();
+            }
             if (!this.engaged && slot != null) { this.startCalmSkill(slot); return; }
             if (!this.engaged) {   // a swing at nothing: it looks right and costs nothing
                 p.attack = { shape: { ...weapon, shape: weapon.kind }, castId: null, start: this.now, fired: true, cosmetic: true, isBasic: slot == null };
@@ -667,6 +671,37 @@
         knock(a, ang, px) { this.moveBody(a, Math.cos(ang) * px, Math.sin(ang) * px, this.gateCellOf(a)); }
 
         /** Pressing attack near an unaware group starts the fight with it (nearest within engageRadius). */
+        /** How far an attack out of a fight can open one: a projectile's range (weapon or skill), else 0 (melee). */
+        openerRange(weapon, slot) {
+            if (slot == null) return weapon.kind === 'projectile' ? (weapon.range || 120) : 0;
+            const e = this.engine;
+            const name = e.ensureSkillBar()[slot];
+            const pre = name && e.actionSkillPreview ? e.actionSkillPreview(name) : null;
+            return pre && pre.ok && pre.shape && pre.shape.shape === 'projectile' ? (pre.shape.range || 120) : 0;
+        }
+
+        /**
+         * Ranged opener (Tokelo, 2026-11-01): a shot out of a fight engages the unaware group it is aimed at, within
+         * `range`, in sight and inside `actionRules.openerConeDeg` of the aim. Returns true if it engaged one.
+         */
+        engageAimed(range) {
+            const p = this.player;
+            const aim = this.input.aim;
+            const ang = aim ? angleTo(p, aim) : p.angle;
+            const half = ((this.rules.openerConeDeg || 30) / 2) * DEG;
+            let best = null, bd = Infinity;
+            for (const g of Object.values(this.groups)) {
+                if (g.engaged || g.cleared || (g.reengageAt && this.now < g.reengageAt)) continue;
+                for (const a of this.actors) {
+                    if (a.encounterId !== g.encounterId || a.dead) continue;
+                    const d = dist(p, a);
+                    if (d > range + a.r || d >= bd || angleDiff(ang, angleTo(p, a)) > half || !this.lineOfSight(p, a)) continue;
+                    bd = d; best = g;
+                }
+            }
+            return best ? this.engageGroup(best) : false;
+        }
+
         engageNearest() {
             const p = this.player;
             const r = this.rules.engageRadius || 120;
