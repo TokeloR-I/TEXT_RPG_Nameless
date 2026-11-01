@@ -506,9 +506,13 @@
                 ? null : 'Plague of Ages requires an enemy susceptible to Infection.';
         },
         apply(ctx) {
-            for (const target of ctx.engine.alive(ctx.engine.combat.enemies)) {
+            // Live (Tokelo 2026-11-01): `stacks` (10) on the enemies the cast reached; turn mode stays at its 3-stack cap.
+            const e = ctx.engine;
+            const fill = Math.min(ctx.effect.stacks || 3, e.maxStacks('Infection', 'dot'));
+            const hit = (ctx.targets || []).filter((t) => t && !t.isPlayer && !t.isMinion);
+            for (const target of hit.length ? e.alive(hit) : e.alive(e.combat.enemies)) {
                 const before = ctx.engine.infectionOn(target);
-                const missing = Math.max(0, 3 - (before ? before.stacks : 0));
+                const missing = Math.max(0, fill - (before ? before.stacks : 0));
                 const inst = ctx.engine.infect(ctx.caster, target, Math.max(1, missing));
                 if (inst) inst.trueDamage = true;
             }
@@ -668,6 +672,31 @@
             return e.alive(e.combat.minions).length >= e.minionCap() ? `You can't control more than ${e.minionCap()} minions.` : null;
         },
         apply(ctx) { ctx.engine.raiseGhoulShield(ctx.caster, ctx.effect); }
+    });
+
+    // ---------- Plaguecaller live rework (Tokelo 2026-11-01, docs/design/PLAGUECALLER_LIVE.md) ----------
+    register('plague_burst', { // detonate one enemy's Infection: perStack damage per stack at once (no DEF), stacks consumed
+        replacesDamage: true,
+        requires(ctx) { return ctx.targets.some((t) => t && t.hp > 0 && ctx.engine.infectionOn(t)) ? null : 'Plague Burst needs an infected enemy.'; },
+        apply(ctx) {
+            const e = ctx.engine;
+            for (const t of living(ctx)) {
+                const inf = e.infectionOn(t);
+                if (!inf) continue;
+                const stacks = inf.stacks || 1;
+                e.removeStatus(t, inf);
+                const dmg = stacks * (ctx.effect.perStack || 5);
+                e.say(`${t.name}'s Infection bursts (${stacks} stack${stacks > 1 ? 's' : ''}) for ${dmg} damage!`, { important: true });
+                e.damage(t, dmg, ctx.caster);
+            }
+        }
+    });
+
+    register('wither', { // Withering Curse: the target takes +value damage from damage over time
+        apply(ctx) {
+            for (const t of living(ctx)) if (ctx.engine.applyStatus(ctx.caster, t, { name: 'Withered', type: 'dot_amp', value: ctx.effect.value, duration: ctx.effect.duration }))
+                ctx.engine.say(`${t.name} withers: +${Math.round(ctx.effect.value * 100)}% damage from damage over time.`);
+        }
     });
 
     register('raise_army', { // March of Endless Bones: skeletons up to the cap, plus one champion

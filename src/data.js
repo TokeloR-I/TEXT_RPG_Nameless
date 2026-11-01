@@ -269,6 +269,10 @@
             'Contagion': { description: 'Infect target; spreads on death.', liveDescription: 'Infect the target for 9 s; spreads on death.', cost: 1, resource: 'Soul Energy', effects: [{ type: 'infect', duration: 3, spread_on_death: true }], target: 'enemy_single', damage_type: 'magic' },
             'Black Spit': { description: 'Apply [Weaken] (-20% dmg) + 5 dmg/turn for 3 turns.', liveDescription: 'Apply [Weaken] (-20% dmg) for 9 s + poison 5 dmg/s for 9 s.', cost: 1, resource: 'Soul Energy', effects: [{ type: 'apply_mark', mark: 'Weaken', value: 0.2, duration: 3 }, { type: 'dot', dot_type: 'poison', value: 5, duration: 3 }], target: 'enemy_single', damage_type: 'magic' },
             'Corpse Bloom': { description: 'Explode a corpse for 15 dmg AOE + 1 Infection stack to all in range.', cost: 2, resource: 'Soul Energy', base_damage: [15, 15], effects: [{ type: 'aoe_damage_from_corpse' }, { type: 'apply_infection_aoe', stacks: 1 }], target: 'corpse', damage_type: 'magic' },
+            // Plaguecaller live rework (Tokelo 2026-11-01): the branch needed a crowd (corpses, spreading). These two replace
+            // Corpse Bloom (L8) and Plague Wind (L11) on the path; both work on a lone boss. docs/design/PLAGUECALLER_LIVE.md
+            'Plague Burst': { description: 'Detonate the Infection on one enemy: 5 dmg per stack at once (ignores DEF), consuming it.', liveDescription: 'Detonate the Infection on one enemy: 5 dmg per stack at once (ignores DEF), consuming the stacks.', cost: 2, cooldown: 8, resource: 'Soul Energy', effects: [{ type: 'plague_burst', perStack: 5 }], target: 'enemy_single', damage_type: 'magic' },
+            'Withering Curse': { description: 'Curse an enemy for 3 turns: it takes +50% damage from your DoTs.', liveDescription: 'Curse an enemy for 9 s: it takes +50% damage from damage over time (Infection, Poison, Bleed).', cost: 1, cooldown: 10, resource: 'Soul Energy', effects: [{ type: 'wither', value: 0.5, duration: 3 }], target: 'enemy_single', damage_type: 'utility' },
             'Plague Wind': { description: 'Spread all infections instantly to every enemy.', cost: 3, resource: 'Soul Energy', effects: [{ type: 'spread_all_infections' }], target: 'all_enemies', damage_type: 'utility' },
 
             // Soulbinder Branch Skills
@@ -330,7 +334,7 @@
             'Total Lockdown': { description: 'Enemies can’t move or leave zones for 2 turns.', liveDescription: 'Enemies can’t move or leave zones for 6 s.', cost: 'all', resource: 'Vigil', oncePerFight: true, effects: [{ type: 'immobilize_enemies', duration: 2 }], target: 'all_enemies' },
             // Tokelo 2026-11-01: fill your army and raise a champion; costed and on a cooldown instead of once per fight.
             'March of Endless Bones': { description: 'Raise skeletons up to your minion limit, plus a Skeleton Champion with double a skeleton\'s stats.', cost: 6, cooldown: 45, resource: 'Soul Energy', effects: [{ type: 'raise_army', summon_type: 'skeleton', champion: 'skeleton_champion' }], target: 'self' }, // Black Pharaoh Ascended
-            'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe' }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
+            'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', liveDescription: 'Every enemy around you (160 px) gains 10 Infection stacks that deal true damage.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe', stacks: 10 }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
             'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', liveDescription: 'All enemies become undead under your control for 3 s.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
             
             'Eternal Lich Unmake': { description: 'Eternal Lich erases one non-boss enemy from this fight.', cost: 5, resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'eternal_lich_unmake' }], target: 'enemy_single', damage_type: 'true' },
@@ -503,13 +507,13 @@
                     'plaguecaller': {
                         name: 'Plaguecaller',
                         theme: 'Disease, rot, and battlefield-wide decay.',
-                        mechanic: 'Infection Stacks — DoTs can stack 3x on the same enemy.',
+                        mechanic: 'Infection Stacks — Infection stacks up on one enemy and ticks faster the higher it climbs; Plague Burst cashes it in.',
                         resourceEvolution: [],
                         stages: [
                             { level: 3, name: 'Plaguecaller', trait: 'Virulent Touch', traitEffect: 'All basic attacks apply 1 stack of [Infected].', skill: 'Contagion', lore: "Your touch sours flesh; your breath curdles the air." },
                             { level: 5, name: 'Pestilent Sage', trait: 'DoTs last +1 turn', traitEffect: 'Your applied blights linger longer, ensuring a slow, agonizing demise.', skill: 'Black Spit', upgrade: 'DoTs last 1 extra turn.', lore: "Every sickness is a verse in your scripture." },
-                            { level: 8, name: 'Rotbringer', trait: 'Plague Reservoir', traitEffect: 'Killing an infected enemy refunds 1 Soul Energy.', skill: 'Corpse Bloom', lore: "The dead are not still. They swell, they split — and they serve you." },
-                            { level: 11, name: 'Harbinger of Decay', trait: 'All infections deal +2 dmg/turn', traitEffect: 'Your infections become deadlier, gnawing faster at your foes.', skill: 'Plague Wind', upgrade: 'All infections deal +2 dmg/turn.', lore: "Your shadow carries plague like wind carries rain." },
+                            { level: 8, name: 'Rotbringer', trait: 'Plague Reservoir', traitEffect: 'Every 6th tick of your Infection refunds 1 Soul Energy, and killing an infected enemy refunds 1.', skill: 'Plague Burst', lore: "The dead are not still. They swell, they split — and they serve you." },
+                            { level: 11, name: 'Harbinger of Decay', trait: 'All infections deal +2 dmg/turn', traitEffect: 'Your infections become deadlier, gnawing faster at your foes.', skill: 'Withering Curse', upgrade: 'All infections deal +2 dmg/turn.', lore: "Your shadow carries plague like wind carries rain." },
                             { level: 14, name: 'Plague Sovereign', trait: 'All DoTs become true dmg, ignore resistances.', traitEffect: 'Your diseases cut through any defense, rendering enemies utterly vulnerable.', skill: 'Plague of Ages', ascended: true, lore: "Your realm is pestilence, your flag a blackened lung." }
                         ]
                     },

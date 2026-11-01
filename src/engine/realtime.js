@@ -285,10 +285,11 @@
         }
 
         rtTickDot(actor, dot) {
-            const dmg = this.dotTickDamage(dot);
+            const dmg = this.dotTickDamage(dot, actor);
             const after = Math.max(0, actor.hp - dmg);
             this.say(`${actor.name} suffers ${dmg} ${dot.name} damage${dot.stacks > 1 ? ` (x${dot.stacks})` : ''}. (${after}/${actor.maxHp} HP)`);
             this.damage(actor, dmg, this.findCombatant(dot.appliedBy));
+            this.plagueReservoirTick(dot);
         }
 
         rtPulse() {
