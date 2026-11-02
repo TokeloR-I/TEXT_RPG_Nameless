@@ -57,7 +57,7 @@
             if (attacker.isPlayer) dmg += this.statBonus(attacker, skill.damage_type) + this.equipmentDamageBonus(skill.damage_type, attacker.equipment || {});
             const gcIdx = attacker.statusEffects.findIndex((s) => s.name === 'Guaranteed Crit');
             if (gcIdx !== -1) { hit.forceCrit = true; attacker.statusEffects.splice(gcIdx, 1); }
-            hit.isCrit = hit.forceCrit || this.rng() < ((attacker.critChance || 0) + (attacker.isPlayer ? (this.equipmentModifiers(attacker.equipment || {}).critChance || 0) : 0));
+            hit.isCrit = hit.forceCrit || this.rng() < ((attacker.critChance || 0) + (attacker.isPlayer ? (this.equipmentModifiers(attacker.equipment || {}).critChance || 0) + this.foodMod(attacker, 'crit') : 0));
             if (hit.isCrit) dmg = Math.floor(dmg * (attacker.critMultiplier || 1.5));
 
             let final;
@@ -69,6 +69,7 @@
                 // Action fights only: DEF blocks at most (1 - minDamageShare) of a blow that lands on the player (Gauge).
                 if (target.isPlayer && this.combat && this.combat.action) final = Math.max(final, dmg * ((this.actionRules().defence || {}).minDamageShare || 0));
                 for (const s of target.statusEffects) if (s.type === 'damage_reduction') final *= Math.pow(1 - s.value, s.stacks || 1);   // each stack multiplies
+                final *= 1 - this.foodMod(target, 'defence');   // meals and beer (src/engine/kitchen.js)
                 if (target.isPlayer && this.progression.branch === 'bone_warden') {
                     const cap = target.traits.some((t) => t.name === 'Bone Fortress') ? 0.15 : 0.10;
                     final *= 1 - Math.min(this.alive(this.combat.minions).length * 0.02, cap);
@@ -83,6 +84,7 @@
                     (target.specialFlags || []).includes(status.flag)) final *= 1 + status.value;
             }
             for (const status of attacker.statusEffects) if (status.type === 'damage_boost') final *= 1 + (Number(status.value) || 0);   // Wrath Ghost
+            final *= 1 + this.foodMod(attacker, 'damage');   // meals and beer (src/engine/kitchen.js)
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.

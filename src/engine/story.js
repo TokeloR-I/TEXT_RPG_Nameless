@@ -62,6 +62,10 @@
             for (const f of cond.flags || []) if (!s.flags.includes(f)) return false;
             for (const f of cond.notFlags || []) if (s.flags.includes(f)) return false;
             for (const it of cond.items || []) if (!this.player || !this.player.inventory.includes(it)) return false;
+            // has: { item: count }: carrying at least that many (a recipe's ingredients)
+            for (const [it, n] of Object.entries(cond.has || {})) if (!this.player || this.player.inventory.filter((x) => x === it).length < n) return false;
+            // notAny: [items]: carrying none of them
+            if (cond.notAny && this.player && cond.notAny.some((it) => this.player.inventory.includes(it))) return false;
             for (const [id, want] of Object.entries(cond.quests || {})) {
                 const st = (s.quests[id] || { state: 'unseen' }).state;
                 if (want.endsWith('+') ? ORDER[st] < ORDER[want.slice(0, -1)] : st !== want) return false;
@@ -84,7 +88,7 @@
         // =====================================================================
         // Effects (the only way story data changes state)
         //   { flag } { unflag } { start: questId } { available: questId } { event: { type, id } }
-        //   { item, key? } (once per key) { say } { removeItem }
+        //   { item, key? } (once per key) { say } { removeItem }   conditions also take has: { item: count }
         //   { shop: merchantId } { construction: upgradeId }: show Rook's CH1-04/05 data (no rules here)
         //   { plant: { plot, seed } } { tend: plot } { harvest: plot } { craft: recipeId }: run the homestead
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path

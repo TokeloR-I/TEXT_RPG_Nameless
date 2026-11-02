@@ -25,7 +25,7 @@
     const NO_CHOICE = new Set(['self', 'minions', 'ground', 'corpse', 'enemy_aoe', 'all_enemies', 'all_combatants', 'linked_enemies']);
     const DIRECTION_NAMES = { n: 'north', s: 'south', e: 'east', w: 'west' };
     const WEB_ACTIONS = new Set(['learn_node', 'unlearn_node', 'set_specialization', 'set_web_guide']);   // Skill Web: out of a fight only
-    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter', 'world_narration', 'collect_drop']);
+    const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_forage', 'world_encounter', 'world_narration', 'collect_drop']);
 
     class ActionMethods {
         // =====================================================================
@@ -393,6 +393,7 @@
                 const opt = { type: 'use_item', item, count: p.inventory.filter((i) => i === item).length, enabled: true };
                 const timing = this.rtActionProblem(item, false);   // real-time: same check, same order as combatUseItem()
                 if (timing) { opt.enabled = false; opt.reason = { code: timing.code, message: timing.message }; if (timing.remainingMs != null) opt.readyInMs = timing.remainingMs; }
+                else if (this.isFood(def)) { const b = this.foodBlock(item); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
                 else if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
                 return opt;
@@ -530,6 +531,7 @@
                 this.storyEvent({ type: 'pickup', id: a.pickupId });
                 return;
             }
+            if (a.type === 'world_forage') { this.forage(String(a.nodeId || ''), String(a.forageId || '')); return; }   // src/engine/kitchen.js
             if (a.type === 'world_narration') {          // created on first use, so older saves load unchanged
                 const id = String(a.id || '');
                 if (!this.world.narrated) this.world.narrated = [];

@@ -49,6 +49,8 @@
                 const record = this.generateEquipment(base, level, rarity, instanceId);
                 result.items.push({ item: `${record.name} [${instanceId}]`, record });
             }
+            // Meat for the pot (rats, wolves): an authored drop, every time, so it never moves a seeded roll.
+            for (const d of enemy.foodDrops || []) if (this.data.itemDefinitions[d.item]) for (let i = 0; i < (d.count || 1); i++) result.items.push({ item: d.item });
             const consumableChance = enemy.lootProfile === 'humanoid' && rank === 'elite' ? .20 : profile.consumable;
             if (this.rng() < consumableChance) {
                 const pool = (table.consumables || []).filter(e => this.data.itemDefinitions[e.item]?.use === 'heal');

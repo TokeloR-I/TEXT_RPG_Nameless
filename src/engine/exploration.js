@@ -7,7 +7,7 @@
  * ========================================================================= */
 (function (global) {
     const EQUIP_SLOTS = ['mainHand', 'bodyArmor', 'accessory'];
-    const USABLE = new Set(['gold', 'heal']);   // item `use` values applyItem() handles; anything else is not usable
+    const USABLE = new Set(['gold', 'heal', 'meal', 'drink']);   // item `use` values applyItem() handles; anything else is not usable
     const noUseMessage = (item) => `You turn the ${item} over in your hands. There's nothing to use it for (yet).`;
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
@@ -78,6 +78,7 @@
             const def = this.itemDef(item);
             const p = this.player;
             if (!def || !USABLE.has(def.use)) { this.refuse('ITEM_NO_USE', noUseMessage(item)); return false; }
+            if (this.isFood(def)) return this.eatFood(item);   // meals and beer: src/engine/kitchen.js
             if (def.use === 'gold') {
                 if (!Number.isSafeInteger(def.value) || def.value <= 0 ||
                     !Number.isSafeInteger(p.gold + def.value)) {
@@ -207,14 +208,18 @@
             const p = this.player;
             p.homestead = p.homestead || { built: {}, plots: {} };
             const rule = (this.data.cropDefinitions || {})[seed];
+            // plantIn: the plots this seed (or animal) may go in, each a construction you have built. Without it, the
+            // older rule: any plot id once requiresUpgrade (default field_plot) is built.
+            const plotOk = Array.isArray(rule && rule.plantIn) ? rule.plantIn.includes(plotId) && !!p.homestead.built[plotId]
+                : !!(rule && p.homestead.built[rule.requiresUpgrade || 'field_plot']);
             if (!rule || !rule.produces || !Number.isSafeInteger(rule.actionsToGrow) || rule.actionsToGrow < 1 ||
-                !p.homestead.built[rule.requiresUpgrade || 'field_plot'] || p.homestead.plots[plotId] ||
+                !plotOk || p.homestead.plots[plotId] ||
                 !p.inventory.includes(seed)) {
                 this.refuse('CANNOT_PLANT', 'This seed or plot is unavailable.'); return false;
             }
             p.inventory.splice(p.inventory.indexOf(seed), 1);
             p.homestead.plots[plotId] = { seed, remaining: rule.actionsToGrow };
-            this.say(`Planted ${seed} in the ${this.plotName(plotId)}.`);
+            this.say(`${rule.plantVerb || 'Planted'} ${seed} in the ${this.plotName(plotId)}.`);
             this.storyEvent({ type: 'plant', id: seed });   // quests that teach planting (no-op without a story)
             return true;
         }
@@ -223,6 +228,14 @@
         tendPlot(plotId) {
             const plot = this.player.homestead?.plots?.[plotId];
             if (!plot) { this.refuse('EMPTY_PLOT', 'Nothing to tend.'); return false; }
+            // Livestock eats: a rule with `feed` takes one of those items per tending (the first one you carry).
+            const rule = (this.data.cropDefinitions || {})[plot.seed] || {};
+            if (Array.isArray(rule.feed) && plot.remaining > 0) {
+                const food = rule.feed.find((f) => this.player.inventory.includes(f));
+                if (!food) { this.refuse('NO_FEED', `Nothing to feed them. (${rule.feed.join(', ')})`); return false; }
+                this.player.inventory.splice(this.player.inventory.indexOf(food), 1);
+                this.say(`You feed them ${food}.`);
+            }
             if (plot.remaining > 0) plot.remaining--;
             this.say(plot.remaining > 0 ? `The ${this.plotName(plotId)}: ${plot.remaining} more tending to go.` : `The ${this.plotName(plotId)} is ready to harvest.`);
             this.storyEvent({ type: 'tend', id: plotId });
@@ -237,8 +250,10 @@
             }
             const n = Number.isSafeInteger(rule.yield) && rule.yield > 0 ? rule.yield : 1;
             for (let i = 0; i < n; i++) this.player.inventory.push(rule.produces);
-            delete this.player.homestead.plots[plotId];
-            this.say(`Harvested ${n > 1 ? `${n} ` : ''}${rule.produces}.`);
+            // `keeps`: the animal stays and starts over (hens lay again); anything else leaves the plot empty.
+            if (rule.keeps) plot.remaining = rule.actionsToGrow;
+            else delete this.player.homestead.plots[plotId];
+            this.say(`${rule.harvestVerb || 'Harvested'} ${n > 1 ? `${n} ` : ''}${rule.produces}.`);
             this.storyEvent({ type: 'harvest', id: rule.produces });
             return true;
         }
@@ -256,8 +271,9 @@
             }
             for (const [name, qty] of Object.entries(ingredients))
                 for (let i = 0; i < qty; i++) p.inventory.splice(p.inventory.indexOf(name), 1);
-            p.inventory.push(recipe.output);
-            this.say(`${recipe.verb || 'Crafted'} ${recipe.output}.`);
+            const n = Number.isSafeInteger(recipe.yield) && recipe.yield > 1 ? recipe.yield : 1;
+            for (let i = 0; i < n; i++) p.inventory.push(recipe.output);
+            this.say(`${recipe.verb || 'Crafted'} ${n > 1 ? `${n} ` : ''}${recipe.output}.`);
             this.storyEvent({ type: 'craft', id });
             return true;
         }
