@@ -46,11 +46,24 @@ missing the curse and the cash-in. The rework adds those two (original designs) 
 
 - **Plague Reservoir (L8)** now also pays **+1 Soul Energy for every 6th tick of your Infection**, so it feeds you against a
   single boss. The kill refund stays.
-- Virulent Touch (basic attacks add an Infection stack), Pestilent Sage (+1 turn), Harbinger (+2 per tick) and Plague
+- **Virulent Touch** (basic attacks add an Infection stack) now stacks only to `realtimeRules.statuses.virulentTouchMaxStacks`
+  (**2**) and only refreshes after that (Tokelo, 2 Nov 2026: "nerf Necro to add stack caps"). Before the cap, basic attacks
+  alone took Infection past 10 stacks, and the Warden died in about 13 s, already before this rework. Contagion, Plague of Ages and other
+  sources still stack past the cap, and a basic attack never strips stacks.
+- Pestilent Sage (+1 turn), Harbinger (+2 per tick) and Plague
   Sovereign (DoTs deal true damage) are unchanged. They already work on one target.
 
-**The single-target loop:** Contagion, then basic attacks (each adds a stack), Black Spit, Withering Curse, and then Plague Burst
+**The single-target loop:** Contagion, then basic attacks (each adds a stack, up to the Virulent Touch cap), Black Spit, Withering Curse, and then Plague Burst
 once the stack count is high. Corpse Bloom and Plague Wind stay in the data so old saves still work, but no stage teaches them now.
+
+## Benchmark (Crow Warden, level 3, 20 seeds, `qa/scripts/necro_warden.js`)
+
+| | Before #209 | After #209 | With stack caps |
+|---|---|---|---|
+| Plaguecaller | 13.5 s, 100% | 11.3 s, 100% | **45.1 s, 100%** |
+
+The target is 60 to 90 s with 70 to 90% wins. The Plaguecaller is still fast after the caps. With Virulent Touch at a cap of 1 and no
+ghosts at all, it still takes about 47 to 51 s, so the rest of the gap comes from the base kit (Infection plus Grave Bolt plus a skeleton), not from stacking.
 
 ## Open
 

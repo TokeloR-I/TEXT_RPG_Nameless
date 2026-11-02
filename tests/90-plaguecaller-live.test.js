@@ -50,7 +50,7 @@ test('Plague Burst on a lone enemy: stacks built by Contagion and basic attacks 
     for (let i = 0; i < 4; i++) { frames(r.sim, 1, { attack: true, aim: { x: t.x, y: t.y } }); frames(r.sim, 40, { aim: { x: t.x, y: t.y } }); }
     const e = r.g.combat.enemies.find((x) => r.g.infectionOn(x) && x.id === t.engineId) || r.g.combat.enemies.find((x) => r.g.infectionOn(x));
     const stacks = r.g.infectionOn(e).stacks;
-    assert.ok(stacks >= 3, `stacks built: ${stacks}`);
+    assert.ok(stacks >= 2, `stacks built: ${stacks}`);
     const out = cast(r, 'Plague Burst', 40);
     assert.ok(texts(out).some((x) => new RegExp(`Infection bursts \\(${stacks} stacks\\) for ${stacks * 5} damage`).test(x)), texts(out).filter((x) => /burst/i.test(x)).join(' | '));
     assert.strictEqual(r.g.infectionOn(e), null, 'consumed');

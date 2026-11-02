@@ -137,22 +137,26 @@
             const existingNames = target.statusEffects.map((s) => s.name);
             const cap = this.maxStacks(name, spec.type);
             const add = Math.max(1, spec.stacks || 1);
+            // Per-source stack cap (spec.stackCap): this source only stacks up to it, then just refreshes. It never
+            // removes stacks other sources added (Gauge, 2026-11-02: on-hit DoTs ran away to 10+ stacks in seconds).
+            const softCap = isNum(spec.stackCap) ? Math.max(1, Math.min(cap, spec.stackCap)) : cap;
             let inst = this.findStatus(target, name);
             let wasAtCap = false;
             if (inst) {
                 wasAtCap = (inst.stacks || 1) >= cap;
-                inst.stacks = Math.min(cap, (inst.stacks || 1) + add);
+                inst.stacks = Math.max(inst.stacks || 1, Math.min(softCap, (inst.stacks || 1) + add));
                 if (spec.value != null) inst.value = spec.value;
                 if (duration != null) inst.duration = duration;       // refresh to full duration
                 inst.appliedBy = source.id;                            // latest applier gets kill credit
                 inst.armed = false;                                    // full duration counts again from now
-                for (const k of Object.keys(spec)) if (!['name', 'type', 'value', 'duration', 'stacks'].includes(k)) inst[k] = spec[k] || inst[k];
+                for (const k of Object.keys(spec)) if (!['name', 'type', 'value', 'duration', 'stacks', 'stackCap'].includes(k)) inst[k] = spec[k] || inst[k];
             } else {
                 inst = {
                     ...spec, name, type: spec.type || def.type || 'status', category: def.category || 'uncategorized',
                     value: spec.value != null ? spec.value : def.value, duration: duration != null ? duration : def.duration,
-                    stacks: Math.min(cap, add), appliedBy: source.id, armed: false
+                    stacks: Math.min(softCap, add), appliedBy: source.id, armed: false
                 };
+                delete inst.stackCap;
                 target.statusEffects.push(inst);
             }
 
@@ -328,9 +332,9 @@
             }
         };
 
-        P.applyDot = function (source, target, { name, value, duration }) {
+        P.applyDot = function (source, target, { name, value, duration, stackCap }) {
             if (source && source.isPlayer && this.hasTrait('DoTs last +1 turn')) duration += 1;
-            const inst = this.applyStatus(source, target, { name, type: 'dot', value, duration });
+            const inst = this.applyStatus(source, target, { name, type: 'dot', value, duration, ...(stackCap != null ? { stackCap } : {}) });
             if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances.')) inst.trueDamage = true;
             if (inst && inst.rtTotalMs != null) this.say(`${target.name} is afflicted with ${name}${inst.stacks > 1 ? ` x${inst.stacks}` : ''} (${this.dotTickDamage(inst)} dmg every ${this.rtTickMs(inst) / 1000}s for ${inst.rtTotalMs / 1000}s).`);
             else if (inst) this.say(`${target.name} is afflicted with ${name} (${this.dotTickDamage(inst)} dmg/turn for ${inst.duration} turns).`);
@@ -345,7 +349,7 @@
             if (source && source.isPlayer && this.hasTrait('DoTs last +1 turn')) duration += 1;
             const before = this.infectionOn(target);
             const spread = !!opts.spreadOnDeath || !!(before && before.spreadOnDeath);
-            const inst = this.applyStatus(source, target, { name: 'Infection', type: 'dot', value: def.value, duration, stacks, spreadOnDeath: spread });
+            const inst = this.applyStatus(source, target, { name: 'Infection', type: 'dot', value: def.value, duration, stacks, spreadOnDeath: spread, ...(opts.stackCap != null ? { stackCap: opts.stackCap } : {}) });
             if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances.')) inst.trueDamage = true;
             if (inst) this.say(`${target.name} is infected (${inst.stacks}/${this.maxStacks('Infection')} stacks, ${this.dotTickDamage(inst)} dmg/turn).`);
             return inst;

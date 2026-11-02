@@ -266,7 +266,7 @@
             this.castSkill(p, skill, targets);
             if (isBasic) {
                 this.resourceEvent('onBasicAttack', 1, 'combo');
-                if (this.hasTrait('Virulent Touch')) for (const t of targets) if (t.hp > 0 && !t.isPlayer) this.infect(p, t, 1);
+                if (this.hasTrait('Virulent Touch')) for (const t of targets) if (t.hp > 0 && !t.isPlayer) this.infect(p, t, 1, { stackCap: (this.data.realtimeRules.statuses || {}).virulentTouchMaxStacks });
             }
             c.playerActedThisRound = true;
             if (realtime) {   // combat v2: no turn to end; the skill goes on cooldown and the clock runs on
