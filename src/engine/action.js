@@ -313,6 +313,33 @@
             });
         }
 
+        /**
+         * A boss stance (Guardian's Resolve, docs/design/CROW_WARDEN_PHASES.md): for `ms` of the fight clock the enemy
+         * takes `damageTaken` × every damage, from any source (hits, summons, DoTs, links), applied in damage().
+         * Not a status: it can't be cleansed, stolen or stacked, and it is scaled exactly over many small ticks.
+         */
+        actionBossStance(enemyId, { name = 'Stance', damageTaken = 1, ms = 0 } = {}) {
+            return this.actionRun(() => {
+                const e = this.actionEnemy(enemyId);
+                if (!e) return null;
+                const now = this.combat.rt.now;
+                e.actionStance = { name, damageTaken: Math.max(0, Number(damageTaken) || 0), until: now + Math.max(0, Number(ms) || 0), carry: 0 };
+                this.say(`${e.name} braces: ${name}! (${Math.round((1 - e.actionStance.damageTaken) * 100)}% less damage for ${Math.round(ms / 100) / 10} s)`, { important: true });
+                this.out.push({ type: 'action.stance', enemyId: e.id, name, ms });
+                return { until: e.actionStance.until };
+            });
+        }
+
+        /** damage() hook: an active stance scales what the enemy takes; the fraction carries so small ticks lose 20% too. */
+        actionStanceScale(target, amount) {
+            const st = target && target.actionStance;
+            if (!st || !this.combat || !this.combat.rt || this.combat.rt.now >= st.until) return amount;
+            const exact = amount * st.damageTaken + st.carry;
+            const out = Math.floor(exact + 1e-9);
+            st.carry = exact - out;
+            return out;
+        }
+
         actionEnemy(enemyId) {
             if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
             const e = this.alive(this.combat.enemies).find((x) => x.id === enemyId);
@@ -676,7 +703,8 @@
             const c = this.combat;
             const speedMult = (x) => x.statusEffects.filter((s) => s.type === 'slow' || s.type === 'speed_down').reduce((m, s) => m * (1 - Math.min(0.9, Number(s.value) || 0.3)), 1);
             const stunned = (x) => x.statusEffects.some((s) => s.type === 'skip_turn');
-            const statuses = (x) => x.statusEffects.map((s) => ({ name: s.name, type: s.type, stacks: s.stacks || 1, remainingMs: s.rtEndsAt != null ? Math.max(0, s.rtEndsAt - c.rt.now) : null }));
+            const statuses = (x) => x.statusEffects.map((s) => ({ name: s.name, type: s.type, stacks: s.stacks || 1, remainingMs: s.rtEndsAt != null ? Math.max(0, s.rtEndsAt - c.rt.now) : null }))
+                .concat(x.actionStance && c.rt.now < x.actionStance.until ? [{ name: x.actionStance.name, type: 'stance', stacks: 1, remainingMs: x.actionStance.until - c.rt.now }] : []);
             return {
                 enemies: c.enemies.filter((e) => e.encounterId && c.action.groups[e.encounterId]).map((e) => ({
                     id: e.id, encounterId: e.encounterId, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp,

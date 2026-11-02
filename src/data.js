@@ -1029,10 +1029,14 @@
             },
             bosses: {
                 crow_touched_warden: {
-                    arena: { x0: 16, y0: 32, x1: 336, y1: 224, home: { x: 184, y: 88 }, leashInsideArena: false, exitResets: true, respawnAt: { x: 184, y: 232 }, reengageRadius: 80 },
+                    arena: { x0: 32, y0: 64, x1: 672, y1: 448, home: { x: 368, y: 176 },   // the sanctuary floor in sim px (16 px tiles); the crow storms use it
+                            leashInsideArena: false, exitResets: true, respawnAt: { x: 184, y: 232 }, reengageRadius: 80 },
                     // Gauge: hpMult 2.5 (action mode only) puts the fight at 60-90 s; action play lands far more hits than v2.
-                    hpMult: 2.5, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
+                    // Tokelo 2026-11-02 (beef up the boss, don't nerf the classes): 2.5 -> 3.2. The phase 2/3 moves alone left
+                    // the warrior at 52 s; at 3.2 he takes 65 s and mage/rogue stay in the 60-90 s band (qa/scripts/warden_benchmark.js).
+                    hpMult: 3.2, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
                     parryStaggerMs: 600, warriorParryStaggerMs: 800, attackGapMs: 1200, minWindupMs: 500,
+                    alternateSpecials: true,   // a crow special or Reaper's Dance is followed by a base blow when one fits
                     guardsSeal: true, noSweepNearCagesPx: 40,
                     attacks: {
                         halberd_sweep:   { skill: 'Halberd Sweep', shape: 'arc', reach: 36, arcDeg: 150, windupMs: 700, activeMs: 150, recoveryMs: 700, blockCost: 30, parryable: true, useAt: [0, 40] },
@@ -1041,12 +1045,37 @@
                         summon_crows:    { skill: 'Summon Crows', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 900, activeMs: 300, recoveryMs: 1000, guardable: false, cooldownMs: 9000, damageMult: 3 },
                         // Gauge: windup 1200 -> 1300 (walking out of r 64 from his feet takes ~960 ms + a 250 ms reaction) and
                         // active 200 -> 120 (the 200 ms dodge i-frames must cover the whole active window with slack).
-                        murder_of_crows: { skill: 'Summon Crows', shape: 'circle', radius: 64, windupMs: 1300, activeMs: 120, recoveryMs: 1500, guardable: false, cooldownMs: 15000, phase: 2, damageMult: 6 }
+                        murder_of_crows: { skill: 'Summon Crows', shape: 'circle', radius: 64, windupMs: 1300, activeMs: 120, recoveryMs: 1500, guardable: false, cooldownMs: 15000, phase: 2, damageMult: 6 },
+                        // Phase 2 (Tokelo, 2026-11-02; docs/design/CROW_WARDEN_PHASES.md). First-pass numbers for Gauge.
+                        // Reaper's Dance: his 2-hit sweep grows a third blow, a heavy thrust at you, then a long recovery to punish.
+                        reapers_dance:   { skill: 'Halberd Sweep', shape: 'arc', reach: 36, arcDeg: 150, useAt: [0, 44], cooldownMs: 8000, parryable: true, phase: 2,
+                                           combo: [
+                                               { windupMs: 650, activeMs: 150, recoveryMs: 150, blockCost: 28 },
+                                               { windupMs: 500, activeMs: 150, recoveryMs: 150, blockCost: 28, reverse: true },
+                                               { shape: 'line', reach: 64, width: 14, lunge: 20, windupMs: 600, lockMs: 250, activeMs: 140, recoveryMs: 1800, blockCost: 36, damageMult: 1.3 }
+                                           ] },
+                        // Marked Prey: a crow marks you or one of your summons, follows it, then locks; three crows dive at the
+                        // locked spot. Step out of it after the lock (or drag the mark away from him first).
+                        marked_prey:     { skill: 'Summon Crows', shape: 'mark', count: 3, radius: 22, reachPx: 200, windupMs: 1600, lockMs: 550, activeMs: 200, recoveryMs: 900, guardable: false, parryable: false, cooldownMs: 11000, damageMult: 4, phase: 2 },
+                        // Phase 3 crow storms: one of 5 arena patterns, always in this order, then a rest (cooldownMs and
+                        // quietMs) so you get your turn. Zones are fractions of `arena` (fx, fy, r as a share of its width).
+                        crow_storm:      { skill: 'Summon Crows', shape: 'arena', windupMs: 1800, activeMs: 250, recoveryMs: 2200, guardable: false, parryable: false, cooldownMs: 12000, quietMs: 4000, damageMult: 5, phase: 3 }
                     },
+                    // Guardian's Resolve: once, when phase 2 opens. 6 s of 20% less damage from every source (summons and
+                    // DoTs too), slower steps and slower wind-ups; then a short window where any hit staggers him.
+                    resolve: { atPhase: 2, ms: 6000, damageTaken: 0.8, speedMult: 0.6, windupMult: 1.4, vulnerableMs: 2500, staggerMs: 1500 },
+                    crowStorms: [
+                        { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.22 }, { kind: 'column', fx: 0.5, w: 0.14 }] },
+                        { name: 'Ring', zones: [{ kind: 'ring', r: 0.13, count: 10, size: 0.045 }] },
+                        { name: 'Rows', zones: [{ kind: 'band', fy: 0.1, h: 0.2 }, { kind: 'band', fy: 0.5, h: 0.2 }, { kind: 'band', fy: 0.9, h: 0.2 }] },
+                        { name: 'Columns', zones: [{ kind: 'column', fx: 0.1, w: 0.14 }, { kind: 'column', fx: 0.37, w: 0.14 }, { kind: 'column', fx: 0.63, w: 0.14 }, { kind: 'column', fx: 0.9, w: 0.14 }] },
+                        { name: 'Corners', zones: [{ kind: 'spot', fx: 0.15, fy: 0.2, r: 0.12 }, { kind: 'spot', fx: 0.85, fy: 0.2, r: 0.12 }, { kind: 'spot', fx: 0.15, fy: 0.8, r: 0.12 }, { kind: 'spot', fx: 0.85, fy: 0.8, r: 0.12 }, { kind: 'spot', fx: 0.5, fy: 0.5, r: 0.09 }] }
+                    ],
                     phases: [
                         { fromHpPct: 1.0, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },
-                        { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
-                        { fromHpPct: 0.2, recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true }
+                        { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['reapers_dance', 'marked_prey', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
+                        // Phase 3 at 25% (Tokelo, 2026-11-02; was the 20% desperation stage): the crow storms join everything else.
+                        { fromHpPct: 0.25, openWith: 'crow_storm', recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true, attacks: ['crow_storm', 'reapers_dance', 'marked_prey', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'] }
                     ],
                     onDefeat: { drop: 'First Echo key', scene: 'crows_mourn' },
                     onPlayerDefeat: { reset: 'fullHp', returnHome: true, keepFlags: ['warden_challenged'] }

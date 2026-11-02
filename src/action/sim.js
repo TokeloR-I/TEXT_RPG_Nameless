@@ -177,7 +177,7 @@
                     x: hx, y: hy, homeX: hx, homeY: hy, r: prof.radius || 6, angle: Math.PI / 2,
                     state: 'idle', stateEnd: 0, nextThinkAt: 0, attackReadyAt: 0, path: null, repathAt: 0,
                     wanderTo: null, hp: null, maxHp: null, stunned: false, speedMult: 1, dead: false, deadAt: 0,
-                    windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, roleIdx: (prof.roles ? i : null)
+                    windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: (prof.roles ? i : null)
                 });
             });
         }
@@ -275,8 +275,15 @@
                     const b = this.bossOf(a);
                     if (b && b.phases) {   // boss phases by HP: a new phase opens with its signature move
                         const idx = b.phases.reduce((k, x, i) => (en.hp / en.maxHp <= x.fromHpPct + 1e-9 ? i : k), 0);
-                        if (idx > a.phaseIdx) { a.phaseIdx = idx; const ph = b.phases[idx]; if (ph.openWith) { a.openWith = ph.openWith; a.atkReady[ph.openWith] = 0; } if (ph.speed) a.prof = { ...a.prof, speed: ph.speed }; this.fx.push({ type: 'phase', x: a.x, y: a.y, phase: idx + 1 }); }
+                        if (idx > a.phaseIdx) {
+                            for (let n = a.phaseIdx + 1; n <= idx; n++) if (b.resolve && b.resolve.atPhase === n + 1 && !a.resolveUsed) this.beginResolve(a, b.resolve);   // once per fight
+                            a.phaseIdx = idx; const ph = b.phases[idx];
+                            if (ph.openWith) { a.openWith = ph.openWith; a.atkReady[ph.openWith] = 0; }
+                            if (ph.speed) a.prof = { ...a.prof, speed: ph.speed };
+                            this.fx.push({ type: 'phase', x: a.x, y: a.y, phase: idx + 1 });
+                        }
                     }
+                    if (a.resolve) this.stepResolve(a);
                     if (en.hp <= 0) this.kill(a);
                 }
             }
@@ -310,7 +317,7 @@
             g.engaged = false;
             g.reengageAt = this.now + 1500;
             for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -665,6 +672,7 @@
             this.collect(r.events);
             for (const a of hits) if ((r.hit || []).includes(a.engineId)) {
                 this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(this.player, a) });
+                this.bossHit(a);
                 if (!a.prof.boss && a.state !== 'windup' && a.state !== 'active') this.knock(a, angleTo(this.player, a), 4);
             }
         }
@@ -763,6 +771,7 @@
             const home = { x: a.homeX, y: a.homeY };
             if (dist(a, home) > (pr.leash || 200) && dist(p, home) > (pr.leash || 200)) { this.leash(g); return; }
             if (a.state === 'windup') {
+                if (a.windup.mark && !a.windup.mark.locked) this.trackMark(a);
                 if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, this.liveBody(a.windup.foe) || p);   // tracks, then locks (Thorne §4)
                 if (this.now >= a.stateEnd) this.enemyActive(a);
                 return;
@@ -795,8 +804,8 @@
         bossPhase(a) {
             const b = this.bossOf(a);
             if (!b || !b.phases || a.hp == null || !a.maxHp) return null;
-            let ph = null;
-            for (const x of b.phases) if (a.hp / a.maxHp <= x.fromHpPct + 1e-9) ph = x;
+            let ph = null;   // a later phase keeps what an earlier one set (phase 3 still sweeps twice) unless it says otherwise
+            for (const x of b.phases) if (a.hp / a.maxHp <= x.fromHpPct + 1e-9) ph = { ...(ph || {}), ...x };
             return ph;
         }
         /** Every attack this enemy can use right now: its table, or the boss's current phase. */
@@ -831,6 +840,8 @@
             const fits = (x) => {
                 const reach = (x.reach || 18) + (x.lunge ? 0 : 0);
                 if (x.shape === 'ground') return d <= Math.max(140, reach);
+                if (x.shape === 'arena') return true;
+                if (x.shape === 'mark') return d <= (x.reachPx || 200);
                 if (x.shape === 'projectile') return d <= reach && this.lineOfSight(a, p);
                 if (x.useWhen === 'playerBeyond80For1500ms') return d > 80;
                 if (x.useAt) return d >= x.useAt[0] - p.r && d <= x.useAt[1] + p.r + a.r * 0.5;
@@ -838,8 +849,14 @@
             };
             const ok = list.filter(fits);
             if (!ok.length) return null;
-            // cooldown-bound attacks (crows) take their turn when ready; otherwise the first fitting entry
+            // cooldown-bound attacks (crows) take their turn when ready; otherwise the first fitting entry. A boss
+            // with `alternateSpecials` follows a special with one of his base blows when one fits, so his phase 2
+            // and 3 kits sit on top of his base pattern instead of replacing it (Tokelo, 2026-11-02).
             const special = ok.filter((x) => x.cooldownMs >= 5000);
+            const plain = ok.filter((x) => !(x.cooldownMs >= 5000));
+            const b = this.bossOf(a);
+            if (b && b.alternateSpecials && a.lastWasSpecial && plain.length) return plain[0];
+            if (b && b.alternateSpecials && special.length > 1) return special.slice().sort((x, y) => (a.atkReady[x.name] || 0) - (a.atkReady[y.name] || 0))[0];   // the one waiting longest
             return special.length ? special[0] : ok[0];
         }
 
@@ -851,14 +868,21 @@
             const st = atk.combo ? { ...atk, ...atk.combo[step] } : atk;
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
+            if (a.resolve && this.now < a.resolve.until) windup = Math.round(windup * (a.resolve.cfg.windupMult || 1));   // Guardian's Resolve: deliberate blows
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
-            const foe = this.foeOf(a);
+            const foe = st.shape === 'mark' ? this.markTarget(a) : this.foeOf(a);
             a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
+            if (step === 0) a.lastWasSpecial = atk.cooldownMs >= 5000;
+            if (step === 0 && atk.quietMs) {   // a crow storm: no other crow special right after it (your window to hit back)
+                for (const x of this.attacksOf(a)) if (x.cooldownMs >= 5000 && x.name !== atk.name) a.atkReady[x.name] = Math.max(a.atkReady[x.name] || 0, this.now + windup + atk.quietMs);
+            }
             a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
+            if (st.shape === 'mark') { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
+            if (st.shape === 'arena') a.windup.storm = this.nextStorm(a);
         }
 
         /** Crow shadows: one on the player, the rest where they're heading (Thorne §5). */
@@ -876,10 +900,83 @@
             return out;
         }
 
+        // ---- Crow Warden phases 2 and 3 (Tokelo, 2026-11-02; docs/design/CROW_WARDEN_PHASES.md) ----
+        /** Guardian's Resolve: the engine takes 20% off everything he's dealt; the sim slows him and his wind-ups. */
+        beginResolve(a, cfg) {
+            a.resolveUsed = true;
+            a.resolve = { cfg, until: this.now + cfg.ms, vulnerableUntil: this.now + cfg.ms + (cfg.vulnerableMs || 0), broken: false };
+            if (this.engine.actionBossStance) this.collect(this.engine.actionBossStance(a.engineId, { name: "Guardian's Resolve", damageTaken: cfg.damageTaken, ms: cfg.ms }).events);
+            this.fx.push({ type: 'resolve', x: a.x, y: a.y });
+            this.fx.push({ type: 'notice', text: "Guardian's Resolve: the Warden braces. He takes less damage for a few seconds." });
+        }
+        stepResolve(a) {
+            const r = a.resolve;
+            if (this.now < r.until) { a.speedMult = (a.speedMult || 1) * (r.cfg.speedMult || 1); return; }
+            if (!r.ended) { r.ended = true; this.fx.push({ type: 'resolve_end', x: a.x, y: a.y }); this.fx.push({ type: 'notice', text: 'His guard drops! Hit him now to stagger him.' }); }
+            if (this.now >= r.vulnerableUntil || r.broken) a.resolve = null;
+        }
+        resolveState(a) {
+            const r = a.resolve;
+            if (!r) return null;
+            return this.now < r.until ? 'stance' : (!r.broken && this.now < r.vulnerableUntil ? 'vulnerable' : null);
+        }
+        /** A hit landed on `a` (player or summon). Right after Guardian's Resolve the first one staggers him. */
+        bossHit(a) {
+            if (!a || a.dead || this.resolveState(a) !== 'vulnerable') return;
+            a.resolve.broken = true;
+            this.stagger(a, a.resolve.cfg.staggerMs || 1500);
+            this.fx.push({ type: 'notice', text: 'The Warden staggers!' });
+        }
+
+        /** Marked Prey picks its prey: with summons out it alternates between one of them (the one on him) and you. */
+        markTarget(a) {
+            const mins = this.liveMinions().filter((m) => m.state !== 'rise');
+            if (!mins.length) return this.player;
+            const pickMinion = a.markTurn++ % 2 === 0;
+            if (!pickMinion) return this.player;
+            const f = this.foeOf(a);
+            return f !== this.player ? f : mins.slice().sort((x, y) => dist(a, x) - dist(a, y))[0];
+        }
+        /** The mark follows its prey until lockMs before the dive, then stays where it was. */
+        trackMark(a) {
+            const w = a.windup, m = w.mark;
+            const lock = w.atk.lockMs != null ? w.atk.lockMs : 500;
+            const prey = this.liveBody(w.foe);
+            if (this.now >= a.stateEnd - lock || !prey) { m.locked = true; return; }
+            m.x = prey.x; m.y = prey.y;
+        }
+        /** The arena the crow storms cover: the boss's `arena` rectangle, else the map. */
+        arenaRect(a) {
+            const ar = (this.bossOf(a) || {}).arena;
+            if (ar && ar.x1 > ar.x0) return { x0: ar.x0, y0: ar.y0, x1: ar.x1, y1: ar.y1 };
+            return { x0: 0, y0: 0, x1: this.w * this.T, y1: this.h * this.T };
+        }
+        /** The next crow storm in the fixed cycle, as hitbox shapes (circles and bands). */
+        nextStorm(a) {
+            const list = (this.bossOf(a) || {}).crowStorms || [];
+            if (!list.length) return { name: null, shapes: [] };
+            const pat = list[a.stormIdx % list.length];
+            a.stormIdx++;
+            const R = this.arenaRect(a), W = R.x1 - R.x0, H = R.y1 - R.y0;
+            const shapes = [];
+            for (const z of pat.zones) {
+                if (z.kind === 'band') shapes.push({ kind: 'line', x: R.x0, y: R.y0 + z.fy * H, angle: 0, length: W, width: z.h * H });
+                else if (z.kind === 'column') shapes.push({ kind: 'line', x: R.x0 + z.fx * W, y: R.y0, angle: Math.PI / 2, length: H, width: z.w * W });
+                else if (z.kind === 'spot') shapes.push({ kind: 'circle', x: R.x0 + z.fx * W, y: R.y0 + z.fy * H, radius: z.r * W });
+                else if (z.kind === 'ring') for (let i = 0; i < (z.count || 8); i++) {
+                    const ang = (i / (z.count || 8)) * 2 * Math.PI;
+                    shapes.push({ kind: 'circle', x: a.x + Math.cos(ang) * z.r * W, y: a.y + Math.sin(ang) * z.r * W, radius: (z.size || 0.04) * W });
+                }
+            }
+            return { name: pat.name, index: (a.stormIdx - 1) % list.length, shapes };
+        }
+
         /** The telegraph IS the hitbox (Thorne): what the player sees during the wind-up is what hits. */
         enemyShape(a) {
             const st = (a.windup && a.windup.atk) || this.attacksOf(a)[0];
             const kind = st.shape || 'arc';
+            if (kind === 'mark') { const m = (a.windup && a.windup.mark) || { x: a.x, y: a.y }; return { kind: 'circle', x: m.x, y: m.y, radius: st.radius || 22 }; }
+            if (kind === 'arena') return { kind: 'multi', shapes: (a.windup && a.windup.storm && a.windup.storm.shapes) || [] };
             if (kind === 'ground') return { kind: 'multi', shapes: (a.windup && a.windup.circles || []).map((c) => ({ kind: 'circle', x: c.x, y: c.y, radius: st.radius || 20 })) };
             if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: st.reach || 100, width: st.width || 6 };
             if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (st.reach || 20) + (st.lunge && !(st.reach > st.lunge) ? st.lunge : 0), width: st.width || 10 };
@@ -900,6 +997,8 @@
             }
             const touches = (b) => (w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, b)) : this.inShape(w.shape, b));
             this.strikeBodies(a, touches, st);
+            if (st.shape === 'mark') for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.shape.x + (i - 1) * 6, y: w.shape.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
+            if (st.shape === 'arena') this.fx.push({ type: 'crow_storm', name: w.storm && w.storm.name });
             if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
         }
 
@@ -1286,6 +1385,7 @@
             this.fx.push({ type: 'swing', x: m.x, y: m.y, angle: m.angle, minion: true, shape: { shape: 'arc', reach, arcDeg: atk.arcDeg || 70 } });
             if (r.ok && t && r.result === 'hit') {
                 this.fx.push({ type: 'hit', x: t.x, y: t.y - 6, angle: angleTo(m, t) });
+                this.bossHit(t);
                 if (!t.prof.boss && t.state !== 'windup' && t.state !== 'active') this.knock(t, angleTo(m, t), 3);
             }
             m.windup = null;
@@ -1388,7 +1488,9 @@
                         duration: Math.max(1, a.stateEnd - a.visualStateStart),
                         progress: Math.max(0, Math.min(1, (this.now - a.visualStateStart) / Math.max(1, a.stateEnd - a.visualStateStart)))
                     } : null,
-                    hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss,
+                    hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
+                    mark: a.state === 'windup' && a.windup && a.windup.mark ? { x: a.windup.mark.x, y: a.windup.mark.y, locked: a.windup.mark.locked, target: a.windup.mark.target } : null,
+                    storm: a.state === 'windup' && a.windup && a.windup.storm ? a.windup.storm.name : null,
                     engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),

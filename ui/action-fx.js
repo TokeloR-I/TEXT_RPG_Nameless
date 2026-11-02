@@ -723,6 +723,45 @@
      * crumble(g, enemyKey, x, y, t): a dead or dismissed summon at feet (x, y), t ms after it fell. The pieces drop
      * and bounce apart (0-700 ms), lie there, then break into dust that drifts up and fades (to CRUMBLE_MS).
      */
+    // ---------------------------------------------------------------------
+    // Crow Warden phase 2 and 3 marks (docs/design/CROW_WARDEN_PHASES.md)
+    // ---------------------------------------------------------------------
+    // A crow in flight, 9x5 px, wings up or down. '#' body, '+' eye.
+    const CROW = [
+        ['#.......#', '.##...##.', '..#####..', '...#+#...', '....#....'],
+        ['.........', '...###...', '.#######.', '#..#+#..#', '....#....']
+    ];
+    /**
+     * crowMark(g, x, y, { locked, now }) — Marked Prey: a black crow circling over the marked body (x, y = its head).
+     * While it follows, it flaps and bobs; once `locked`, it hangs still over the spot and flashes red.
+     */
+    function crowMark(g, x, y, o = {}) {
+        const now = o.now || 0, locked = !!o.locked;
+        const frame = locked ? 0 : Math.floor(now / 140) % 2;
+        const bob = locked ? 0 : R(Math.sin(now / 160) * 1.5);
+        const body = locked && Math.floor(now / 90) % 2 ? '#7a0a1a' : '#0a0608';
+        const X = R(x) - 4, Y = R(y) - 16 + bob;
+        const rows = CROW[frame];
+        for (let j = 0; j < rows.length; j++) for (let i = 0; i < rows[j].length; i++) {
+            const ch = rows[j][i];
+            if (ch === '#') px(g, X + i, Y + j, body);
+            else if (ch === '+') px(g, X + i, Y + j, locked ? '#ff4060' : '#c02040');
+        }
+        pxRing(g, x, y - 18 + bob, 6 + (locked ? 0 : (Math.floor(now / 200) % 2)), locked ? '#ff4060' : '#d050c0');
+    }
+    /** resolveAura(g, x, y, r, state, now) — Guardian's Resolve: a pale shield ring ('stance'); a cracked gold one ('vulnerable'). */
+    function resolveAura(g, x, y, r, state, now = 0) {
+        if (!state) return;
+        if (state === 'stance') {
+            const pulse = R(Math.sin(now / 180) * 1);
+            pxRing(g, x, y, r + 5 + pulse, '#b8c8ff', (r + 5 + pulse) * 0.55);
+            pxRing(g, x, y, r + 7 + pulse, '#5060a0', (r + 7 + pulse) * 0.55);
+            return;
+        }
+        if (Math.floor(now / 110) % 2) return;   // flicker: hit him now
+        for (const [dx, dy, a] of ringPoints(r + 6, (r + 6) * 0.55)) if (Math.sin(a * 5) > -0.2) px(g, R(x) + dx, R(y) + dy, '#ffd040');
+    }
+
     function crumble(g, enemyKey, x, y, t) {
         const pieces = BONES[enemyKey] || BONES.skeleton;
         const k = clamp01(t / CRUMBLE_MS);
@@ -754,7 +793,7 @@
     }
 
     const api = {
-        createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS,
+        createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS, crowMark, resolveAura,
         pixelText, textWidth, // helpers
         TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth
     };

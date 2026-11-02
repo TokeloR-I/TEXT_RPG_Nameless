@@ -245,6 +245,7 @@
         damage(target, amount, source, options = {}) {
             if (amount <= 0 || target.hp <= 0) return 0;
             if (target.ghoul) return this.ghoulAbsorb(target, amount), 0;   // Raise Ghoul: it stores what it takes, it never loses HP
+            if (target.actionStance && this.actionStanceScale) { amount = this.actionStanceScale(target, amount); if (amount <= 0) return 0; }   // Guardian's Resolve
             if (target.isPlayer && this.combat) {
                 const taken = this.ghoulAbsorb(target, amount);
                 if (taken >= amount) return 0;
