@@ -459,7 +459,7 @@
                 }
             }
             if (!options.secondaryLink && source && source.isPlayer) this.resourceEvent('onKill', 1, 'kill');
-            if (!options.secondaryLink && p.className === 'necromancer' && !p.isHollowKing && source) {
+            if (!options.secondaryLink && p.resource.type === 'Soul Energy' && !p.isHollowKing && source) {
                 const amount = source.isPlayer ? 2 : source.isMinion ? 1 : 0;
                 if (amount && this.gainResource(p, amount) > 0) this.say(`You gained ${amount} Soul Energy from ${target.name}'s demise!`);
             }

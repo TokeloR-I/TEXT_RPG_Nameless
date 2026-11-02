@@ -634,6 +634,46 @@
             }
         };
 
+        // --- Skill Web (Tokelo 2026-11-02): one connected web instead of locked class trees ---
+        // Spec: docs/design/SKILL_WEB.md. The engine builds the web (src/engine/skill-web.js) from:
+        //   - each class above: a heart node, plus one node per starting skill (owned free by that class);
+        //   - each evolution branch: one active node per new skill and one passive node per trait, stage by stage,
+        //     gated by the stage's level (and story event). Ids: '<branch>.<stage 1-5>.skill' / '.trait'.
+        //   - the extra nodes and bridges below. A new skill is one more entry in extraNodes; nothing else changes.
+        // `npm run web` prints and validates the web.
+        const skillWeb = {
+            rules: {
+                pointsPerLevel: 1,          // Gauge: one point per level keeps a one-path player on the old evolution schedule exactly
+                cost: { heart: 1, active: 1, passive: 1 },   // a node's own `cost` wins
+                ring: ['warrior', 'rogue', 'mage', 'necromancer'],   // neighbouring class hearts link (and the last to the first)
+                refund: true                // unlearning a node out of a fight refunds its point (respec is free for now)
+            },
+            // Existing skills no path granted. `links` are the node ids they hang from.
+            extraNodes: [
+                { id: 'warrior.war_cry', kind: 'active', region: 'warrior', skill: 'War Cry', minLevel: 2, links: ['warrior.guard'] },
+                { id: 'rogue.second_wind', kind: 'active', region: 'rogue', skill: 'Second Wind', minLevel: 2, links: ['rogue.evasion'] },
+                { id: 'elementalist.ice_lance', kind: 'active', region: 'mage', branch: 'elementalist', skill: 'Ice Lance', minLevel: 5, links: ['elementalist.1.trait'] },
+                { id: 'bone_warden.shield_of_the_dead', kind: 'active', region: 'necromancer', branch: 'bone_warden', skill: 'Shield of the Dead', minLevel: 5, links: ['bone_warden.1.trait'] },
+                { id: 'plaguecaller.corpse_bloom', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Corpse Bloom', minLevel: 5, links: ['plaguecaller.1.trait'] },
+                { id: 'plaguecaller.plague_wind', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Plague Wind', minLevel: 11, links: ['plaguecaller.corpse_bloom'] }
+            ],
+            // Cross-class strands: [nodeA, nodeB, why]. Either end opens the other.
+            bridges: [
+                ['vanguard.1.skill', 'bone_warden.1.skill', 'Shield and bone: the two walls'],
+                ['berserker.2.skill', 'duelist.2.skill', 'Whirlwind and Flurry: the blade frenzy'],
+                ['warden.1.skill', 'assassin.3.skill', 'Marks: the hunt'],
+                ['warden.2.skill', 'saboteur.1.skill', 'Zones and caltrops: owning the ground'],
+                ['saboteur.3.skill', 'plaguecaller.2.skill', 'Poison: trap and spit'],
+                ['soulbinder.3.skill', 'illusionist.2.skill', 'Possession and confusion: the stolen mind'],
+                ['chronomancer.1.skill', 'duelist.1.skill', 'Haste and riposte: tempo'],
+                ['elementalist.2.trait', 'plaguecaller.2.trait', 'Burn and blight: damage over time'],
+                ['illusionist.1.skill', 'assassin.1.skill', 'Mirror and shadow: misdirection'],
+                ['vanguard.3.skill', 'elementalist.3.skill', 'Smite and storm: the spellblade'],
+                ['chronomancer.3.skill', 'soulbinder.4.skill', 'Revert and feast: life bent back'],
+                ['berserker.1.skill', 'plaguecaller.1.skill', 'Bleed and rot: open wounds']
+            ]
+        };
+
         // --- Legendary and Secret Class Data (Not part of direct evolution tree) ---
         const legendaryAndSecretClasses = {
             'deathlord_eternal': {
@@ -1774,7 +1814,7 @@
                 homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} }
             }, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
-            basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
+            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
             statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules
         };
 

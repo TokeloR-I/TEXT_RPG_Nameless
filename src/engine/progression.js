@@ -1,6 +1,6 @@
 /* =========================================================================
  * Enso's Last Stand — ENGINE MODULE: Progression
- * XP, levelling, evolution branches, skill trees, the status screen.
+ * XP, levelling, choosing a path (the Skill Web's guide), the status screen.
  *
  * These are GameEngine methods (`this` is the engine). src/engine.js copies
  * them onto GameEngine.prototype, so callers just use engine.method().
@@ -59,14 +59,18 @@
             return gains;
         }
 
+        /** A level-up: the guide (if any) learns its path in the Skill Web (src/engine/skill-web.js). */
         evolve() {
             if (this.player.isHollowKing) { this.say('Your form is beyond conventional evolution.', { important: true }); return; }
             if (!this.data.evolutionPaths[this.player.className]) return;
-            if (!this.progression.branch) {
+            const web = this.webState();
+            if (!this.progression.branch && !web.guide) {
                 if (this.player.level >= 3) this.pendingBranchChoice = true;
                 return;
             }
             this.applyStages();
+            const left = this.webPoints();
+            if (left > 0) this.say(`You have ${left} unspent Skill Web point${left === 1 ? '' : 's'}. Type 'web' to see where they can go.`);
         }
 
         maybePromptBranch() {
@@ -77,8 +81,10 @@
             this.say('Choose your path:');
             for (const key in tree.branches) this.say(`- ${pretty(key)}: ${tree.branches[key].theme}`);
             this.say('Type the name of a path (e.g., \'' + pretty(Object.keys(tree.branches)[0]) + '\').', { important: true });
+            this.say('The path guides your Skill Web points; you can still learn skills from any class in the web.');
         }
 
+        /** choose_branch (level 3): the path becomes your guide and your specialization. */
         chooseBranch(input) {
             const tree = this.data.evolutionPaths[this.player.className];
             const key = input.trim().replace(/\s+/g, '_');
@@ -89,52 +95,23 @@
                 this.maybePromptBranch();
                 return;
             }
-            this.progression.branch = match;
+            this.webState().guide = match;
             this.pendingBranchChoice = false;
             this.mode = 'explore';
             this.say(`You walk the path of the ${tree.branches[match].name}.`, { important: true });
-            this.applyStages();
+            this.followWebGuide();
+            this.progression.branch = match;
+            this.progression.stageIndex = -1;
+            this.refreshSpecialization();
             if (!this.world) this.say("Type 'look' to see where you are.");
         }
 
+        /** The guide learns what it can, then the specialization catches up (also after unlock_events). */
         applyStages() {
-            const prog = this.progression;
             const p = this.player;
-            if (!p || !prog.branch || p.isHollowKing) return;
-            const branch = this.data.evolutionPaths[p.className].branches[prog.branch];
-            for (let i = prog.stageIndex + 1; i < branch.stages.length; i++) {
-                const st = branch.stages[i];
-                if (st.level > p.level) break;
-                if (st.unlockTrigger && !this.flags.eventsUnlocked) {
-                    this.say(`(${st.name} awaits — requires: ${st.unlockTrigger}.)`);
-                    break;
-                }
-                this.enterStage(branch, st, i);
-            }
-        }
-
-        enterStage(branch, stage, index) {
-            const p = this.player;
-            this.progression.stageIndex = index;
-            this.progression.evolutionName = stage.name;
-            this.say(`--- Your destiny unfolds! You become a ${stage.name}! ---`, { important: true });
-            if (stage.lore) this.say(`"${stage.lore}"`);
-            if (stage.skill && !p.skills.includes(stage.skill)) {
-                p.skills.push(stage.skill);
-                const info = this.describeSkill(stage.skill);
-                this.say(`New Skill: ${stage.skill}!${info.implemented ? '' : ' (not implemented yet)'}`, { important: true });
-            }
-            if (stage.trait) {
-                p.traits.push({ name: stage.trait, effect: stage.traitEffect, ...(stage.damageReductionOverride != null ? { damageReductionOverride: stage.damageReductionOverride } : {}) });
-                this.say(`New Trait: ${stage.trait}!`, { important: true });
-            }
-            const resEvo = (branch.resourceEvolution || []).find((r) => r.level === stage.level);
-            if (resEvo && resEvo.type !== p.resource.type) {
-                this.say(`Your ${p.resource.type} becomes ${resEvo.type}.`);
-                p.resource.type = resEvo.type;
-                const rule = (this.data.resourceRules || {})[resEvo.type];
-                if (rule && rule.regen != null) p.resource.regen = rule.regen;
-            }
+            if (!p || p.isHollowKing || !this.webState()) return;
+            this.followWebGuide();
+            this.refreshSpecialization();
         }
 
         becomeHollowKing() {
