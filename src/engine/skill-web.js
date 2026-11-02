@@ -102,9 +102,17 @@
                 from: g.from, to: g.to, target: to.region, minLevel: g.minLevel || from.minLevel, ...(g.cost != null ? { cost: g.cost } : {}) });
             link(g.id, g.from); link(g.id, g.to);
         }
+        const legendary = [];
+        for (const [legId, leg] of Object.entries(cfg.legendaryWebs || {})) {
+            const lore = (data.legendaryAndSecretClasses || {})[legId] || {};
+            legendary.push(legId);
+            add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), traits: [] });
+            for (const x of leg.nodes || []) { const { links, ...rest } = x; add({ label: x.skill || (x.trait && x.trait.name) || x.id, ...rest, region: legId, stage: null }); }
+            for (const x of leg.nodes || []) for (const to of x.links || []) link(x.id, to);
+        }
         const webs = Object.keys(data.basePlayerClasses || {});
-        layout(nodes, webs);
-        return { nodes, list: [...nodes.values()], webs, branches };
+        layout(nodes, [...webs, ...legendary]);
+        return { nodes, list: [...nodes.values()], webs, legendary, branches };
     }
 
     /** Positions for a web view, in a unit circle (a node's own `pos: [x, y]` wins). */
@@ -142,13 +150,17 @@
             if (!['heart', 'active', 'passive', 'gateway'].includes(n.kind)) problems.push(`${n.id}: unknown kind '${n.kind}'`);
             if (n.kind === 'active' && !defs[n.skill]) problems.push(`${n.id}: skill '${n.skill}' is not in skillDefinitions`);
             if (n.kind === 'passive' && !(n.trait && n.trait.name)) problems.push(`${n.id}: a passive node needs a trait`);
-            if (!(data.basePlayerClasses || {})[n.region]) problems.push(`${n.id}: unknown region '${n.region}'`);
+            if (!(data.basePlayerClasses || {})[n.region] && !web.legendary.includes(n.region)) problems.push(`${n.id}: unknown region '${n.region}'`);
             if (n.branch && !web.branches[n.branch]) problems.push(`${n.id}: unknown branch '${n.branch}'`);
             if (!(Number.isInteger(n.cost) && n.cost >= 0)) problems.push(`${n.id}: cost must be a whole number`);
-            if (!n.links.length) problems.push(`${n.id}: not linked to anything`);
+            if (!n.links.length && !n.legendary) problems.push(`${n.id}: not linked to anything`);
+            for (const req of (n.requires && n.requires.stages) || []) {
+                const [b, st] = String(req).split('.');
+                if (!web.branches[b] || !(Number(st) >= 1 && Number(st) <= web.branches[b].stages.length)) problems.push(`${n.id}: requires an unknown stage '${req}'`);
+            }
         }
         // Each class web is one piece on its own (gateways excluded), and only gateways cross between webs.
-        for (const classId of web.webs) {
+        for (const classId of [...web.webs, ...web.legendary]) {
             const start = `heart.${classId}`;
             const seen = new Set([start]);
             const queue = [start];
@@ -203,6 +215,22 @@
         webOwns(id) { const s = this.webState(); return !!s && s.nodes.includes(id); }
         /** Own heart and own starting skills: free, and never unlearned. */
         webNodeFixed(node) { return !!(node.base && this.player && node.region === this.player.className); }
+
+        /** What a legendary web still needs, as stage and event names ([] = it can open). `owned`: a node-id Set to test instead. */
+        legendaryMissing(heart, owned = null) {
+            const web = this.skillWeb();
+            const has = (id) => owned ? owned.has(id) : this.webOwns(id);
+            const req = heart.requires || {};
+            const missing = [];
+            for (const r of req.stages || []) {
+                const [b, st] = String(r).split('.');
+                const info = web.branches[b];
+                const ok = info && info.stages.slice(0, Number(st)).every((ids) => ids.every(has));
+                if (!ok) missing.push(info ? this.branchDef(b).stages[Number(st) - 1].name : r);
+            }
+            if (req.event && !this.flags.eventsUnlocked) missing.push(req.event);
+            return missing;
+        }
         webPointsEarned() {
             const s = this.webState();
             if (!s) return 0;
@@ -248,7 +276,11 @@
             const n = web.nodes.get(id);
             if (!n) return { code: 'UNKNOWN_NODE', message: `There is no '${id}' in the Skill Web.` };
             if (this.webOwns(id)) return { code: 'ALREADY_LEARNED', message: `You already know ${n.label}.` };
-            const touching = n.kind === 'gateway' ? this.webOwns(n.from) : n.links.some((to) => this.webOwns(to));   // a gateway opens from its own side only
+            if (n.legendary) {   // a legendary web opens on its conditions, not by a link
+                const missing = this.legendaryMissing(n);
+                if (missing.length) return { code: 'LEGEND_LOCKED', message: `${n.label} opens after: ${missing.join(', ')}.` };
+            }
+            const touching = n.legendary || (n.kind === 'gateway' ? this.webOwns(n.from) : n.links.some((to) => this.webOwns(to)));   // a gateway opens from its own side only
             if (!touching) return { code: 'NOT_CONNECTED', message: `${n.label} isn't connected to anything you know yet.` };
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
             if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
@@ -269,8 +301,13 @@
             if (this.webRules().refund === false) return { code: 'NO_REFUND', message: 'Skill Web points cannot be refunded.' };
             const rest = new Set(this.webState().nodes.filter((x) => x !== id));
             const heart = `heart.${this.player.className}`;
-            const seen = new Set([heart]);
-            const queue = [heart];
+            const legends = [...rest].filter((x) => web.nodes.get(x).legendary);
+            for (const l of legends) {
+                const missing = this.legendaryMissing(web.nodes.get(l), rest);
+                if (missing.length) return { code: 'NODE_ANCHORS_OTHERS', message: `${web.nodes.get(l).label} rests on ${n.label} (${missing.join(', ')}). Unlearn that web first.` };
+            }
+            const seen = new Set([heart, ...legends]);
+            const queue = [heart, ...legends];
             while (queue.length) for (const to of web.nodes.get(queue.shift()).links) if (rest.has(to) && !seen.has(to)) { seen.add(to); queue.push(to); }
             const cut = [...rest].filter((x) => !seen.has(x));
             if (cut.length) return { code: 'NODE_ANCHORS_OTHERS', message: `Other skills hang from ${n.label} (${cut.map((x) => web.nodes.get(x).label).join(', ')}). Unlearn those first.` };
@@ -308,7 +345,8 @@
             const p = this.player;
             const s = this.webState();
             if (!s.nodes.includes(n.id)) s.nodes.push(n.id);
-            if (n.kind === 'heart' && !this.webNodeFixed(n)) this.say(`The ${n.label} heart opens to you.`, { important: true });
+            if (n.legendary) this.say(`--- A legend wakes: the ${n.label} web opens to you! ---`, { important: true });
+            else if (n.kind === 'heart' && !this.webNodeFixed(n)) this.say(`The ${n.label} heart opens to you.`, { important: true });
             if (n.kind === 'gateway') this.say(`${n.label} opens: the ${this.data.basePlayerClasses[n.target].name} web lies beyond.`, { important: true });
             if (n.skill && !p.skills.includes(n.skill)) {
                 p.skills.push(n.skill);
@@ -482,13 +520,16 @@
                 // One web per class; `home` is yours, `entered` means you own something in it (through a gateway).
                 webs: web.webs.map((c) => ({ classId: c, name: this.data.basePlayerClasses[c].name, home: c === this.player.className,
                     entered: s.nodes.some((id) => { const n = web.nodes.get(id); return n && n.region === c && n.kind !== 'gateway'; }) })),
+                // Legendary webs (on top of your build): `open` once their conditions are met, `entered` once learned.
+                legendaryWebs: web.legendary.map((c) => { const h = web.nodes.get(`heart.${c}`); const missing = this.legendaryMissing(h);
+                    return { webId: c, name: h.label, requires: clone(h.requires || {}), missing, open: !missing.length, entered: this.webOwns(h.id) }; }),
                 specialization: prog.branch ? { branchId: prog.branch, name: prog.evolutionName, stageIndex: prog.stageIndex } : null,
                 specializations: this.webSpecializations().map((b) => ({ branchId: b, name: web.branches[b].name, classId: web.branches[b].classId, stageIndex: this.webStageReached(b) })),
                 nodes: web.list.map((n) => {
                     const owned = this.webOwns(n.id);
                     const problem = owned ? null : this.webLearnProblem(n.id);
                     return {
-                        id: n.id, kind: n.kind, label: n.label, region: n.region, branch: n.branch, stage: n.stage,
+                        id: n.id, kind: n.kind, label: n.label, region: n.region, legendary: !!n.legendary, branch: n.branch, stage: n.stage,
                         skill: n.skill || null, trait: n.trait ? clone(n.trait) : null, cost: n.cost, minLevel: n.minLevel,
                         links: [...n.links], x: n.x, y: n.y, owned, fixed: this.webNodeFixed(n),
                         state: owned ? 'owned' : problem ? 'locked' : 'available',
@@ -509,11 +550,11 @@
             if (view.specialization) this.say(`Specialization: ${view.specialization.name} (${this.branchDef(view.specialization.branchId).name}).`);
             const others = view.specializations.filter((x) => !view.specialization || x.branchId !== view.specialization.branchId);
             if (others.length) this.say(`Also open to you: ${others.map((x) => x.name).join(', ')} ('specialize <path>').`);
-            const kindTag = (n) => ({ passive: 'passive', heart: 'class heart', gateway: `gateway to the ${n.target} web` })[n.kind] || 'skill';
+            const kindTag = (n) => n.legendary ? 'legendary web' : ({ passive: 'passive', heart: 'class heart', gateway: `gateway to the ${n.target} web` })[n.kind] || 'skill';
             const owned = view.nodes.filter((n) => n.owned && n.kind !== 'heart' && n.kind !== 'gateway');
             this.say(`Known: ${owned.map((n) => n.label).join(', ') || 'nothing yet'}.`);
             const ready = view.nodes.filter((n) => n.state === 'available');
-            const near = view.nodes.filter((n) => n.state === 'locked' && n.reason.code !== 'NOT_CONNECTED');
+            const near = view.nodes.filter((n) => n.state === 'locked' && !['NOT_CONNECTED', 'LEGEND_LOCKED'].includes(n.reason.code));
             if (ready.length) {
                 this.say('Learn now:');
                 for (const n of ready) this.say(`- ${n.label} (${kindTag(n)}, ${n.cost} pt)${n.branch ? ` · ${this.branchDef(n.branch).name}` : ` · ${pretty(n.region)}`}`);

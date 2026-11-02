@@ -187,3 +187,33 @@ test('Skill Web: the Hollow King stands outside the web', () => {
     const g = newGame().do('warrior', 'add_xp 250', 'warden', 'become_hollow_king');
     assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'warrior.war_cry' }).error.code, 'WEB_UNAVAILABLE');
 });
+
+test('Skill Web: a legendary web (Deathlord Eternal) opens on its conditions and adds to the build', () => {
+    const g = newGame().do('necromancer', 'add_xp 250', 'soulbinder');
+    levelTo(g, 14);
+    assert.strictEqual(g.progression.evolutionName, 'Eternal Lich');
+    g.do('guide off');
+    g.progression.web.bonusPoints = 20;                          // stand-in for a long hybrid run
+    let leg = g.getSkillWeb().legendaryWebs.find((w) => w.webId === 'deathlord_eternal');
+    assert.deepStrictEqual(leg.missing, ['Abyssal King', 'the Throne of Bones']);
+    assert.strictEqual(node(g, 'heart.deathlord_eternal').reason.code, 'LEGEND_LOCKED');
+    // Cross into the Warrior web (The Two Walls) and walk Vanguard to Abyssal King.
+    for (const id of ['bone_warden.1.skill', 'gate.two_walls', 'vanguard.1.skill', 'vanguard.1.trait', 'vanguard.2.skill', 'vanguard.2.trait', 'vanguard.3.skill', 'vanguard.3.trait'])
+        assert.ok(g.act({ type: 'learn_node', nodeId: id }).ok, id);
+    g.do('unlock_events');
+    for (const id of ['vanguard.4.skill', 'vanguard.4.trait', 'vanguard.5.skill', 'vanguard.5.trait']) assert.ok(g.act({ type: 'learn_node', nodeId: id }).ok, id);
+    leg = g.getSkillWeb().legendaryWebs.find((w) => w.webId === 'deathlord_eternal');
+    assert.ok(leg.open && !leg.entered);
+    const r = g.act({ type: 'learn_node', nodeId: 'Deathlord Eternal' });
+    assert.ok(r.ok);
+    assert.ok(r.events.some((e) => /the Deathlord Eternal web opens/.test(e.text || '')));
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Legion of the Dead' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Death’s Dominion' }).ok);
+    // On top of the build: the necromancer keeps everything, still walks as the Eternal Lich.
+    assert.ok(g.player.skills.includes('Eternal Lich Unmake') && g.player.skills.includes('Oblivion Reign') && g.player.skills.includes('Death’s Dominion'));
+    assert.strictEqual(g.progression.evolutionName, 'Eternal Lich');
+    // A stage the legend rests on can't be unlearned while the legendary web is held.
+    assert.strictEqual(g.act({ type: 'unlearn_node', nodeId: 'vanguard.5.trait' }).error.code, 'NODE_ANCHORS_OTHERS');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Reality Breaker' }).error.code, 'LEGEND_LOCKED');
+    assertHealthy(g);
+});

@@ -676,7 +676,21 @@
                 { id: 'gate.two_walls', from: 'bone_warden.1.skill', to: 'vanguard.1.skill', name: 'The Two Walls', why: 'Bone Wall to Shield Bash' },
                 { id: 'gate.open_wounds', from: 'plaguecaller.1.skill', to: 'berserker.1.skill', name: 'Open Wounds', why: 'Contagion to Hemorrhage' },
                 { id: 'gate.life_bent_back', from: 'soulbinder.4.skill', to: 'chronomancer.3.skill', name: 'Life Bent Back', why: 'Soul Feast to Revert HP' }
-            ]
+            ],
+            // Legendary webs (Tokelo 2026-11-02): a legendary class is its own web, added on top of your build. Its heart
+            // opens once every listed evolution stage is reached ('<branch>.<stage 1-5>', any class) and its story event has
+            // happened. Names and lore: legendaryAndSecretClasses. The Hollow King stays a full transformation (no web).
+            legendaryWebs: {
+                deathlord_eternal: {
+                    requires: { stages: ['soulbinder.5', 'vanguard.5'], event: 'the Throne of Bones' },   // Eternal Lich + Abyssal King
+                    nodes: [
+                        { id: 'deathlord_eternal.legion', kind: 'passive', trait: { name: 'Legion of the Dead', effect: 'Unlimited minion cap for 5 turns.' }, links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', links: ['deathlord_eternal.legion'] }
+                    ]
+                },
+                // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
+                reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
+            }
         };
 
         // --- Legendary and Secret Class Data (Not part of direct evolution tree) ---

@@ -54,7 +54,7 @@ you have the **points**.
 the tests run the same check (every class web is one piece on its own, only gateways cross between webs,
 every skill defined).
 
-Today: **4 class webs, 148 nodes** (4 hearts, 72 active, 60 passive, 12 gateways), 33 to 40 per web. Room for
+Today: **4 class webs + 2 legendary webs, 152 nodes** (6 hearts, 73 active, 61 passive, 12 gateways), 33 to 40 per web. Room for
 80–100+ skills is the design target; the structure has no limit.
 
 ### Gateways (increment 1)
@@ -111,6 +111,24 @@ At level 3 the game still asks you to choose a path. The chosen path becomes you
 events allow (stopping at an event, exactly as evolutions did). `guide <path>` changes it, `guide off`
 turns it off. Unlearning a node on the guided path turns the guide off.
 
+## Legendary webs (Tokelo, 2026-11-02)
+
+A legendary class is **its own web, added on top of your build**. It doesn't replace your character. Its
+heart opens once every evolution stage it lists is reached (in any class web, so most need a hybrid build)
+and its story event has happened. Then its nodes link as usual. Data: `skillWeb.legendaryWebs`; names and
+lore stay in `legendaryAndSecretClasses`.
+
+| Legendary web | Opens after | Nodes today |
+|---|---|---|
+| Deathlord Eternal | Eternal Lich (`soulbinder.5`) + Abyssal King (`vanguard.5`) + the Throne of Bones | Legion of the Dead (passive), Death's Dominion (active, effect not built yet) |
+| Reality Breaker | Arcane Hollow (`illusionist.5`) + an event not designed yet | heart only; skills to be designed (Thorne) |
+
+While you hold a legendary web, the stages it rests on can't be unlearned. `getSkillWeb().legendaryWebs`
+lists each with what is still `missing`.
+
+**The Hollow King is the exception:** it stays a full transformation (its story is losing yourself). It
+replaces the character with its own resource and kit and stands outside every web (`WEB_UNAVAILABLE`).
+
 ## Costs of borrowed skills
 
 A skill is paid from **your current pool** whatever resource it was written for: a warrior's Raise Skeleton
@@ -128,7 +146,7 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 - Actions: `learn_node {nodeId}`, `unlearn_node {nodeId}`, `set_specialization {branchId}`,
   `set_web_guide {branchId|null}`. `nodeId` also takes a skill or trait name. All refuse in a fight
   (`IN_COMBAT`). Refusal codes: `UNKNOWN_NODE`, `ALREADY_LEARNED`, `NOT_CONNECTED`, `LEVEL_TOO_LOW`,
-  `EVENT_LOCKED`, `NO_WEB_POINTS`, `NOT_LEARNED`, `NODE_FIXED`, `NODE_ANCHORS_OTHERS`, `SPEC_LOCKED`,
+  `EVENT_LOCKED`, `LEGEND_LOCKED`, `NO_WEB_POINTS`, `NOT_LEARNED`, `NODE_FIXED`, `NODE_ANCHORS_OTHERS`, `SPEC_LOCKED`,
   `WEB_UNAVAILABLE` (Hollow King).
 - `engine.getSkillWeb()` (pure): points, guide, specializations, `webs` (one per class: `home`, `entered`),
   and every node with `state`
@@ -151,4 +169,4 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 
 - Should cross-class skills cost more (a "foreign" multiplier), or is the gateway toll enough?
 - Should a gold or item cost apply to respec?
-- Hollow King: stays outside the web for now.
+- Legion of the Dead and Death's Dominion need their effects built; Reality Breaker needs its skills and event.
