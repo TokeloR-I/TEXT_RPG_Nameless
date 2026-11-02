@@ -272,6 +272,7 @@
             if (realtime) this.rtBeginPlayerAction(); else c.awaitingPlayer = false;
             this.castSkill(p, skill, targets);
             if (isBasic) {
+                this.followUpCut(targets);   // Ronin
                 this.resourceEvent('onBasicAttack', 1, 'combo');
                 if (this.hasTrait('Virulent Touch')) for (const t of targets) if (t.hp > 0 && !t.isPlayer) this.infect(p, t, 1, { stackCap: (this.data.realtimeRules.statuses || {}).virulentTouchMaxStacks });
             }

@@ -28,6 +28,7 @@ const SETUPS = [
     { cls: 'warrior', branch: 'berserker', keep: 18 },
     { cls: 'rogue', branch: 'duelist', keep: 14 },
     { cls: 'rogue', branch: 'assassin', keep: 14 },
+    { cls: 'rogue', branch: 'saboteur', keep: 14 },
     { cls: 'mage', branch: 'illusionist', keep: 90 },
     { cls: 'mage', branch: 'elementalist', keep: 90 },
     { cls: 'necromancer', branch: 'bone_warden', keep: 80 },

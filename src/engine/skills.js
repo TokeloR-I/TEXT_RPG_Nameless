@@ -57,8 +57,9 @@
             if (attacker.isPlayer) dmg += this.statBonus(attacker, skill.damage_type) + this.equipmentDamageBonus(skill.damage_type, attacker.equipment || {});
             const gcIdx = attacker.statusEffects.findIndex((s) => s.name === 'Guaranteed Crit');
             if (gcIdx !== -1) { hit.forceCrit = true; attacker.statusEffects.splice(gcIdx, 1); }
-            hit.isCrit = hit.forceCrit || this.rng() < ((attacker.critChance || 0) + (attacker.isPlayer ? (this.equipmentModifiers(attacker.equipment || {}).critChance || 0) : 0));
-            if (hit.isCrit) dmg = Math.floor(dmg * (attacker.critMultiplier || 1.5));
+            const ninja = attacker.isPlayer ? this.ninjaTraitMods(skill) : null;   // Rogue ninja traits (crit, damage)
+            hit.isCrit = hit.forceCrit || this.rng() < ((attacker.critChance || 0) + (attacker.isPlayer ? (this.equipmentModifiers(attacker.equipment || {}).critChance || 0) + ninja.critChance : 0));
+            if (hit.isCrit) dmg = Math.floor(dmg * ((attacker.critMultiplier || 1.5) + (ninja ? ninja.critDamage : 0)));
 
             let final;
             if (skill.damage_type === 'true' || hit.trueDamage) {
@@ -82,7 +83,8 @@
                 if (status.type === 'bonus_damage_vs_flag_percent' &&
                     (target.specialFlags || []).includes(status.flag)) final *= 1 + status.value;
             }
-            for (const status of attacker.statusEffects) if (status.type === 'damage_boost') final *= 1 + (Number(status.value) || 0);   // Wrath Ghost
+            for (const status of attacker.statusEffects) if (status.type === 'damage_boost') final *= 1 + (Number(status.value) || 0);   // Wrath Ghost, Blade Focus
+            if (ninja) final *= ninja.damageMult;
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.
@@ -145,6 +147,8 @@
                         }
                         if (caster.isPlayer && actual > 0 && target.hp > 0) {   // Venom / Rend Ghost: your hits poison or bleed
                             for (const st of caster.statusEffects.filter((x) => x.type === 'on_hit_dot')) this.applyDot(caster, target, { name: st.dot, value: st.value, duration: st.dotDuration || 1, stackCap: st.dotStackCap });
+                            // Rogue ninja: Crimson Edge (crits bleed), Shrapnel (explosions bleed)
+                            if ((hit.isCrit && this.hasTrait('Crimson Edge')) || (skill.explosive && this.hasTrait('Shrapnel'))) this.applyDot(caster, target, { name: 'Bleed', value: 2, duration: 2, stackCap: 3 });
                         }
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
@@ -304,13 +308,65 @@
             return this.data.gameRules.baseMinionCap + bonus;
         }
 
-        summon(type) {
+        /** A minion joins your side. `life` ({ seconds, turns }) or the template's lifetime makes it a timed body (shadows). */
+        summon(type, life = null) {
             const tpl = this.data.minionDefinitions[type];
             if (!tpl) return null;
             const m = clone(tpl);
             Object.assign(m, { id: `minion_${this.combat.nextMinionId++}`, summonType: type, ownerId: this.player.id, isPlayer: false, isMinion: true, statusEffects: [] });
             this.combat.minions.push(m);
+            let seconds = (life && life.seconds) || tpl.lifetimeSeconds, turns = (life && life.turns) || tpl.lifetimeTurns;
+            if (seconds || turns) {
+                if ((tpl.specialFlags || []).includes('shadow') && this.hasTrait('Long Shadows')) { seconds = (seconds || 0) + 5; turns = (turns || 0) + 1; }
+                m.timed = true;
+                this.applyStatus(this.player, m, { name: 'Shadow-bound', type: 'lifetime', duration: turns || 1, ...(seconds ? { seconds } : {}) });
+            }
             return m; // joins the turn order next round
+        }
+
+        // ---------- Rogue ninja kit (Tokelo 2026-11-02, docs/design/ROGUE_NINJA_KIT.md) ----------
+        /** The ninja traits' numbers for one of the player's hits: crit chance and damage, and a damage multiplier. */
+        ninjaTraitMods(skill) {
+            const m = { critChance: 0, critDamage: 0, damageMult: 1 };
+            if (!this.player || !this.player.traits || !this.player.traits.length) return m;
+            if (this.hasTrait('Keen Edge')) m.critChance += 0.1;
+            if (this.hasTrait('Umbral Edge')) m.critDamage += 0.25;
+            if (this.hasTrait('Death’s Whisper')) m.critDamage += 0.5;
+            if (this.hasTrait('Masterless')) m.damageMult *= 1.15;
+            if (skill && skill.explosive && this.hasTrait('Volatile Mix')) m.damageMult *= 1.25;
+            return m;
+        }
+
+        /** A shadow body's time is up (its 'lifetime' status ran out): it melts back into the dark. */
+        fadeMinion(m) {
+            if (!m || m.hp <= 0) return;
+            m.hp = 0;
+            m.dead = true;
+            m.statusEffects = [];
+            if (this.combat) m.fallenOrder = ++this.combat.nextFallenOrder;
+            this.say(`${m.name} melts back into the shadows.`);
+            this.out.push({ type: 'action.minion_faded', minionId: m.id });
+        }
+
+        /** Follow-Up Cut (ronin): after a weapon hit, a chance to cut again at once through armour. */
+        followUpCut(targets) {
+            const p = this.player;
+            if (!this.hasTrait('Follow-Up Cut')) return;
+            const chance = this.hasTrait('Steel Rhythm') ? 0.4 : 0.25;
+            const t = (targets || []).find((x) => x && x.hp > 0 && !x.isPlayer && !x.isMinion);
+            if (!t || p.hp <= 0 || this.rng() >= chance) return;
+            this.castSkill(p, this.data.skillDefinitions['Follow-Up Cut'], [t]);
+        }
+
+        /** Explosive Caltrops: how many charges a cast scatters. */
+        mineCount(effect) { return (effect && effect.count || 3) + (this.hasTrait('Chain Reaction') ? 2 : 0); }
+
+        /** The blast of one charge from a mine skill, as a skill castSkill can run (damage, riders, explosive). */
+        mineBlastSkill(skillName) {
+            const sk = this.data.skillDefinitions[skillName] || {};
+            const fx = (sk.effects || []).find((x) => x.type === 'lay_mines');
+            if (!fx || !fx.blast) return null;
+            return { name: skillName, description: sk.description, base_damage: fx.blast.base_damage, effects: fx.blast.effects || [], target: 'enemy_aoe', damage_type: fx.blast.damage_type || 'physical', explosive: true };
         }
 
         // ---------- Necromancer live kit (Tokelo 2026-11-01, docs/design/NECROMANCER_LIVE_KIT.md) ----------
@@ -403,6 +459,8 @@
             if (s.type === 'ghoul_shield') {
                 const g = this.alive(this.combat.minions).find((m) => m.id === s.minionId);
                 if (g) this.ghoulShieldEnds(g);
+            } else if (s.type === 'lifetime' && holder.isMinion) {
+                this.fadeMinion(holder);   // shadow clone, hounds, stag
             } else if (s.type === 'ghoul_charge' && holder.ghoul && holder.ghoul.phase === 'charging') {
                 const target = this.alive(this.combat.enemies)[0];
                 this.ghoulBurst(holder, target ? [target] : []);

@@ -31,7 +31,7 @@
     // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
     // touch its own HP and resource. A skill with any other handled effect works in a fight only.
     const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
-        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn', 'channel_ghosts']);
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn', 'channel_ghosts', 'self_buff']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
@@ -277,11 +277,15 @@
                     this.player.statusEffects.push(guard);
                     this.say('You take it on your guard.');
                 }
+                c.lastEvade = null;
                 try { this.castSkill(e, skill, [target]); } finally {
                     for (const s of [guard, heavy]) if (s) { const i = target.statusEffects.indexOf(s); if (i >= 0) target.statusEffects.splice(i, 1); }
                 }
+                const evaded = target === this.player && c.lastEvade;   // Evasion or a blinded swing: it reached you and missed
+                c.lastEvade = null;
                 end();
                 this.checkBattleEnd();
+                if (evaded) return { result: 'evaded', why: evaded };
                 return { result: guard ? 'guarded' : 'hit' };
             });
         }
@@ -475,7 +479,7 @@
          */
         actionKeepFollowers(c) {
             if (!this.world) return;
-            this.world.followers = this.alive(c.minions).filter((m) => !m.ghoul).map((m) => ({ ...m, statusEffects: [] }));   // a ghoul's job ends with the fight
+            this.world.followers = this.alive(c.minions).filter((m) => !m.ghoul && !m.timed).map((m) => ({ ...m, statusEffects: [] }));   // a ghoul's job ends with the fight, and shadows fade with it
         }
 
         /** A new fight starts: your followers join it with the ids they had (their bodies don't change). */
@@ -500,6 +504,27 @@
                 for (const m of f) this.say(`Your ${m.name} crumbles to dust.`);
                 this.out.push({ type: 'action.followers_gone', ids: f.map((m) => m.id) });
                 return { ids: f.map((m) => m.id) };
+            });
+        }
+
+        /**
+         * Explosive Caltrops (ninja rework 2026-11-02): one of the charges the sim laid blew up. `targetIds`: engaged
+         * enemies inside its blast (the one that stepped on it first). The skill was paid when the charges were laid.
+         */
+        actionMineBlast(skillName, targetIds = []) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                if (!this.player.skills.includes(skillName)) { this.refuse('SKILL_NOT_KNOWN', `You don't know '${skillName}'.`); return null; }
+                const blast = this.mineBlastSkill(skillName);
+                if (!blast) { this.refuse('INVALID_TARGET', `'${skillName}' lays no charges.`); return null; }
+                const c = this.combat;
+                const living = this.alive(c.enemies);
+                const targets = (Array.isArray(targetIds) ? targetIds : []).map((id) => living.find((e) => e.id === id && e.encounterId && c.action.groups[e.encounterId])).filter(Boolean);
+                if (!targets.length) return { hit: [] };
+                this.say(`A spiked charge explodes under ${targets[0].name}!`, { important: true });
+                this.castSkill(this.player, blast, targets);
+                this.checkBattleEnd();
+                return { hit: targets.map((t) => t.id) };
             });
         }
 

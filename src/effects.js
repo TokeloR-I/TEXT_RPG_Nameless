@@ -206,12 +206,12 @@
     // A DoT is a status { type: 'dot', name, value, duration, appliedBy } on the target.
     // It deals `value` damage at the start of each of the target's turns (ignores armor),
     // then ticks down like any other status. Kill credit goes to whoever applied it.
-    function applyDot(ctx, name, value, duration) {
-        for (const t of ctx.targets.filter((t) => t.hp > 0)) ctx.engine.applyDot(ctx.caster, t, { name, value, duration });
+    function applyDot(ctx, name, value, duration, stackCap) {
+        for (const t of ctx.targets.filter((t) => t.hp > 0)) ctx.engine.applyDot(ctx.caster, t, { name, value, duration, stackCap });
     }
 
     register('bleed', {
-        apply(ctx) { applyDot(ctx, 'Bleed', ctx.effect.value, ctx.effect.duration); }
+        apply(ctx) { applyDot(ctx, 'Bleed', ctx.effect.value, ctx.effect.duration, ctx.effect.stackCap); }
     });
 
     // Soulbinder N-3/N-4: status-backed memberships and drain snapshots.
@@ -275,7 +275,7 @@
     register('dot', {
         apply(ctx) {
             const type = ctx.effect.dot_type || 'damage';
-            applyDot(ctx, type.charAt(0).toUpperCase() + type.slice(1), ctx.effect.value, ctx.effect.duration);
+            applyDot(ctx, type.charAt(0).toUpperCase() + type.slice(1), ctx.effect.value, ctx.effect.duration, ctx.effect.stackCap);
         }
     });
 
@@ -289,10 +289,12 @@
     const chance = (ctx, p) => ctx.engine.rng() < p;
 
     // ---------- defensive buffs (player) ----------
-    register('dodge_chance', { // Evasion: 50% to dodge the next attack
+    register('dodge_chance', { // Evasion: `value` chance to dodge the next attack; `persistent`: every attack while it lasts (ninja rework)
         apply(ctx) {
-            if (!ctx.engine.applyStatus(ctx.caster, ctx.caster, { name: ctx.skill.name, type: 'dodge', value: ctx.effect.value, duration: ctx.effect.duration })) return;
-            ctx.engine.say(`${ctx.caster.name} gets light on their feet (${Math.round(ctx.effect.value * 100)}% to dodge the next attack).`);
+            const persistent = !!ctx.effect.persistent;
+            const value = ctx.effect.value + (persistent && ctx.caster.isPlayer && ctx.engine.hasTrait('Shadow Veil') ? 0.15 : 0);   // Assassin's evasion boost
+            if (!ctx.engine.applyStatus(ctx.caster, ctx.caster, { name: ctx.skill.name, type: 'dodge', value, duration: ctx.effect.duration, ...(persistent ? { persistent: true } : {}) })) return;
+            ctx.engine.say(`${ctx.caster.name} gets light on their feet (${Math.round(value * 100)}% to dodge ${persistent ? 'every attack while it lasts' : 'the next attack'}).`);
         }
     });
 
@@ -351,10 +353,12 @@
         }
     });
 
-    register('blind', { // Smoke Bomb: -25% hit chance
+    register('blind', { // Smoke Bomb: each attack the blinded enemy makes has `value` chance to miss. `seconds`: its length in timed fights.
         apply(ctx) {
-            const hit = living(ctx).filter((t) => ctx.engine.applyStatus(ctx.caster, t, { name: 'Blind', type: 'blind', value: ctx.effect.value, duration: ctx.effect.duration }));
-            if (hit.length) ctx.engine.say(`Smoke fills the room! Enemies have -${Math.round(ctx.effect.value * 100)}% hit chance.`);
+            const e = ctx.engine;
+            const hit = living(ctx).filter((t) => e.applyStatus(ctx.caster, t, { name: 'Blind', type: 'blind', value: ctx.effect.value, duration: ctx.effect.duration, ...(ctx.effect.seconds ? { seconds: ctx.effect.seconds } : {}) }));
+            if (hit.length) e.say(`Smoke fills the air! Blinded enemies miss ${Math.round(ctx.effect.value * 100)}% of their attacks.`);
+            if (ctx.caster.isPlayer && e.hasTrait('Toxic Smoke')) for (const t of hit) if (t.hp > 0) e.applyDot(ctx.caster, t, { name: 'Poison', value: 3, duration: 2, stackCap: 2 });   // Smoke Phantom
         }
     });
 
@@ -405,7 +409,16 @@
         }
     });
 
-    register('instant_kill_if_low_hp', { // Assassinate
+    register('execute_bonus', { // Assassinate (ninja rework): +value × damage against a target under `threshold` HP. Never a kill outright.
+        afterCalc(ctx, hit) {
+            const t = hit.target;
+            if (!t || t.hp / t.maxHp >= ctx.effect.threshold) return;
+            hit.damage = Math.floor(hit.damage * (1 + ctx.effect.value));
+            ctx.engine.say(`${t.name} is wounded: ${ctx.skill.name} cuts deep!`);
+        }
+    });
+
+    register('instant_kill_if_low_hp', { // legacy Assassinate (old saves and tests); the ninja kit uses execute_bonus
         requires(ctx) {
             const t = ctx.targets[0];
             if (t && t.hp / t.maxHp >= ctx.effect.threshold) return `${t.name} is too healthy to assassinate (${Math.round((t.hp / t.maxHp) * 100)}% HP, needs < ${Math.round(ctx.effect.threshold * 100)}%).`;
@@ -699,6 +712,43 @@
         }
     });
 
+    // ---------- Rogue ninja kit (Tokelo 2026-11-02, docs/design/ROGUE_NINJA_KIT.md) ----------
+    register('shadow_summon', { // Shadow Clone, Shadow Hounds: `count` shadow bodies that fade after their lifetime (minionDefinitions)
+        requires(ctx) {
+            const e = ctx.engine;
+            if (!e.combat) return 'Shadows only answer in a fight.';
+            return e.alive(e.combat.minions).length >= e.minionCap() ? `You can't control more than ${e.minionCap()} minions.` : null;
+        },
+        apply(ctx) {
+            const e = ctx.engine;
+            const raised = [];
+            for (let i = 0; i < (ctx.effect.count || 1) && e.alive(e.combat.minions).length < e.minionCap(); i++) {
+                const m = e.summon(ctx.effect.summon_type);
+                if (m) raised.push(m);
+            }
+            if (raised.length) e.say(`${raised.length > 1 ? `${raised.length} ${raised[0].name}s rise` : `A ${raised[0].name} rises`} out of your shadow!`, { important: true });
+        }
+    });
+
+    register('self_buff', { // Blade Focus: a named status of `status_type` (damage_boost, haste) on the caster
+        apply(ctx) {
+            const e = ctx.engine;
+            if (e.applyStatus(ctx.caster, ctx.caster, { name: ctx.effect.name, type: ctx.effect.status_type, value: ctx.effect.value, duration: ctx.effect.duration }))
+                e.say(`${ctx.effect.name}: ${ctx.effect.status_type === 'haste' ? `${Math.round(ctx.effect.value * 100)}% faster` : `+${Math.round(ctx.effect.value * 100)}% damage`}.`);
+        }
+    });
+
+    register('lay_mines', { // Explosive Caltrops: action fights lay real charges (the sim places them, actionMineBlast blows one);
+        // turn and v2 fights queue them as traps the next enemies to act spring.
+        apply(ctx) {
+            const e = ctx.engine;
+            const n = e.mineCount(ctx.effect);
+            if (e.combat.action) { e.say(`You scatter ${n} spiked charges.`); return; }
+            for (let i = 0; i < n; i++) e.combat.traps.push({ name: 'spiked charge', blast: e.mineBlastSkill(ctx.skill.name) });
+            e.say(`You scatter ${n} spiked charges. (${e.combat.traps.length} waiting)`);
+        }
+    });
+
     register('raise_army', { // March of Endless Bones: skeletons up to the cap, plus one champion
         requires(ctx) {
             const e = ctx.engine;
@@ -711,9 +761,10 @@
             const e = ctx.engine;
             const raised = [];
             const count = () => e.alive(e.combat.minions).filter((m) => m.summonType !== ctx.effect.champion).length;
-            while (count() < e.minionCap()) { const m = e.summon(ctx.effect.summon_type); if (!m) break; raised.push(m.name); }
+            const life = ctx.effect.seconds || ctx.effect.duration ? { seconds: ctx.effect.seconds, turns: ctx.effect.duration } : null;   // Shade Legion
+            while (count() < e.minionCap()) { const m = e.summon(ctx.effect.summon_type, life); if (!m) break; raised.push(m.name); }
             if (ctx.effect.champion && !e.alive(e.combat.minions).some((m) => m.summonType === ctx.effect.champion)) {
-                const c = e.summon(ctx.effect.champion);
+                const c = e.summon(ctx.effect.champion, life);
                 if (c) raised.push(c.name);
             }
             e.say(raised.length ? `The March of Endless Bones raises ${raised.length > 1 ? raised.slice(0, -1).join(', ') + ' and ' + raised[raised.length - 1] : raised[0]}!` : 'Your army already stands ready.', { important: true });
