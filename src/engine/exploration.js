@@ -214,7 +214,8 @@
             }
             p.inventory.splice(p.inventory.indexOf(seed), 1);
             p.homestead.plots[plotId] = { seed, remaining: rule.actionsToGrow };
-            this.say(`Planted ${seed} in ${plotId}.`);
+            this.say(`Planted ${seed} in the ${this.plotName(plotId)}.`);
+            this.storyEvent({ type: 'plant', id: seed });   // quests that teach planting (no-op without a story)
             return true;
         }
 
@@ -223,7 +224,8 @@
             const plot = this.player.homestead?.plots?.[plotId];
             if (!plot) { this.refuse('EMPTY_PLOT', 'Nothing to tend.'); return false; }
             if (plot.remaining > 0) plot.remaining--;
-            this.say(`${plotId}: ${plot.remaining} tending actions remain.`);
+            this.say(plot.remaining > 0 ? `The ${this.plotName(plotId)}: ${plot.remaining} more tending to go.` : `The ${this.plotName(plotId)} is ready to harvest.`);
+            this.storyEvent({ type: 'tend', id: plotId });
             return true;
         }
 
@@ -233,9 +235,11 @@
             if (!rule || plot.remaining > 0) {
                 this.refuse('CROP_NOT_READY', 'The crop is not ready.'); return false;
             }
-            this.player.inventory.push(rule.produces);
+            const n = Number.isSafeInteger(rule.yield) && rule.yield > 0 ? rule.yield : 1;
+            for (let i = 0; i < n; i++) this.player.inventory.push(rule.produces);
             delete this.player.homestead.plots[plotId];
-            this.say(`Harvested ${rule.produces}.`);
+            this.say(`Harvested ${n > 1 ? `${n} ` : ''}${rule.produces}.`);
+            this.storyEvent({ type: 'harvest', id: rule.produces });
             return true;
         }
 
@@ -253,8 +257,15 @@
             for (const [name, qty] of Object.entries(ingredients))
                 for (let i = 0; i < qty; i++) p.inventory.splice(p.inventory.indexOf(name), 1);
             p.inventory.push(recipe.output);
-            this.say(`Crafted ${recipe.output}.`);
+            this.say(`${recipe.verb || 'Crafted'} ${recipe.output}.`);
+            this.storyEvent({ type: 'craft', id });
             return true;
+        }
+
+        /** A plot's display name: the construction that made it (constructionDefinitions), else its id. */
+        plotName(plotId) {
+            const rule = (this.data.constructionDefinitions || {})[plotId];
+            return (rule && rule.name) || plotId;
         }
 
         engage() {

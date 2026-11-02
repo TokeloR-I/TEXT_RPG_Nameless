@@ -66,8 +66,17 @@
                 const st = (s.quests[id] || { state: 'unseen' }).state;
                 if (want.endsWith('+') ? ORDER[st] < ORDER[want.slice(0, -1)] : st !== want) return false;
             }
+            // Homestead state (src/engine/exploration.js): constructions built, and what a plot is doing.
+            const home = (this.player && this.player.homestead) || { built: {}, plots: {} };
+            for (const id of cond.built || []) if (!home.built || !home.built[id]) return false;
+            for (const [id, want] of Object.entries(cond.plots || {})) if (this.plotState(id) !== want) return false;
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
             return true;
+        }
+        /** 'empty' | 'growing' | 'ready' for a homestead plot (pure). */
+        plotState(id) {
+            const plot = this.player && this.player.homestead && this.player.homestead.plots && this.player.homestead.plots[id];
+            return !plot ? 'empty' : plot.remaining > 0 ? 'growing' : 'ready';
         }
         hasStoryFlag(flag) { return !!this.story && this.story.flags.includes(flag); }
         questState(id) { return this.story && this.story.quests[id] ? this.story.quests[id].state : 'unseen'; }
@@ -77,6 +86,8 @@
         //   { flag } { unflag } { start: questId } { available: questId } { event: { type, id } }
         //   { item, key? } (once per key) { say } { removeItem }
         //   { shop: merchantId } { construction: upgradeId }: show Rook's CH1-04/05 data (no rules here)
+        //   { plant: { plot, seed } } { tend: plot } { harvest: plot } { craft: recipeId }: run the homestead
+        //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
             for (const e of effects || []) {
@@ -90,6 +101,10 @@
                 if (e.shop) this.storyShop(e.shop);
                 if (e.construction && this.story.dialogue) this.story.dialogue.construction = e.construction;
                 if (e.construction) this.storyConstruction(e.construction);
+                if (e.plant) this.plantCrop(String(e.plant.plot), String(e.plant.seed));
+                if (e.tend) this.tendPlot(String(e.tend));
+                if (e.harvest) this.harvestPlot(String(e.harvest));
+                if (e.craft) this.craftRecipe(String(e.craft));
                 if (e.start) this.startQuest(e.start, opts);
                 if (e.event) this.storyEvent(e.event);
             }
@@ -148,11 +163,20 @@
             if (o && !opts.quiet) this.say(`Objective: ${o.text}`);
         }
 
+        /** Has this objective's event already happened? A `quests` objective ({ type: 'quests', ids, count })
+         *  is met once `count` of those quests are complete ("help five households"). */
+        objectiveMet(o) {
+            if (!o || !o.on) return false;
+            if (o.on.type === 'quests') return this.questsDone(o.on) >= (o.on.count || (o.on.ids || []).length);
+            return this.story.seen.includes(`${o.on.type}:${o.on.id}`);
+        }
+        questsDone(on) { return (on.ids || []).filter((q) => this.questState(q) === 'complete').length; }
+
         /** The current objective's event may already have happened: complete it (and the next) now. */
         catchUpQuest(id) {
             for (let guard = 0; guard < 50; guard++) {
                 const o = this.currentObjective(id);
-                if (!o || !o.on || !this.story.seen.includes(`${o.on.type}:${o.on.id}`)) return;
+                if (!this.objectiveMet(o)) return;
                 this.advanceQuest(id);
             }
         }
@@ -177,6 +201,14 @@
             this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} complete: ${def.title}${pay && def.xp ? ` (+${def.xp} XP)` : ''}`, { important: true });
             if (pay && def.xp) this.addExperience(def.xp, { quiet: true });
             this.applyStoryEffects(def.onComplete);
+            // A quest waiting on a count of quests (the Shamefield locals) may be done now.
+            for (const [qid, qdef] of Object.entries(this.storyContent().quests)) {
+                const o = this.currentObjective(qid);
+                if (o && o.on && o.on.type === 'quests' && (o.on.ids || []).includes(id)) {
+                    if (this.objectiveMet(o)) this.catchUpQuest(qid);
+                    else this.say(`${qdef.title}: ${this.questsDone(o.on)}/${o.on.count || o.on.ids.length}`);
+                }
+            }
             if (!this.story.dialogue) this.maybePromptBranch();
         }
 
@@ -269,7 +301,7 @@
             if (d.construction) {
                 const rule = (this.data.constructionDefinitions || {})[d.construction], p = this.player;
                 if (rule && !(p.homestead && p.homestead.built && p.homestead.built[d.construction])) {
-                    out.unshift({ choiceId: `build:${d.construction}`, text: `Build ${rule.name || d.construction} (${rule.goldCost ? `${rule.goldCost} Gold` : 'free'})`, ends: false });
+                    out.unshift({ choiceId: `build:${d.construction}`, text: `${rule.verb || 'Build'} ${rule.name || d.construction} (${rule.goldCost ? `${rule.goldCost} Gold` : 'free'})`, ends: false });
                 }
             }
             if (!out.some((c) => c.ends)) out.push({ choiceId: 'leave', text: 'Goodbye.', ends: true });
@@ -444,11 +476,12 @@
             for (const [id, def] of Object.entries(data.quests)) {
                 const q = this.story.quests[id];
                 if (q.state === 'unseen') continue;
-                const steps = def.objectives.map((o, i) => ({ text: o.text, done: q.state === 'complete' || i < q.step, current: q.state === 'active' && i === q.step }));
+                const count = (o) => (o.on && o.on.type === 'quests' && q.state === 'active' ? ` (${this.questsDone(o.on)}/${o.on.count || o.on.ids.length})` : '');
+                const steps = def.objectives.map((o, i) => ({ text: o.text + (i === q.step ? count(o) : ''), done: q.state === 'complete' || i < q.step, current: q.state === 'active' && i === q.step }));
                 const cur = this.currentObjective(id);
                 quests.push({
                     id, title: def.title, kind: def.kind, state: q.state, summary: def.summary || '', xp: def.xp || 0,
-                    objective: cur ? { text: cur.text, marker: cur.marker || null } : null,
+                    objective: cur ? { text: cur.text + count(cur), marker: cur.marker || null } : null,
                     steps: steps.filter((st) => st.done || st.current)
                 });
             }

@@ -25,7 +25,7 @@
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const FACINGS = Object.keys(DIRS);
     const TRIGGERS = ['step', 'interact'];
-    const OBJECT_KINDS = ['inspect', 'pickup', 'npc'];
+    const OBJECT_KINDS = ['inspect', 'pickup', 'npc', 'station'];
 
     // ---------------------------------------------------------------------
     // Map geometry
@@ -134,6 +134,11 @@
                 if (o.kind === 'npc') {           // Chapter One people: dialogue lives in the story data (src/story/)
                     if (!o.npc) err(`${where}: npc ${o.id} needs an npc id`);
                     else if (storyData && !storyData.npcs[o.npc]) err(`${where}: npc ${o.id} uses unknown story npc '${o.npc}'`);
+                    continue;
+                }
+                if (o.kind === 'station') {       // a workplace (mill, garden bed): its choices are a story "npc" with no face
+                    if (!o.station) err(`${where}: station ${o.id} needs a station id`);
+                    else if (storyData && !storyData.npcs[o.station]) err(`${where}: station ${o.id} uses unknown story station '${o.station}'`);
                     continue;
                 }
                 if (o.guardedBy && !(map.encounters || []).some((e) => e.id === o.guardedBy)) err(`${where}: object ${o.id} is guarded by '${o.guardedBy}', which isn't an encounter on this map`);
@@ -361,9 +366,10 @@
             if (obj && isEncounter(this.map, obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text || 'It hasn\'t noticed you yet. Walk into it to fight.' };
             // A guarded thing can't be used while its guards are on it: no story event, no pickup (Q05's strongbox).
             if (this.guardOf(obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.guardedText, guarded: obj.guardedBy, events: [] };
-            if (obj && obj.kind === 'npc') {
-                const events = this.engine ? this.engine.act({ type: 'talk', npcId: obj.npc }).events : [];
-                return { type: 'talk', id: obj.id, npc: obj.npc, title: obj.name || null, events };
+            if (obj && (obj.kind === 'npc' || obj.kind === 'station')) {
+                const npc = obj.kind === 'station' ? obj.station : obj.npc;
+                const events = this.engine ? this.engine.act({ type: 'talk', npcId: npc }).events : [];
+                return { type: 'talk', id: obj.id, npc, title: obj.name || null, events };
             }
             if (obj && obj.kind === 'pickup') {
                 let events = [];
@@ -389,6 +395,7 @@
             if (obj && isEncounter(this.map, obj)) return { verb: this.cooldown === obj.id ? 'Step away first' : 'Walk into it to fight', name: obj.name || 'Enemy', kind: 'encounter' };
             if (obj && obj.kind === 'pickup') return { verb: 'Pick up', name: obj.name || obj.item, kind: 'pickup' };
             if (obj && obj.kind === 'npc') return { verb: 'Talk to', name: obj.name || (this.engine ? this.engine.npcName(obj.npc) : obj.npc), kind: 'npc' };
+            if (obj && obj.kind === 'station') return { verb: obj.verb || 'Use', name: obj.name || 'it', kind: 'station' };
             if (obj) return { verb: 'Inspect', name: obj.name || 'something', kind: 'inspect' };
             const exit = this.exitAt(fx, fy, 'interact');
             if (exit) return { verb: exit.prompt, name: null, kind: 'exit' };
