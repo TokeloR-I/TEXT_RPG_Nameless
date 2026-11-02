@@ -170,6 +170,23 @@
 
         // --- Minion Definitions (New) ---
         const minionDefinitions = {
+            // Rogue ninja kit (Tokelo 2026-11-02): shadow bodies that fade after `lifetimeSeconds` (turn fights: `lifetimeTurns`)
+            // and never follow you out of a fight (`fadesWithFight`). Their cuts pass through armour (shadow).
+            'shadow_clone': {
+                name: 'Shadow Clone', hp: 30, maxHp: 30, atk: 3, def: 2, spd: 12, critChance: 0.1, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 10, lifetimeTurns: 3, fadesWithFight: true,
+                skills: [{ name: 'Shadow Cut', description: 'Deals 2-4 damage through armour.', base_damage: [2, 4], target: 'enemy_single', damage_type: 'physical', effects: [{ type: 'ignore_armor' }] }]
+            },
+            'shadow_hound': {
+                name: 'Shadow Hound', hp: 16, maxHp: 16, atk: 3, def: 1, spd: 14, critChance: 0.05, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
+                skills: [{ name: 'Shadow Bite', description: 'Deals 2-4 damage through armour.', base_damage: [2, 4], target: 'enemy_single', damage_type: 'physical', effects: [{ type: 'ignore_armor' }] }]
+            },
+            'shadow_stag': {
+                name: 'Shadow Stag', hp: 40, maxHp: 40, atk: 6, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 20, lifetimeTurns: 7, fadesWithFight: true,
+                skills: [{ name: 'Antler Gore', description: 'Deals 5-8 damage through armour.', base_damage: [5, 8], target: 'enemy_single', damage_type: 'physical', effects: [{ type: 'ignore_armor' }] }]
+            },
             'skeleton': {
                 name: 'Skeleton',
                 hp: 15,
@@ -282,26 +299,50 @@
 
             // Rogue Base Skills
             'Backstab': { description: '10–14 dmg, +5 dmg if target is [Flanked].', cost: 2, resource: 'Energy', base_damage: [10, 14], target: 'enemy_single', damage_type: 'physical' },
-            'Evasion': { description: '50% chance to dodge next attack.', liveDescription: '50% chance to dodge the next attack. Lasts 10 s; stacks to 2.', cost: 0, cooldown: 5, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 1 }], target: 'self' },
-            'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', liveDescription: 'Dash in for 6–9 dmg; always crits as an opener (your first attack in 2 s).', cost: 1, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
+            // Ninja rework (Tokelo 2026-11-02): Evasion is a window, not one coin flip. Every attack on you rolls while it lasts.
+            'Evasion': { description: 'For 2 turns, every attack on you has a 50% chance to miss.', liveDescription: 'For 6 s, every attack on you has a 50% chance to miss (you see EVADE). 15 s cooldown.', cost: 2, cooldown: 15, resource: 'Energy', effects: [{ type: 'dodge_chance', value: 0.5, duration: 2, persistent: true }], target: 'self' },
+            'Quick Slash': { description: '6–9 dmg, always crits if used first in turn.', liveDescription: 'Dash 32 px in for 6–9 dmg; always crits as an opener (your first attack in 2 s). 3 s cooldown.', cost: 1, cooldown: 3, resource: 'Energy', base_damage: [6, 9], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
             'Second Wind': { description: 'Gain +2 Energy, -25% evasion this turn.', liveDescription: 'Gain +2 Energy, -25% evasion for 3 s.', cost: 0, resource: 'Energy', effects: [{ type: 'gain_resource', resource: 'Energy', value: 2 }, { type: 'apply_status', status: 'Evasion Debuff', value: -0.25, duration: 1 }], target: 'self' }, // Safety valve
 
             // Assassin Branch Skills
-            'Shadowstep': { description: 'Teleport to enemy, next hit crits.', cost: 1, resource: 'Stealth Tokens', effects: [{ type: 'teleport_to_enemy' }, { type: 'guaranteed_crit_next_hit' }], target: 'enemy_single' },
+            'Shadowstep': { description: 'Teleport to enemy, next hit crits.', liveDescription: 'Sink into your shadow and rise behind an enemy up to 110 px away (a moment of invulnerability); your next hit is a critical. 8 s cooldown.', cost: 2, cooldown: 8, resource: 'Energy', effects: [{ type: 'teleport_to_enemy' }, { type: 'guaranteed_crit_next_hit' }], target: 'enemy_single' },
             'Garrote': { description: '12–16 dmg + silence 1 turn.', liveDescription: '12–16 dmg + silence 3 s.', cost: 2, resource: 'Stealth Tokens', base_damage: [12, 16], effects: [{ type: 'silence', duration: 1 }], target: 'enemy_single', damage_type: 'physical' },
             'Marked for Death': { description: 'Mark enemy; next attack from you or ally deals +50% dmg.', liveDescription: 'Mark an enemy; the next attack from you or an ally deals +50% dmg. Lasts 3 s or until used.', cost: 0, resource: 'Stealth Tokens', effects: [{ type: 'apply_mark', mark: 'Marked for Death', value: 0.5, duration: 1 }], target: 'enemy_single', damage_type: 'utility' },
-            'Assassinate': { description: 'If target <20% HP, kill instantly.', cost: 3, resource: 'Stealth Tokens', effects: [{ type: 'instant_kill_if_low_hp', threshold: 0.2 }], target: 'enemy_single', damage_type: 'true' },
+            // Ninja rework (Tokelo 2026-11-02): no longer an instant kill (it skipped the last fifth of every boss).
+            'Assassinate': { description: '22–30 dmg; double damage against a target under 30% HP.', liveDescription: 'A killing cut: 22–30 dmg, doubled against a target under 30% HP. Never an instant kill, so a boss can\'t be skipped. 20 s cooldown.', cost: 4, cooldown: 20, resource: 'Energy', base_damage: [22, 30], effects: [{ type: 'execute_bonus', threshold: 0.3, value: 1 }], target: 'enemy_single', damage_type: 'physical' },
 
             // Duelist Branch Skills
-            'Riposte': { description: 'Counter next melee attack for +50% dmg.', liveDescription: 'Counter the next melee attack for +50% dmg. Lasts 10 s; stacks to 2.', cost: 1, resource: 'Combo Points', effects: [{ type: 'counter_attack', bonus_damage: 0.5, duration: 1 }], target: 'self' },
+            'Riposte': { description: 'Counter next melee attack for +50% dmg.', liveDescription: 'Stand ready for 10 s: the next blow aimed at you is answered with your weapon for +50% dmg. Stacks to 2. 8 s cooldown.', cost: 1, cooldown: 8, resource: 'Energy', effects: [{ type: 'counter_attack', bonus_damage: 0.5, duration: 1 }], target: 'self' },
             'Flurry': { description: '3x 6–8 dmg strikes.', cost: 3, resource: 'Combo Points', base_damage: [6, 8], effects: [{ type: 'multi_hit', count: 3 }], target: 'enemy_single', damage_type: 'physical' },
-            'Blade Storm': { description: 'Hit all enemies twice.', cost: 5, resource: 'Combo Points', base_damage: [8, 8], effects: [{ type: 'multi_hit', count: 2 }], target: 'enemy_aoe', damage_type: 'physical' },
+            'Blade Storm': { description: 'Spin through everything around you: 3 × 10–14 dmg to every enemy, half their armour ignored.', liveDescription: 'Spin through everything within 34 px: 3 sweeps of 10–14 dmg to every enemy (half their armour ignored). 25 s cooldown.', cost: 5, cooldown: 25, resource: 'Energy', base_damage: [10, 14], effects: [{ type: 'multi_hit', count: 3 }, { type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_aoe', damage_type: 'physical' },
 
             // Saboteur Branch Skills
             'Caltrops': { description: 'Slow enemies (-50% speed, 2 turns).', liveDescription: 'Slow enemies (-50% speed) for 6 s.', cost: 1, resource: 'Trap Charges', effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'enemy_aoe', damage_type: 'utility' },
-            'Smoke Bomb': { description: 'Blind all enemies (-25% hit chance, 1 turn).', liveDescription: 'Blind all enemies (-25% hit chance) for 3 s.', cost: 2, resource: 'Trap Charges', effects: [{ type: 'blind', value: 0.25, duration: 1 }], target: 'enemy_aoe', damage_type: 'utility' },
+            'Smoke Bomb': { description: 'Smoke bursts around you: enemies in it are blinded (50% to miss) for 1 turn.', liveDescription: 'Smoke bursts around you (48 px): enemies in it are blinded for 4 s, so each of their attacks has a 50% chance to miss (you see MISS). 16 s cooldown.', cost: 2, cooldown: 16, resource: 'Energy', effects: [{ type: 'blind', value: 0.5, duration: 1, seconds: 4 }], target: 'enemy_aoe', damage_type: 'utility' },
             'Poison Trap': { description: '4 dmg/turn DoT, 3 turns.', liveDescription: 'The next enemy to attack springs it: 4 dmg/s for 9 s.', cost: 1, resource: 'Trap Charges', effects: [{ type: 'place_trap', trap_type: 'poison', value: 4, duration: 3 }], target: 'ground', damage_type: 'utility' },
             'Clockwork Bomb': { description: '20–28 dmg AOE, delayed 1 turn.', liveDescription: '20–28 dmg AOE; explodes within 2 s.', cost: 3, resource: 'Trap Charges', base_damage: [20, 28], effects: [{ type: 'delayed_aoe', delay: 1 }], target: 'enemy_aoe', damage_type: 'physical' },
+
+            // ---------- Rogue ninja kit (Tokelo 2026-11-02, docs/design/ROGUE_NINJA_KIT.md) ----------
+            // One pool for every path: Energy. First-pass numbers for Gauge. The Crow Warden has DEF 8, so small hits that
+            // matter against him say so (ignore_armor / ignore_armor_percent) instead of quietly doing 0.
+            'Shuriken Volley': { description: 'Throw 3 shuriken at one enemy: 3 × 1–2 dmg (plus Agility) that ignores armour.', liveDescription: 'Throw 3 shuriken at one enemy up to 140 px away: 3 × 1–2 dmg (plus Agility) that ignores armour. 4 s cooldown.', cost: 1, cooldown: 4, resource: 'Energy', base_damage: [1, 2], effects: [{ type: 'multi_hit', count: 3 }, { type: 'ignore_armor' }], target: 'enemy_single', damage_type: 'physical' },
+            // Ronin's Follow-Up Cut trait swings this on its own (engine.followUpCut); no web node teaches it.
+            'Follow-Up Cut': { description: 'A second cut right behind the first: 2–3 dmg (plus Agility) through armour.', cost: 0, resource: 'Energy', base_damage: [2, 3], effects: [{ type: 'ignore_armor' }], target: 'enemy_single', damage_type: 'physical', traitOnly: true },
+            'Shadow Clone': { description: 'A shadow clone fights beside you for 3 turns; enemies may strike it instead of you.', liveDescription: 'A shadow clone steps out of you for 10 s (30 HP). It cuts for 2–4 dmg through armour, and enemies go for it whenever it is the nearer body. 20 s cooldown.', cost: 3, cooldown: 20, resource: 'Energy', effects: [{ type: 'shadow_summon', summon_type: 'shadow_clone', count: 1 }], target: 'self' },
+            // Assassin: shadow creatures and evasion
+            'Shadow Hounds': { description: 'Two shadow hounds rise from your shadow for 5 turns.', liveDescription: 'Two shadow hounds rise from your shadow for 15 s (16 HP each). Each bites for 2–4 dmg through armour about once a second, and enemies may go for them instead of you. 22 s cooldown.', cost: 3, cooldown: 22, resource: 'Energy', effects: [{ type: 'shadow_summon', summon_type: 'shadow_hound', count: 2 }], target: 'self' },
+            'Shadow Serpent': { description: 'A serpent of shadow bursts under an enemy: 12–16 dmg and it is held (90% slower) for 1 turn.', liveDescription: 'A serpent of shadow bursts from the ground up to 130 px away (24 px wide): 12–16 dmg, half armour ignored, and everyone there is held (90% slower) for 3 s. 14 s cooldown.', cost: 3, cooldown: 14, resource: 'Energy', base_damage: [12, 16], effects: [{ type: 'ignore_armor_percent', value: 0.5 }, { type: 'slow', value: 0.9, duration: 1 }], target: 'enemy_aoe', damage_type: 'physical' },
+            'Shade Legion': { description: 'Your shadow rises as an army: shadow hounds up to your minion limit plus a Shadow Stag, for 7 turns.', liveDescription: 'Your shadow rises as an army for 20 s: shadow hounds up to your minion limit, plus a Shadow Stag (40 HP, gores for 5–8 through armour). 45 s cooldown.', cost: 6, cooldown: 45, resource: 'Energy', effects: [{ type: 'raise_army', summon_type: 'shadow_hound', champion: 'shadow_stag', seconds: 20, duration: 7 }], target: 'self' },
+            // Duelist: the ronin who took up ninjutsu
+            'Iaido Draw': { description: 'A lightning draw-cut: 14–20 dmg; always crits as an opener.', liveDescription: 'Sheathe, then draw in one cut (34 px line): 14–20 dmg. Always a critical as an opener (your first attack in 2 s). 6 s cooldown.', cost: 2, cooldown: 6, resource: 'Energy', base_damage: [14, 20], effects: [{ type: 'guaranteed_crit_first_turn' }], target: 'enemy_single', damage_type: 'physical' },
+            'Blade Focus': { description: 'For 3 turns: +30% damage and faster strikes.', liveDescription: 'Focus the blade for 10 s: +30% damage, and your swings and cooldowns run 20% faster. 20 s cooldown.', cost: 2, cooldown: 20, resource: 'Energy', effects: [{ type: 'self_buff', name: 'Blade Focus', status_type: 'damage_boost', value: 0.3, duration: 3 }, { type: 'self_buff', name: 'Focused Pace', status_type: 'haste', value: 0.2, duration: 3 }], target: 'self' },
+            'Thousand Cuts': { description: 'Six rapid cuts on one enemy: 6 × 5–7 dmg, half its armour ignored.', liveDescription: 'Six cuts in a blink on one enemy in front of you: 6 × 5–7 dmg, half its armour ignored. 12 s cooldown.', cost: 4, cooldown: 12, resource: 'Energy', base_damage: [5, 7], effects: [{ type: 'multi_hit', count: 6 }, { type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_single', damage_type: 'physical' },
+            // Saboteur: the ninja who went mad with explosives and chemistry. `explosive` skills feel Shrapnel and Volatile Mix.
+            'Fire Bomb': { description: 'Throw a bomb that bursts on impact: 10–14 dmg to every enemy in the blast, half their armour ignored.', liveDescription: 'Throw a bomb up to 130 px; it bursts on the first enemy it hits or where it lands: 10–14 dmg to everyone within 32 px, half their armour ignored. 5 s cooldown.', cost: 2, cooldown: 5, resource: 'Energy', explosive: true, base_damage: [10, 14], effects: [{ type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_aoe', damage_type: 'physical' },
+            'Explosive Caltrops': { description: 'Scatter 3 spiked charges; each blows up under the next enemy that steps on it: 8–12 dmg and Bleed.', liveDescription: 'Scatter 3 spiked charges where you aim (up to 110 px). For 20 s each one blows up when an enemy steps within 14 px: 8–12 dmg to everyone within 28 px (half armour ignored) and Bleed, 2 dmg/s for 6 s (stacks to 3). 10 s cooldown.', cost: 2, cooldown: 10, resource: 'Energy', explosive: true, effects: [{ type: 'lay_mines', count: 3, seconds: 20, spreadPx: 22, triggerPx: 14, blastPx: 28, blast: { base_damage: [8, 12], effects: [{ type: 'ignore_armor_percent', value: 0.5 }, { type: 'bleed', value: 2, duration: 2, stackCap: 3 }] } }], target: 'ground', damage_type: 'utility' },
+            'Poison Flask': { description: 'A flask of venom shatters: Poison (4 dmg/turn for 3 turns) on every enemy in the splash.', liveDescription: 'Throw a flask up to 120 px; it shatters into a toxic cloud: everyone within 36 px is poisoned for 4 dmg/s over 9 s (stacks to 2). 8 s cooldown.', cost: 2, cooldown: 8, resource: 'Energy', effects: [{ type: 'dot', dot_type: 'poison', value: 4, duration: 3, stackCap: 2 }], target: 'enemy_aoe', damage_type: 'utility' },
+            'Thunder Charge': { description: 'A heavy clockwork charge: 22–30 dmg to every enemy in a wide blast, and they are stunned for 1 turn.', liveDescription: 'Lob a heavy clockwork charge up to 120 px: it bursts for 22–30 dmg on everyone within 48 px (half armour ignored) and stuns them for 3 s (bosses resist control). 16 s cooldown.', cost: 4, cooldown: 16, resource: 'Energy', explosive: true, base_damage: [22, 30], effects: [{ type: 'ignore_armor_percent', value: 0.5 }, { type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'physical' },
+            'Cataclysm Barrage': { description: 'Empty your satchel: 3 × 10–14 dmg to every enemy around you, with Bleed and Poison.', liveDescription: 'Empty your satchel in a ring around you (80 px): 3 blasts of 10–14 dmg on every enemy in it (half armour ignored), then Bleed and Poison, 2 dmg/s each for 6 s. 40 s cooldown.', cost: 6, cooldown: 40, resource: 'Energy', explosive: true, base_damage: [10, 14], effects: [{ type: 'multi_hit', count: 3 }, { type: 'ignore_armor_percent', value: 0.5 }, { type: 'bleed', value: 2, duration: 2, stackCap: 3 }, { type: 'dot', dot_type: 'poison', value: 2, duration: 2, stackCap: 2 }], target: 'enemy_aoe', damage_type: 'physical' },
 
             // Mage Base Skills
             'Arcane Bolt': { description: '10–14 dmg.', cost: 1, cooldown: 4, resource: 'Mana', base_damage: [10, 14], target: 'enemy_single', damage_type: 'magic' },
@@ -407,17 +448,17 @@
             },
             'rogue': {
                 name: 'Rogue',
-                description: "A nimble and cunning operative, good at stealth and traps.",
+                description: "A shinobi: shuriken, a shadow clone and a body that is never quite where the blow lands.",
                 lore: {
                     base: "Your enemy won’t see the blade until it’s too late.",
-                    role: "Fast, evasive, precision damage dealer.",
-                    identity: "Cunning, speed, precise execution."
+                    role: "Evasive skirmisher who survives by not being hit (Tokelo 2026-11-02: the ninja rework).",
+                    identity: "Jutsu, shadow, speed."
                 },
                 startingItems: ['short sword', 'lockpicks', 'old key'],
                 startingResource: { type: 'Energy', initial: 6, max: 15, regen: 3 },
                 baseStats: { hp: 85, strength: 8, intelligence: 6, agility: 10, def: 3, critChance: 0.2, critMultiplier: 2.0, baseDamageMin: 5, baseDamageMax: 9 },
                 levelGrowth: { hp: 8, strength: 0.5, agility: 2, def: 1, critChance: 0.02, resource: 2 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
-                startingSkills: ['Backstab', 'Evasion', 'Quick Slash'],
+                startingSkills: ['Shuriken Volley', 'Quick Slash', 'Evasion', 'Shadow Clone'],
                 startingTraits: []
             },
             'necromancer': {
@@ -533,51 +574,46 @@
                 }
             },
             'rogue': {
-                base: { name: 'Rogue', description: 'Fast, evasive, precision damage dealer.' },
+                base: { name: 'Rogue', description: 'Shinobi: evasive skirmisher, jutsu and shadow.' },
                 branches: {
+                    // Ninja rework (Tokelo 2026-11-02, docs/design/ROGUE_NINJA_KIT.md): every path runs on Energy (no branch pool).
                     'assassin': {
                         name: 'Assassin',
-                        theme: 'Stealth, critical strikes, and instant kills.',
-                        mechanic: 'Stealth Tokens — gain 1 when you dodge or kill; spend for guaranteed crits.',
-                        resourceEvolution: [
-                            { level: 3, stage: 'Assassin', type: 'Stealth Tokens' }
-                        ],
+                        theme: 'Shadow arts: creatures called out of your own shadow, and a body that is never where the blow lands.',
+                        mechanic: 'Energy. Shadow creatures fight and draw attacks for a few seconds; every attack you evade feeds you Energy.',
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Assassin', trait: '+25% crit dmg', traitEffect: 'Your critical strikes deal more damage.', skill: 'Shadowstep', lore: "You become one with the shadows, striking from unseen angles with deadly precision." },
-                            { level: 5, name: 'Shadowblade', trait: 'Garrote applies Silence for 1 turn', traitEffect: 'Your Garrote skill now silences enemies, preventing them from casting spells.', skill: 'Garrote', lore: "Your blade is a phantom, slipping past defenses to find the vital points. Silence is your deadliest weapon." },
-                            { level: 8, name: 'Phantom', trait: 'Marked for Death deals +50% dmg', traitEffect: 'Marked enemies take significantly more damage from your attacks.', skill: 'Marked for Death', lore: "You move like a ghost, marking your prey for a swift and inevitable demise. They never see it coming." },
-                            { level: 11, name: 'Death’s Whisper', trait: '+50% crit dmg', traitEffect: 'Your critical strikes become even more devastating.', skill: 'Assassinate', lore: "You become the embodiment of death itself, a whisper in the dark that silences all opposition. None escape your final judgment." },
-                            { level: 14, name: 'Death’s Whisper (Ascended)', trait: 'Start every fight in Stealth.', traitEffect: 'You begin every combat encounter hidden from your enemies, allowing for a decisive opening strike.', skill: 'Assassinate', ascended: true, lore: "You are the ultimate assassin, a legend whispered in hushed tones. Your presence is death, swift and unseen." }
+                            { level: 3, name: 'Assassin', trait: 'Shadow Veil', traitEffect: 'Evasion makes attacks miss 65% of the time instead of 50%, and every attack you evade (Evasion, or an enemy blinded by your smoke) gives you +1 Energy.', skill: 'Shadow Hounds', lore: "Your shadow stops following you. It starts hunting for you." },
+                            { level: 5, name: 'Shadowblade', trait: 'Umbral Edge', traitEffect: 'Your critical hits deal +25% damage.', skill: 'Shadowstep', lore: "You step into your own shadow and out of someone else's." },
+                            { level: 8, name: 'Phantom', trait: 'Long Shadows', traitEffect: 'Your shadow clone and shadow creatures last 5 s longer (1 turn in turn fights).', skill: 'Shadow Serpent', lore: "The dark under their feet has teeth now." },
+                            { level: 11, name: 'Death’s Whisper', trait: 'Death’s Whisper', traitEffect: 'Your critical hits deal a further +50% damage.', skill: 'Assassinate', lore: "One cut, placed where it ends things." },
+                            { level: 14, name: 'Sovereign of Shades', trait: 'Born of Shadow', traitEffect: 'Every fight starts with Evasion already on you.', skill: 'Shade Legion', ascended: true, lore: "Every shadow on the field answers to you." }
                         ]
                     },
                     'duelist': {
                         name: 'Duelist',
-                        theme: 'Agile melee, counterattacks, and flurries.',
-                        mechanic: 'Combo Points — basic attacks generate points, finishers consume them.',
-                        resourceEvolution: [
-                            { level: 3, stage: 'Duelist', type: 'Combo Points' }
-                        ],
+                        theme: 'The ronin who took up ninjutsu: draw-cuts, a focused blade and cuts that come faster than the eye.',
+                        mechanic: 'Energy. Your weapon hits can cut again at once (Follow-Up Cut); Blade Focus turns damage and speed up.',
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Duelist', trait: 'Riposte deals +50% dmg', traitEffect: 'Your counterattacks strike with increased force, punishing your aggressors.', skill: 'Riposte', lore: "Every parry is an invitation, every dodge a dance. You turn the enemy's aggression against them." },
-                            { level: 5, name: 'Swashbuckler', trait: 'Can parry ranged attacks', traitEffect: 'You can now deflect projectiles, extending your defensive prowess.', skill: 'Flurry', lore: "With a flourish and a grin, you weave through the fray, a whirlwind of steel and daring. The battlefield is your stage." },
-                            { level: 8, name: 'Blade Dancer', trait: 'Combo finishers refund 1 Energy', traitEffect: 'Your finishing moves become more efficient, allowing for sustained offense.', skill: 'Flurry', lore: "Your movements are poetry in motion, a deadly ballet of blades. Each strike flows seamlessly into the next." },
-                            { level: 11, name: 'Crimson Vortex', trait: 'Blade Storm hits all enemies twice', traitEffect: 'Your ultimate attack now strikes every enemy twice, creating a devastating area of effect.', skill: 'Blade Storm', lore: "You become a crimson maelstrom, a whirlwind of lethal intent. None can escape your furious dance of death." },
-                            { level: 14, name: 'Crimson Vortex (Ascended)', trait: 'All finishers cost 0 Energy for first 2 turns.', traitEffect: 'Your finishing moves become free to cast for the initial turns of combat, allowing for an explosive opening.', skill: 'Blade Storm', ascended: true, lore: "You are the embodiment of pure martial artistry, a living storm of blades. Your presence tears through any opposition." }
+                            { level: 3, name: 'Ronin', trait: 'Follow-Up Cut', traitEffect: '25% of your weapon hits cut again at once for 2–3 dmg (plus Agility) that ignores armour.', skill: 'Iaido Draw', lore: "No master, no banner. Only the draw." },
+                            { level: 5, name: 'Wandering Blade', trait: 'Keen Edge', traitEffect: '+10% critical chance.', skill: 'Blade Focus', lore: "The road taught you to breathe before you cut." },
+                            { level: 8, name: 'Blade Dancer', trait: 'Steel Rhythm', traitEffect: 'Follow-Up Cut triggers on 40% of your weapon hits.', skill: 'Riposte', lore: "Their blow is the first beat. Yours is the second and the third." },
+                            { level: 11, name: 'Crimson Vortex', trait: 'Crimson Edge', traitEffect: 'Your critical hits make the target Bleed: 2 dmg/s for 6 s, stacks to 3.', skill: 'Thousand Cuts', lore: "Six cuts and the sheath has not stopped ringing." },
+                            { level: 14, name: 'Masterless Storm', trait: 'Masterless', traitEffect: '+15% damage on everything you do.', skill: 'Blade Storm', ascended: true, lore: "You serve no lord, and no lord's army can stand in your circle." }
                         ]
                     },
                     'saboteur': {
                         name: 'Saboteur',
-                        theme: 'Traps, gadgets, and control.',
-                        mechanic: 'Trap Charges — max 3 active at once.',
-                        resourceEvolution: [
-                            { level: 3, stage: 'Saboteur', type: 'Trap Charges' }
-                        ],
+                        theme: 'A ninja who went mad with explosives and chemistry: bombs, flasks and charges that wait under the enemy\'s feet.',
+                        mechanic: 'Energy. Thrown bombs burst where they land, spiked charges blow up under whoever steps on them, flasks poison.',
+                        resourceEvolution: [],
                         stages: [
-                            { level: 3, name: 'Saboteur', trait: 'Caltrops apply -50% speed for 2 turns', traitEffect: 'Your caltrops significantly reduce enemy movement, controlling the battlefield.', skill: 'Caltrops', lore: "The battlefield is your playground, and your enemies are merely pawns in your deadly game of traps and diversions." },
-                            { level: 5, name: 'Trickster', trait: 'Smoke Bomb blinds enemies (-25% hit chance, 1 turn)', traitEffect: 'Your smoke bombs now blind foes, making them miss their attacks.', skill: 'Smoke Bomb', lore: "You revel in chaos and confusion, using misdirection and cunning to outwit your opponents. They never know what hit them." },
-                            { level: 8, name: 'Smoke Phantom', trait: 'Traps deal +50% dmg', traitEffect: 'Your deployed traps become deadlier, inflicting more damage upon activation.', skill: 'Poison Trap', lore: "You move through the smoke and shadows like a wraith, your traps appearing from nowhere to ensnare your unsuspecting foes." },
-                            { level: 11, name: 'Shadow Engineer', trait: 'Clockwork Bomb deals 20-28 dmg AOE', traitEffect: 'Your clockwork bombs unleash a devastating explosion, damaging multiple enemies.', skill: 'Clockwork Bomb', lore: "Your mind is a forge of cunning devices, each one a testament to your mastery of demolition and strategic disruption. No obstacle can stand in your way." },
-                            { level: 14, name: 'Shadow Engineer (Ascended)', trait: 'Can place traps instantly without ending turn.', traitEffect: 'You can deploy traps with unparalleled speed, allowing for dynamic and reactive battlefield control.', skill: 'Clockwork Bomb', ascended: true, lore: "You are the ultimate architect of chaos, your traps and gadgets transforming the battlefield into a death trap for your enemies. None can escape your intricate designs." }
+                            { level: 3, name: 'Saboteur', trait: 'Shrapnel', traitEffect: 'Your explosions make every enemy they hit Bleed: 2 dmg/s for 6 s, stacks to 3.', skill: 'Fire Bomb', lore: "Black powder, iron filings and a very short fuse." },
+                            { level: 5, name: 'Mad Chemist', trait: 'Volatile Mix', traitEffect: 'Your explosions deal +25% damage.', skill: 'Explosive Caltrops', lore: "Every caltrop is a little bomb. Every bomb is a little bigger than the last." },
+                            { level: 8, name: 'Smoke Phantom', trait: 'Toxic Smoke', traitEffect: 'Smoke Bomb also poisons everyone it blinds: 3 dmg/s for 6 s.', skill: 'Poison Flask', lore: "Your smoke stings now. It is meant to." },
+                            { level: 11, name: 'Shadow Engineer', trait: 'Chain Reaction', traitEffect: 'Explosive Caltrops scatters 5 charges instead of 3.', skill: 'Thunder Charge', lore: "Clockwork, thunder-salt and patience." },
+                            { level: 14, name: 'Grand Pyrotechnist', trait: 'Alchemist’s Blood', traitEffect: 'Your Poison and Bleed deal 50% more damage.', skill: 'Cataclysm Barrage', ascended: true, lore: "You stopped counting the bombs in your satchel. So did your enemies." }
                         ]
                     }
                 }
@@ -650,7 +686,7 @@
             // Existing skills no path granted. `links` are the node ids they hang from (in the same class web).
             extraNodes: [
                 { id: 'warrior.war_cry', kind: 'active', region: 'warrior', skill: 'War Cry', minLevel: 2, links: ['warrior.guard'] },
-                { id: 'rogue.second_wind', kind: 'active', region: 'rogue', skill: 'Second Wind', minLevel: 2, links: ['rogue.evasion'] },
+                { id: 'rogue.smoke_bomb', kind: 'active', region: 'rogue', skill: 'Smoke Bomb', minLevel: 2, links: ['rogue.evasion'] },   // replaced Second Wind (Tokelo 2026-11-02)
                 { id: 'elementalist.ice_lance', kind: 'active', region: 'mage', branch: 'elementalist', skill: 'Ice Lance', minLevel: 5, links: ['elementalist.1.trait'] },
                 { id: 'bone_warden.shield_of_the_dead', kind: 'active', region: 'necromancer', branch: 'bone_warden', skill: 'Shield of the Dead', minLevel: 5, links: ['bone_warden.1.trait'] },
                 { id: 'plaguecaller.corpse_bloom', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Corpse Bloom', minLevel: 5, links: ['plaguecaller.1.trait'] },
@@ -662,14 +698,14 @@
             gateways: [
                 // Warrior
                 { id: 'gate.spellblade', from: 'vanguard.3.skill', to: 'elementalist.3.skill', name: 'Spellblade', why: 'Holy Smite to Lightning Arc' },
-                { id: 'gate.blade_frenzy', from: 'berserker.2.skill', to: 'duelist.2.skill', name: 'Blade Frenzy', why: 'Whirlwind to Flurry' },
-                { id: 'gate.the_hunt', from: 'warden.1.skill', to: 'assassin.3.skill', name: 'The Hunt', why: 'Pincushion to Marked for Death' },
+                { id: 'gate.blade_frenzy', from: 'berserker.2.skill', to: 'duelist.2.skill', name: 'Blade Frenzy', why: 'Whirlwind to Blade Focus' },
+                { id: 'gate.the_hunt', from: 'warden.1.skill', to: 'assassin.3.skill', name: 'The Hunt', why: 'Pincushion to Shadow Serpent' },
                 // Rogue
-                { id: 'gate.misdirection', from: 'assassin.1.skill', to: 'illusionist.1.skill', name: 'Misdirection', why: 'Shadowstep to Mirror Image' },
-                { id: 'gate.venom', from: 'saboteur.3.skill', to: 'plaguecaller.2.skill', name: 'Venom', why: 'Poison Trap to Black Spit' },
-                { id: 'gate.owning_the_ground', from: 'saboteur.1.skill', to: 'warden.2.skill', name: 'Owning the Ground', why: 'Caltrops to Lockstep' },
+                { id: 'gate.misdirection', from: 'assassin.2.skill', to: 'illusionist.1.skill', name: 'Misdirection', why: 'Shadowstep to Mirror Image' },
+                { id: 'gate.venom', from: 'saboteur.3.skill', to: 'plaguecaller.2.skill', name: 'Venom', why: 'Poison Flask to Black Spit' },
+                { id: 'gate.owning_the_ground', from: 'saboteur.2.skill', to: 'warden.2.skill', name: 'Owning the Ground', why: 'Explosive Caltrops to Lockstep' },
                 // Mage
-                { id: 'gate.tempo', from: 'chronomancer.1.skill', to: 'duelist.1.skill', name: 'Tempo', why: 'Haste to Riposte' },
+                { id: 'gate.tempo', from: 'chronomancer.1.skill', to: 'duelist.1.skill', name: 'Tempo', why: 'Haste to Iaido Draw' },
                 { id: 'gate.burn_and_blight', from: 'elementalist.2.trait', to: 'plaguecaller.2.trait', name: 'Burn and Blight', why: 'Burn to longer DoTs' },
                 { id: 'gate.stolen_mind', from: 'illusionist.2.skill', to: 'soulbinder.3.skill', name: 'The Stolen Mind', why: 'Confuse to Possession' },
                 // Necromancer
@@ -856,7 +892,9 @@
                 buffs: {
                     'Guard':           { seconds: 8,  maxStacks: 2 },   // warrior, 25% damage reduction per stack
                     'Bone Wall':       { seconds: 12, maxStacks: 2 },   // necromancer, each stack absorbs one hit
-                    'Evasion':         { seconds: 10, maxStacks: 2 },   // rogue, each stack: 50% to dodge one attack
+                    'Evasion':         { seconds: 6,  maxStacks: 1 },   // rogue (ninja rework 2026-11-02): every attack in 6 s rolls 50% to miss; 15 s cooldown
+                    'Blade Focus':     { seconds: 10, maxStacks: 1 },   // ronin: +30% damage; 20 s cooldown
+                    'Focused Pace':    { seconds: 10, maxStacks: 1 },   // ronin: swings and cooldowns 20% faster (with Blade Focus)
                     'Riposte':         { seconds: 10, maxStacks: 2 },   // each stack counters one attack for +50%
                     'Mirror Image':    { seconds: 15, maxStacks: 3 },   // three images, each takes one hit
                     'Guaranteed Crit': { maxStacks: 1 },                // Shadowstep: until used; one banked crit only
@@ -980,6 +1018,38 @@
                     'Overchannel':       { shape: 'self', castMs: 0 },
                     'Backstab':          { shape: 'line', reach: 24, width: 10, castMs: 160, maxTargets: 1, flankArcDeg: 120 },
                     'Evasion':           { shape: 'self', castMs: 0 },
+                    // Rogue ninja kit (Tokelo 2026-11-02, docs/design/ROGUE_NINJA_KIT.md)
+                    'Shuriken Volley':   { shape: 'projectile', range: 140, speed: 340, radius: 4, castMs: 120, recoveryMs: 120, projectile: 'shuriken' },
+                    'Shadow Clone':      {
+                        shape: 'summon', range: 32, castMs: 150,
+                        // a body that fights like you: quick cuts, stands its ground (enemies hit the nearer body)
+                        minion: { radius: 5, speed: 90, followMin: 12, followMax: 28, engageRadius: 140, teleportBeyond: 200,
+                            attack: { skill: 'Shadow Cut', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 180, activeMs: 70, recoveryMs: 200, cooldownMs: 700 } }
+                    },
+                    'Smoke Bomb':        { shape: 'circle', radius: 48, castMs: 120 },
+                    'Shadow Hounds':     {
+                        shape: 'summon', range: 40, castMs: 300,
+                        minion: { radius: 4, speed: 110, followMin: 14, followMax: 32, engageRadius: 160, teleportBeyond: 220,
+                            attack: { skill: 'Shadow Bite', shape: 'arc', reach: 14, arcDeg: 80, windupMs: 200, activeMs: 70, recoveryMs: 260, cooldownMs: 1000 } }
+                    },
+                    'Shadow Serpent':    { shape: 'ground', range: 130, radius: 24, castMs: 280, los: true },
+                    'Assassinate':       { shape: 'line', reach: 28, width: 10, castMs: 220, maxTargets: 1 },
+                    'Shade Legion':      {
+                        shape: 'summon', range: 40, castMs: 600,
+                        minions: {
+                            shadow_stag: { radius: 7, speed: 80, followMin: 20, followMax: 40, engageRadius: 160, teleportBeyond: 220,
+                                attack: { skill: 'Antler Gore', shape: 'arc', reach: 20, arcDeg: 90, windupMs: 320, activeMs: 90, recoveryMs: 380, cooldownMs: 1300 } }
+                        }
+                    },
+                    'Iaido Draw':        { shape: 'line', reach: 34, width: 10, castMs: 140, activeMs: 60, recoveryMs: 160, maxTargets: 1 },
+                    'Blade Focus':       { shape: 'self', castMs: 150 },
+                    'Thousand Cuts':     { shape: 'arc', reach: 22, arcDeg: 90, castMs: 120, activeMs: 300, recoveryMs: 200, maxTargets: 1 },
+                    'Blade Storm':       { shape: 'circle', radius: 34, castMs: 200, activeMs: 200 },
+                    'Fire Bomb':         { shape: 'projectile', range: 130, speed: 210, radius: 5, castMs: 200, projectile: 'bomb', burstRadius: 32 },
+                    'Explosive Caltrops': { shape: 'ground', range: 110, radius: 22, castMs: 220 },
+                    'Poison Flask':      { shape: 'projectile', range: 120, speed: 200, radius: 5, castMs: 220, projectile: 'flask', burstRadius: 36, burstKind: 'poison' },
+                    'Thunder Charge':    { shape: 'projectile', range: 120, speed: 170, radius: 6, castMs: 320, projectile: 'bomb', burstRadius: 48 },
+                    'Cataclysm Barrage': { shape: 'circle', radius: 80, castMs: 450 },
                     'Quick Slash':       { shape: 'dash', dashPx: 32, dashMs: 110, reach: 20, arcDeg: 80, castMs: 80, maxTargets: 1 },
                     'Second Wind':       { shape: 'self', castMs: 0 },
                     'Grave Bolt':        { shape: 'projectile', range: 150, speed: 230, radius: 5, castMs: 300, corpseRadius: 200 },

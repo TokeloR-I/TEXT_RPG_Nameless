@@ -334,6 +334,7 @@
 
         P.applyDot = function (source, target, { name, value, duration, stackCap }) {
             if (source && source.isPlayer && this.hasTrait('DoTs last +1 turn')) duration += 1;
+            if (source && source.isPlayer && (name === 'Poison' || name === 'Bleed') && this.hasTrait('Alchemist’s Blood')) value = Math.ceil(value * 1.5);   // Grand Pyrotechnist
             const inst = this.applyStatus(source, target, { name, type: 'dot', value, duration, ...(stackCap != null ? { stackCap } : {}) });
             if (inst && source && source.isPlayer && this.hasTrait('All DoTs become true dmg, ignore resistances.')) inst.trueDamage = true;
             if (inst && inst.rtTotalMs != null) this.say(`${target.name} is afflicted with ${name}${inst.stacks > 1 ? ` x${inst.stacks}` : ''} (${this.dotTickDamage(inst)} dmg every ${this.rtTickMs(inst) / 1000}s for ${inst.rtTotalMs / 1000}s).`);

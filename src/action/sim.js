@@ -92,6 +92,7 @@
                 guarding: false, guardSince: null, hurtUntil: 0, sprinting: false
             };
             this.projectiles = [];
+            this.mines = [];
             this.groups = {};
             this.actors = [];
             this.minions = [];        // the player's summons: bodies for combat.minions (and world.followers between fights)
@@ -221,6 +222,7 @@
             for (const m of this.minions) this.stepMinion(m);
             this.stepFollowerTimer();
             this.stepProjectiles();
+            this.stepMines();
             if (!this.engaged && e.actionCalmRegen) this.collect(e.actionCalmRegen(STEP));   // out of a fight your skill resource refills
             this.separate();
             this.checkDrops();
@@ -332,6 +334,7 @@
             for (const a of this.actors) if (!a.dead) { a.x = a.homeX; a.y = a.homeY; a.state = 'idle'; }
             this.projectiles = [];
             this.minions = [];
+            this.mines = [];
             const s = this.session;
             s.x = this.entry.x; s.y = this.entry.y;
             const p = this.player;
@@ -511,6 +514,7 @@
             if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
             const shape = r.shape || {};
             if (shape.shape === 'summon') this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
+            if (r.resolved) this.layMines(r.skill, shape);   // Explosive Caltrops: the charges land where you aim
             // Haste (Swift Ghost, Time Mage): the weapon's swing runs faster too, not just skill cooldowns
             const haste = slot == null && e.rtHasteMult ? e.rtHasteMult(e.player) : 1;
             const startup = Math.round((shape.startupMs != null ? shape.startupMs : (shape.castMs || 150)) * haste);
@@ -638,7 +642,8 @@
             const s = at.shape;
             const kind = s.shape || s.kind || 'arc';
             if (kind === 'projectile') {
-                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane' });
+                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
+                    burst: s.burstRadius || 0, burstKind: s.burstKind || 'fire' });   // a bomb or flask bursts where it lands (Saboteur)
                 return;
             }
             if (at.cosmetic) {   // out of a fight: the shape shows, nothing is hit
@@ -1121,6 +1126,7 @@
             const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1, targetId: this.engine.player.id });
             this.collect(r.events);
             if (!r.ok) return;
+            if (r.result === 'evaded') { this.fx.push({ type: 'evade', x: p.x, y: p.y, why: r.why }); return; }   // Evasion or a blinded swing: no flinch
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }
             if (r.result === 'guarded') {
                 p.stamina = Math.max(0, p.stamina - (st.blockCost || g.staminaPerHit || 14) * (g.staminaMult ?? 1));
@@ -1253,8 +1259,9 @@
             for (const sh of Object.values(by)) if (sh.minions && sh.minions[type]) return sh.minions[type];   // March's champion
             for (const [name, sh] of Object.entries(by)) {
                 if (!sh.minion) continue;
-                if (sh.minion.attack) first = first || sh.minion;   // a fighter's profile is the fallback (not the ghoul's)
-                if (((defs[name] || {}).effects || []).some((x) => x.summon_type === type && (x.type === 'summon' || x.type === 'ghoul_shield'))) return sh.minion;
+                const fx = (defs[name] || {}).effects || [];
+                if (sh.minion.attack && fx.some((x) => x.type === 'summon')) first = first || sh.minion;   // a raised fighter's profile is the fallback (not the ghoul's or a shadow's)
+                if (fx.some((x) => x.summon_type === type && (x.type === 'summon' || x.type === 'ghoul_shield' || x.type === 'shadow_summon'))) return sh.minion;
             }
             return first || { radius: 5, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220, attack: { shape: 'arc', reach: 16, arcDeg: 70, windupMs: 350, activeMs: 80, recoveryMs: 450, cooldownMs: 1500 } };
         }
@@ -1466,9 +1473,16 @@
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
                 const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player' && pj.cosmetic) {   // cast out of a fight: flies to its range or a wall
-                    if (wall || pj.travelled >= pj.range) { this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); continue; }
                 } else if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
+                    if (pj.burst && (hit || wall || pj.travelled >= pj.range)) {   // bomb or flask: everyone in the blast, nearest first
+                        const at = wall && !hit ? { x: pj.x - Math.cos(pj.angle) * pj.speed * dt, y: pj.y - Math.sin(pj.angle) * pj.speed * dt } : { x: pj.x, y: pj.y };
+                        const hits = this.liveActors().filter((a) => dist(at, a) <= pj.burst + a.r).sort((a, b) => dist(at, a) - dist(at, b));
+                        this.fx.push({ type: 'aoe', x: at.x, y: at.y, radius: pj.burst, damageType: pj.burstKind });
+                        this.resolve(pj.castId, hits);
+                        continue;
+                    }
                     if (hit) { this.resolve(pj.castId, [hit]); continue; }
                     if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
                 } else {
@@ -1483,6 +1497,49 @@
                 keep.push(pj);
             }
             this.projectiles = keep;
+        }
+
+        // =====================================================================
+        // Explosive Caltrops (Saboteur, ninja rework 2026-11-02): spiked charges on the ground
+        // =====================================================================
+        /** A skill with a lay_mines effect resolved: scatter its charges around the aim point (walkable spots only). */
+        layMines(skill, shape) {
+            const def = skill && this.engine.data.skillDefinitions[skill];
+            const fx = def && (def.effects || []).find((x) => x.type === 'lay_mines');
+            if (!fx || !this.engaged) return;
+            const p = this.player;
+            const aim = this.input.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
+            const d = Math.min(dist(p, aim), shape.range || 110), ang = angleTo(p, aim);
+            const c = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
+            const n = this.engine.mineCount ? this.engine.mineCount(fx) : (fx.count || 3);
+            this.mines = this.mines || [];
+            for (let i = 0; i < n; i++) {
+                const a = ang + (i * Math.PI * 2) / Math.max(1, n - 1);
+                const r = i === 0 ? 0 : (fx.spreadPx || 22);
+                const spot = { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r };
+                if (this.bodyBlocked(spot.x, spot.y, 2)) continue;
+                this.mines.push({ id: `mine${this.now}_${i}`, skill, x: spot.x, y: spot.y, armAt: this.now + 250, until: this.now + (fx.seconds || 20) * 1000, trigger: fx.triggerPx || 14, blast: fx.blastPx || 28 });
+            }
+            this.fx.push({ type: 'mines', x: c.x, y: c.y, count: n });
+        }
+
+        /** Charges blow up under the first enemy to step close; they wink out when their time is up or the fight ends. */
+        stepMines() {
+            if (!this.mines || !this.mines.length) return;
+            if (!this.engaged) { this.mines = []; return; }
+            const keep = [];
+            for (const m of this.mines) {
+                if (this.now >= m.until) continue;
+                const foes = this.now >= m.armAt ? this.liveActors() : [];
+                const stepped = foes.find((a) => dist(m, a) <= m.trigger + a.r);
+                if (!stepped) { keep.push(m); continue; }
+                const hits = foes.filter((a) => dist(m, a) <= m.blast + a.r).sort((a, b) => (a === stepped ? -1 : b === stepped ? 1 : dist(m, a) - dist(m, b)));
+                const r = this.engine.actionMineBlast(m.skill, hits.map((a) => a.engineId));
+                this.collect(r.events);
+                this.fx.push({ type: 'aoe', x: m.x, y: m.y, radius: m.blast, damageType: 'fire' });
+                if (r.ok) for (const a of hits) if ((r.hit || []).includes(a.engineId)) { this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(m, a) }); this.bossHit(a); }
+            }
+            this.mines = keep;
         }
 
         /** Bodies don't overlap: enemies push apart and off the player. */
@@ -1565,6 +1622,7 @@
                     timeLeftMs: m.dead || !this.followerTimeLeft ? null : this.followerTimeLeft()   // out of a fight: time before it crumbles
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
+                mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
                 engaged: this.engaged
             };
         }
