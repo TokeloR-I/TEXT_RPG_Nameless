@@ -1703,6 +1703,7 @@
             case 'resolve_end': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true', shake: 1 }, now); break;
             case 'crow_mark': notice(ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!', 'quest'); break;
             case 'crow_dive': afx.spawn('hit', { x: ev.x, y: ev.y - 4, damageType: 'shadow', shake: 1 }, now); break;
+            case 'illusion_pop': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'shadow' }, now); break;
             case 'crow_storm': afx.spawn('aoe', { x: P.x, y: P.y, radius: 6, damageType: 'shadow', shake: 3 }, now); break;
             case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
             case 'notice': toast(ev.text); break;

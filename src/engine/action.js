@@ -330,6 +330,46 @@
             });
         }
 
+        /**
+         * Crow's Illusion (Tokelo, 2026-11-02): `count` copies of an engaged enemy join its group. They look and hit
+         * exactly like it (same name, stats and skills) but have `hp` HP, give no XP or loot, and vanish when the
+         * real one falls (actionCheckEnd). Returns their ids.
+         */
+        actionSpawnIllusions(enemyId, { count = 4, hp = 2 } = {}) {
+            return this.actionRun(() => {
+                const e = this.actionEnemy(enemyId);
+                if (!e) return null;
+                const c = this.combat, a = c.action, g = a.groups[e.encounterId];
+                if (!g) { this.refuse('NOT_ENGAGED', `${e.name} isn't in a group.`); return null; }
+                const n = Math.max(0, Math.min(8, count | 0));
+                const clones = this.buildEnemies(Array(n).fill(e.key), `illusion:${e.encounterId}`, null, a.nextEnemyId).map((x) => Object.assign(x, {
+                    hp: hp, maxHp: hp, illusion: true, illusionOf: e.id, lootEligible: false, noLoot: true, xp: 0, encounterId: e.encounterId
+                }));
+                a.nextEnemyId += n;
+                c.enemies.push(...clones);
+                g.ids.push(...clones.map((x) => x.id));
+                this.say(`${cap(this.withArticle(e))} bursts into crows... and ${n + 1} of him step out of the flock!`, { important: true });
+                this.out.push({ type: 'action.illusions', enemyId: e.id, ids: clones.map((x) => x.id) });
+                return { ids: clones.map((x) => x.id) };
+            });
+        }
+
+        /** The illusions of `enemyId` (or every illusion) scatter: they leave the fight without a death. */
+        actionDispelIllusions(enemyId = null) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                const gone = this.actionDropIllusions(enemyId);
+                if (gone) this.say('The false Wardens scatter into crows.');
+                return { dispelled: gone };
+            });
+        }
+        actionDropIllusions(enemyId = null) {
+            const c = this.combat;
+            const gone = c.enemies.filter((x) => x.illusion && x.hp > 0 && (enemyId == null || x.illusionOf === enemyId));
+            for (const x of gone) { x.hp = 0; delete c.action.windups[x.id]; }
+            return gone.length;
+        }
+
         /** damage() hook: an active stance scales what the enemy takes; the fraction carries so small ticks lose 20% too. */
         actionStanceScale(target, amount) {
             const st = target && target.actionStance;
@@ -362,6 +402,7 @@
             for (const id of Object.keys(c.action.groups)) {
                 const g = c.action.groups[id];
                 const members = c.enemies.filter((e) => g.ids.includes(e.id));
+                for (const e of members) if (!e.illusion && e.hp <= 0) this.actionDropIllusions(e.id);   // the real one fell: his copies go with him
                 if (members.some((e) => e.hp > 0)) continue;
                 this.actionClearGroup(g, members);
             }
@@ -378,7 +419,8 @@
             this.world.defeated.push(g.encounterId);
             this.world.lastEncounter = g.encounterId;
             this.world.lastResult = 'victory';
-            this.say(`You defeated ${members.length > 1 ? 'them' : this.withArticle(members[0])} and gained ${xp} XP!`, { important: true });
+            const real = members.filter((e) => !e.illusion);
+            this.say(`You defeated ${real.length > 1 ? 'them' : this.withArticle(real[0] || members[0])} and gained ${xp} XP!`, { important: true });
             this.out.push({ type: 'action.cleared', encounterId: g.encounterId, xp });
             this.addExperience(xp, { quiet: true });
             this.storyEvent({ type: 'defeat', id: g.encounterId });

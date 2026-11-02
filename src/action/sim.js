@@ -273,7 +273,7 @@
                     if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp }); }
                     Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
                     const b = this.bossOf(a);
-                    if (b && b.phases) {   // boss phases by HP: a new phase opens with its signature move
+                    if (b && b.phases && !a.illusionOf) {   // boss phases by HP: a new phase opens with its signature move
                         const idx = b.phases.reduce((k, x, i) => (en.hp / en.maxHp <= x.fromHpPct + 1e-9 ? i : k), 0);
                         if (idx > a.phaseIdx) {
                             for (let n = a.phaseIdx + 1; n <= idx; n++) if (b.resolve && b.resolve.atPhase === n + 1 && !a.resolveUsed) this.beginResolve(a, b.resolve);   // once per fight
@@ -284,6 +284,9 @@
                         }
                     }
                     if (a.resolve) this.stepResolve(a);
+                    const ill = b && b.illusion;
+                    if (ill && !a.illusionOf && !a.illusionUsed && en.hp > 0 && en.hp / en.maxHp <= ill.atHpPct + 1e-9) this.castIllusion(a, ill);
+                    if (a.illusionUntil && this.now >= a.illusionUntil) { a.illusionUntil = null; this.collect(this.engine.actionDispelIllusions(a.engineId).events); }
                     if (en.hp <= 0) this.kill(a);
                 }
             }
@@ -300,6 +303,7 @@
         kill(a) {
             if (a.dead) return;
             a.dead = true; a.deadAt = this.now; a.state = 'dead'; a.windup = null;
+            if (a.illusionOf) { this.fx.push({ type: 'illusion_pop', x: a.x, y: a.y }); return; }   // a false Warden bursts into crows
             this.fx.push({ type: 'death', x: a.x, y: a.y, key: a.key });
         }
 
@@ -316,8 +320,9 @@
         resetGroup(g) {
             g.engaged = false;
             g.reengageAt = this.now + 1500;
+            this.actors = this.actors.filter((x) => !(x.illusionOf && x.encounterId === g.encounterId));   // the false Wardens are gone
             for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -803,6 +808,7 @@
         bossOf(a) { return (this.rules.bosses || {})[a.key] || null; }
         bossPhase(a) {
             const b = this.bossOf(a);
+            if (a.illusionOf) a = a.illusionOf;   // a false Warden fights in the real one's phase (his 2-hit sweep)
             if (!b || !b.phases || a.hp == null || !a.maxHp) return null;
             let ph = null;   // a later phase keeps what an earlier one set (phase 3 still sweeps twice) unless it says otherwise
             for (const x of b.phases) if (a.hp / a.maxHp <= x.fromHpPct + 1e-9) ph = { ...(ph || {}), ...x };
@@ -811,10 +817,12 @@
         /** Every attack this enemy can use right now: its table, or the boss's current phase. */
         attacksOf(a) {
             const b = this.bossOf(a);
+            if (b && b.attacks && a.illusionOf) return ((b.illusion || {}).attacks || ['halberd_sweep']).filter((n) => b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));   // a false Warden swings, it doesn't call crows
             if (b && b.attacks) {
                 let names = Object.keys(b.attacks), drop = [];
                 for (const x of b.phases || []) if (a.hp != null && a.maxHp && a.hp / a.maxHp <= x.fromHpPct + 1e-9) { if (x.attacks) names = x.attacks; if (x.drop) drop = drop.concat(x.drop); }
-                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));
+                const over = (this.bossPhase(a) || {}).attackOverrides || {};   // a phase can speed a move up (phase 3 crows)
+                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n], ...(over[n] || {}) }));
             }
             const pr = a.prof;
             if (Array.isArray(pr.attacks) && pr.attacks.length) return pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
@@ -865,6 +873,13 @@
             this.collect(r.events);
             if (!r.ok) { a.attackReadyAt = this.now + 300; return; }
             const b = this.bossOf(a);
+            if (step === 0 && atk.chain && !atk.combo) {   // a crow storm chain: 2-3 patterns back to back, then the usual recovery
+                const c = atk.chain, n = c.min + Math.floor(this.rng() * (c.max - c.min + 1));
+                atk = { ...atk, combo: Array.from({ length: n }, (_, i) => ({
+                    ...(i ? { windupMs: c.windupMs, markRider: c.markRider || null } : {}),
+                    ...(i < n - 1 ? { recoveryMs: c.gapMs } : {})
+                })) };
+            }
             const st = atk.combo ? { ...atk, ...atk.combo[step] } : atk;
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
@@ -872,16 +887,16 @@
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
-            const foe = st.shape === 'mark' ? this.markTarget(a) : this.foeOf(a);
+            const foe = st.shape === 'mark' || st.markRider ? this.markTarget(a) : this.foeOf(a);
             a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
             if (step === 0) a.lastWasSpecial = atk.cooldownMs >= 5000;
-            if (step === 0 && atk.quietMs) {   // a crow storm: no other crow special right after it (your window to hit back)
+            if (atk.quietMs) {   // counted from the last storm of a chain   // a crow storm: no other crow special right after it (your window to hit back)
                 for (const x of this.attacksOf(a)) if (x.cooldownMs >= 5000 && x.name !== atk.name) a.atkReady[x.name] = Math.max(a.atkReady[x.name] || 0, this.now + windup + atk.quietMs);
             }
             a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
-            if (st.shape === 'mark') { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
+            if (st.shape === 'mark' || st.markRider) { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
             if (st.shape === 'arena') a.windup.storm = this.nextStorm(a);
         }
 
@@ -928,6 +943,47 @@
             this.fx.push({ type: 'notice', text: 'The Warden staggers!' });
         }
 
+        /**
+         * Crow's Illusion (Tokelo, 2026-11-02): once, at `atHpPct`, he bursts into crows and steps out as one of
+         * count + 1 identical Wardens on a ring around the arena's middle. The copies have 2 HP and hit as hard as he
+         * does; hit one and it bursts. They scatter after `ms`, or when he falls.
+         */
+        castIllusion(a, cfg) {
+            a.illusionUsed = true;
+            const r = this.engine.actionSpawnIllusions(a.engineId, { count: cfg.count || 4, hp: cfg.hp || 2 });
+            this.collect(r.events);
+            if (!r.ok) return;
+            const ar = (this.bossOf(a) || {}).arena || {};
+            const c = ar.home || { x: a.homeX, y: a.homeY };
+            const n = r.ids.length + 1, ring = cfg.ringPx || 80, off = this.rng() * 2 * Math.PI;
+            const spots = [];
+            for (let i = 0; i < n; i++) {
+                const ang = off + (i / n) * 2 * Math.PI;
+                let x = c.x + Math.cos(ang) * ring, y = c.y + Math.sin(ang) * ring;
+                if (this.bodyBlocked(x, y, a.r)) { x = c.x + Math.cos(ang) * ring * 0.5; y = c.y + Math.sin(ang) * ring * 0.5; }
+                if (this.bodyBlocked(x, y, a.r)) { x = a.x; y = a.y; }
+                spots.push({ x, y });
+            }
+            for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(this.rng() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }   // which spot is real is a coin toss
+            this.fx.push({ type: 'illusion_pop', x: a.x, y: a.y });
+            Object.assign(a, { x: spots[0].x, y: spots[0].y, state: 'recover', stateEnd: this.now + (cfg.revealMs || 600), windup: null });
+            delete this.engine.combat.action.windups[a.engineId];
+            a.attackReadyAt = this.now + (cfg.revealMs || 600) + 400;
+            r.ids.forEach((id, i) => {
+                const sp = spots[i + 1];
+                this.actors.push({
+                    sid: `${a.encounterId}#illusion${id}`, encounterId: a.encounterId, index: a.index, key: a.key, engineId: id, prof: a.prof, illusionOf: a,
+                    x: sp.x, y: sp.y, homeX: a.homeX, homeY: a.homeY, r: a.r, angle: a.angle,
+                    state: 'recover', stateEnd: this.now + (cfg.revealMs || 600), nextThinkAt: 0, attackReadyAt: this.now + (cfg.revealMs || 600) + 400 + this.rng() * 900, path: null, repathAt: 0,
+                    wanderTo: null, hp: null, maxHp: null, stunned: false, speedMult: 1, dead: false, deadAt: 0,
+                    windup: null, hurtUntil: 0, name: a.name, atkReady: {}, openWith: null, phaseIdx: a.phaseIdx, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: null
+                });
+            });
+            for (const s of spots) this.fx.push({ type: 'illusion_pop', x: s.x, y: s.y });
+            a.illusionUntil = cfg.ms ? this.now + cfg.ms : null;
+            this.fx.push({ type: 'notice', text: "Crow's Illusion: which Warden is real?" });
+        }
+
         /** Marked Prey picks its prey: with summons out it alternates between one of them (the one on him) and you. */
         markTarget(a) {
             const mins = this.liveMinions().filter((m) => m.state !== 'rise');
@@ -940,7 +996,7 @@
         /** The mark follows its prey until lockMs before the dive, then stays where it was. */
         trackMark(a) {
             const w = a.windup, m = w.mark;
-            const lock = w.atk.lockMs != null ? w.atk.lockMs : 500;
+            const lock = w.atk.markRider ? (w.atk.markRider.lockMs ?? 450) : w.atk.lockMs != null ? w.atk.lockMs : 500;
             const prey = this.liveBody(w.foe);
             if (this.now >= a.stateEnd - lock || !prey) { m.locked = true; return; }
             m.x = prey.x; m.y = prey.y;
@@ -976,7 +1032,12 @@
             const st = (a.windup && a.windup.atk) || this.attacksOf(a)[0];
             const kind = st.shape || 'arc';
             if (kind === 'mark') { const m = (a.windup && a.windup.mark) || { x: a.x, y: a.y }; return { kind: 'circle', x: m.x, y: m.y, radius: st.radius || 22 }; }
-            if (kind === 'arena') return { kind: 'multi', shapes: (a.windup && a.windup.storm && a.windup.storm.shapes) || [] };
+            if (kind === 'arena') {
+                const shapes = ((a.windup && a.windup.storm && a.windup.storm.shapes) || []).slice();
+                const m = a.windup && a.windup.mark;
+                if (m && st.markRider) shapes.push({ kind: 'circle', x: m.x, y: m.y, radius: st.markRider.radius || 22 });   // the crow on you lands with the storm
+                return { kind: 'multi', shapes };
+            }
             if (kind === 'ground') return { kind: 'multi', shapes: (a.windup && a.windup.circles || []).map((c) => ({ kind: 'circle', x: c.x, y: c.y, radius: st.radius || 20 })) };
             if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: st.reach || 100, width: st.width || 6 };
             if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (st.reach || 20) + (st.lunge && !(st.reach > st.lunge) ? st.lunge : 0), width: st.width || 10 };
@@ -997,7 +1058,7 @@
             }
             const touches = (b) => (w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, b)) : this.inShape(w.shape, b));
             this.strikeBodies(a, touches, st);
-            if (st.shape === 'mark') for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.shape.x + (i - 1) * 6, y: w.shape.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
+            if (w.mark) for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.mark.x + (i - 1) * 6, y: w.mark.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
             if (st.shape === 'arena') this.fx.push({ type: 'crow_storm', name: w.storm && w.storm.name });
             if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
         }
@@ -1015,7 +1076,8 @@
             a.state = 'recover';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + rec;
-            a.attackReadyAt = a.stateEnd + (b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700);
+            const gap = a.illusionOf && b.illusion && b.illusion.attackGapMs != null ? b.illusion.attackGapMs : b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700;
+            a.attackReadyAt = a.stateEnd + gap;
         }
 
         enemyLunge(a, dt) {
@@ -1488,10 +1550,10 @@
                         duration: Math.max(1, a.stateEnd - a.visualStateStart),
                         progress: Math.max(0, Math.min(1, (this.now - a.visualStateStart) / Math.max(1, a.stateEnd - a.visualStateStart)))
                     } : null,
-                    hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
+                    hp: a.illusionOf ? a.illusionOf.hp : a.hp, maxHp: a.illusionOf ? a.illusionOf.maxHp : a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
                     mark: a.state === 'windup' && a.windup && a.windup.mark ? { x: a.windup.mark.x, y: a.windup.mark.y, locked: a.windup.mark.locked, target: a.windup.mark.target } : null,
                     storm: a.state === 'windup' && a.windup && a.windup.storm ? a.windup.storm.name : null,
-                    engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
+                    engaged: !!this.groups[a.encounterId].engaged, statuses: (a.illusionOf ? a.illusionOf.statuses : a.statuses) || [], stunned: a.stunned, phase: (a.illusionOf ? a.illusionOf.phaseIdx : a.phaseIdx) + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),
                 minions: (this.minions || []).map((m) => ({

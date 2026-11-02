@@ -71,11 +71,14 @@ function fight(st, seed) {
             return { won, s: i / 60, phaseAt };
         }
         const p = r.sim.player;
-        const d = Math.hypot(w.x - p.x, w.y - p.y) || 1;
-        const ux = (w.x - p.x) / d, uy = (w.y - p.y) / d;
-        const input = { aim: { x: w.x, y: w.y }, move: { x: 0, y: 0 } };
-        if (w.state === 'windup' && w.windup && w.stateEnd - r.sim.now < 160) {
-            const key = w.windup.start;
+        // Crow's Illusion: the bot can't tell them apart either, so it goes for the nearest Warden it sees
+        const t = r.sim.actors.filter((a) => a.key === 'crow_touched_warden' && !a.dead).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0] || w;
+        const d = Math.hypot(t.x - p.x, t.y - p.y) || 1;
+        const ux = (t.x - p.x) / d, uy = (t.y - p.y) / d;
+        const input = { aim: { x: t.x, y: t.y }, move: { x: 0, y: 0 } };
+        const threat = r.sim.actors.find((a) => a.key === 'crow_touched_warden' && !a.dead && a.state === 'windup' && a.windup && a.stateEnd - r.sim.now < 160 && !decided.has(a.sid + a.windup.start));
+        if (threat) {
+            const key = threat.sid + threat.windup.start;
             if (!decided.has(key)) decided.set(key, R() < REACT);
             if (decided.get(key) === true) {
                 input.move = { x: -ux * 0.6 + -uy * 0.8, y: -uy * 0.6 + ux * 0.8 };

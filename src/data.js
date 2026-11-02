@@ -1119,11 +1119,18 @@
                         marked_prey:     { skill: 'Summon Crows', shape: 'mark', count: 3, radius: 22, reachPx: 200, windupMs: 1600, lockMs: 550, activeMs: 200, recoveryMs: 900, guardable: false, parryable: false, cooldownMs: 11000, damageMult: 4, phase: 2 },
                         // Phase 3 crow storms: one of 5 arena patterns, always in this order, then a rest (cooldownMs and
                         // quietMs) so you get your turn. Zones are fractions of `arena` (fx, fy, r as a share of its width).
-                        crow_storm:      { skill: 'Summon Crows', shape: 'arena', windupMs: 1800, activeMs: 250, recoveryMs: 2200, guardable: false, parryable: false, cooldownMs: 12000, quietMs: 4000, damageMult: 5, phase: 3 }
+                        // Tokelo 2026-11-02 (harder): a storm comes as a chain of 2-3 patterns back to back (`chain`), each next one
+                        // on a shorter wind-up and with a crow mark riding on you (`markRider`), and only then the rest.
+                        crow_storm:      { skill: 'Summon Crows', shape: 'arena', windupMs: 1800, activeMs: 250, recoveryMs: 2200, guardable: false, parryable: false, cooldownMs: 12000, quietMs: 3500, damageMult: 5, phase: 3,
+                                           chain: { min: 2, max: 3, windupMs: 1300, gapMs: 350, markRider: { radius: 22, lockMs: 450 } } }
                     },
                     // Guardian's Resolve: once, when phase 2 opens. 6 s of 20% less damage from every source (summons and
                     // DoTs too), slower steps and slower wind-ups; then a short window where any hit staggers him.
                     resolve: { atPhase: 2, ms: 6000, damageTaken: 0.8, speedMult: 0.6, windupMult: 1.4, vulnerableMs: 2500, staggerMs: 1500 },
+                    // Crow's Illusion (Tokelo, 2026-11-02): once at 30% he bursts into crows and steps out as one of 5 identical
+                    // Wardens. The 4 false ones have 2 HP and hit as hard as he does (same stats and skills); they swing only
+                    // (no crows) and scatter after `ms` or when he falls.
+                    illusion: { atHpPct: 0.3, count: 4, hp: 2, ms: 20000, attackGapMs: 2400, ringPx: 90, revealMs: 700, attacks: ['halberd_sweep', 'reaping_thrust'] },
                     crowStorms: [
                         { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.22 }, { kind: 'column', fx: 0.5, w: 0.14 }] },
                         { name: 'Ring', zones: [{ kind: 'ring', r: 0.13, count: 10, size: 0.045 }] },
@@ -1135,7 +1142,9 @@
                         { fromHpPct: 1.0, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },
                         { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['reapers_dance', 'marked_prey', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
                         // Phase 3 at 25% (Tokelo, 2026-11-02; was the 20% desperation stage): the crow storms join everything else.
-                        { fromHpPct: 0.25, openWith: 'crow_storm', recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true, attacks: ['crow_storm', 'reapers_dance', 'marked_prey', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'] }
+                        { fromHpPct: 0.25, openWith: 'crow_storm', recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true, attacks: ['crow_storm', 'murder_of_crows', 'marked_prey', 'reapers_dance', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'],
+                          // Tokelo 2026-11-02: below 25% his crows come faster and more often, between the storms
+                          attackOverrides: { murder_of_crows: { cooldownMs: 7000, windupMs: 1000 }, marked_prey: { cooldownMs: 5500, windupMs: 1200, lockMs: 450 } } }
                     ],
                     onDefeat: { drop: 'First Echo key', scene: 'crows_mourn' },
                     onPlayerDefeat: { reset: 'fullHp', returnHome: true, keepFlags: ['warden_challenged'] }
