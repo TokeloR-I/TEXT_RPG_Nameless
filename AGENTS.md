@@ -68,9 +68,9 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
 - Game content is data in `src/data.js`. Never hardcode a skill, class or enemy name in engine logic when a data
   field or effect entry can express it.
 - Every skill effect type is one entry in `src/effects.js` plus tests.
-- **Skills a player can learn come from the Skill Web** (`src/engine/skill-web.js`, data `skillWeb` in `src/data.js`,
-  spec `docs/design/SKILL_WEB.md`). It is built from the classes and evolution branches; a new skill is one
-  `extraNodes` entry. `progression.branch` is the active specialization, not a locked choice. Never grant a
+- **Skills a player can learn come from the Skill Webs**, one per class, joined only by gateway nodes
+  (`src/engine/skill-web.js`, data `skillWeb` in `src/data.js`, spec `docs/design/SKILL_WEB.md`). They are built
+  from the classes and evolution branches; a new skill is one `extraNodes` entry. `progression.branch` is the active specialization, not a locked choice. Never grant a
   branch skill or trait outside the web.
 - **Statuses always go through `engine.applyStatus(source, target, spec)`** (`src/statuses.js`). Players, enemies and
   summons share one pipeline. Durations are **round-based** in turn-based fights (timed in real-time fights, see combat v2 below): −1 at the end of each round in which the holder had a

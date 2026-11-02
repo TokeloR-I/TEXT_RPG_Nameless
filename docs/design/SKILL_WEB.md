@@ -1,4 +1,4 @@
-# Skill Web
+# Skill Webs
 
 **Owner:** Thorne (mechanics), Gauge (numbers). **Requested by:** Tokelo, 2026-11-02.
 **Status:** increment 1 (framework + migration of existing skills) built. UI and new skills follow.
@@ -8,65 +8,75 @@
 
 ## What changes
 
-Locked class trees are gone. There is one **Skill Web** that holds every class's skills. You start in your
-class's corner of it and can grow in any direction, including into other classes.
+Locked class trees are gone. **Each class has its own Skill Web**: a Warrior web, a Rogue web, a Mage web
+and a Necromancer web (Tokelo, 2026-11-02). You start in your class's web and can grow in any direction in it.
+**Gateway nodes** at the edge of each web open a path into another class's web, so hybrid builds are possible
+but take investment (Tokelo's pick, 2026-11-02).
 
-| Before | Skill Web |
+| Before | Skill Webs |
 |---|---|
 | Pick one branch at level 3, forever | Pick a path at level 3 as a *guide*; you can leave it, change it, or ignore it |
 | Branch skills arrive automatically at 3/5/8/11/14 | The guide still learns them on schedule, or you spend points by hand |
-| Only your class's skills | Any skill in the web, reached through linked nodes |
+| Only your class's skills | Your class's web, plus other class webs through gateways |
 | One evolution | Every branch you complete stage one of is a specialization you can switch to |
 
 ## Nodes
 
-Three kinds:
+Four kinds:
 
-- **Heart** (♥): the centre of a class region. You own your own. Another class's heart costs a point and
-  opens its region (and gives that class's starting trait, if any).
+- **Heart** (♥): the centre of a class web. You own your own. Inside another class's web its heart costs a
+  point and opens that class's base skills (and its starting trait, if any).
 - **Active** (◆): grants a skill. It goes on the skill bar (6 slots, swap out of a fight) or the bench.
 - **Passive** (○): grants a trait. Always on.
+- **Gateway** (⇒): sits at the edge of a class web, hanging from one node of it, and leads to one node of
+  another class's web. It grants nothing itself; owning it makes that node learnable. A gateway opens **from
+  its own web's side only**: the other class can't walk it backwards (it has its own gateways out).
 
-A node can be learned when it **touches a node you own**, your **level** is at least its `minLevel`, its
-**story event** has happened (Dark Knight, Dragon Slayer) and you have the **points**.
+A node can be learned when it **touches a node you own** (a gateway: when you own the node it hangs from),
+your **level** is at least its `minLevel`, its **story event** has happened (Dark Knight, Dragon Slayer) and
+you have the **points**.
 
-### How the web is built (data, no code per skill)
+### How the webs are built (data, no code per skill)
 
 `skillWeb` in `src/data.js`, plus the classes and branches already there:
 
-1. Each class: a heart, and one active node per starting skill (owned free by that class).
-2. Each evolution branch, stage by stage: an active node for the stage's new skill and a passive node for
-   its trait, gated by the stage's level and event. Ids: `<branch>.<stage>.skill` / `<branch>.<stage>.trait`
-   (stage 1 to 5). A stage that only upgrades an earlier skill (Soul Chain, Flurry, Fireball…) is one passive
-   node.
+1. Each class web: a heart, and one active node per starting skill (owned free by that class).
+2. Each evolution branch, in its class's web, stage by stage: an active node for the stage's new skill and a
+   passive node for its trait, gated by the stage's level and event. Ids: `<branch>.<stage>.skill` /
+   `<branch>.<stage>.trait` (stage 1 to 5). A stage that only upgrades an earlier skill (Soul Chain, Flurry,
+   Fireball…) is one passive node.
 3. `extraNodes`: existing skills no path granted (War Cry, Second Wind, Ice Lance, Shield of the Dead,
    Corpse Bloom, Plague Wind).
-4. `rules.ring`: neighbouring class hearts link (Warrior – Rogue – Mage – Necromancer – Warrior).
-5. `bridges`: thematic strands between branches of different classes (see below).
+4. `gateways`: `{ id, from, to, name, why }`, three out of each class web.
 
-**Adding a skill is one `extraNodes` entry** (`id`, `kind`, `region`, optional `branch`, `skill` or `trait`,
-`minLevel`, `cost`, `links`). `npm run web` prints and validates the web; the tests run the same check
-(every node linked, one connected web, every skill defined).
+**Adding a skill is one `extraNodes` entry** (`id`, `kind`, `region` = its class web, optional `branch`,
+`skill` or `trait`, `minLevel`, `cost`, `links`). `npm run web` prints each class web and validates them;
+the tests run the same check (every class web is one piece on its own, only gateways cross between webs,
+every skill defined).
 
-Today: **136 nodes** (4 hearts, 72 active, 60 passive), 12 bridges. Room for 80–100+ skills is the design
-target; the structure has no limit.
+Today: **4 class webs, 148 nodes** (4 hearts, 72 active, 60 passive, 12 gateways), 33 to 40 per web. Room for
+80–100+ skills is the design target; the structure has no limit.
 
-### Bridges (increment 1)
+### Gateways (increment 1)
 
-| From | To | Theme |
-|---|---|---|
-| Shield Bash (Vanguard) | Bone Wall (Bone Warden) | the two walls |
-| Whirlwind (Berserker) | Flurry (Duelist) | blade frenzy |
-| Pincushion (Warden) | Marked for Death (Assassin) | the hunt |
-| Lockstep (Warden) | Caltrops (Saboteur) | owning the ground |
-| Poison Trap (Saboteur) | Black Spit (Plaguecaller) | poison |
-| Possession (Soulbinder) | Confuse (Illusionist) | the stolen mind |
-| Haste (Chronomancer) | Riposte (Duelist) | tempo |
-| Fireball leaves Burn (Elementalist) | DoTs last +1 turn (Plaguecaller) | damage over time |
-| Mirror Image (Illusionist) | Shadowstep (Assassin) | misdirection |
-| Holy Smite (Vanguard) | Lightning Arc (Elementalist) | the spellblade |
-| Revert HP (Chronomancer) | Soul Feast (Soulbinder) | life bent back |
-| Hemorrhage (Berserker) | Contagion (Plaguecaller) | open wounds |
+| Class web | Gateway | Hangs from | Leads to |
+|---|---|---|---|
+| Warrior | Spellblade | Holy Smite (Vanguard, L8) | Lightning Arc (Mage: Elementalist) |
+| Warrior | Blade Frenzy | Whirlwind (Berserker, L5) | Flurry (Rogue: Duelist) |
+| Warrior | The Hunt | Pincushion (Warden, L3) | Marked for Death (Rogue: Assassin) |
+| Rogue | Misdirection | Shadowstep (Assassin, L3) | Mirror Image (Mage: Illusionist) |
+| Rogue | Venom | Poison Trap (Saboteur, L8) | Black Spit (Necromancer: Plaguecaller) |
+| Rogue | Owning the Ground | Caltrops (Saboteur, L3) | Lockstep (Warrior: Warden) |
+| Mage | Tempo | Haste (Chronomancer, L3) | Riposte (Rogue: Duelist) |
+| Mage | Burn and Blight | Fireball leaves Burn (Elementalist, L5) | DoTs last +1 turn (Necromancer: Plaguecaller) |
+| Mage | The Stolen Mind | Confuse (Illusionist, L5) | Possession (Necromancer: Soulbinder) |
+| Necromancer | The Two Walls | Bone Wall (Bone Warden, L3) | Shield Bash (Warrior: Vanguard) |
+| Necromancer | Open Wounds | Contagion (Plaguecaller, L3) | Hemorrhage (Warrior: Berserker) |
+| Necromancer | Life Bent Back | Soul Feast (Soulbinder, L11) | Revert HP (Mage: Chronomancer) |
+
+A gateway costs **2 points** (`rules.cost.gateway`) and needs the level of the node it hangs from. The node it
+leads to keeps its own level gate. Once inside, that web's nodes link as usual: you can walk back down a
+branch to its first stage and to the heart, then out to the class's base skills.
 
 ## Points (Gauge)
 
@@ -77,7 +87,7 @@ target; the structure has no limit.
 Why 1: a branch costs exactly 2 points per stage (skill + trait), so a player who follows one path has the
 same skills, traits, title and resource at the same levels as before (level 3: 2 points, stage 1; level 14:
 13 points, 10 on the path, 3 free). **The 60–90 s Crow Warden benchmark and `npm run balance` are unchanged**
-(balance output identical before and after). Hybrid builds trade depth for breadth with the same budget.
+(balance output identical before and after). Hybrid builds trade depth for breadth with the same budget, plus the gateway toll.
 Gauge may raise the rate or add milestone bonus points once hybrids are measured.
 
 ## Specializations (the evolutions)
@@ -120,7 +130,8 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
   (`IN_COMBAT`). Refusal codes: `UNKNOWN_NODE`, `ALREADY_LEARNED`, `NOT_CONNECTED`, `LEVEL_TOO_LOW`,
   `EVENT_LOCKED`, `NO_WEB_POINTS`, `NOT_LEARNED`, `NODE_FIXED`, `NODE_ANCHORS_OTHERS`, `SPEC_LOCKED`,
   `WEB_UNAVAILABLE` (Hollow King).
-- `engine.getSkillWeb()` (pure): points, guide, specializations, and every node with `state`
+- `engine.getSkillWeb()` (pure): points, guide, specializations, `webs` (one per class: `home`, `entered`),
+  and every node with `state`
   (`owned` / `available` / `locked`), the same `reason` learn_node would give, links and a layout position.
 - Text: `web`, `learn <skill>`, `unlearn <skill>`, `specialize <path>`, `guide <path|off>`.
 - Saves: `progression.web = { nodes, guide, bonusPoints }`. A save from before the web is migrated on load
@@ -128,14 +139,16 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 
 ## Next increments
 
-1. **Skill Web screen** (Pixie, Hollis): a pannable web in the world UI using `getSkillWeb()` positions,
-   learn/unlearn, specialization switch, guide toggle, and a "walk freely" choice at level 3.
-2. **New skills and bridges** (Thorne, Gauge): fill toward 80–100 active skills, hybrid-only passives on
-   bridges, milestone points.
+1. **Skill Web screen** (Pixie, Hollis): one panel per class web (tabs; your own first, others shown once
+   entered or as "beyond the gateway"), using `getSkillWeb()` positions (each web is centred on its heart,
+   gateways sit at the rim), learn/unlearn, specialization switch, guide toggle, and a "walk freely" choice
+   at level 3.
+2. **New skills and gateways** (Thorne, Gauge): fill toward 80–100 active skills, hybrid-only passives on
+   gateways, milestone points.
 3. **Balance pass on hybrids** (Gauge, Tally): measure cross-class builds on the Crow Warden.
 
 ## Open questions
 
-- Should cross-class skills cost more (a "foreign" multiplier), or is the heart toll enough?
+- Should cross-class skills cost more (a "foreign" multiplier), or is the gateway toll enough?
 - Should a gold or item cost apply to respec?
 - Hollow King: stays outside the web for now.

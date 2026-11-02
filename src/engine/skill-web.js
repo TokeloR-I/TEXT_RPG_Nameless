@@ -1,14 +1,16 @@
 /* =========================================================================
  * Enso's Last Stand — ENGINE MODULE: Skill Web
- * One connected web of skills instead of locked class trees (Tokelo 2026-11-02,
- * docs/design/SKILL_WEB.md). Data: `skillWeb` in src/data.js, plus the classes and
+ * Each class has its own web of skills instead of a locked tree (Tokelo 2026-11-02,
+ * docs/design/SKILL_WEB.md). Gateway nodes at a web's edge open a path into another
+ * class's web. Data: `skillWeb` in src/data.js, plus the classes and
  * evolution branches it is built from.
  *
- *   - Every class has a heart node. You own your own heart and your starting skills.
+ *   - Every class web has a heart node. You own your own heart and your starting skills.
  *   - Levels give Skill Web points (rules.pointsPerLevel). A node costs points and can be
  *     learned when it touches a node you own, your level is high enough and its story
  *     event (if any) has happened. Active nodes add a skill (it joins the skill bar);
- *     passive nodes add a trait. Hearts of other classes open their region.
+ *     passive nodes add a trait. A gateway (from its own web's side only) leads into another
+ *     class's web; from there that web's nodes link as usual.
  *   - A branch's evolution stages are reached by owning all its nodes up to that stage.
  *     Any reached branch can be your specialization (title, resource, branch mechanics),
  *     whichever class it belongs to. `progression.branch` is that specialization.
@@ -33,7 +35,8 @@
     // ---------------------------------------------------------------------
     // Building the web (pure; cached per data object)
     // ---------------------------------------------------------------------
-    /** The whole web as { nodes: Map(id -> node), list, branches: { branchId: { classId, name, stages: [[ids]] } } }.
+    /** All class webs as { nodes: Map(id -> node), list, webs: [classIds], branches: { branchId: { classId, name, stages: [[ids]] } } }.
+     *  A node's `region` is the class web it belongs to; gateways are the only links between webs.
      *  Throws on a duplicate id or a link to a missing node (validateSkillWeb reports the rest). */
     function buildSkillWeb(data) {
         const cfg = data.skillWeb || {};
@@ -92,33 +95,40 @@
             add({ label: x.skill || (x.trait && x.trait.name) || x.id, ...rest, stage: null });
         }
         for (const x of cfg.extraNodes || []) for (const to of x.links || []) link(x.id, to);
-        const ring = rules.ring || [];
-        if (ring.length > 1) ring.forEach((c, i) => link(`heart.${c}`, `heart.${ring[(i + 1) % ring.length]}`));
-        for (const [a, b] of cfg.bridges || []) link(a, b);
-        layout(nodes, ring.length ? ring : Object.keys(data.basePlayerClasses || {}));
-        return { nodes, list: [...nodes.values()], branches };
+        for (const g of cfg.gateways || []) {
+            const from = nodes.get(g.from), to = nodes.get(g.to);
+            if (!from || !to) throw new Error(`Skill Web: gateway '${g.id}' links a missing node ('${g.from}' - '${g.to}')`);
+            add({ id: g.id, kind: 'gateway', region: from.region, branch: from.branch, label: `Gateway: ${g.name || g.id}`, why: g.why || null,
+                from: g.from, to: g.to, target: to.region, minLevel: g.minLevel || from.minLevel, ...(g.cost != null ? { cost: g.cost } : {}) });
+            link(g.id, g.from); link(g.id, g.to);
+        }
+        const webs = Object.keys(data.basePlayerClasses || {});
+        layout(nodes, webs);
+        return { nodes, list: [...nodes.values()], webs, branches };
     }
 
     /** Positions for a web view, in a unit circle (a node's own `pos: [x, y]` wins). */
-    function layout(nodes, ring) {
+    function layout(nodes, webs) {
         const byRegion = {};
         for (const n of nodes.values()) (byRegion[n.region] || (byRegion[n.region] = [])).push(n);
-        ring.forEach((classId, ci) => {
-            const centre = -Math.PI / 2 + (ci * 2 * Math.PI) / ring.length;
-            const spread = (2 * Math.PI) / ring.length * 0.8;
+        webs.forEach((classId) => {   // each class web is its own picture, centred on its heart
+            const centre = -Math.PI / 2;
+            const spread = 2 * Math.PI;
             const list = byRegion[classId] || [];
             const branchIds = [...new Set(list.filter((n) => n.branch).map((n) => n.branch))];
             const put = (n, r, a) => { n.x = +(r * Math.cos(a)).toFixed(3); n.y = +(r * Math.sin(a)).toFixed(3); };
             const base = list.filter((n) => !n.branch && n.kind !== 'heart');
             for (const n of list) {
                 if (n.pos) { n.x = n.pos[0]; n.y = n.pos[1]; continue; }
-                if (n.kind === 'heart') { put(n, 0.22, centre); continue; }
-                if (!n.branch) { const k = base.indexOf(n); put(n, 0.34, centre + (k - (base.length - 1) / 2) * 0.16); continue; }
+                if (n.kind === 'heart') { n.x = 0; n.y = 0; continue; }
+                if (n.kind === 'gateway') continue;   // placed below, beside the node it hangs from
+                if (!n.branch) { const k = base.indexOf(n); put(n, 0.2, centre + (k - (base.length - 1) / 2) * 0.5); continue; }
                 const b = branchIds.indexOf(n.branch);
-                const a = centre + (b - (branchIds.length - 1) / 2) * (spread / Math.max(1, branchIds.length));
+                const a = centre + ((b + 1) * spread) / (branchIds.length + 1);
                 if (n.stage == null) { put(n, 0.5 + 0.08 * (list.filter((m) => m.branch === n.branch && m.stage == null).indexOf(n) + 1), a + 0.09); continue; }
-                put(n, 0.45 + n.stage * 0.11 + (n.kind === 'passive' ? 0.05 : 0), a);
+                put(n, 0.3 + n.stage * 0.13 + (n.kind === 'passive' ? 0.06 : 0), a);
             }
+            for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, 1.02, Math.atan2(f.y, f.x) + 0.1); }
         });
     }
 
@@ -129,7 +139,7 @@
         try { web = buildSkillWeb(data); } catch (err) { return [err.message]; }
         const defs = data.skillDefinitions || {};
         for (const n of web.list) {
-            if (!['heart', 'active', 'passive'].includes(n.kind)) problems.push(`${n.id}: unknown kind '${n.kind}'`);
+            if (!['heart', 'active', 'passive', 'gateway'].includes(n.kind)) problems.push(`${n.id}: unknown kind '${n.kind}'`);
             if (n.kind === 'active' && !defs[n.skill]) problems.push(`${n.id}: skill '${n.skill}' is not in skillDefinitions`);
             if (n.kind === 'passive' && !(n.trait && n.trait.name)) problems.push(`${n.id}: a passive node needs a trait`);
             if (!(data.basePlayerClasses || {})[n.region]) problems.push(`${n.id}: unknown region '${n.region}'`);
@@ -137,13 +147,28 @@
             if (!(Number.isInteger(n.cost) && n.cost >= 0)) problems.push(`${n.id}: cost must be a whole number`);
             if (!n.links.length) problems.push(`${n.id}: not linked to anything`);
         }
-        // Every node can be reached from every heart (the web is one piece).
-        const start = web.list.find((n) => n.kind === 'heart');
-        if (start) {
-            const seen = new Set([start.id]);
-            const queue = [start.id];
-            while (queue.length) for (const to of web.nodes.get(queue.shift()).links) if (!seen.has(to)) { seen.add(to); queue.push(to); }
-            for (const n of web.list) if (!seen.has(n.id)) problems.push(`${n.id}: not connected to the rest of the web`);
+        // Each class web is one piece on its own (gateways excluded), and only gateways cross between webs.
+        for (const classId of web.webs) {
+            const start = `heart.${classId}`;
+            const seen = new Set([start]);
+            const queue = [start];
+            while (queue.length) {
+                for (const to of web.nodes.get(queue.shift()).links) {
+                    const t = web.nodes.get(to);
+                    if (t.region === classId && t.kind !== 'gateway' && !seen.has(to)) { seen.add(to); queue.push(to); }
+                }
+            }
+            for (const n of web.list) if (n.region === classId && n.kind !== 'gateway' && !seen.has(n.id)) problems.push(`${n.id}: not connected to the ${classId} web`);
+        }
+        for (const n of web.list) {
+            if (n.kind === 'gateway') {
+                if (n.target === n.region) problems.push(`${n.id}: a gateway must lead into another class's web`);
+                continue;
+            }
+            for (const to of n.links) {
+                const t = web.nodes.get(to);
+                if (t.region !== n.region && t.kind !== 'gateway') problems.push(`${n.id}: links straight into the ${t.region} web (use a gateway)`);
+            }
         }
         return problems;
     }
@@ -223,7 +248,8 @@
             const n = web.nodes.get(id);
             if (!n) return { code: 'UNKNOWN_NODE', message: `There is no '${id}' in the Skill Web.` };
             if (this.webOwns(id)) return { code: 'ALREADY_LEARNED', message: `You already know ${n.label}.` };
-            if (!n.links.some((to) => this.webOwns(to))) return { code: 'NOT_CONNECTED', message: `${n.label} isn't connected to anything you know yet.` };
+            const touching = n.kind === 'gateway' ? this.webOwns(n.from) : n.links.some((to) => this.webOwns(to));   // a gateway opens from its own side only
+            if (!touching) return { code: 'NOT_CONNECTED', message: `${n.label} isn't connected to anything you know yet.` };
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
             if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
             const pts = this.webPoints();
@@ -282,7 +308,8 @@
             const p = this.player;
             const s = this.webState();
             if (!s.nodes.includes(n.id)) s.nodes.push(n.id);
-            if (n.kind === 'heart' && !this.webNodeFixed(n)) this.say(`The ${n.label}'s path opens to you.`, { important: true });
+            if (n.kind === 'heart' && !this.webNodeFixed(n)) this.say(`The ${n.label} heart opens to you.`, { important: true });
+            if (n.kind === 'gateway') this.say(`${n.label} opens: the ${this.data.basePlayerClasses[n.target].name} web lies beyond.`, { important: true });
             if (n.skill && !p.skills.includes(n.skill)) {
                 p.skills.push(n.skill);
                 const info = this.describeSkill(n.skill);
@@ -452,6 +479,9 @@
             return {
                 points: this.webPoints(), earned: this.webPointsEarned(),
                 guide: s.guide || null,
+                // One web per class; `home` is yours, `entered` means you own something in it (through a gateway).
+                webs: web.webs.map((c) => ({ classId: c, name: this.data.basePlayerClasses[c].name, home: c === this.player.className,
+                    entered: s.nodes.some((id) => { const n = web.nodes.get(id); return n && n.region === c && n.kind !== 'gateway'; }) })),
                 specialization: prog.branch ? { branchId: prog.branch, name: prog.evolutionName, stageIndex: prog.stageIndex } : null,
                 specializations: this.webSpecializations().map((b) => ({ branchId: b, name: web.branches[b].name, classId: web.branches[b].classId, stageIndex: this.webStageReached(b) })),
                 nodes: web.list.map((n) => {
@@ -462,6 +492,7 @@
                         skill: n.skill || null, trait: n.trait ? clone(n.trait) : null, cost: n.cost, minLevel: n.minLevel,
                         links: [...n.links], x: n.x, y: n.y, owned, fixed: this.webNodeFixed(n),
                         state: owned ? 'owned' : problem ? 'locked' : 'available',
+                        ...(n.kind === 'gateway' ? { from: n.from, to: n.to, target: n.target, why: n.why } : {}),
                         ...(problem ? { reason: problem } : {})
                     };
                 })
@@ -478,8 +509,8 @@
             if (view.specialization) this.say(`Specialization: ${view.specialization.name} (${this.branchDef(view.specialization.branchId).name}).`);
             const others = view.specializations.filter((x) => !view.specialization || x.branchId !== view.specialization.branchId);
             if (others.length) this.say(`Also open to you: ${others.map((x) => x.name).join(', ')} ('specialize <path>').`);
-            const kindTag = (n) => n.kind === 'passive' ? 'passive' : n.kind === 'heart' ? 'class' : 'skill';
-            const owned = view.nodes.filter((n) => n.owned && n.kind !== 'heart');
+            const kindTag = (n) => ({ passive: 'passive', heart: 'class heart', gateway: `gateway to the ${n.target} web` })[n.kind] || 'skill';
+            const owned = view.nodes.filter((n) => n.owned && n.kind !== 'heart' && n.kind !== 'gateway');
             this.say(`Known: ${owned.map((n) => n.label).join(', ') || 'nothing yet'}.`);
             const ready = view.nodes.filter((n) => n.state === 'available');
             const near = view.nodes.filter((n) => n.state === 'locked' && n.reason.code !== 'NOT_CONNECTED');

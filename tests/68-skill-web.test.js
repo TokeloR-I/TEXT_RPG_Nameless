@@ -1,4 +1,4 @@
-// Skill Web (Tokelo 2026-11-02, docs/design/SKILL_WEB.md): one connected web replaces locked class trees.
+// Skill Webs (Tokelo 2026-11-02, docs/design/SKILL_WEB.md): each class has its own web; gateways cross between them.
 const { test, assert, newGame, assertHealthy, data } = require('./helpers.js');
 const { GameEngine } = require('../src/engine.js');
 const SkillWeb = require('../src/engine/skill-web.js');
@@ -6,36 +6,47 @@ const SkillWeb = require('../src/engine/skill-web.js');
 const levelTo = (g, level) => { while (g.player.level < level) g.addExperience(g.player.xpToNext, { quiet: true }); return g; };
 const node = (g, id) => g.getSkillWeb().nodes.find((n) => n.id === id);
 
-test('Skill Web: the data builds into one connected web with no problems, at the planned scale', () => {
+test('Skill Web: each class has its own web, valid, at the planned scale; only gateways cross between webs', () => {
     assert.deepStrictEqual(SkillWeb.validateSkillWeb(data), []);
     const web = SkillWeb.buildSkillWeb(data);
-    assert.ok(web.list.length >= 80, `only ${web.list.length} nodes`);
-    // Every skill a class starts with or a branch grants is somewhere in the web.
-    const granted = new Set(web.list.filter((n) => n.skill).map((n) => n.skill));
-    for (const c of Object.values(data.basePlayerClasses)) for (const s of c.startingSkills) assert.ok(granted.has(s), s);
-    for (const tree of Object.values(data.evolutionPaths)) for (const b of Object.values(tree.branches))
-        for (const st of b.stages) { if (st.skill) assert.ok(granted.has(st.skill), st.skill); assert.ok(web.list.some((n) => n.trait && n.trait.name === st.trait), st.trait); }
-    // Hearts are linked in a ring, and at least one bridge leaves every class.
-    assert.ok(web.nodes.get('heart.warrior').links.includes('heart.rogue'));
-    assert.ok(web.nodes.get('heart.warrior').links.includes('heart.necromancer'));
+    assert.deepStrictEqual(web.webs.sort(), ['mage', 'necromancer', 'rogue', 'warrior']);
+    assert.ok(web.list.filter((n) => n.skill).length >= 70, 'skills');
+    // Every skill a class starts with or a branch grants is in its own class's web.
+    for (const [cls, def] of Object.entries(data.basePlayerClasses)) for (const s of def.startingSkills) assert.ok(web.list.some((n) => n.skill === s && n.region === cls), s);
+    for (const [cls, tree] of Object.entries(data.evolutionPaths)) for (const b of Object.values(tree.branches))
+        for (const st of b.stages) {
+            if (st.skill) assert.ok(web.list.some((n) => n.skill === st.skill && n.region === cls), st.skill);
+            assert.ok(web.list.some((n) => n.trait && n.trait.name === st.trait && n.region === cls), st.trait);
+        }
+    // Hearts no longer touch each other; every link between webs runs through a gateway, and each class has gateways out.
+    assert.ok(!web.nodes.get('heart.warrior').links.some((id) => id.startsWith('heart.')));
+    for (const n of web.list) for (const to of n.links) {
+        const t = web.nodes.get(to);
+        if (t.region !== n.region) assert.ok(n.kind === 'gateway' || t.kind === 'gateway', `${n.id} - ${to}`);
+    }
+    for (const c of web.webs) assert.ok(web.list.filter((n) => n.kind === 'gateway' && n.region === c).length >= 3, c);
 });
 
-test('Skill Web: validation reports a broken link, an unknown skill and an island', () => {
+test('Skill Web: validation reports a broken link, an unknown skill, an island and a link that skips the gateways', () => {
     const bad = (patch) => SkillWeb.validateSkillWeb({ ...data, skillWeb: { ...data.skillWeb, ...patch } });
-    assert.match(bad({ bridges: [['heart.warrior', 'nowhere']] })[0], /missing node/);
+    assert.match(bad({ gateways: [{ id: 'g', from: 'heart.warrior', to: 'nowhere' }] })[0], /missing node/);
     assert.ok(bad({ extraNodes: [{ id: 'x', kind: 'active', region: 'warrior', skill: 'Not A Skill', links: ['heart.warrior'] }] }).some((p) => /not in skillDefinitions/.test(p)));
     assert.ok(bad({ extraNodes: [{ id: 'island', kind: 'active', region: 'warrior', skill: 'War Cry', links: [] }] }).some((p) => /island: not linked/.test(p)));
+    assert.ok(bad({ extraNodes: [{ id: 'sneak', kind: 'active', region: 'warrior', skill: 'War Cry', links: ['heart.warrior', 'heart.rogue'] }] }).some((p) => /sneak: links straight into the rogue web/.test(p)));
+    assert.ok(bad({ gateways: [{ id: 'g', from: 'heart.warrior', to: 'warrior.slash' }] }).some((p) => /another class's web/.test(p)));
 });
 
 test('Skill Web: a new character owns its heart and starting skills for free and earns one point per level', () => {
     const g = newGame().do('warrior');
     const view = g.getSkillWeb();
     assert.deepStrictEqual(view.nodes.filter((n) => n.owned).map((n) => n.id).sort(), ['heart.warrior', 'warrior.guard', 'warrior.power_strike', 'warrior.slash']);
+    assert.deepStrictEqual(view.webs.map((w) => [w.classId, w.home, w.entered]),
+        [['warrior', true, true], ['mage', false, false], ['rogue', false, false], ['necromancer', false, false]]);
     assert.strictEqual(view.points, 0);
     levelTo(g, 2);
     assert.strictEqual(g.getSkillWeb().points, 1);
     assert.strictEqual(node(g, 'warrior.war_cry').state, 'available');
-    assert.strictEqual(node(g, 'heart.rogue').state, 'available');           // the ring: a neighbouring class opens
+    assert.strictEqual(node(g, 'heart.rogue').reason.code, 'NOT_CONNECTED');   // another class's web: only through a gateway
     assert.strictEqual(node(g, 'vanguard.1.skill').reason.code, 'LEVEL_TOO_LOW');
     assert.strictEqual(node(g, 'rogue.backstab').reason.code, 'NOT_CONNECTED');
 });
@@ -76,51 +87,50 @@ test('Skill Web: the existing evolutions still come out the same for every class
     assert.ok(g.hasTrait('All DoTs become true dmg, ignore resistances.'));
 });
 
-test('Skill Web: a warrior can cross into the necromancer web and use its skills, paid from its own pool', () => {
-    const g = newGame().do('warrior');
-    levelTo(g, 3);
-    g.mode = 'explore'; g.pendingBranchChoice = false;
-    let r = g.act({ type: 'learn_node', nodeId: 'Grave Bolt' });
-    assert.strictEqual(r.error.code, 'NOT_CONNECTED');
-    r = g.act({ type: 'learn_node', nodeId: 'heart.necromancer' });
-    assert.ok(r.ok, JSON.stringify(r.error));
-    r = g.act({ type: 'learn_node', nodeId: 'raise skeleton' });    // by name, any case
-    assert.ok(r.ok, JSON.stringify(r.error));
-    assert.ok(g.player.skills.includes('Raise Skeleton'));
-    assert.strictEqual(g.getSkillWeb().points, 0);
-    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Grave Bolt' }).error.code, 'NO_WEB_POINTS');
-    // The new skill sits on the skill bar.
-    assert.ok(g.skillBarView().some((s) => s.skillId === 'Raise Skeleton'));
-    // And it works in a fight, paid in Momentum.
-    g.do('engage');
-    assert.strictEqual(g.mode, 'combat');
-    g.player.resource.current = 5;
-    const opt = g.getAvailableActions().actions.find((a) => a.skillId === 'Raise Skeleton');
-    assert.ok(opt.enabled, JSON.stringify(opt.reason));
-    assert.strictEqual(opt.resource, 'Momentum');
-    g.act({ type: 'skill', skillId: 'Raise Skeleton' });
-    assert.ok(g.combat.minions.length >= 1);
-    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Grave Bolt' }).error.code, 'IN_COMBAT');
-    assertHealthy(g);
-});
-
-test('Skill Web: a cross-class specialization takes that branch\'s title and resource, and you can switch back', () => {
+test('Skill Web: a warrior crosses a gateway into the rogue web, uses its skills from its own pool, and can walk as a Duelist', () => {
     const g = newGame().do('warrior', 'add_xp 250', 'berserker');
     assert.strictEqual(g.player.resource.type, 'Fury Gauge');
-    levelTo(g, 5);
+    levelTo(g, 5);                                              // the guide learns Whirlwind (Ravager)
     g.do('guide off');
-    levelTo(g, 7);                                              // two free points
-    // Fury Gauge -> through the Hemorrhage bridge into Plaguecaller: Contagion, then Virulent Touch.
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Contagion' }).ok);
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Virulent Touch' }).ok);
+    levelTo(g, 10);                                             // five free points
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Flurry' }).error.code, 'NOT_CONNECTED');
+    let r = g.act({ type: 'learn_node', nodeId: 'gate.blade_frenzy' });
+    assert.ok(r.ok, JSON.stringify(r.error));
+    assert.strictEqual(g.getSkillWeb().points, 3);              // a gateway costs 2
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'flurry' }).ok);   // by name, any case
+    assert.ok(g.getSkillWeb().webs.find((w) => w.classId === 'rogue').entered);
+    // Inside the rogue web its nodes link as usual: back down the Duelist path.
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Riposte deals +50% dmg' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Riposte' }).ok);
     assert.strictEqual(g.progression.branch, 'berserker');    // learning does not change who you are
-    assert.deepStrictEqual(g.getSkillWeb().specializations.map((s) => s.branchId).sort(), ['berserker', 'plaguecaller']);
-    assert.ok(g.act({ type: 'set_specialization', branchId: 'plaguecaller' }).ok);
-    assert.strictEqual(g.progression.evolutionName, 'Plaguecaller');
-    assert.strictEqual(g.player.resource.type, 'Soul Energy');
+    assert.deepStrictEqual(g.getSkillWeb().specializations.map((x) => x.branchId).sort(), ['berserker', 'duelist']);
+    assert.ok(g.act({ type: 'set_specialization', branchId: 'duelist' }).ok);
+    assert.strictEqual(g.progression.evolutionName, 'Duelist');
+    assert.strictEqual(g.player.resource.type, 'Combo Points');
     assert.ok(g.act({ type: 'set_specialization', branchId: 'Berserker' }).ok);
     assert.strictEqual(g.player.resource.type, 'Fury Gauge');
     assert.strictEqual(g.act({ type: 'set_specialization', branchId: 'soulbinder' }).error.code, 'SPEC_LOCKED');
+    // The borrowed skill sits on the skill bar and works in a fight, paid from the warrior's pool.
+    assert.ok(g.skillBarView().some((x) => x.skillId === 'Flurry'));
+    g.do('engage');
+    assert.strictEqual(g.mode, 'combat');
+    g.player.resource.current = 5;
+    const opt = g.getAvailableActions().actions.find((a) => a.skillId === 'Flurry');
+    assert.ok(opt.enabled, JSON.stringify(opt.reason));
+    assert.strictEqual(opt.resource, 'Fury Gauge');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Backstab' }).error.code, 'IN_COMBAT');
+    assertHealthy(g);
+});
+
+test('Skill Web: a gateway only opens from its own web; the other class cannot use it backwards', () => {
+    const g = newGame().do('rogue', 'add_xp 250', 'duelist');
+    levelTo(g, 8);
+    g.do('guide off');
+    levelTo(g, 10);
+    assert.ok(node(g, 'duelist.2.skill').owned);               // Flurry: the far end of the warrior's Blade Frenzy gateway
+    assert.strictEqual(node(g, 'gate.blade_frenzy').reason.code, 'NOT_CONNECTED');
+    assert.strictEqual(node(g, 'berserker.2.skill').reason.code, 'NOT_CONNECTED');
+    assert.strictEqual(node(g, 'gate.tempo').reason.code, 'NOT_CONNECTED');       // the mage's gateway into the rogue web
 });
 
 test('Skill Web: unlearning refunds a point, never cuts the web, and never takes your class kit', () => {
@@ -175,5 +185,5 @@ test('Skill Web: text commands show the web and learn by name', () => {
 
 test('Skill Web: the Hollow King stands outside the web', () => {
     const g = newGame().do('warrior', 'add_xp 250', 'warden', 'become_hollow_king');
-    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'heart.rogue' }).error.code, 'WEB_UNAVAILABLE');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'warrior.war_cry' }).error.code, 'WEB_UNAVAILABLE');
 });
