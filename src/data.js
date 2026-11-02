@@ -1127,6 +1127,10 @@
                     // Guardian's Resolve: once, when phase 2 opens. 6 s of 20% less damage from every source (summons and
                     // DoTs too), slower steps and slower wind-ups; then a short window where any hit staggers him.
                     resolve: { atPhase: 2, ms: 6000, damageTaken: 0.8, speedMult: 0.6, windupMult: 1.4, vulnerableMs: 2500, staggerMs: 1500 },
+                    // Crow's Illusion (Tokelo, 2026-11-02): once at 30% he bursts into crows and steps out as one of 5 identical
+                    // Wardens. The 4 false ones have 2 HP and hit as hard as he does (same stats and skills); they swing only
+                    // (no crows) and scatter after `ms` or when he falls.
+                    illusion: { atHpPct: 0.3, count: 4, hp: 2, ms: 20000, attackGapMs: 2400, ringPx: 90, revealMs: 700, attacks: ['halberd_sweep', 'reaping_thrust'] },
                     crowStorms: [
                         { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.22 }, { kind: 'column', fx: 0.5, w: 0.14 }] },
                         { name: 'Ring', zones: [{ kind: 'ring', r: 0.13, count: 10, size: 0.045 }] },

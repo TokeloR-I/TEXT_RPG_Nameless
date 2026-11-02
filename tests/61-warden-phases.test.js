@@ -235,3 +235,54 @@ test('Below 25% Murder of Crows and Marked Prey come faster and more often', () 
         assert.ok(p3[n].windupMs < p2[n].windupMs, `${n} wind-up ${p2[n].windupMs} -> ${p3[n].windupMs}`);
     }
 });
+
+test("Crow's Illusion: at 30% four identical false Wardens appear; they have 2 HP, hit as hard as him, give nothing, and go when he falls", () => {
+    const r = fight('warrior', 80);
+    setHpPct(r, 0.35);
+    assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf).length, 0, 'none above 30%');
+    setHpPct(r, 0.29);
+    const fakes = r.sim.actors.filter((a) => a.illusionOf === r.w);
+    assert.strictEqual(fakes.length, 4);
+    const real = r.e();
+    const clones = r.g.combat.enemies.filter((e) => e.illusion);
+    assert.strictEqual(clones.length, 4);
+    for (const c of clones) {
+        assert.strictEqual(c.hp, 2);
+        assert.strictEqual(c.name, real.name, 'same name in the log');
+        assert.deepStrictEqual([c.atk, c.def, c.critChance, c.skills.map((s) => s.name)], [real.atk, real.def, real.critChance, real.skills.map((s) => s.name)], 'same damage as the real one');
+    }
+    // in the view they look the same: same key, boss bar with his HP
+    const view = r.sim.view().actors.filter((a) => a.key === 'crow_touched_warden' && a.state !== 'dead');
+    assert.strictEqual(view.length, 5);
+    for (const v of view) assert.deepStrictEqual([v.boss, v.hp, v.maxHp], [true, real.hp, real.maxHp]);
+    // the real one stands on one of 5 separate spots
+    const pts = [r.w, ...fakes];
+    for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) assert.ok(Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y) > 20, 'spread out');
+    // a false one dies to a single hit and gives no XP; the real one barely notices
+    const xp0 = r.g.player.xp;
+    r.g.damage(clones[0], 50, r.g.player);
+    frames(r.sim, 2);
+    assert.ok(fakes[0].dead, 'one hit pops it');
+    assert.strictEqual(r.g.player.xp, xp0);
+    assert.strictEqual(r.g.mode, 'combat');
+    // they swing, they don't call crows
+    assert.deepStrictEqual(r.sim.attacksOf(fakes[1]).map((x) => x.name).sort(), ['halberd_sweep', 'reaping_thrust']);
+    // only once per fight
+    r.e().hp = Math.floor(r.e().maxHp * 0.5); frames(r.sim, 1); setHpPct(r, 0.28);
+    assert.strictEqual(r.g.combat.enemies.filter((e) => e.illusion).length, 4, 'no second set');
+    // he falls: the rest scatter and the fight is won
+    r.g.damage(r.e(), 99999, r.g.player);
+    r.g.checkBattleEnd();
+    frames(r.sim, 3);
+    assert.notStrictEqual(r.g.mode, 'combat', 'the fight ends with him');
+    assert.ok(r.g.isDefeated('sanctuary_warden'));
+});
+
+test("Crow's Illusion: the false Wardens scatter after their time runs out", () => {
+    const r = fight('warrior', 81);
+    setHpPct(r, 0.29);
+    assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf && !a.dead).length, 4);
+    frames(r.sim, 26 * 60);
+    assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf && !a.dead).length, 0);
+    assert.strictEqual(r.g.combat.enemies.filter((e) => e.illusion && e.hp > 0).length, 0);
+});

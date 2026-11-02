@@ -58,3 +58,24 @@ This grows his existing 2-hit combo into 3 hits. Cooldown 8 s, used from 0 to 44
   specials or Reaper's Dance can start. After it lands he also recovers for 2.2 s and then waits his usual 1.2 s
   gap, so the player gets a window to hit back.
 - Zones are fractions of the boss's `arena` rectangle, which is now the real sanctuary floor in sim pixels.
+
+## Harder phase 3 (Tokelo, 2026-11-02, second pass)
+Tokelo found the crow storms too easy.
+- **Storm chains.** A storm now comes as a chain of **2 to 3 patterns back to back** (`crow_storm.chain`). Each one is
+  the next pattern in the cycle. The first has the full 1.8 s wind-up. The ones after it have a 1.3 s wind-up, follow
+  a 350 ms gap, and carry a **crow mark on the player**. The mark follows the player and locks 450 ms before landing,
+  then dives with the storm, so the safe spot the player picks also has to be off the mark. Only after the last storm
+  does the 2.2 s recovery come, followed by a 3.5 s quiet window with no crow specials. The storm cooldown stays 12 s.
+- **Crows below 25%** (`phases[2].attackOverrides`):
+  - Murder of Crows: cooldown 15 s to 7 s, wind-up 1.3 s to 1.0 s.
+  - Marked Prey: cooldown 11 s to 5.5 s, wind-up 1.6 s to 1.2 s.
+  - Both come right after the storms in his priority list, so they mix in between storm chains.
+
+## Crow's Illusion (30%, once)
+- At 30% HP he bursts into crows and steps out as **one of 5 identical Wardens** spread on a ring around the middle of
+  the arena. Which spot is real is random.
+- The 4 false Wardens have **2 HP**. Their stats and skills are the real one's, so they **hit as hard as he does**.
+  They use only his halberd blows (no crows) and wait 2.4 s between swings. They give no XP or loot.
+- The false ones look the same in every way: same sprite, same name in the log, and the same boss bar showing his
+  HP. One hit pops a false one into crows.
+- They scatter after 20 s, or when the real Warden falls.
