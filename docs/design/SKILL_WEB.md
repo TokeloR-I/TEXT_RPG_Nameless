@@ -45,7 +45,7 @@ you have the **points**.
    passive node for its trait, gated by the stage's level and event. Ids: `<branch>.<stage>.skill` /
    `<branch>.<stage>.trait` (stage 1 to 5). A stage that only upgrades an earlier skill (Soul Chain, Flurry,
    Fireball…) is one passive node.
-3. `extraNodes`: existing skills no path granted (War Cry, Second Wind, Ice Lance, Shield of the Dead,
+3. `extraNodes`: existing skills no path granted (War Cry, Smoke Bomb, Ice Lance, Shield of the Dead,
    Corpse Bloom, Plague Wind).
 4. `gateways`: `{ id, from, to, name, why }`, three out of each class web.
 
@@ -62,12 +62,12 @@ Today: **4 class webs + 2 legendary webs, 152 nodes** (6 hearts, 73 active, 61 p
 | Class web | Gateway | Hangs from | Leads to |
 |---|---|---|---|
 | Warrior | Spellblade | Holy Smite (Vanguard, L8) | Lightning Arc (Mage: Elementalist) |
-| Warrior | Blade Frenzy | Whirlwind (Berserker, L5) | Flurry (Rogue: Duelist) |
-| Warrior | The Hunt | Pincushion (Warden, L3) | Marked for Death (Rogue: Assassin) |
-| Rogue | Misdirection | Shadowstep (Assassin, L3) | Mirror Image (Mage: Illusionist) |
-| Rogue | Venom | Poison Trap (Saboteur, L8) | Black Spit (Necromancer: Plaguecaller) |
-| Rogue | Owning the Ground | Caltrops (Saboteur, L3) | Lockstep (Warrior: Warden) |
-| Mage | Tempo | Haste (Chronomancer, L3) | Riposte (Rogue: Duelist) |
+| Warrior | Blade Frenzy | Whirlwind (Berserker, L5) | Blade Focus (Rogue: Duelist) |
+| Warrior | The Hunt | Pincushion (Warden, L3) | Shadow Serpent (Rogue: Assassin) |
+| Rogue | Misdirection | Shadowstep (Assassin, L5) | Mirror Image (Mage: Illusionist) |
+| Rogue | Venom | Poison Flask (Saboteur, L8) | Black Spit (Necromancer: Plaguecaller) |
+| Rogue | Owning the Ground | Explosive Caltrops (Saboteur, L5) | Lockstep (Warrior: Warden) |
+| Mage | Tempo | Haste (Chronomancer, L3) | Iaido Draw (Rogue: Duelist) |
 | Mage | Burn and Blight | Fireball leaves Burn (Elementalist, L5) | DoTs last +1 turn (Necromancer: Plaguecaller) |
 | Mage | The Stolen Mind | Confuse (Illusionist, L5) | Possession (Necromancer: Soulbinder) |
 | Necromancer | The Two Walls | Bone Wall (Bone Warden, L3) | Shield Bash (Warrior: Vanguard) |
@@ -184,3 +184,5 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 - Should cross-class skills cost more (a "foreign" multiplier), or is the gateway toll enough?
 - Should a gold or item cost apply to respec?
 - Legion of the Dead and Death's Dominion need their effects built; Reality Breaker needs its skills and event.
+
+Rogue gateways and the Second Wind node were updated by the ninja rework (Tokelo 2026-11-02, `ROGUE_NINJA_KIT.md`).
