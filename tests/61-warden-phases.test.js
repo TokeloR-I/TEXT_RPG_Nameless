@@ -11,7 +11,7 @@ const freeNear = (s, x, y) => { for (let r = 0; r < 8; r++) for (let dy = -r; dy
 const frames = (sim, n, input = {}) => { for (let i = 0; i < n; i++) sim.update(STEP, typeof input === 'function' ? input(i) : input); };
 
 /** A level 1 hero in the sanctuary, engaged with the Warden. */
-function fight(cls = 'warrior', seed = 61) {
+function fight(cls = 'warrior', seed = 61, { illusions = false } = {}) {
     const g = new GameEngine({ seed, combatMode: 'action' });
     g.start(); g.input(cls); g.enterWorld();
     const s = new WorldSession(WORLD, { engine: g });
@@ -26,6 +26,7 @@ function fight(cls = 'warrior', seed = 61) {
     frames(sim, 2);
     const w = sim.actors.find((a) => a.key === 'crow_touched_warden');
     const e = () => g.combat.enemies.find((en) => en.key === 'crow_touched_warden');
+    w.illusionUsed = !illusions;   // Crow's Illusion only in the tests about it (its false Wardens would muddle the rest)
     return { g, s, sim, w, e };
 }
 const boss = (g) => g.data.actionRules.bosses.crow_touched_warden;
@@ -237,7 +238,7 @@ test('Below 25% Murder of Crows and Marked Prey come faster and more often', () 
 });
 
 test("Crow's Illusion: at 30% four identical false Wardens appear; they have 2 HP, hit as hard as him, give nothing, and go when he falls", () => {
-    const r = fight('warrior', 80);
+    const r = fight('warrior', 80, { illusions: true });
     setHpPct(r, 0.35);
     assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf).length, 0, 'none above 30%');
     setHpPct(r, 0.29);
@@ -279,7 +280,7 @@ test("Crow's Illusion: at 30% four identical false Wardens appear; they have 2 H
 });
 
 test("Crow's Illusion: the false Wardens scatter after their time runs out", () => {
-    const r = fight('warrior', 81);
+    const r = fight('warrior', 81, { illusions: true });
     setHpPct(r, 0.29);
     assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf && !a.dead).length, 4);
     frames(r.sim, 26 * 60);
