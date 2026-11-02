@@ -943,3 +943,21 @@ body {
     .ahud-vitals, .ahud-skills, .ahud-prompt, .ahud-lock, .ahud-chip, .ahud-notice, .ahud-quest { background: #000; }
 }
 /* ===================== end ACTION HUD ===================== */
+
+/* Skill Web tab (ui/skill-web-view.js): one class web as a picture beside its list. Shape and brightness carry
+   the state, never colour alone: known is filled, learnable is ringed in the accent, out of reach is faint. */
+.sw-cols { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+.sw-figure { margin: 0; }
+.sw-figure figcaption { color: var(--c-gold); margin-bottom: var(--sp-1); }
+.sw-map { width: 100%; max-height: 40cqh; display: block; }
+.sw-link { stroke: var(--c-frame-lo); stroke-width: 1.2; }
+.sw-link-owned { stroke: var(--c-frame); stroke-width: 1.8; }
+.sw-map g { fill: var(--c-win-hi); stroke: var(--c-ink-mute); stroke-width: 1; }
+.sw-map .sw-owned { fill: var(--c-frame-hi); stroke: var(--c-gold); }
+.sw-map .sw-available { fill: var(--c-win-mid); stroke: var(--c-accent); stroke-width: 2; }
+.sw-map .sw-locked { opacity: .7; }
+.sw-map .sw-far { opacity: .3; }
+.sw-map .sw-gate.sw-owned { fill: var(--c-st-control); }
+.sw-map .sw-sel { stroke: var(--c-accent); stroke-width: 3.2; opacity: 1; }
+.sw-legend { font-size: .85em; margin: var(--sp-1) 0 0; }
+@media (max-width: 680px) { .sw-cols { grid-template-columns: minmax(0, 1fr); } }

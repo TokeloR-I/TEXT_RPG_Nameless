@@ -64,7 +64,7 @@
             if (this.player.isHollowKing) { this.say('Your form is beyond conventional evolution.', { important: true }); return; }
             if (!this.data.evolutionPaths[this.player.className]) return;
             const web = this.webState();
-            if (!this.progression.branch && !web.guide) {
+            if (!this.progression.branch && !web.guide && !web.free) {
                 if (this.player.level >= 3) this.pendingBranchChoice = true;
                 return;
             }
@@ -81,12 +81,14 @@
             this.say('Choose your path:');
             for (const key in tree.branches) this.say(`- ${pretty(key)}: ${tree.branches[key].theme}`);
             this.say('Type the name of a path (e.g., \'' + pretty(Object.keys(tree.branches)[0]) + '\').', { important: true });
-            this.say('The path guides your Skill Web points; you can still learn skills from any class in the web.');
+            this.say('- Walk freely: no path; you spend every Skill Web point yourself.');
+            this.say('A path guides your Skill Web points; you can still learn anything in your web, and beyond its gateways. Your stats keep growing as your class.');
         }
 
         /** choose_branch (level 3): the path becomes your guide and your specialization. */
         chooseBranch(input) {
             const tree = this.data.evolutionPaths[this.player.className];
+            if (/^(free|walk[ _]?freely)$/i.test(input.trim())) { this.walkFreely(); return; }
             const key = input.trim().replace(/\s+/g, '_');
             const match = Object.keys(tree.branches).find((k) => k === key || tree.branches[k].name.toLowerCase() === input.trim());
             if (!match) {
@@ -103,6 +105,19 @@
             this.progression.branch = match;
             this.progression.stageIndex = -1;
             this.refreshSpecialization();
+            if (!this.world) this.say("Type 'look' to see where you are.");
+        }
+
+        /** choose_branch 'free' (Tokelo 2026-11-02): no guide; every point is the player's to spend. Stats still grow as the class. */
+        walkFreely() {
+            const web = this.webState();
+            web.guide = null;
+            web.free = true;
+            this.pendingBranchChoice = false;
+            this.mode = 'explore';
+            this.say('You walk no single path. Your Skill Web points are yours to spend.', { important: true });
+            const left = this.webPoints();
+            this.say(`You have ${left} Skill Web point${left === 1 ? '' : 's'}. ${this.world ? 'Open the menu (Esc) and choose Skill Web.' : "Type 'web' to see where they can go."}`);
             if (!this.world) this.say("Type 'look' to see where you are.");
         }
 
