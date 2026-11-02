@@ -45,7 +45,7 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     if(!fight('tollway_ragpickers')||!fight('tollway_root_chewers'))return {...result,g,s};
     H.takeExit(s,'tollway_south');H.inspect(s,'village_tamsin');bye();
     H.inspect(s,'village_mara');say(/carry supplies/);bye();H.inspect(s,'village_tamsin');say(/Mara sent/);bye();
-    H.inspect(s,'village_captain');bye();H.travel(s,'tollway');H.inspect(s,'tollway_register');H.travel(s,'shamefield');
+    H.inspect(s,'village_captain');bye();H.travel(s,'tollway');if(!fight('tollway_strongbox_looters'))return {...result,g,s};H.inspect(s,'tollway_register');H.travel(s,'shamefield');
     H.inspect(s,'village_captain');say(/Here it is/);bye();
     if(buy) {
         H.inspect(s,'village_iona');say(/What have you got/);
@@ -54,9 +54,11 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     }
     H.travel(s,'orchard');if(!fight('orchard_cultists'))return {...result,g,s};
     H.takeExit(s,'orchard_north');if(!fight('featherwatch_ghoul'))return {...result,g,s};
+    // Level 3 (and the path choice) now arrives at the ghoul, because of Q05's strongbox looters.
+    if(g.mode==='branch_select')g.act({type:'choose_branch',branchId:Object.keys(data.evolutionPaths[cls].branches)[branch]});
     H.takeExit(s,'featherwatch_north');H.inspect(s,'sanctuary_journal');H.inspect(s,'sanctuary_warden_npc');
     result.preWardenGold=g.player.gold;
-    result.totalXp=250; // caller verifies the actual level/xp below
+    result.totalXp=290; // caller verifies the actual level/xp below
     let xp=g.player.xp,need=100;for(let level=1;level<g.player.level;level++){xp+=need;need=Math.floor(need*1.5);}result.totalXp=xp;
     if(stopBeforeBoss)return {...result,g,s};
     say(/What is behind it/);say(/I'll go/);

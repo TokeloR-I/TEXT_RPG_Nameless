@@ -42,6 +42,9 @@ test('World: the validator catches broken map data', () => {
         broken((w) => { delete w.maps.shamefield.exits.find((e) => e.requires).lockedText; }, /locked exit shamefield_north_gate needs lockedText/);
         broken((w) => { delete w.maps.shamefield.interactables.find((o) => o.kind === 'npc').npc; }, /needs an npc id/);
         broken((w) => { delete w.maps.tollway.encounters[0].gate; }, /tollway_south can't be reached|spawn from_village can't be reached/);
+        // a guarded object names an encounter on its own map and says why it can't be used yet
+        broken((w) => { w.maps.tollway.interactables.find((o) => o.guardedBy).guardedBy = 'nobody'; }, /guarded by 'nobody', which isn't an encounter on this map/);
+        broken((w) => { delete w.maps.tollway.interactables.find((o) => o.guardedBy).guardedText; }, /needs guardedText/);
         const story = require('../src/story/chapter1.js');
         assert.deepStrictEqual(validateWorld(ZONE1, data, story), [], 'every npc on a map has a story entry');
         const bad = copy(ZONE1); bad.maps.shamefield.interactables.find((o) => o.kind === 'npc').npc = 'nobody';

@@ -40,9 +40,10 @@ test('Shamefield expansion: every new villager and inspectable responds, and non
     for (const mapId of ['briarwell_cloister_court', 'village_residential_lane']) {
         s.place(mapId, 'from_village');
         for (const o of mapOf(s, mapId).interactables) {
+            if (!s.present(o)) continue;          // quest-only things (they come with their quest)
             const r = inspect(s, o.id);
             assert.ok(r && r.type !== 'none', `${o.id} responds`);
-            if (o.kind === 'npc') {
+            if (o.kind === 'npc' || o.kind === 'station') {
                 assert.strictEqual(g.getAvailableActions().awaiting, 'dialogue', `${o.id} talks`);
                 g.act({ type: 'dialogue_leave' });
             }
@@ -58,7 +59,7 @@ test('Shamefield rebuild: every quest marker in the square stands on the village
     for (const q of Object.values(story.quests)) for (const o of q.objectives || []) {
         if (!o.marker || o.marker.map !== 'shamefield') continue;
         n++;
-        assert.ok(map.interactables.some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
+        assert.ok([...map.interactables, ...(map.encounters || [])].some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
     }
     assert.ok(n >= 6);
 });

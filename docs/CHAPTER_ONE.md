@@ -21,16 +21,19 @@ Cellar → House → Grounds → Overgrown Road → Broken Tollway → Shamefiel
 | G1 Ragpicker Pair | weak goblin ×2, on the only bridge | 20 | 80 |
 | G2 Root-Chewers | bone gnawer + rust rat, in the only gap in the carts | 25 | **105 (L2)** |
 | Q04 Bread and Bell | reach Shamefield, talk to Tamsin, meet a trader | 25 | 130 |
-| Q05 The Orchard Ledger | Watch Captain, the register in the tollway wrecks, back to the Captain: the gate opens | 20 | 150 |
-| G3 Broken Oath Cultists | cult acolyte ×2, in the old causeway | 40 | 190 |
-| G4 Ritual-Scarred Ghoul | on the narrow climb | 30 | 220 |
-| Q06 The Keeper's Warning | reach the sanctuary, read the log, talk to the Warden | 30 | **250 (L3)** |
+| Q05 The Orchard Ledger | Watch Captain, beat the four looters on the strongbox in the tollway wrecks, take the register, back to the Captain: the gate opens | 20 | 150 |
+| F5 Strongbox Looters | weak goblin ×3 + rust rat, sitting on the register (Tokelo, 2026-11-02) | 40 | 190 |
+| G3 Broken Oath Cultists | cult acolyte ×2, in the old causeway | 40 | 230 |
+| G4 Ritual-Scarred Ghoul | on the narrow climb | 30 | **260 (L3)** |
+| Q06 The Keeper's Warning | reach the sanctuary, read the log, talk to the Warden | 30 | 290 |
 | B01 A Good Man Dies | the Warden (existing boss, unchanged), then the seal: Fragment One | | |
 | Q07 The Mason Who Waited | home, Orin Vale, the Builder's Ledger, repair the gate | | |
 | Q08 Ten Seals | the hook for Chapter Two | | |
 
-Optional: S01 *Shame on Shane!*, J01 *Wolf on the Road*, J02 *Herbs for Iona* (from the notice board), the old rats and wolf.
-None of them count toward the mandatory 250. `tests/32-chapter-one.test.js` traces the mainline for each base class with all optional content skipped. **This is a progression/integration test, not a fair-combat balance test:** its player has effectively unlimited HP and enemies are reduced to 1 HP before attacks. It proves XP, routing and quest triggers can complete; it does **not** prove ordinary characters can survive the required encounters, beat the Warden, or afford supplies.
+Optional: S01 *Shame on Shane!*, J01 *Wolf on the Road*, J02 *Herbs for Iona* (from the notice board), the old rats and wolf,
+and, from the Watch Captain once the register is back, L01 *Get to Know the Locals*: five Shamefield favours (SF1 *Bread and
+Beer*, the planting and crafting tutorial; SF2 *The Brown Hops*; SF3 *Pigs at Large*; SF4 *Singing at the Mill*; SF5 *Names
+for the Bell*), then report back. None of them count toward the mandatory 290. `tests/32-chapter-one.test.js` traces the mainline for each base class with all optional content skipped. **This is a progression/integration test, not a fair-combat balance test:** its player has effectively unlimited HP and enemies are reduced to 1 HP before attacks. It proves XP, routing and quest triggers can complete; it does **not** prove ordinary characters can survive the required encounters, beat the Warden, or afford supplies.
 
 ## Where things live
 
@@ -54,7 +57,7 @@ None of them count toward the mandatory 250. `tests/32-chapter-one.test.js` trac
 - **"Suffer!"** Shane's `farewell` plays on every normal goodbye: a choice that ends the talk, `dialogue_leave`, Esc in
   the world, `bye` in the text game. It never plays on an interruption (`end: 'interrupt'`).
 - **No reveal.** No line, journal entry or tooltip says the player was the old ruler. Fragment One is partial and faceless.
-- **Required fights hold the only way on** (`gate: true`), so the route can't skip XP the guarantee depends on. The first branch is unlocked at **250 cumulative XP (100 for L2 + 150 for L3)** and must become selectable before the Warden. The route guarantee assumes each required fight is won; escape or a death is not an alternate XP source.
+- **Required fights hold the only way on** (`gate: true`), so the route can't skip XP the guarantee depends on. The first branch is unlocked at **250 cumulative XP (100 for L2 + 150 for L3)** and must become selectable before the Warden (since the strongbox looters, that happens at the Featherwatch ghoul). The route guarantee assumes each required fight is won; escape or a death is not an alternate XP source.
 - **The Warden doesn't end the game on the world route.** The text dungeon's win screen is unchanged.
 
 ## Current boundaries and QA ownership

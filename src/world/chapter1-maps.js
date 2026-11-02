@@ -4,11 +4,14 @@
  * Pure data, merged into the Zone 1 world by src/world/zone1.js. Same format as zone1.js, plus:
  *   interactables kind 'npc'  { id, kind: 'npc', npc: '<story npc id>', x, y, name, sprite, when? }
  *                             E talks; the conversation lives in src/story/chapter1.js
+ *                 kind 'station' { id, kind: 'station', station: '<story npc id>', verb?, ... }: a place you use
+ *                             (the watermill, a garden bed); E opens its choices like a talk, with no face
+ *   guardedBy (any object) an encounter id on the same map: until it's beaten, E only shows `guardedText`
  *   when      (any placed thing) a story condition: present only while it holds
  *   requires  (exits) a story condition; until it holds the way is shut and `lockedText` says why
  * Story conditions: { flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' } }.
  * Every required fight stands in a one-tile gap, so the route can't skip it (XP guarantee:
- * 135 quest XP + 115 enemy XP = 250 before the Warden; tests/29-chapter-one.test.js traces it).
+ * 135 quest XP + 115 gate XP + 40 for Q05's strongbox looters = 290 before the Warden; tests/32-chapter-one.test.js).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -86,7 +89,12 @@
                 { id: 'tollway_ragpickers', gate: true, x: 9, y: 9, name: 'Ragpicker Pair', enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', sprite: 'goblins',
                     text: 'Two thin goblins squat on the bridge, picking through a dead traveller\'s pack. They look more hungry than cruel. They won\'t let you pass, though. Walk into them to fight, or come back later.' },
                 { id: 'tollway_root_chewers', gate: true, x: 9, y: 13, name: 'Root-Chewers', enemies: ['bone_gnawer', 'rust_rat'], trigger: 'contact', sprite: 'gnawer',
-                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels.' }
+                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels.' },
+                // Q05 (Tokelo, 2026-11-02): the register is guarded. Four looters sit on the strongbox, and the box
+                // won't open (guardedBy) until they are beaten, so the player has to fight for it.
+                { id: 'tollway_strongbox_looters', x: 15, y: 16, name: 'Strongbox Looters', enemies: ['weak_goblin', 'weak_goblin', 'weak_goblin', 'rust_rat'], trigger: 'contact', sprite: 'goblins',
+                    when: { quests: { Q05: 'active' } },
+                    text: 'Three goblins have dragged a strongbox out from under the wreck and are taking turns hitting the lock with a rock. A rust-furred rat sits on the lid like it owns it. They have not noticed you. They will.' }
             ],
             interactables: [
                 { id: 'tollway_elian', kind: 'npc', npc: 'elian', x: 12, y: 6, name: 'Elian', sprite: 'traveller', when: { notFlags: ['elian_in_village'] } },
@@ -97,6 +105,8 @@
                 { id: 'tollway_booth', kind: 'inspect', x: 4, y: 3, name: 'Toll booth',
                     text: 'The toll booth\'s shutter hangs open. A ledger shelf inside is empty except for a ring of dust where a book once sat.' },
                 { id: 'tollway_register', kind: 'inspect', x: 16, y: 16, name: 'Strongbox', sprite: 'strongbox', when: { quests: { Q05: 'active' } },
+                    guardedBy: 'tollway_strongbox_looters',
+                    guardedText: 'The looters are crowded round the strongbox. You won\'t get the lid open with them on top of it.',
                     text: 'A strongbox wedged under a broken axle, its lock smashed and its coins long gone. Nobody wanted the heavy book inside: the tollway register.' },
                 { id: 'tollway_cart', kind: 'inspect', x: 4, y: 12, name: 'Wrecked cart',
                     text: 'The cart was pushed over on purpose and chained to the others: a barricade, once. Whatever it was meant to keep out got in anyway.' }
@@ -135,7 +145,7 @@
                 'WW,,Ykkkkkhhhhhh,,:b:,,,,,GGGGGc',
                 '~~~,,kkkkkhhhhhh,,:::NN,,,GGGGGc',
                 '~~~,,kkkkk+++++l++++l+++++GGGGGc',
-                '~~~,,kkkkk+C++++b++++++mmm+sss,c',
+                '~~~,,,,,,,+C++++b++++++mmm+sss,c',
                 '~~~,qqqq+x+++++++++++++mmml+::::',
                 '~~~,qqqqY+++++++++++++++++++::::',
                 '~~~,qqqq++++++++QQQQ++++++++,hhh',
@@ -154,7 +164,7 @@
             ],
             // Warm light from the windows and the church glass (the torches light themselves).
             lights: [
-                { x: 12, y: 6, radius: 1.3, color: 'rgba(255, 170, 80, 0.22)' }, { x: 7, y: 8, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 12, y: 6, radius: 1.3, color: 'rgba(255, 170, 80, 0.22)' }, { x: 7, y: 7, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 6, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.22)' }, { x: 11, y: 18, radius: 1.3, color: 'rgba(255, 170, 80, 0.22)' },
                 { x: 8, y: 21, radius: 1.1, color: 'rgba(255, 170, 80, 0.2)' }, { x: 22, y: 21, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 30, y: 15, radius: 1.1, color: 'rgba(255, 170, 80, 0.2)' }, { x: 28, y: 5, radius: 1.8, color: 'rgba(255, 80, 50, 0.22)' }
@@ -196,14 +206,39 @@
                 { id: 'village_cloister_sign', kind: 'inspect', x: 30, y: 10, name: 'Signpost',
                     text: 'East, uphill: BRIARWELL CLOISTER. Someone has added in chalk: AND BEER.' },
                 { id: 'village_memorial', kind: 'inspect', x: 28, y: 13, name: 'Memorial stone',
-                    text: 'FOR THOSE TAKEN UNDER THE OLD CROWN. Fresh flowers. No names: the list was too long to carve.' }
+                    text: 'FOR THOSE TAKEN UNDER THE OLD CROWN. Fresh flowers. No names: the list was too long to carve.' },
+                // Get to know the locals (Tokelo, 2026-11-02): the corners of the village nothing used before.
+                // The mill falls (west bank, reached by the lane behind the slate house):
+                { id: 'village_mill_bottles', kind: 'inspect', x: 2, y: 4, name: 'Empty bottles', sprite: 'bottle',
+                    text: 'A heap of empty bottles in the spray of the falls, every one stamped BRIARWELL PALE. Somebody drank here, often, and alone.' },
+                { id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, name: 'Watermill', verb: 'Use' },
+                { id: 'village_wild_hops', kind: 'pickup', x: 3, y: 11, item: 'Wild Hops', name: 'Wild hops', sprite: 'bundle', when: { quests: { SF1: 'active' } },
+                    text: 'Wild hops climb the old mill-race fence, green and sticky and nothing like Fenric\'s brown ones.' },
+                // The rye field behind the square:
+                { id: 'village_rye', kind: 'pickup', x: 22, y: 17, item: 'Rye Sheaf', name: 'Rye sheaves', sprite: 'bundle', when: { quests: { SF1: 'active' } },
+                    text: 'Cut rye leans against the field fence in sheaves, waiting for someone with the patience to take it to the mill.' },
+                // The church:
+                { id: 'village_church_door', kind: 'station', station: 'church_door', x: 28, y: 7, name: 'Church door', verb: 'Inspect' },
+                // Greta's runaway pigs (SF3): only out while she's missing them.
+                { id: 'stray_pig_bridge', kind: 'inspect', x: 6, y: 16, name: 'Pig', sprite: 'pig', when: { quests: { SF3: 'active' }, notFlags: ['pig_bridge_home'] },
+                    text: 'A muddy pig is rooting by the plank bridge. It looks at you as if you owe it money.' },
+                { id: 'stray_pig_houses', kind: 'inspect', x: 12, y: 20, name: 'Pig', sprite: 'pig', when: { quests: { SF3: 'active' }, notFlags: ['pig_houses_home'] },
+                    text: 'A pig has found somebody\'s cabbages behind the south houses, and is making the most of it.' },
+                { id: 'stray_pig_church', kind: 'inspect', x: 25, y: 4, name: 'Bishop', sprite: 'pig', when: { quests: { SF3: 'active' }, notFlags: ['pig_church_home'] },
+                    text: 'An enormous pig sits by the church wall with the dignity of a bishop. This must be Bishop.' }
+            ],
+            encounters: [
+                // Singing at the Mill (SF4): Old Hob and his drinking partner, under the falls, once you've heard them.
+                { id: 'mill_shade', x: 6, y: 4, name: 'Singing Shades', enemies: ['drunken_shade', 'drunken_shade'], trigger: 'contact', sprite: 'shade',
+                    when: { quests: { SF4: 'active' }, flags: ['sf4_heard'] },
+                    text: 'Two pale shapes sway in the spray of the falls, arm in arm, singing a festival song with most of the words wrong. One of them wears a miller\'s apron.' }
             ]
         },
 
         // -----------------------------------------------------------------
         // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md, Vaelis): the cloister
-        // courtyard and a residential lane. Flavour and inspection only: no new quest gates, no shops yet
-        // (bread, beer and pork stock wait for Rook's real item definitions).
+        // courtyard and a residential lane. No quest gates and no shops; since 2026-11-02 the "get to know the
+        // locals" side quests (L01, SF1-SF5) use them: Fenric, Merrow, the garden bed, Oda's oven, Greta's pigs.
         briarwell_cloister_court: {
             zoneId: 'shamefield_vale',
             name: 'Briarwell Cloister',
@@ -244,7 +279,15 @@
                 { id: 'cloister_bell', kind: 'inspect', x: 11, y: 3, name: 'Cloister bell',
                     text: 'Its rope is worn smooth. It rings for dawn, for meals, and once, a year ago, for an hour without stopping.' },
                 { id: 'cloister_hops', kind: 'inspect', x: 18, y: 8, name: 'Hop trellis',
-                    text: 'Green cones hang in rows, sticky and bitter-smelling. A few leaves at the end have gone brown at the edges.' }
+                    text: 'Green cones hang in rows, sticky and bitter-smelling. A few leaves at the end have gone brown at the edges.' },
+                // Bread and Beer (SF1): the bed Sister Merrow lends you. Planting, tending and harvesting happen here.
+                { id: 'cloister_garden_bed', kind: 'station', station: 'briarwell_bed', x: 6, y: 10, name: 'Garden bed', sprite: 'garden_bed', verb: 'Tend' }
+            ],
+            encounters: [
+                // The Brown Hops (SF2): what's been eating Fenric's roots and Merrow's sacks.
+                { id: 'cloister_rat_nest', x: 20, y: 13, name: 'Granary Rats', enemies: ['rust_rat', 'rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
+                    when: { quests: { SF2: 'active' }, flags: ['sf2_tracks'] },
+                    text: 'Under the south wall, three fat rust-red rats sit on a nest of shredded sacking and hop roots. They do not look sorry.' }
             ]
         },
 

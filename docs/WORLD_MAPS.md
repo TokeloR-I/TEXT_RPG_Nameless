@@ -99,9 +99,16 @@ People, story gates and required fights (Chapter One, `src/world/chapter1-maps.j
   requires: { flags: ['north_gate_open'] }, lockedText: 'The orchard gate is chained shut...' }
 // a required fight that holds the only way on: mark it `gate: true` (the validator then lets it block)
 { id: 'tollway_ragpickers', gate: true, x: 9, y: 9, enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', ... }
+// something its enemies sit on: until the encounter is beaten, E only shows guardedText (no story event, no pickup)
+{ id: 'tollway_register', kind: 'inspect', ..., guardedBy: 'tollway_strongbox_looters', guardedText: 'The looters are crowded round...' }
+// a place you use, not a person: E opens its choices like a talk (the story data has a faceless "npc" for it)
+{ id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, name: 'Watermill', verb: 'Use' }
 ```
-Conditions: `{ flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' }, items: [...], any: [...] }`.
-Arriving on a map, inspecting, talking, picking up and winning a map fight are story events the quests listen for.
+Conditions: `{ flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' }, items: [...], built: [...], plots: { id: 'empty' | 'growing' | 'ready' }, any: [...] }`.
+Arriving on a map, inspecting, talking, picking up and winning a map fight are story events the quests listen for,
+and so are the homestead rules: `plant` (seed), `tend` (plot), `harvest` (crop), `craft` (recipe id) and `build`.
+A quest objective `{ type: 'quests', ids: [...], count: n }` completes once n of those quests are complete
+(Get to Know the Locals counts the five Shamefield favours this way).
 New tiles: `_` bridge, `+` cobble, `m` stall, `N` notice board, `A` fruit tree, `Z` seal door, `k` cage, `M` memorial, `w` wagon, `C` cart.
 
 ## What the validator checks
@@ -114,7 +121,8 @@ New tiles: `_` bridge, `+` cobble, `m` stall, `N` notice board, `A` fruit tree, 
 - From every spawn you can reach every other spawn, every exit and every object.
 - Exits point at real maps and spawns, `step` exits are walkable, and `interact` exits have a prompt.
 - Transitions are reversible and symmetrical.
-- Objects have known kinds and text, and pickup items exist. NPCs name a story npc that exists (when story data is passed).
+- Objects have known kinds and text, and pickup items exist. NPCs and stations name a story npc that exists (when story data is passed).
+- A guarded object (`guardedBy`) names an encounter on its own map and has `guardedText`.
 - Locked exits (`requires`) say why (`lockedText`). Only an encounter marked `gate: true` may block the way to anything.
 - Encounters use real enemies with `trigger: 'contact'`, aren't the test dummy and aren't next to a spawn.
 - Boundaries are reachable.

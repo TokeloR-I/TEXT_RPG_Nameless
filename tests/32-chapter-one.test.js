@@ -1,5 +1,5 @@
 // Chapter One end to end through the real world model + engine (CH1-01..03): the mainline route, the
-// 250-XP-before-the-Warden guarantee for every class with ALL optional content skipped, the Warden's
+// 290-XP-before-the-Warden guarantee for every class with ALL optional content skipped, the Warden's
 // tragedy beats, the key and memory, Orin, Shane's quest and his exact "Suffer!" goodbye, no duplicate
 // rewards. Fights are won by forcing enemy HP to 1: this checks story and XP accounting, not balance
 // (class survival per encounter is Tally's QA, docs/design/ENSO_CH1_ENCOUNTERS_XP_AND_BALANCE.md).
@@ -66,7 +66,12 @@ function mainline(ctx) {
     const shut = walkTo(s, gate.x, gate.y + 1) && s.move('up');
     assert.deepStrictEqual([shut.type, s.mapId], ['locked', 'shamefield'], 'the orchard gate is shut until Q05');
     talk(s, 'village_captain'); bye(g);
-    travel(s, 'tollway'); inspect(s, 'tollway_register');
+    travel(s, 'tollway');
+    const guarded = inspect(s, 'tollway_register');
+    assert.strictEqual(guarded.guarded, 'tollway_strongbox_looters', 'the looters sit on the strongbox');
+    assert.ok(!g.player.inventory.includes('Tollway Register'), 'no register while they guard it');
+    fight(g, s, 'tollway_strongbox_looters');
+    inspect(s, 'tollway_register');
     assert.ok(g.player.inventory.includes('Tollway Register'));
     travel(s, 'shamefield');
     talk(s, 'village_captain'); say(g, /Here it is/); bye(g);
@@ -76,6 +81,10 @@ function mainline(ctx) {
     fight(g, s, 'orchard_cultists');
     takeExit(s, 'orchard_north');
     fight(g, s, 'featherwatch_ghoul');
+    // With the strongbox looters (Q05), level 3 and the path choice arrive at the ghoul, still before the Warden.
+    assert.strictEqual(g.mode, 'branch_select', 'the evolution choice comes before the boss');
+    g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] });
+    assert.strictEqual(g.mode, 'explore');
     takeExit(s, 'featherwatch_north');
     inspect(s, 'sanctuary_journal');
     const warn = talk(s, 'sanctuary_warden_npc');
@@ -83,16 +92,16 @@ function mainline(ctx) {
     return total(g);
 }
 
-test('Chapter One: every class reaches level 3 with exactly 250 XP before the Warden, skipping all optional content', () => {
+test('Chapter One: every class reaches level 3 with exactly 290 XP before the Warden, skipping all optional content', () => {
     for (const cls of Object.keys(data.basePlayerClasses)) {
         const ctx = run(cls, 3);
         const xp = mainline(ctx);
-        assert.strictEqual(xp, 250, `${cls}: 135 quest + 115 enemy XP`);
+        assert.strictEqual(xp, 290, `${cls}: 135 quest + 115 gate + 40 strongbox-looter XP`);
         assert.strictEqual(ctx.g.player.level, 3, cls);
-        assert.strictEqual(ctx.g.stats.fights, 4, `${cls}: only the four required fights`);
+        assert.strictEqual(ctx.g.stats.fights, 5, `${cls}: only the five required fights`);
         assert.strictEqual(ctx.g.mode, 'explore', `${cls}: still talking to the Warden`);
         bye(ctx.g);
-        assert.strictEqual(ctx.g.mode, 'branch_select', `${cls}: the evolution choice comes before the boss`);
+        assert.strictEqual(ctx.g.mode, 'explore', `${cls}: the path was chosen at the ghoul, so the Warden's goodbye opens nothing`);
     }
 });
 
@@ -102,7 +111,6 @@ test('Chapter One: the Warden warns, can be left in peace, and only fights when 
     mainline(ctx);
     say(g, /What is behind it/);
     say(g, /I'll go/);
-    g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths.rogue.branches)[0] });
     assert.ok(!s.visibleObjects().some((o) => o.id === 'sanctuary_warden'), 'no boss fight until you choose one');
     const locked = takeExit(s, 'sanctuary_seal');
     assert.match(locked.text, /no keyhole/, 'the seal is shut');

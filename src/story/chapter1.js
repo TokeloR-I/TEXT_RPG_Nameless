@@ -18,8 +18,9 @@
  *         { say } { shop: merchantId } { construction: upgradeId }  (the last two hand over to Rook's CH1-04/05 rules)
  * TRIGGER { id, on: { type, id }, if?, effects }: fires once, the first time the event happens.
  *
- * Mainline XP before the Warden (design table): quests 15+20+25+25+20+30 = 135, required fights
- * 20+25+40+30 = 115, total 250 = level 3 (tests/29-chapter-one.test.js traces it for every class).
+ * Mainline XP before the Warden (design table): quests 15+20+25+25+20+30 = 135, required gate fights
+ * 20+25+40+30 = 115, plus the strongbox looters on Q05 (40, Tokelo 2026-11-02): total 290 = level 3
+ * (tests/32-chapter-one.test.js traces it for every class).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -73,7 +74,8 @@
             summary: 'The north orchard road is closed by the watch until someone finds the missing tollway register.',
             objectives: [
                 { id: 'captain', text: 'Ask the Watch Captain about the orchard gate', on: { type: 'talk', id: 'watch_captain' }, marker: { map: 'shamefield', x: 17, y: 4 } },
-                { id: 'register', text: 'Find the toll register in the tollway wrecks', on: { type: 'inspect', id: 'tollway_register' }, marker: { map: 'tollway', x: 16, y: 16 },
+                { id: 'looters', text: 'Defeat the looters guarding the strongbox in the tollway wrecks', on: { type: 'defeat', id: 'tollway_strongbox_looters' }, marker: { map: 'tollway', x: 15, y: 16 } },
+                { id: 'register', text: 'Take the toll register from the strongbox', on: { type: 'inspect', id: 'tollway_register' }, marker: { map: 'tollway', x: 16, y: 16 },
                     effects: [{ item: 'Tollway Register', key: 'item:tollway_register' }] },
                 { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
@@ -152,6 +154,81 @@
             ],
             onComplete: [{ removeItem: "Shane's Ledger" }, { flag: 'shane_recruited' }, { flag: 'shane_stall_unlocked' }]
         },
+        // ------------------------------------------------------------- Get to know the locals (optional; Tokelo 2026-11-02)
+        // The Watch Captain gives it when the register comes back. Five households, five favours, in the parts of
+        // Shamefield nobody had a reason to visit: the cloister garden, the mill falls, the rye field, the church,
+        // the south houses. XP and Gold here are candidates for Gauge.
+        L01: {
+            title: 'Get to Know the Locals', kind: 'side', xp: 20, candidate: true,
+            summary: "The Watch Captain says Shamefield won't trust a stranger who only passes through. Five households need a hand.",
+            objectives: [
+                { id: 'favours', text: 'Help five Shamefield households', on: { type: 'quests', ids: ['SF1', 'SF2', 'SF3', 'SF4', 'SF5'], count: 5 } },
+                { id: 'report', text: 'Tell the Watch Captain you know the locals now', on: { type: 'story', id: 'locals_reported' }, marker: { map: 'shamefield', x: 17, y: 4 } }
+            ],
+            onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }]
+        },
+        // Bread and Beer: the first real use of planting and crafting (cropDefinitions / recipeDefinitions in src/data.js).
+        SF1: {
+            title: 'Bread and Beer', kind: 'side', xp: 25, candidate: true,
+            summary: 'Oda the baker and Brother Fenric the brewer argue about grain. Oda bets that a stranger can make a good loaf and a good ale from scratch.',
+            objectives: [
+                { id: 'bed', text: 'Ask Sister Merrow for a garden bed at the cloister, and dig it', on: { type: 'build', id: 'briarwell_bed' }, marker: { map: 'briarwell_cloister_court', x: 4, y: 6 } },
+                { id: 'plant', text: 'Plant the barley seed in your garden bed', on: { type: 'plant', id: 'Barley Seed' }, marker: { map: 'briarwell_cloister_court', x: 6, y: 10 } },
+                { id: 'grow', text: 'Tend the barley until it is ripe, then harvest it', on: { type: 'harvest', id: 'Barley' }, marker: { map: 'briarwell_cloister_court', x: 6, y: 10 } },
+                { id: 'hops', text: 'Pick wild hops by the mill falls', on: { type: 'pickup', id: 'village_wild_hops' }, marker: { map: 'shamefield', x: 3, y: 11 } },
+                { id: 'brew', text: 'Brew a cask of Briarwell Pale with Brother Fenric', on: { type: 'craft', id: 'brew_briarwell_pale' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } },
+                { id: 'rye', text: 'Cut a sheaf of rye from the field behind the square', on: { type: 'pickup', id: 'village_rye' }, marker: { map: 'shamefield', x: 22, y: 17 } },
+                { id: 'mill', text: 'Grind the rye at the old watermill', on: { type: 'craft', id: 'mill_rye_flour' }, marker: { map: 'shamefield', x: 4, y: 10 } },
+                { id: 'bake', text: "Bake a rye loaf in Oda's oven", on: { type: 'craft', id: 'bake_rye_loaf' }, marker: { map: 'village_residential_lane', x: 3, y: 4 } },
+                { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } },
+                { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 3, y: 4 } }
+            ],
+            onComplete: [{ flag: 'bread_and_beer' }]
+        },
+        SF2: {
+            title: 'The Brown Hops', kind: 'side', xp: 15, candidate: true,
+            summary: "Brother Fenric's hops are browning at the end of the row. He blames the water, the soil, and his enemies, in that order.",
+            objectives: [
+                { id: 'roots', text: 'Look closely at the sick hops', on: { type: 'inspect', id: 'cloister_hops' }, marker: { map: 'briarwell_cloister_court', x: 18, y: 8 },
+                    effects: [{ say: 'You kneel and part the leaves. The roots are gnawed half through, and caught on the stems are tufts of rust-red fur.' }] },
+                { id: 'granary', text: "Look for the same tracks in Sister Merrow's granary", on: { type: 'inspect', id: 'cloister_granary' }, marker: { map: 'briarwell_cloister_court', x: 2, y: 4 },
+                    effects: [{ say: 'Behind the red-cord sacks: more rust-red fur, a gnawed hole, and a trail of spilled barley running along the wall to the south lawn.' }, { flag: 'sf2_tracks' }] },
+                { id: 'nest', text: 'Clear out the rat nest on the south lawn', on: { type: 'defeat', id: 'cloister_rat_nest' }, marker: { map: 'briarwell_cloister_court', x: 20, y: 13 } },
+                { id: 'tell', text: 'Tell Brother Fenric what was eating his hops', on: { type: 'story', id: 'fenric_rats' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } }
+            ],
+            onComplete: []
+        },
+        SF3: {
+            title: 'Pigs at Large', kind: 'side', xp: 10, candidate: true,
+            summary: "Three of Greta Rusk's pigs went over the fence in the night. Greta has crusts. The pigs have opinions.",
+            objectives: [
+                { id: 'bridge', text: 'Find the pig by the plank bridge', on: { type: 'inspect', id: 'stray_pig_bridge' }, marker: { map: 'shamefield', x: 6, y: 16 } },
+                { id: 'houses', text: 'Find the pig by the south houses', on: { type: 'inspect', id: 'stray_pig_houses' }, marker: { map: 'shamefield', x: 12, y: 20 } },
+                { id: 'church', text: 'Find Bishop, the big one, up by the church', on: { type: 'inspect', id: 'stray_pig_church' }, marker: { map: 'shamefield', x: 25, y: 4 } },
+                { id: 'greta', text: 'Tell Greta her pigs are on their way home', on: { type: 'story', id: 'greta_pigs' }, marker: { map: 'village_residential_lane', x: 19, y: 3 } }
+            ],
+            onComplete: []
+        },
+        SF4: {
+            title: 'Singing at the Mill', kind: 'side', xp: 15, candidate: true,
+            summary: 'Old Hob the miller drowned under the falls last winter. Now somebody sings at the mill after dark, and nobody will grind their grain there.',
+            objectives: [
+                { id: 'falls', text: 'Look around the mill falls on the west bank', on: { type: 'inspect', id: 'village_mill_bottles' }, marker: { map: 'shamefield', x: 2, y: 4 },
+                    effects: [{ say: 'Empty bottles, and muddy footprints that walk into the water and never come out. From under the falls, somebody is singing. Badly.' }, { flag: 'sf4_heard' }] },
+                { id: 'shade', text: 'Quiet whatever is singing under the falls', on: { type: 'defeat', id: 'mill_shade' }, marker: { map: 'shamefield', x: 6, y: 4 } },
+                { id: 'tamsin', text: 'Tell Tamsin the mill is quiet', on: { type: 'story', id: 'tamsin_mill' }, marker: { map: 'shamefield', x: 15, y: 12 } }
+            ],
+            onComplete: [{ flag: 'mill_reopened' }]
+        },
+        SF5: {
+            title: 'Names for the Bell', kind: 'side', xp: 10, candidate: true,
+            summary: 'Elian has written down everyone he met on the road who never arrived anywhere. He wants the names read at the festival.',
+            objectives: [
+                { id: 'door', text: "Leave Elian's letter at the church door", on: { type: 'story', id: 'letter_left' }, marker: { map: 'shamefield', x: 28, y: 7 } },
+                { id: 'elian', text: 'Tell Elian his letter is with the church', on: { type: 'story', id: 'elian_letter_done' }, marker: { map: 'shamefield', x: 20, y: 9 } }
+            ],
+            onComplete: []
+        },
         // ------------------------------------------------------------- Notice board jobs (optional)
         J01: {
             title: 'Wolf on the Road', kind: 'job', xp: 10, candidate: true,
@@ -211,7 +288,23 @@
                 },
                 village: {
                     lines: [['npc', "You made it! I told Tamsin a stranger was coming up the road. She'll want to see you. She's by the notice board, most days."]],
-                    choices: [{ text: 'Tell me about the heroes again.', to: 'heroes_v' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: 'The Captain says you keep looking at the church.', if: { quests: { SF5: 'available' } }, to: 'sf5_start' },
+                        { text: 'Your letter is at the church.', if: { quests: { SF5: 'active' }, flags: ['elian_letter_left'] }, effects: [{ event: { type: 'story', id: 'elian_letter_done' } }], to: 'sf5_done' },
+                        { text: 'Tell me about the heroes again.', to: 'heroes_v' }, { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sf5_start: {
+                    lines: [
+                        ['npc', "Does it show? I've been writing down the people I met on the road who never arrived anywhere. Names, and where I saw them last."],
+                        ['npc', "The festival is for the heroes, and that's right. But someone should read these too. Would you leave it at the church door? I keep getting as far as the steps."]
+                    ],
+                    effects: [{ start: 'SF5' }, { item: "Elian's Letter", key: 'item:elian_letter' }],
+                    choices: [{ text: "I'll take it up for you.", end: true }]
+                },
+                sf5_done: {
+                    lines: [['npc', "Thank you. It's foolish, I know. They won't hear it. But I will, and so will everyone who knew them. That's not nothing."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 heroes_v: {
                     lines: [['npc', "The sun banner, the broken crown. A year of peace. Well, a year of fewer funerals. Ask anyone here; they'll tell it better."]],
@@ -252,10 +345,26 @@
                 },
                 after: {
                     lines: [['npc', "The orchard gate's open, I hear. Be careful up there. The Warden is a kind man, but he won't let anyone past the roost."]],
-                    choices: [{ text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
+                        { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
+                        { text: 'Goodbye.', end: true }]
                 },
                 mourning: {
                     lines: [['npc', "The crows came down to the village this morning. All of them, silent, on every roof. Then they flew off north and didn't come back. Something's happened to the Warden. He mended my grandson's arm once, you know. Wouldn't take a coin."]],
+                    choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
+                        { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
+                        { text: 'Goodbye.', end: true }]
+                },
+                sf4_start: {
+                    lines: [
+                        ['npc', "Since you ask. Old Hob the miller drowned under the falls last winter, the night of the festival. Now there's singing at the mill after dark, and nobody will take their grain there."],
+                        ['npc', "I don't believe in ghosts. I'd still like someone with a sword to go and not believe in them for me. The mill's on the west bank, behind the slate houses."]
+                    ],
+                    effects: [{ start: 'SF4' }],
+                    choices: [{ text: "I'll go and listen.", end: true }]
+                },
+                sf4_done: {
+                    lines: [['npc', "Hob always did sing louder than he drank, and he drank a great deal. Thank you. I'll tell the families the mill is safe. Some of them will even believe me."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
@@ -313,6 +422,10 @@
                 { if: { flags: ['shane_watch_resolved'], notFlags: ['captain_told_shane'] }, node: 'suspicious' },
                 { if: { quests: { Q05: 'active' }, flags: ['register_carried'] }, node: 'register' },
                 { if: { quests: { Q05: 'active' } }, node: 'gate' },
+                // Get to know the locals (L01). A run that returned the register before this quest existed gets it here.
+                { if: { quests: { Q05: 'complete', L01: 'unseen' } }, node: 'locals_offer' },
+                { if: { quests: { L01: 'active', SF1: 'complete', SF2: 'complete', SF3: 'complete', SF4: 'complete', SF5: 'complete' } }, node: 'locals_done' },
+                { if: { quests: { L01: 'active' } }, node: 'locals_hint' },
                 { if: { flags: ['shane_watch_resolved'] }, node: 'suspicious' },
                 { node: 'default' }
             ],
@@ -329,7 +442,42 @@
                     choices: [{ text: 'Here it is.', effects: [{ removeItem: 'Tollway Register' }, { unflag: 'register_carried' }, { event: { type: 'story', id: 'register_returned' } }], to: 'opened' }]
                 },
                 opened: {
-                    lines: [['npc', "...Every name's here. Good. The gate's open. Keep to the path, and if the Warden tells you to turn back, turn back."]],
+                    lines: [
+                        ['npc', "...Every name's here. Good. The gate's open. Keep to the path, and if the Warden tells you to turn back, turn back."],
+                        ['npc', "One more thing. You've done the watch a favour, but Shamefield doesn't know you, and folk here don't trust a stranger who only passes through."],
+                        ['npc', "Five households have troubles I can't spare a constable for. Help them. Get to know the locals. Then come and tell me about it."]
+                    ],
+                    effects: [{ start: 'L01' }, { available: 'SF1' }, { available: 'SF2' }, { available: 'SF3' }, { available: 'SF4' }, { available: 'SF5' }],
+                    choices: [{ text: 'Who needs help?', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
+                },
+                locals_offer: {
+                    lines: [
+                        ['npc', "You again. You did the watch a favour with that register, but Shamefield still doesn't know you, and folk here don't trust a stranger who only passes through."],
+                        ['npc', "Five households have troubles I can't spare a constable for. Help them. Get to know the locals. Then come and tell me about it."]
+                    ],
+                    effects: [{ start: 'L01' }, { available: 'SF1' }, { available: 'SF2' }, { available: 'SF3' }, { available: 'SF4' }, { available: 'SF5' }],
+                    choices: [{ text: 'Who needs help?', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
+                },
+                locals_who: {
+                    lines: [
+                        ['npc', "Oda the baker and Brother Fenric up at the cloister are fighting about bread and beer again. Fenric's hops are dying, too, and he's blaming everyone."],
+                        ['npc', "Greta Rusk has lost her pigs. Tamsin says there's singing at the old mill after dark. And your friend Elian keeps looking at the church steps and not climbing them."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                locals_hint: {
+                    lines: [['npc', "Still settling in? Bread and beer, Fenric's hops, Greta's pigs, the singing at the mill, and Elian. Five households. I'm counting."]],
+                    choices: [{ text: 'Remind me who needs help.', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
+                },
+                locals_done: {
+                    lines: [
+                        ['npc', "Oda brought me bread. Fenric brought me beer, and stayed to complain about the bread. Greta sent a sausage, which I'm choosing to take as thanks."],
+                        ['npc', "The mill's grinding again, and Elian's names are on the church door. People are saying your name in the square, and not to shame you. That's rarer than you'd think, here."]
+                    ],
+                    choices: [{ text: 'I know the locals now.', effects: [{ event: { type: 'story', id: 'locals_reported' } }], to: 'locals_thanks' }]
+                },
+                locals_thanks: {
+                    lines: [['npc', "Then you're one of them, as far as the watch is concerned. Mind you don't make me regret it."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 suspicious: {
@@ -501,7 +649,25 @@
             nodes: {
                 hello: {
                     lines: [['npc', "Mind the casks. Every one of them is younger than it thinks it is. Brother Fenric. I make the Briarwell Pale, and I argue with the baker."]],
-                    choices: [{ text: 'What do you argue about?', to: 'bread' }, { text: 'The hops look sick at the end of the row.', to: 'hops' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: 'Brew a cask of Briarwell Pale (2 Barley, 1 Wild Hops)', say: "I've brought barley and hops. Shall we brew?", if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'brew_briarwell_pale' }] },
+                        { text: 'Oda baked you this.', if: { quests: { SF1: 'active' }, items: ['Shamefield Rye Loaf'] }, effects: [{ removeItem: 'Shamefield Rye Loaf' }, { event: { type: 'story', id: 'fenric_loaf' } }], to: 'sf1_loaf' },
+                        { text: "It was rats, nesting under the south wall. They're gone.", if: { quests: { SF2: 'active' }, flags: ['sf2_nest_cleared'] }, effects: [{ event: { type: 'story', id: 'fenric_rats' } }], to: 'sf2_done' },
+                        { text: 'What do you argue about?', to: 'bread' }, { text: 'The hops look sick at the end of the row.', to: 'hops' }, { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sf1_loaf: {
+                    lines: [[null, 'Fenric breaks the loaf, smells it, and chews for a long time.'], ['npc', "...It's good. It's very good. Don't you dare tell her I said so. Tell her it was adequate."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                sf2_start: {
+                    lines: [['npc', "Would you? I've stared at those leaves until I'm cross-eyed. Look at the roots, not the leaves. You've younger knees than I have."]],
+                    effects: [{ start: 'SF2' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                sf2_done: {
+                    lines: [['npc', "Rats. Not the water, not the soil, not the baker. Rats. I'll apologise to Oda. Eventually. Sister Merrow will be unbearable about it."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 bread: {
                     lines: [['npc', 'Oda says I soak good grain in a bucket and call it holy. I say bread is only beer that gave up too soon. The village says: bread for the living, a barrel for the winter. We are both right, which is unbearable.']],
@@ -509,7 +675,7 @@
                 },
                 hops: {
                     lines: [['npc', "You noticed? Brown at the edges. It's the water, or the soil, or someone who wants me to fail. Sister Merrow says it's my temper. I'll find out."]],
-                    choices: [{ text: 'Goodbye.', end: true }]
+                    choices: [{ text: "I'll find out what's eating them.", if: { quests: { SF2: 'available' } }, to: 'sf2_start' }, { text: 'Goodbye.', end: true }]
                 }
             }
         },
@@ -519,7 +685,18 @@
             nodes: {
                 hello: {
                     lines: [['npc', 'Barley to the brewery, rye to the ovens, and the red-cord sacks to nobody. Sister Merrow. I keep the granary, which mostly means I keep saying no.']],
-                    choices: [{ text: 'Who are the red-cord sacks for?', to: 'reserve' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: 'Oda says you might lend me a garden bed.', if: { quests: { SF1: 'active' } }, to: 'sf1_bed' },
+                        { text: 'Who are the red-cord sacks for?', to: 'reserve' }, { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sf1_bed: {
+                    lines: [
+                        ['npc', "For Oda's bet? Of course it is. Everything in this cloister is a bet between those two. Very well: the bed by the west wall is yours while you need it. Dig it yourself."],
+                        ['npc', 'And take this: a twist of seed barley. Plant it, water it, weed it, and it will grow faster than you would believe. The spring here is good for that.']
+                    ],
+                    effects: [{ construction: 'briarwell_bed' }, { item: 'Barley Seed', key: 'item:barley_seed' }],
+                    choices: [{ text: 'Thank you, Sister.', end: true }]
                 },
                 reserve: {
                     lines: [['npc', 'For the year the harvest fails. There is always such a year. Brother Fenric would brew them, Oda would bake them, and I would rather everyone were still alive in spring.']],
@@ -533,7 +710,25 @@
             nodes: {
                 hello: {
                     lines: [['npc', "Don't touch, it's hot. Everything here is hot. Oda. If you hear a loaf crack from the square, that's mine."]],
-                    choices: [{ text: 'It smells wonderful.', to: 'crust' }, { text: 'What about the brewer?', to: 'brewer' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: 'The Captain says you and Fenric are at it again.', if: { quests: { SF1: 'available' } }, to: 'sf1_start' },
+                        { text: 'Bake a rye loaf (1 Rye Flour, 1 Sourdough Starter)', say: 'May I use your oven?', if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'bake_rye_loaf' }] },
+                        { text: 'Fenric brewed you this.', if: { quests: { SF1: 'active' }, items: ['Briarwell Pale'] }, effects: [{ removeItem: 'Briarwell Pale' }, { event: { type: 'story', id: 'oda_ale' } }], to: 'sf1_ale' },
+                        { text: 'It smells wonderful.', to: 'crust' }, { text: 'What about the brewer?', to: 'brewer' }, { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sf1_start: {
+                    lines: [
+                        ['npc', "At it? We're having a disagreement of principle. Fenric says nobody can make a good loaf and a good ale from the same patch of ground. I say a stranger could, before his barley's even dry."],
+                        ['npc', "So. Here's my starter: don't drop it. Ask Sister Merrow at the cloister for a bed to grow barley in. Fenric's own hops are sick, but wild ones climb the fence down by the mill falls."],
+                        ['npc', "Rye's in the field behind the square, and the old watermill still turns, if you don't mind grinding it yourself. Bake a loaf in my oven, brew a cask in his, and then we'll see who's right."]
+                    ],
+                    effects: [{ start: 'SF1' }, { item: 'Sourdough Starter', key: 'item:sourdough_starter' }],
+                    choices: [{ text: "You're on.", end: true }]
+                },
+                sf1_ale: {
+                    lines: [[null, 'Oda sniffs the cask, pours a cup, and drinks it all without stopping.'], ['npc', "Hm. Tell him it was drinkable. No. Tell him it was good. No. Tell him nothing, I'll tell him myself. Thank you, stranger. Bread and beer. We were both right, which is unbearable."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crust: {
                     lines: [['npc', "Dark rye, sourdough, beech fire. The city bakes white bread so soft you could sleep on it. Here, a crust has to survive a week on the road. I'd sell you one, but the cloister hasn't milled this week's flour yet."]],
@@ -551,11 +746,75 @@
             nodes: {
                 hello: {
                     lines: [['npc', "Greta Rusk. Hams, sausage, smoked shoulder. If it was a pig, I've an opinion on it."]],
-                    choices: [{ text: 'Business is good?', to: 'salt' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: 'The Captain says you have lost some pigs.', if: { quests: { SF3: 'available' } }, to: 'sf3_start' },
+                        { text: 'Your pigs are on their way home.', if: { quests: { SF3: 'active' }, flags: ['pig_bridge_home', 'pig_houses_home', 'pig_church_home'] }, effects: [{ event: { type: 'story', id: 'greta_pigs' } }], to: 'sf3_done' },
+                        { text: 'Business is good?', to: 'salt' }, { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sf3_start: {
+                    lines: [
+                        ['npc', "Lost? They're not lost. They know exactly where they are. Three of them went over the fence in the night."],
+                        ['npc', "One was seen rooting by the plank bridge, one is eating somebody's cabbages by the south houses, and Bishop, the big one, is up by the church, because of course he is. Tell them Greta has crusts. They'll come home."]
+                    ],
+                    effects: [{ start: 'SF3' }],
+                    choices: [{ text: "I'll round them up.", end: true }]
+                },
+                sf3_done: {
+                    lines: [[null, 'Three muddy pigs are already back in the pen, looking pleased with themselves.'], ['npc', "There they are. Not a word of apology between them. Here, you've earned the good sausage. Don't tell the Captain; he thinks he gets the good sausage."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 salt: {
                     lines: [['npc', "Good as the salt road. No salt, no smoking, no winter stores. The carts have come late all season. Bragg says it's the road. I say it's somebody on the road."]],
                     choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+
+        // ------------------------------------------------------------- Stations (world objects of kind 'station')
+        // Places, not people: their choices run the homestead rules (plant / tend / harvest / craft) and story events.
+        briarwell_bed: {
+            name: 'Garden bed', title: 'Briarwell Cloister',
+            talk: [{ if: { built: ['briarwell_bed'] }, node: 'bed' }, { node: 'unturned' }],
+            nodes: {
+                unturned: {
+                    lines: [[null, 'A strip of earth by the west wall, full of stones and old roots. Sister Merrow decides who digs here.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                bed: {
+                    lines: [[null, 'Your bed in the cloister garden: dark earth, turned and weeded. The spring water runs past it in a little stone channel.']],
+                    choices: [
+                        { text: 'Plant the Barley Seed', if: { items: ['Barley Seed'], plots: { briarwell_bed: 'empty' } }, stay: true, effects: [{ plant: { plot: 'briarwell_bed', seed: 'Barley Seed' } }] },
+                        { text: 'Water and weed the barley', if: { plots: { briarwell_bed: 'growing' } }, stay: true, effects: [{ tend: 'briarwell_bed' }] },
+                        { text: 'Harvest the barley', if: { plots: { briarwell_bed: 'ready' } }, stay: true, effects: [{ harvest: 'briarwell_bed' }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                }
+            }
+        },
+        watermill: {
+            name: 'The old watermill', title: 'Shamefield',
+            talk: [{ node: 'mill' }],
+            nodes: {
+                mill: {
+                    lines: [[null, 'The wheel still turns in the race, and the millstones grind whatever is poured into the hopper. Nobody has swept the floor since Old Hob.']],
+                    choices: [
+                        { text: 'Grind the rye into flour (1 Rye Sheaf)', if: { items: ['Rye Sheaf'] }, stay: true, effects: [{ craft: 'mill_rye_flour' }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                }
+            }
+        },
+        church_door: {
+            name: 'Church door', title: 'Shamefield',
+            talk: [{ node: 'door' }],
+            nodes: {
+                door: {
+                    lines: [[null, 'A heavy oak door under a stone arch, shut. Beside it, a slotted box with a painted sign: FOR THE PRIEST. NAMES, PRAYERS, COMPLAINTS.']],
+                    choices: [
+                        { text: "Leave Elian's letter in the box", if: { items: ["Elian's Letter"] }, effects: [{ removeItem: "Elian's Letter" }, { flag: 'elian_letter_left' }, { event: { type: 'story', id: 'letter_left' } }, { say: 'The letter drops into the box with a soft knock. Somewhere inside, the bell rope stirs in a draught.' }], end: true },
+                        { text: 'Leave it.', end: true }
+                    ]
                 }
             }
         },
@@ -630,6 +889,12 @@
         { id: 'notice_board', on: { type: 'inspect', id: 'village_notice_board' }, effects: [{ start: 'J01' }, { start: 'J02' }] },
         { id: 'anchor_shamefield', on: { type: 'inspect', id: 'village_well' }, effects: [{ flag: 'anchor:shamefield' }] },
         { id: 'register', on: { type: 'inspect', id: 'tollway_register' }, effects: [{ flag: 'register_carried' }] },
+        // Get to know the locals: the pigs only stand in the village while SF3 is active, so their first look is the catch.
+        { id: 'pig_bridge', on: { type: 'inspect', id: 'stray_pig_bridge' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_bridge_home' }, { say: "You mention crusts. The pig considers this, then trots off toward Baker's Lane." }] },
+        { id: 'pig_houses', on: { type: 'inspect', id: 'stray_pig_houses' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_houses_home' }, { say: 'You scratch it behind the ear. It leaves the cabbages with obvious regret and wanders home.' }] },
+        { id: 'pig_church', on: { type: 'inspect', id: 'stray_pig_church' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_church_home' }, { say: 'Bishop looks at you for a long moment, sighs like an old man, and walks slowly back down the hill.' }] },
+        { id: 'rat_nest', on: { type: 'defeat', id: 'cloister_rat_nest' }, effects: [{ flag: 'sf2_nest_cleared' }, { say: 'Under the wall, a nest of shredded barley sacks and hop roots. Nothing else will be chewing on the cloister this year.' }] },
+        { id: 'mill_shade', on: { type: 'defeat', id: 'mill_shade' }, effects: [{ flag: 'mill_quiet' }, { say: 'The singing stops in the middle of a verse. For a moment the falls sound almost like applause. Then just like water.' }] },
         // The Warden: DRAFT aftermath from the narrative foundation (Vaelis owns the final lines).
         { id: 'warden_falls', on: { type: 'defeat', id: 'sanctuary_warden' }, effects: [
             { say: "The Warden kneels. 'Easy now, little ones. There is no need to follow me.'", important: true },
