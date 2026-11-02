@@ -169,7 +169,9 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 1. ~~Skill Web screen~~ built (menu tab "Skill Web", `ui/skill-web-view.js`): the webs you can open (your
    own first; another once a gateway into it can be learned; legendary webs once open), each drawn as a picture
    beside its list of skills (learnable first, then known, then in reach with the reason), plus "Walk as" and
-   "Path". Earlier plan: one panel per class web (tabs; your own first, others shown once
+   "Path". Opening a web shows it full screen, after Tokelo's reference (2026-11-02, style only, code-drawn):
+   a radial picture with the class emblem at the centre, a wedge per path, learned links glowing, and a side
+   panel with your stats and the chosen node (arrows move, Enter learns or unlearns, Q/R switch webs). Earlier plan: one panel per class web (tabs; your own first, others shown once
    entered or as "beyond the gateway"), using `getSkillWeb()` positions (each web is centred on its heart,
    gateways sit at the rim), learn/unlearn, specialization switch, guide toggle, and a "walk freely" choice
    at level 3.

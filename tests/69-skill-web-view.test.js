@@ -46,3 +46,53 @@ test('Skill Web view: the picture draws only that web, with the selected node ri
     assert.match(SW.summary(view), /walking as Plaguecaller · a path guides your points/);
     assert.deepStrictEqual(SW.sealedLegends(view).map((x) => x.name), ['Deathlord Eternal', 'Reality Breaker']);
 });
+
+test('Skill Web screen: the radial scene keeps one web, links each pair once and gives every branch a wedge', () => {
+    const g = newGame().do('warrior', 'add_xp 250', 'free');
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'berserker.1.skill' }).ok);
+    const view = g.getSkillWeb();
+    const sc = SW.scene(view, 'warrior', { berserker: 'Berserker' });
+    assert.ok(sc.nodes.length > 20 && sc.nodes.every((n) => n.region === 'warrior'));
+    const keys = sc.links.map((l) => [l.a, l.b].sort().join('|'));
+    assert.strictEqual(new Set(keys).size, keys.length);
+    assert.deepStrictEqual(sc.sectors.map((s) => s.branch).sort(), ['berserker', 'vanguard', 'warden']);
+    assert.strictEqual(sc.sectors.find((s) => s.branch === 'berserker').name, 'Berserker');
+    assert.ok(sc.links.some((l) => l.owned) && sc.links.some((l) => l.open));
+    const html = SW.screenSvg(sc, 'heart.warrior', { title: 'Warrior web' });
+    assert.strictEqual((html.match(/class="swx-wedge/g) || []).length, 3);
+    assert.match(html, /swx-emblem/);
+    assert.ok(!/region="rogue"|data-node="rogue\./.test(html));
+});
+
+test('Skill Web screen: arrows travel to a node in that direction, and a fresh screen opens on something learnable', () => {
+    const g = newGame().do('warrior', 'add_xp 250', 'free');
+    const view = g.getSkillWeb();
+    const sc = SW.scene(view, 'warrior');
+    const start = SW.startNode(sc);
+    assert.strictEqual(view.nodes.find((n) => n.id === start).state, 'available');
+    const from = sc.nodes.find((n) => n.id === start);
+    for (const dir of ['up', 'down', 'left', 'right']) {
+        const to = SW.nearest(sc, start, dir);
+        if (!to) continue;
+        const t = sc.nodes.find((n) => n.id === to);
+        const d = { up: from.py - t.py, down: t.py - from.py, left: from.px - t.px, right: t.px - from.px }[dir];
+        assert.ok(d > 0, `${dir} moved the wrong way`);
+    }
+});
+
+test('Skill Web screen: the node card offers exactly what act() allows', () => {
+    const g = newGame().do('warrior', 'add_xp 250', 'free');
+    for (const id of g.getSkillWeb().nodes.filter((n) => n.region === 'warrior').map((n) => n.id)) {
+        const card = SW.nodeCard(g.getSkillWeb(), id, (name) => g.describeSkill ? g.describeSkill(name) : null);
+        if (card.action === 'learn') {
+            const r = g.act({ type: 'learn_node', nodeId: id });
+            assert.ok(r.ok, `${id}: card said learn`);
+            assert.strictEqual(SW.nodeCard(g.getSkillWeb(), id).action, 'unlearn');
+            assert.ok(g.act({ type: 'unlearn_node', nodeId: id }).ok);
+        } else if (card.action === null) {
+            assert.ok(!g.act({ type: 'learn_node', nodeId: id }).ok, `${id}: card offered nothing but act() learned it`);
+        }
+    }
+    const fixed = SW.nodeCard(g.getSkillWeb(), 'heart.warrior');
+    assert.strictEqual(fixed.action, null);
+});

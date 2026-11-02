@@ -135,18 +135,19 @@
                 if (n.kind === 'gateway') continue;
                 if (!n.branch) {   // between the branches, two rings deep if there are many
                     const k = base.indexOf(n);
-                    put(n, k < nb ? 0.22 : 0.36, (-90 + (k % nb) * (360 / nb)) * deg + (k < nb ? 0 : 14 * deg));
+                    put(n, k < nb ? 0.27 : 0.4, (-90 + (k % nb) * (360 / nb)) * deg + (k < nb ? 0 : 16 * deg));
                     continue;
                 }
                 const a = branchAngle(branchIds.indexOf(n.branch));
                 if (n.stage == null) {   // extra skills hang beside their branch
                     const k = list.filter((m) => m.branch === n.branch && m.stage == null && m.kind !== 'gateway').indexOf(n);
-                    put(n, 0.55 + k * 0.15, a - 22 * deg);
+                    put(n, 0.62 + k * 0.16, a - 26 * deg);
                     continue;
                 }
-                put(n, 0.3 + n.stage * 0.15 + (n.kind === 'passive' ? 0.075 : 0), a + (n.kind === 'passive' ? 9 * deg : 0));
+                const zig = (n.stage % 2 ? 1 : -1) * (n.kind === 'passive' ? -1 : 1) * (14 - n.stage * 1.5) * deg;   // skill and trait swap sides each stage: a web, not a line
+                put(n, 0.4 + n.stage * 0.145 + (n.kind === 'passive' ? 0.07 : 0), a + zig);
             }
-            for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, Math.min(1.05, Math.hypot(f.x, f.y) + 0.2), Math.atan2(f.y, f.x) + 20 * deg); }
+            for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, Math.min(1.08, Math.hypot(f.x, f.y) + 0.2), Math.atan2(f.y, f.x) + 22 * deg); }
         });
     }
 

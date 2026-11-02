@@ -659,7 +659,7 @@
         focusTabs();
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -769,10 +769,95 @@
             return items;
         }
         const items = SW.webs(view).map((w) => ({ label: `${w.kind === 'legendary' ? '★ ' : ''}${w.name} web${w.learnable ? ` (${w.learnable} to learn)` : ''}`, sub: w.why, webId: w.webId,
-            action: () => { mm.web = { webId: w.webId }; stay(0); } }));
+            action: () => openWebScreen(w.webId) }));
         if (view.specializations.length) items.push({ label: `Walk as: ${view.specialization ? view.specialization.name : 'none'}`, sub: 'Choose which of your specializations you walk as.', action: () => { mm.web = { sub: 'spec' }; stay(0); } });
         items.push({ label: `Path: ${view.guide ? (DATA.evolutionPaths[engine.getState().player.className].branches[view.guide] || { name: view.guide }).name : 'walking freely'}`, sub: 'A path learns its skills for you as you level.', action: () => { mm.web = { sub: 'guide' }; stay(0); } });
         return items;
+    }
+    // The full Skill Web screen (Tokelo's reference, 2026-11-02): the web as a radial picture around its emblem,
+    // a wedge per branch, learned paths glowing; your attributes and the chosen node on the right.
+    // Arrows travel between nodes, Enter learns or unlearns, [ ] or Q / R switch webs, Esc goes back to the menu.
+    function openWebScreen(webId) {
+        const view = engine.getSkillWeb();
+        if (!view) return;
+        const ids = SW.webs(view).map((w) => w.webId);
+        const id = ids.includes(webId) ? webId : ids[0];
+        mm.webScreen = { webId: id, sel: SW.startNode(SW.scene(view, id)), note: '' };
+        renderWebScreen();
+    }
+    function closeWebScreen() {
+        const webId = mm.webScreen && mm.webScreen.webId;
+        mm.webScreen = null;
+        mm.note = '';
+        enterList('web', Math.max(0, SW.webs(engine.getSkillWeb()).findIndex((w) => w.webId === webId)));
+    }
+    function webBranchNames() {
+        const out = {};
+        for (const tree of Object.values(DATA.evolutionPaths)) for (const [k, b] of Object.entries(tree.branches)) out[k] = b.name;
+        return out;
+    }
+    function switchWeb(step) {
+        const ids = SW.webs(engine.getSkillWeb()).map((w) => w.webId);
+        if (ids.length < 2) return;
+        const i = ids.indexOf(mm.webScreen.webId);
+        mm.webScreen = { webId: ids[(i + step + ids.length) % ids.length], sel: null, note: '' };
+        mm.webScreen.sel = SW.startNode(SW.scene(engine.getSkillWeb(), mm.webScreen.webId));
+        renderWebScreen();
+    }
+    function webAct() {
+        const card = SW.nodeCard(engine.getSkillWeb(), mm.webScreen.sel, (n) => engine.describeSkill(n));
+        if (!card || !card.action) return;
+        mm.webScreen.note = actLines({ type: card.action === 'learn' ? 'learn_node' : 'unlearn_node', nodeId: card.id });
+        renderWebScreen();
+    }
+    function webKey(ev, dir) {
+        if (ev.repeat && !dir) return;
+        if (dir) {
+            const sc = SW.scene(engine.getSkillWeb(), mm.webScreen.webId);
+            const next = SW.nearest(sc, mm.webScreen.sel, dir);
+            if (next) { mm.webScreen.sel = next; mm.webScreen.note = ''; renderWebScreen(); }
+            return;
+        }
+        if (ev.key === '[' || ev.key === 'q' || ev.key === 'Q' || ev.key === 'PageUp') { switchWeb(-1); return; }
+        if (ev.key === ']' || ev.key === 'r' || ev.key === 'R' || ev.key === 'PageDown') { switchWeb(1); return; }
+        if (isAct(ev)) { webAct(); return; }
+        if (ev.key === 'Escape' || ev.key === 'Backspace') closeWebScreen();
+    }
+    function renderWebScreen() {
+        const view = engine.getSkillWeb();
+        const ws = mm.webScreen;
+        const p = engine.getState().player;
+        const all = SW.webs(view);
+        const w = all.find((x) => x.webId === ws.webId) || all[0];
+        const sc = SW.scene(view, ws.webId, webBranchNames());
+        const card = SW.nodeCard(view, ws.sel, (n) => engine.describeSkill(n));
+        const cls = (DATA.basePlayerClasses[p.className] || {}).name || p.className;
+        const stat = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+        els.pause.className = 'panel swx-screen win';
+        els.pause.innerHTML = `
+            <header class="swx-head">
+                <span class="swx-points"><b>${view.points}</b> point${view.points === 1 ? '' : 's'} to spend<small>${view.earned} earned</small></span>
+                <span class="swx-title">${all.length > 1 ? '<button class="swx-arrow" data-step="-1" aria-label="Previous web">‹</button>' : ''}<h2>${esc(w ? `${w.name} web` : 'Skill Web')}</h2>${all.length > 1 ? '<button class="swx-arrow" data-step="1" aria-label="Next web">›</button>' : ''}</span>
+                <span class="swx-webs">${all.map((x) => `<i class="${x.webId === ws.webId ? 'on' : ''}" title="${esc(x.name)}"></i>`).join('')}</span>
+            </header>
+            <div class="swx-body">
+                <div class="swx-stage">${SW.screenSvg(sc, ws.sel, { title: w ? `${w.name} web` : '' })}</div>
+                <aside class="swx-side">
+                    <section><h3>${esc(p.name)}</h3><p class="mm-dim">Lv ${p.level} ${esc(cls)}${view.specialization ? ` · ${esc(view.specialization.name)}` : ''}</p>
+                        <dl class="swx-stats">${stat('HP', p.maxHp)}${stat(esc(p.resource.type), p.resource.max)}${stat('STR', p.strength)}${stat('INT', p.intelligence)}${stat('AGI', p.agility)}${stat('DEF', p.def)}${stat('Crit', `${Math.round(p.critChance * 100)}%`)}</dl>
+                        <p class="mm-dim swx-small">Stats grow with your class, whatever you learn.</p></section>
+                    <section class="swx-card">${card ? `<h3>${esc(card.title)}</h3><p class="swx-kind">${esc(card.kind)}</p>${card.lines.map((l) => `<p>${esc(l)}</p>`).join('')}
+                        <p class="swx-state">${esc(card.state)}</p>${card.action ? `<button class="swx-do">${esc(card.actionText)}</button>` : ''}` : '<p class="mm-dim">Choose a node.</p>'}</section>
+                    ${ws.note ? `<p class="note">${esc(ws.note)}</p>` : ''}
+                </aside>
+            </div>
+            <footer class="mm-foot"><p class="keys"><kbd>←↑↓→</kbd> move <kbd>Enter</kbd> learn / unlearn${all.length > 1 ? ' <kbd>Q</kbd> <kbd>R</kbd> other webs' : ''} <kbd>Esc</kbd> back</p></footer>`;
+        els.pause.hidden = false;
+        els.pause.querySelectorAll('.swx-node').forEach((g) => g.addEventListener('click', () => {
+            if (mm.webScreen.sel === g.dataset.node) webAct(); else { mm.webScreen.sel = g.dataset.node; mm.webScreen.note = ''; renderWebScreen(); }
+        }));
+        els.pause.querySelectorAll('.swx-arrow').forEach((b) => b.addEventListener('click', () => switchWeb(+b.dataset.step)));
+        const doBtn = els.pause.querySelector('.swx-do'); if (doBtn) doBtn.addEventListener('click', webAct);
     }
     function skillWebPage(inList, list) {
         const view = engine.getSkillWeb();
@@ -1812,6 +1897,7 @@
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
+            if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
             if (modal === 'pause' && menu && (dir === 'left' || dir === 'right') && !ev.repeat && mainMenuSideways(dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
             if (menu) menuKey(menu, ev, dir);
