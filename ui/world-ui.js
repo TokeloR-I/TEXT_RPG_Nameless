@@ -1567,6 +1567,11 @@
             case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
             case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice('The Warden changes his stance!', 'quest'); break;
+            case 'resolve': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 20, damageType: 'holy', shake: 2 }, now); break;
+            case 'resolve_end': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true', shake: 1 }, now); break;
+            case 'crow_mark': notice(ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!', 'quest'); break;
+            case 'crow_dive': afx.spawn('hit', { x: ev.x, y: ev.y - 4, damageType: 'shadow', shake: 1 }, now); break;
+            case 'crow_storm': afx.spawn('aoe', { x: P.x, y: P.y, radius: 6, damageType: 'shadow', shake: 3 }, now); break;
             case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
             case 'notice': toast(ev.text); break;
             default: break;
@@ -1665,6 +1670,7 @@
                 g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
             }
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
+            for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
         });
         // Over the bodies: the player's swing, projectiles, sparks and numbers.
         renderer.addHook('foreground', (g, ctx) => {
@@ -1676,6 +1682,7 @@
                 AFX.swing(g, { x: Math.round(p.x), y: Math.round(p.y), angle: p.angle, arc: ((s.arcDeg || 100) * Math.PI) / 180, reach: s.reach || s.radius || 20, progress: p.attack.progress, cls: engine.player.className });
             }
             for (const pj of v.projectiles) AFX.projectile(g, { x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, now: ctx.time });
+            for (const a of v.actors) if (a.mark) AFX.crowMark(g, a.mark.x, a.mark.y, { locked: a.mark.locked, now: ctx.time });   // Marked Prey
             afx.draw(g, ctx.time);
         });
     }
