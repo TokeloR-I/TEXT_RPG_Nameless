@@ -18,8 +18,9 @@
  *         { say } { shop: merchantId } { construction: upgradeId }  (the last two hand over to Rook's CH1-04/05 rules)
  * TRIGGER { id, on: { type, id }, if?, effects }: fires once, the first time the event happens.
  *
- * Mainline XP before the Warden (design table): quests 15+20+25+25+20+30 = 135, required fights
- * 20+25+40+30 = 115, total 250 = level 3 (tests/29-chapter-one.test.js traces it for every class).
+ * Mainline XP before the Warden (design table): quests 15+20+25+25+20+30 = 135, required gate fights
+ * 20+25+40+30 = 115, plus the strongbox looters on Q05 (40, Tokelo 2026-11-02): total 290 = level 3
+ * (tests/32-chapter-one.test.js traces it for every class).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -73,7 +74,8 @@
             summary: 'The north orchard road is closed by the watch until someone finds the missing tollway register.',
             objectives: [
                 { id: 'captain', text: 'Ask the Watch Captain about the orchard gate', on: { type: 'talk', id: 'watch_captain' }, marker: { map: 'shamefield', x: 17, y: 4 } },
-                { id: 'register', text: 'Find the toll register in the tollway wrecks', on: { type: 'inspect', id: 'tollway_register' }, marker: { map: 'tollway', x: 16, y: 16 },
+                { id: 'looters', text: 'Defeat the looters guarding the strongbox in the tollway wrecks', on: { type: 'defeat', id: 'tollway_strongbox_looters' }, marker: { map: 'tollway', x: 15, y: 16 } },
+                { id: 'register', text: 'Take the toll register from the strongbox', on: { type: 'inspect', id: 'tollway_register' }, marker: { map: 'tollway', x: 16, y: 16 },
                     effects: [{ item: 'Tollway Register', key: 'item:tollway_register' }] },
                 { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],

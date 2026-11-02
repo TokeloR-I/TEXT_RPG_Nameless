@@ -8,7 +8,7 @@
  *   requires  (exits) a story condition; until it holds the way is shut and `lockedText` says why
  * Story conditions: { flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' } }.
  * Every required fight stands in a one-tile gap, so the route can't skip it (XP guarantee:
- * 135 quest XP + 115 enemy XP = 250 before the Warden; tests/29-chapter-one.test.js traces it).
+ * 135 quest XP + 115 gate XP + 40 for Q05's strongbox looters = 290 before the Warden; tests/32-chapter-one.test.js).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -86,7 +86,12 @@
                 { id: 'tollway_ragpickers', gate: true, x: 9, y: 9, name: 'Ragpicker Pair', enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', sprite: 'goblins',
                     text: 'Two thin goblins squat on the bridge, picking through a dead traveller\'s pack. They look more hungry than cruel. They won\'t let you pass, though. Walk into them to fight, or come back later.' },
                 { id: 'tollway_root_chewers', gate: true, x: 9, y: 13, name: 'Root-Chewers', enemies: ['bone_gnawer', 'rust_rat'], trigger: 'contact', sprite: 'gnawer',
-                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels.' }
+                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels.' },
+                // Q05 (Tokelo, 2026-11-02): the register is guarded. Four looters sit on the strongbox, and the box
+                // won't open (guardedBy) until they are beaten, so the player has to fight for it.
+                { id: 'tollway_strongbox_looters', x: 15, y: 16, name: 'Strongbox Looters', enemies: ['weak_goblin', 'weak_goblin', 'weak_goblin', 'rust_rat'], trigger: 'contact', sprite: 'goblins',
+                    when: { quests: { Q05: 'active' } },
+                    text: 'Three goblins have dragged a strongbox out from under the wreck and are taking turns hitting the lock with a rock. A rust-furred rat sits on the lid like it owns it. They have not noticed you. They will.' }
             ],
             interactables: [
                 { id: 'tollway_elian', kind: 'npc', npc: 'elian', x: 12, y: 6, name: 'Elian', sprite: 'traveller', when: { notFlags: ['elian_in_village'] } },
@@ -97,6 +102,8 @@
                 { id: 'tollway_booth', kind: 'inspect', x: 4, y: 3, name: 'Toll booth',
                     text: 'The toll booth\'s shutter hangs open. A ledger shelf inside is empty except for a ring of dust where a book once sat.' },
                 { id: 'tollway_register', kind: 'inspect', x: 16, y: 16, name: 'Strongbox', sprite: 'strongbox', when: { quests: { Q05: 'active' } },
+                    guardedBy: 'tollway_strongbox_looters',
+                    guardedText: 'The looters are crowded round the strongbox. You won\'t get the lid open with them on top of it.',
                     text: 'A strongbox wedged under a broken axle, its lock smashed and its coins long gone. Nobody wanted the heavy book inside: the tollway register.' },
                 { id: 'tollway_cart', kind: 'inspect', x: 4, y: 12, name: 'Wrecked cart',
                     text: 'The cart was pushed over on purpose and chained to the others: a barricade, once. Whatever it was meant to keep out got in anyway.' }

@@ -136,6 +136,8 @@
                     else if (storyData && !storyData.npcs[o.npc]) err(`${where}: npc ${o.id} uses unknown story npc '${o.npc}'`);
                     continue;
                 }
+                if (o.guardedBy && !(map.encounters || []).some((e) => e.id === o.guardedBy)) err(`${where}: object ${o.id} is guarded by '${o.guardedBy}', which isn't an encounter on this map`);
+                if (o.guardedBy && !o.guardedText) err(`${where}: guarded object ${o.id} needs guardedText (why it can't be used yet)`);
                 if (!o.text) err(`${where}: object ${o.id} has no text`);
                 if (o.kind === 'pickup' && (!o.item || (gameData && !gameData.itemDefinitions[o.item]))) err(`${where}: pickup ${o.id} has unknown item '${o.item}'`);
             }
@@ -345,11 +347,20 @@
             if (result === 'victory' && !this.engine && !this.local.defeated.includes(id)) this.local.defeated.push(id);
         }
 
+        /** The enemies still sitting on a guarded object (`guardedBy`), or null once they're beaten or gone. */
+        guardOf(obj) {
+            if (!obj || !obj.guardedBy) return null;
+            const enc = (this.map.encounters || []).find((e) => e.id === obj.guardedBy);
+            return enc && this.present(enc) ? enc : null;
+        }
+
         /** Act on whatever is in front of the player. */
         interact() {
             const [fx, fy] = this.facingTile();
             const obj = this.objectAt(fx, fy);
             if (obj && isEncounter(this.map, obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.text || 'It hasn\'t noticed you yet. Walk into it to fight.' };
+            // A guarded thing can't be used while its guards are on it: no story event, no pickup (Q05's strongbox).
+            if (this.guardOf(obj)) return { type: 'message', id: obj.id, title: obj.name || null, text: obj.guardedText, guarded: obj.guardedBy, events: [] };
             if (obj && obj.kind === 'npc') {
                 const events = this.engine ? this.engine.act({ type: 'talk', npcId: obj.npc }).events : [];
                 return { type: 'talk', id: obj.id, npc: obj.npc, title: obj.name || null, events };
