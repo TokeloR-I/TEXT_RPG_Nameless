@@ -1032,7 +1032,9 @@
                     arena: { x0: 32, y0: 64, x1: 672, y1: 448, home: { x: 368, y: 176 },   // the sanctuary floor in sim px (16 px tiles); the crow storms use it
                             leashInsideArena: false, exitResets: true, respawnAt: { x: 184, y: 232 }, reengageRadius: 80 },
                     // Gauge: hpMult 2.5 (action mode only) puts the fight at 60-90 s; action play lands far more hits than v2.
-                    hpMult: 2.5, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
+                    // Tokelo 2026-11-02 (beef up the boss, don't nerf the classes): 2.5 -> 3.2. The phase 2/3 moves alone left
+                    // the warrior at 52 s; at 3.2 he takes 65 s and mage/rogue stay in the 60-90 s band (qa/scripts/warden_benchmark.js).
+                    hpMult: 3.2, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
                     parryStaggerMs: 600, warriorParryStaggerMs: 800, attackGapMs: 1200, minWindupMs: 500,
                     alternateSpecials: true,   // a crow special or Reaper's Dance is followed by a base blow when one fits
                     guardsSeal: true, noSweepNearCagesPx: 40,
