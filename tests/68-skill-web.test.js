@@ -217,3 +217,36 @@ test('Skill Web: a legendary web (Deathlord Eternal) opens on its conditions and
     assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Reality Breaker' }).error.code, 'LEGEND_LOCKED');
     assertHealthy(g);
 });
+
+test('Skill Web: "walk freely" at level 3 leaves every point to the player and never asks again', () => {
+    const g = newGame().do('rogue', 'add_xp 250');
+    assert.strictEqual(g.mode, 'branch_select');
+    const free = g.getAvailableActions().actions.find((a) => a.branchId === 'free');
+    assert.ok(free && free.enabled && free.name === 'Walk freely');
+    g.do('walk freely');
+    assert.strictEqual(g.mode, 'explore');
+    assert.strictEqual(g.progression.branch, null);
+    assert.strictEqual(g.getSkillWeb().points, 2);
+    assert.ok(g.getSkillWeb().free);
+    levelTo(g, 5);
+    assert.strictEqual(g.mode, 'explore');                       // no second prompt
+    assert.strictEqual(g.getSkillWeb().points, 4);              // nothing spent for the player
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Shadowstep' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Caltrops' }).ok);
+    assert.strictEqual(g.progression.branch, null);              // no stage one complete yet
+});
+
+test('Skill Web: stats and growth always come from the starting class, whatever you learn or walk as', () => {
+    const plain = newGame().do('warrior', 'add_xp 250', 'berserker');
+    levelTo(plain, 10);
+    const hybrid = newGame().do('warrior', 'add_xp 250', 'berserker');
+    levelTo(hybrid, 5);
+    hybrid.do('guide off');
+    levelTo(hybrid, 10);
+    for (const id of ['gate.blade_frenzy', 'duelist.2.skill', 'duelist.1.trait', 'duelist.1.skill']) assert.ok(hybrid.act({ type: 'learn_node', nodeId: id }).ok, id);
+    assert.ok(hybrid.act({ type: 'set_specialization', branchId: 'duelist' }).ok);
+    levelTo(hybrid, 12); levelTo(plain, 12);
+    for (const k of ['maxHp', 'strength', 'intelligence', 'agility', 'def', 'critChance']) assert.strictEqual(hybrid.player[k], plain.player[k], k);
+    assert.strictEqual(hybrid.levelGrowthFor(hybrid.player), data.basePlayerClasses.warrior.levelGrowth);
+    assert.strictEqual(hybrid.player.className, 'warrior');
+});

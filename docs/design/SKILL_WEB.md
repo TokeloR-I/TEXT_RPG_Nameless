@@ -104,12 +104,21 @@ belongs to**. Your specialization sets:
 Traits work whatever your specialization is. Learning never changes your specialization by itself, except
 the first time you complete a stage one (you had none).
 
+## Your class is where you begin (Tokelo, 2026-11-02)
+
+Your starting class decides your **stats and their growth** for good: base stats, `levelGrowth` per level,
+the stat your attacks scale with and your basic attack. Nothing you learn in the webs, no gateway and no
+specialization changes them (tested). The webs change what you can *do*, not what you *are*.
+
 ## The guide (choosing a path)
 
 At level 3 the game still asks you to choose a path. The chosen path becomes your specialization and your
 **guide**: on each level-up the guide learns that branch's next nodes in order while points, level and story
 events allow (stopping at an event, exactly as evolutions did). `guide <path>` changes it, `guide off`
 turns it off. Unlearning a node on the guided path turns the guide off.
+
+**Walk freely** is the fourth choice at level 3 (`choose_branch` with `free`): no guide, no auto-learning,
+and the game never asks again. Every point is the player's to spend in the Skill Web tab.
 
 ## Legendary webs (Tokelo, 2026-11-02)
 
@@ -157,7 +166,12 @@ stays connected to your heart. Your own heart and starting skills can't be unlea
 
 ## Next increments
 
-1. **Skill Web screen** (Pixie, Hollis): one panel per class web (tabs; your own first, others shown once
+1. ~~Skill Web screen~~ built (menu tab "Skill Web", `ui/skill-web-view.js`): the webs you can open (your
+   own first; another once a gateway into it can be learned; legendary webs once open), each drawn as a picture
+   beside its list of skills (learnable first, then known, then in reach with the reason), plus "Walk as" and
+   "Path". Opening a web shows it full screen, after Tokelo's reference (2026-11-02, style only, code-drawn):
+   a radial picture with the class emblem at the centre, a wedge per path, learned links glowing, and a side
+   panel with your stats and the chosen node (arrows move, Enter learns or unlearns, Q/R switch webs). Earlier plan: one panel per class web (tabs; your own first, others shown once
    entered or as "beyond the gateway"), using `getSkillWeb()` positions (each web is centred on its heart,
    gateways sit at the rim), learn/unlearn, specialization switch, guide toggle, and a "walk freely" choice
    at level 3.

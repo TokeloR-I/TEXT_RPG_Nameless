@@ -115,28 +115,39 @@
         return { nodes, list: [...nodes.values()], webs, legendary, branches };
     }
 
-    /** Positions for a web view, in a unit circle (a node's own `pos: [x, y]` wins). */
+    /** Positions for a web view: each web is its own picture in a unit circle, centred on its heart.
+     *  Branches fan out at even angles, base skills sit between them near the heart, gateways at the rim.
+     *  A node's own `pos: [x, y]` wins. */
     function layout(nodes, webs) {
         const byRegion = {};
         for (const n of nodes.values()) (byRegion[n.region] || (byRegion[n.region] = [])).push(n);
-        webs.forEach((classId) => {   // each class web is its own picture, centred on its heart
-            const centre = -Math.PI / 2;
-            const spread = 2 * Math.PI;
-            const list = byRegion[classId] || [];
-            const branchIds = [...new Set(list.filter((n) => n.branch).map((n) => n.branch))];
-            const put = (n, r, a) => { n.x = +(r * Math.cos(a)).toFixed(3); n.y = +(r * Math.sin(a)).toFixed(3); };
-            const base = list.filter((n) => !n.branch && n.kind !== 'heart');
+        const put = (n, r, a) => { n.x = +(r * Math.cos(a)).toFixed(3); n.y = +(r * Math.sin(a)).toFixed(3); };
+        const deg = Math.PI / 180;
+        webs.forEach((webId) => {
+            const list = byRegion[webId] || [];
+            const branchIds = [...new Set(list.filter((n) => n.branch && n.kind !== 'gateway').map((n) => n.branch))];
+            const nb = Math.max(1, branchIds.length);
+            const branchAngle = (b) => (-90 + (b + 0.5) * (360 / nb)) * deg;
+            const base = list.filter((n) => !n.branch && n.kind !== 'heart' && n.kind !== 'gateway');
             for (const n of list) {
                 if (n.pos) { n.x = n.pos[0]; n.y = n.pos[1]; continue; }
                 if (n.kind === 'heart') { n.x = 0; n.y = 0; continue; }
-                if (n.kind === 'gateway') continue;   // placed below, beside the node it hangs from
-                if (!n.branch) { const k = base.indexOf(n); put(n, 0.2, centre + (k - (base.length - 1) / 2) * 0.5); continue; }
-                const b = branchIds.indexOf(n.branch);
-                const a = centre + ((b + 1) * spread) / (branchIds.length + 1);
-                if (n.stage == null) { put(n, 0.5 + 0.08 * (list.filter((m) => m.branch === n.branch && m.stage == null).indexOf(n) + 1), a + 0.09); continue; }
-                put(n, 0.3 + n.stage * 0.13 + (n.kind === 'passive' ? 0.06 : 0), a);
+                if (n.kind === 'gateway') continue;
+                if (!n.branch) {   // between the branches, two rings deep if there are many
+                    const k = base.indexOf(n);
+                    put(n, k < nb ? 0.27 : 0.4, (-90 + (k % nb) * (360 / nb)) * deg + (k < nb ? 0 : 16 * deg));
+                    continue;
+                }
+                const a = branchAngle(branchIds.indexOf(n.branch));
+                if (n.stage == null) {   // extra skills hang beside their branch
+                    const k = list.filter((m) => m.branch === n.branch && m.stage == null && m.kind !== 'gateway').indexOf(n);
+                    put(n, 0.62 + k * 0.16, a - 26 * deg);
+                    continue;
+                }
+                const zig = (n.stage % 2 ? 1 : -1) * (n.kind === 'passive' ? -1 : 1) * (14 - n.stage * 1.5) * deg;   // skill and trait swap sides each stage: a web, not a line
+                put(n, 0.4 + n.stage * 0.145 + (n.kind === 'passive' ? 0.07 : 0), a + zig);
             }
-            for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, 1.02, Math.atan2(f.y, f.x) + 0.1); }
+            for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, Math.min(1.08, Math.hypot(f.x, f.y) + 0.2), Math.atan2(f.y, f.x) + 22 * deg); }
         });
     }
 
@@ -469,12 +480,14 @@
             const s = this.webState();
             if (branchId == null || /^(off|none|free)$/i.test(String(branchId).trim())) {
                 s.guide = null;
+                s.free = true;
                 this.say('No guide: your Skill Web points wait for you to spend them.');
                 return;
             }
             const key = this.webBranchKey(branchId);
             if (!key) { this.refuse('INVALID_BRANCH', 'That is not a path in the Skill Web.'); return; }
             s.guide = key;
+            s.free = false;
             this.say(`Your guide now follows the ${this.branchDef(key).name} path.`);
             this.followWebGuide();
             this.refreshSpecialization();
@@ -516,7 +529,7 @@
             const prog = this.progression;
             return {
                 points: this.webPoints(), earned: this.webPointsEarned(),
-                guide: s.guide || null,
+                guide: s.guide || null, free: !!s.free,
                 // One web per class; `home` is yours, `entered` means you own something in it (through a gateway).
                 webs: web.webs.map((c) => ({ classId: c, name: this.data.basePlayerClasses[c].name, home: c === this.player.className,
                     entered: s.nodes.some((id) => { const n = web.nodes.get(id); return n && n.region === c && n.kind !== 'gateway'; }) })),

@@ -344,6 +344,7 @@
                 out.awaiting = 'choice';
                 const tree = this.data.evolutionPaths[this.player.className];
                 out.actions = Object.keys(tree.branches).map((branchId) => ({ type: 'choose_branch', branchId, name: tree.branches[branchId].name, enabled: true }));
+                out.actions.push({ type: 'choose_branch', branchId: 'free', name: 'Walk freely', enabled: true });   // Skill Web: no guide
             } else if (mode === 'explore' && this.story && this.story.dialogue) {
                 out.awaiting = 'dialogue';                    // Chapter One conversation (src/engine/story.js)
                 Object.assign(out, this.dialogueAvailability());
