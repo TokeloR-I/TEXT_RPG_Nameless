@@ -24,6 +24,7 @@
     // Targeting kinds that don't take a chosen enemy (pickTargets decides who is affected).
     const NO_CHOICE = new Set(['self', 'minions', 'ground', 'corpse', 'enemy_aoe', 'all_enemies', 'all_combatants', 'linked_enemies']);
     const DIRECTION_NAMES = { n: 'north', s: 'south', e: 'east', w: 'west' };
+    const WEB_ACTIONS = new Set(['learn_node', 'unlearn_node', 'set_specialization', 'set_web_guide']);   // Skill Web: out of a fight only
     const WORLD_ACTIONS = new Set(['enter_world', 'world_pickup', 'world_encounter', 'world_narration', 'collect_drop']);
 
     class ActionMethods {
@@ -101,6 +102,10 @@
                 case 'craft': this.craftRecipe(String(a.recipeId || '')); return;
                 case 'engage': this.engage(); return;
                 case 'set_skill_slot': this.setSkillSlot(a.slot, a.skillId == null ? null : String(a.skillId)); return;   // combat v2 skill bar
+                case 'learn_node': this.learnWebNode(a.nodeId); return;              // Skill Web (skill-web.js)
+                case 'unlearn_node': this.unlearnWebNode(a.nodeId); return;
+                case 'set_specialization': this.setSpecialization(String(a.branchId || '')); return;
+                case 'set_web_guide': this.setWebGuide(a.branchId == null ? null : String(a.branchId)); return;
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
                 case 'cheat': this.cheat(a.cheat, a.amount); return;
@@ -116,6 +121,7 @@
                 case 'inventory': this.showInventory(); return;
                 case 'help': this.showHelp(); return;
                 case 'class_tree': this.showClassTree(); return;
+                case 'skill_web': this.showSkillWeb(); return;
                 case 'journal': this.showJournal(); return;
                 default: this.refuse('UNKNOWN_ACTION', `Nothing to describe called '${subject}'.`);
             }
@@ -133,6 +139,7 @@
         performCombat(a) {
             const c = this.combat;
             const p = this.player;
+            if (WEB_ACTIONS.has(a.type)) { const busy = this.webCombatProblem(); this.refuse(busy.code, busy.message); return; }
             if (this.rtActive()) { if (a.type === 'set_skill_slot') this.setSkillSlot(a.slot, a.skillId); else this.rtPerformCombat(a); return; }   // combat v2 (realtime.js)
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
             if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)

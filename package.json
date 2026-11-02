@@ -12,6 +12,7 @@
     "play": "node tools/play-cli.js",
     "build": "node tools/build-single.js",
     "pack": "node tools/pack-assets.js",
-    "world": "node tools/world-check.js"
+    "world": "node tools/world-check.js",
+    "web": "node tools/skill-web.js"
   }
 }

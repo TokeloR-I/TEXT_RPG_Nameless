@@ -634,6 +634,65 @@
             }
         };
 
+        // --- Skill Webs (Tokelo 2026-11-02): each class has its own web; gateways cross between them ---
+        // Spec: docs/design/SKILL_WEB.md. The engine builds the webs (src/engine/skill-web.js) from:
+        //   - each class above: its own web, with a heart node and one node per starting skill (owned free by that class);
+        //   - each evolution branch: one active node per new skill and one passive node per trait, stage by stage,
+        //     gated by the stage's level (and story event). Ids: '<branch>.<stage 1-5>.skill' / '.trait'.
+        //   - the extra nodes and gateways below. A new skill is one more entry in extraNodes; nothing else changes.
+        // `npm run web` prints and validates the webs.
+        const skillWeb = {
+            rules: {
+                pointsPerLevel: 1,          // Gauge: one point per level keeps a one-path player on the old evolution schedule exactly
+                cost: { heart: 1, active: 1, passive: 1, gateway: 2 },   // a node's own `cost` wins; a gateway is the price of crossing
+                refund: true                // unlearning a node out of a fight refunds its points (respec is free for now)
+            },
+            // Existing skills no path granted. `links` are the node ids they hang from (in the same class web).
+            extraNodes: [
+                { id: 'warrior.war_cry', kind: 'active', region: 'warrior', skill: 'War Cry', minLevel: 2, links: ['warrior.guard'] },
+                { id: 'rogue.second_wind', kind: 'active', region: 'rogue', skill: 'Second Wind', minLevel: 2, links: ['rogue.evasion'] },
+                { id: 'elementalist.ice_lance', kind: 'active', region: 'mage', branch: 'elementalist', skill: 'Ice Lance', minLevel: 5, links: ['elementalist.1.trait'] },
+                { id: 'bone_warden.shield_of_the_dead', kind: 'active', region: 'necromancer', branch: 'bone_warden', skill: 'Shield of the Dead', minLevel: 5, links: ['bone_warden.1.trait'] },
+                { id: 'plaguecaller.corpse_bloom', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Corpse Bloom', minLevel: 5, links: ['plaguecaller.1.trait'] },
+                { id: 'plaguecaller.plague_wind', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Plague Wind', minLevel: 11, links: ['plaguecaller.corpse_bloom'] }
+            ],
+            // Gateways (Tokelo 2026-11-02): nodes at the edge of a class web that open a path into another class's web.
+            // A gateway hangs from `from` (in its own web) and leads to `to` (in the other web). One way only: each class
+            // has its own three gateways out. Once inside, the other web's nodes link as usual (its heart opens its base skills).
+            gateways: [
+                // Warrior
+                { id: 'gate.spellblade', from: 'vanguard.3.skill', to: 'elementalist.3.skill', name: 'Spellblade', why: 'Holy Smite to Lightning Arc' },
+                { id: 'gate.blade_frenzy', from: 'berserker.2.skill', to: 'duelist.2.skill', name: 'Blade Frenzy', why: 'Whirlwind to Flurry' },
+                { id: 'gate.the_hunt', from: 'warden.1.skill', to: 'assassin.3.skill', name: 'The Hunt', why: 'Pincushion to Marked for Death' },
+                // Rogue
+                { id: 'gate.misdirection', from: 'assassin.1.skill', to: 'illusionist.1.skill', name: 'Misdirection', why: 'Shadowstep to Mirror Image' },
+                { id: 'gate.venom', from: 'saboteur.3.skill', to: 'plaguecaller.2.skill', name: 'Venom', why: 'Poison Trap to Black Spit' },
+                { id: 'gate.owning_the_ground', from: 'saboteur.1.skill', to: 'warden.2.skill', name: 'Owning the Ground', why: 'Caltrops to Lockstep' },
+                // Mage
+                { id: 'gate.tempo', from: 'chronomancer.1.skill', to: 'duelist.1.skill', name: 'Tempo', why: 'Haste to Riposte' },
+                { id: 'gate.burn_and_blight', from: 'elementalist.2.trait', to: 'plaguecaller.2.trait', name: 'Burn and Blight', why: 'Burn to longer DoTs' },
+                { id: 'gate.stolen_mind', from: 'illusionist.2.skill', to: 'soulbinder.3.skill', name: 'The Stolen Mind', why: 'Confuse to Possession' },
+                // Necromancer
+                { id: 'gate.two_walls', from: 'bone_warden.1.skill', to: 'vanguard.1.skill', name: 'The Two Walls', why: 'Bone Wall to Shield Bash' },
+                { id: 'gate.open_wounds', from: 'plaguecaller.1.skill', to: 'berserker.1.skill', name: 'Open Wounds', why: 'Contagion to Hemorrhage' },
+                { id: 'gate.life_bent_back', from: 'soulbinder.4.skill', to: 'chronomancer.3.skill', name: 'Life Bent Back', why: 'Soul Feast to Revert HP' }
+            ],
+            // Legendary webs (Tokelo 2026-11-02): a legendary class is its own web, added on top of your build. Its heart
+            // opens once every listed evolution stage is reached ('<branch>.<stage 1-5>', any class) and its story event has
+            // happened. Names and lore: legendaryAndSecretClasses. The Hollow King stays a full transformation (no web).
+            legendaryWebs: {
+                deathlord_eternal: {
+                    requires: { stages: ['soulbinder.5', 'vanguard.5'], event: 'the Throne of Bones' },   // Eternal Lich + Abyssal King
+                    nodes: [
+                        { id: 'deathlord_eternal.legion', kind: 'passive', trait: { name: 'Legion of the Dead', effect: 'Unlimited minion cap for 5 turns.' }, links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', links: ['deathlord_eternal.legion'] }
+                    ]
+                },
+                // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
+                reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
+            }
+        };
+
         // --- Legendary and Secret Class Data (Not part of direct evolution tree) ---
         const legendaryAndSecretClasses = {
             'deathlord_eternal': {
@@ -1774,7 +1833,7 @@
                 homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} }
             }, cropDefinitions: {}, recipeDefinitions: {},
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
-            basePlayerClasses, evolutionPaths, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
+            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
             statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules
         };
 

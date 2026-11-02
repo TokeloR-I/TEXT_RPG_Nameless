@@ -17,6 +17,7 @@
  *   combat-input.js   Player combat input
  *   skills.js         Skills & damage
  *   progression.js    Progression
+ *   skill-web.js      Skill Web (nodes, points, specializations)
  *   world.js          World intents (graphical Zone 1): pickups, encounters, run flags
  *   actions.js        Structured actions: getAvailableActions(), act() (Phase 1 spec §4)
  *   timers.js         Turn-opportunity hooks and combat timers (T-0)
@@ -56,7 +57,11 @@
         // dev cheats
         add_xp: (arg) => ({ type: 'cheat', cheat: 'add_xp', amount: arg }),
         become_hollow_king: () => ({ type: 'cheat', cheat: 'become_hollow_king' }),
-        unlock_events: () => ({ type: 'cheat', cheat: 'unlock_events' })
+        unlock_events: () => ({ type: 'cheat', cheat: 'unlock_events' }),
+        // Skill Web (src/engine/skill-web.js)
+        web: () => ({ type: 'describe', subject: 'skill_web' }), skills: () => ({ type: 'describe', subject: 'skill_web' }),
+        learn: (arg) => ({ type: 'learn_node', nodeId: arg }), unlearn: (arg) => ({ type: 'unlearn_node', nodeId: arg }),
+        specialize: (arg) => ({ type: 'set_specialization', branchId: arg }), guide: (arg) => ({ type: 'set_web_guide', branchId: arg })
     };
 
     class GameEngine {
@@ -154,7 +159,7 @@
             return {
                 mode: this.mode,
                 room: this.currentRoom,
-                progression: { ...this.progression },
+                progression: clone(this.progression),
                 world: this.world && clone(this.world),
                 story: this.storyState(),                   // undefined in the text game, so its state is unchanged
                 player: p && {
@@ -229,6 +234,7 @@
                 isHollowKing: false
             };
             this.progression = { baseClass: className, branch: null, evolutionName: def.name, stageIndex: -1 };
+            this.webState();   // the Skill Web: own heart and starting skills (src/engine/skill-web.js)
             this.equipStarters();
         }
 
@@ -319,6 +325,7 @@
 
         showHelp() {
             this.say('Commands: go <dir> (or n/s/e/w), take <item>, use <item>, inventory (i), look, engage, class_lore (cl), quit, start', { important: true });
+            this.say('Skill Web: web, learn <skill>, unlearn <skill>, specialize <path>, guide <path|off>');
             this.say('Combat: attack <n>, <skill name or alias> <n>, use <item>, flee');
             this.say('Dev cheats: add_xp <amount>, become_hollow_king, unlock_events');
         }
@@ -326,7 +333,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

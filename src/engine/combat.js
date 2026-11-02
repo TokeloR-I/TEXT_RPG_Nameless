@@ -111,7 +111,7 @@
         endRoundResources() {
             const c = this.combat;
             const p = this.player;
-            if (p.className === 'necromancer' && !p.isHollowKing && c.dealtDamageThisRound) {
+            if (p.resource.type === 'Soul Energy' && !p.isHollowKing && c.dealtDamageThisRound) {   // whoever runs on Soul Energy (Skill Web)
                 if (this.gainResource(p, 1) > 0) this.say('You gained 1 Soul Energy!');
             }
             if (p.resource.regen > 0) {

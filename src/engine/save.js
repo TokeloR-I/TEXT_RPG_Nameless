@@ -89,6 +89,7 @@
                 for (const k of STATE_KEYS) state[k] = k in save.state ? save.state[k] : null;
                 this.restore({ json: JSON.stringify(state), rng: save.rng.state });
                 this.seed = save.rng.seed >>> 0;
+                if (this.player) this.webState();   // older saves: build the Skill Web from the path they walked
                 if (save.counters && Number.isInteger(save.counters.eventSeq)) this.eventSeq = save.counters.eventSeq;
                 this.clear();
                 this.say('Game loaded.', { important: true });
