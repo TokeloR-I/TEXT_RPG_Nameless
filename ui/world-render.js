@@ -584,7 +584,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', crow_touched_warden: 'warden'
+        watch_constable: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
@@ -610,6 +610,21 @@
             rect(g, px + 14, py + 18, 4, 4, '#8a8a90'); rect(g, px + 10, py + 9, 12, 5, '#d8cfb6');
         },
         wolf(g, px, py, T, t) { creatures.wolf(g, px, py, t); },
+        shade(g, px, py, T, t) { creatures.shade(g, px - 6, py, t); creatures.shade(g, px + 6, py - 3, t + 450); },
+        // Shamefield locals (2026-11-02): the cloister's lent garden bed, and Greta's runaway pigs.
+        garden_bed(g, px, py) {
+            rect(g, px + 3, py + 8, 26, 18, '#5a4030'); rect(g, px + 3, py + 8, 26, 2, '#7a5a40'); rect(g, px + 3, py + 24, 26, 2, '#3a281e');
+            for (const y of [12, 17, 22]) rect(g, px + 5, py + y, 22, 1, '#3e2a1e');
+            for (const [x, y] of [[8, 11], [15, 16], [22, 11], [11, 21], [20, 21]]) { rect(g, px + x, py + y - 2, 1, 2, '#6a9a4a'); rect(g, px + x + 1, py + y - 3, 1, 1, '#8aba5a'); }
+        },
+        pig(g, px, py, T, t) {
+            const b = Math.round(Math.sin((t || 0) / 300 + px) * 0.6);
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 26, 9, 2.5, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 8, py + 15 + b, 16, 9, '#d89a92'); rect(g, px + 8, py + 15 + b, 16, 2, '#e8b2aa');
+            rect(g, px + 21, py + 13 + b, 7, 7, '#d89a92'); rect(g, px + 26, py + 16 + b, 3, 3, '#c07a74'); rect(g, px + 23, py + 15 + b, 1, 1, '#2a1a1a');
+            rect(g, px + 22, py + 12 + b, 2, 2, '#c07a74'); rect(g, px + 7, py + 16 + b, 1, 2, '#c07a74');
+            for (const x of [10, 14, 18, 22]) rect(g, px + x, py + 24, 2, 3, '#a86a64');
+        },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {

@@ -1163,7 +1163,17 @@
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
-            'Small Coin Purse': { type: 'consumable', use: 'gold', value: 6, sellable: false, description: 'A few coins from an earlier life.' }
+            'Small Coin Purse': { type: 'consumable', use: 'gold', value: 6, sellable: false, description: 'A few coins from an earlier life.' },
+            // Shamefield locals (2026-11-02). Quest goods: bound, unsellable, so they add nothing to the economy.
+            'Barley Seed':         { type: 'quest', bound: true, sellable: false, description: 'A twist of seed barley from the cloister granary.' },
+            'Barley':              { type: 'quest', bound: true, sellable: false, description: 'Barley from your own bed in the cloister garden.' },
+            'Wild Hops':           { type: 'quest', bound: true, sellable: false, description: 'Green, sticky and bitter. Healthy, unlike Fenric\'s.' },
+            'Rye Sheaf':           { type: 'quest', bound: true, sellable: false, description: 'Rye from the field behind the square.' },
+            'Rye Flour':           { type: 'quest', bound: true, sellable: false, description: 'Coarse and grey, straight off the millstone.' },
+            'Sourdough Starter':   { type: 'quest', bound: true, sellable: false, description: 'A jar of Oda\'s starter. It is older than you are. Probably.' },
+            'Briarwell Pale':      { type: 'quest', bound: true, sellable: false, description: 'A small cask of pale ale you brewed with Brother Fenric.' },
+            'Shamefield Rye Loaf': { type: 'quest', bound: true, sellable: false, description: 'Dark rye with a crust that cracks when you look at it.' },
+            "Elian's Letter":      { type: 'quest', bound: true, sellable: false, description: 'Folded twice. A list of names, and the roads where they were last seen.' }
         };
 
         // Global balance knobs.
@@ -1830,8 +1840,19 @@
                 shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 } } }
             }, constructionDefinitions: {
                 // Orin's first job (Q07). Free for now (Tokelo, 2026-10-24): a story repair until the economy is tuned.
-                homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} }
-            }, cropDefinitions: {}, recipeDefinitions: {},
+                homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} },
+                // Bread and Beer (Shamefield locals, Tokelo 2026-11-02): the first real use of planting and crafting.
+                // Sister Merrow lends a bed in the cloister garden; digging it is free, like the gate.
+                briarwell_bed: { name: 'Briarwell garden bed', verb: 'Dig', goldCost: 0, materials: {} }
+            }, cropDefinitions: {
+                // Tended by hand, never by the clock: each 'tend' is one step (exploration.js).
+                'Barley Seed': { produces: 'Barley', yield: 2, actionsToGrow: 2, requiresUpgrade: 'briarwell_bed' }
+            }, recipeDefinitions: {
+                // Station recipes: offered by the place that makes them (Fenric's casks, the watermill, Oda's oven).
+                brew_briarwell_pale: { verb: 'Brewed', ingredients: { 'Barley': 2, 'Wild Hops': 1 }, output: 'Briarwell Pale' },
+                mill_rye_flour: { verb: 'Milled', ingredients: { 'Rye Sheaf': 1 }, output: 'Rye Flour' },
+                bake_rye_loaf: { verb: 'Baked', ingredients: { 'Rye Flour': 1, 'Sourdough Starter': 1 }, output: 'Shamefield Rye Loaf' }
+            },
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
             statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules
