@@ -198,3 +198,40 @@ test('Crow storm: a body in a zone is hit when it lands, a body on safe ground i
     assert.ok(hit(false) > 0, 'standing in a corner spot is hit');
     assert.strictEqual(hit(true), 0, 'the top edge between the spots is safe');
 });
+
+test('Crow storms chain: 2-3 patterns back to back (the later ones with a crow mark on you), then the rest window', () => {
+    const lengths = new Set();
+    for (const seed of [70, 71, 72, 73, 74, 75]) {
+        const r = fight('warrior', seed);
+        setHpPct(r, 0.24);
+        frames(r.sim, 8 * 60);
+        r.w.attackReadyAt = Infinity;
+        startAttack(r, 'crow_storm');
+        const storms = [];
+        let lastStep = -1, rec = null;
+        for (let i = 0; i < 60 * 12 && rec == null; i++) {
+            if (r.w.state === 'windup' && r.w.windup.step !== lastStep) { lastStep = r.w.windup.step; storms.push({ name: r.w.windup.storm.name, rider: !!r.w.windup.mark }); }
+            frames(r.sim, 1);
+            if (r.w.state === 'recover' && r.w.windup.step === r.w.windup.base.combo.length - 1) rec = r.w.stateEnd - r.sim.now;
+        }
+        assert.ok(storms.length >= 2 && storms.length <= 3, `chain of ${storms.length}`);
+        lengths.add(storms.length);
+        assert.strictEqual(new Set(storms.map((x) => x.name)).size, storms.length, 'each link is the next pattern in the cycle');
+        assert.ok(!storms[0].rider && storms.slice(1).every((x) => x.rider), 'the later storms carry a crow mark');
+        assert.ok(rec >= 1700, `the rest after the chain (${rec} ms)`);
+        for (const n of ['marked_prey', 'murder_of_crows']) assert.ok(r.w.atkReady[n] - r.sim.now >= 3000, `${n} waits during the rest`);
+    }
+    assert.ok(lengths.has(2) && lengths.has(3), `both chain lengths happen (${[...lengths]})`);
+});
+
+test('Below 25% Murder of Crows and Marked Prey come faster and more often', () => {
+    const r = fight();
+    setHpPct(r, 0.4);
+    const p2 = Object.fromEntries(r.sim.attacksOf(r.w).map((x) => [x.name, x]));
+    setHpPct(r, 0.24);
+    const p3 = Object.fromEntries(r.sim.attacksOf(r.w).map((x) => [x.name, x]));
+    for (const n of ['murder_of_crows', 'marked_prey']) {
+        assert.ok(p3[n].cooldownMs < p2[n].cooldownMs, `${n} cooldown ${p2[n].cooldownMs} -> ${p3[n].cooldownMs}`);
+        assert.ok(p3[n].windupMs < p2[n].windupMs, `${n} wind-up ${p2[n].windupMs} -> ${p3[n].windupMs}`);
+    }
+});

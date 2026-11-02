@@ -814,7 +814,8 @@
             if (b && b.attacks) {
                 let names = Object.keys(b.attacks), drop = [];
                 for (const x of b.phases || []) if (a.hp != null && a.maxHp && a.hp / a.maxHp <= x.fromHpPct + 1e-9) { if (x.attacks) names = x.attacks; if (x.drop) drop = drop.concat(x.drop); }
-                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));
+                const over = (this.bossPhase(a) || {}).attackOverrides || {};   // a phase can speed a move up (phase 3 crows)
+                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n], ...(over[n] || {}) }));
             }
             const pr = a.prof;
             if (Array.isArray(pr.attacks) && pr.attacks.length) return pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
@@ -865,6 +866,13 @@
             this.collect(r.events);
             if (!r.ok) { a.attackReadyAt = this.now + 300; return; }
             const b = this.bossOf(a);
+            if (step === 0 && atk.chain && !atk.combo) {   // a crow storm chain: 2-3 patterns back to back, then the usual recovery
+                const c = atk.chain, n = c.min + Math.floor(this.rng() * (c.max - c.min + 1));
+                atk = { ...atk, combo: Array.from({ length: n }, (_, i) => ({
+                    ...(i ? { windupMs: c.windupMs, markRider: c.markRider || null } : {}),
+                    ...(i < n - 1 ? { recoveryMs: c.gapMs } : {})
+                })) };
+            }
             const st = atk.combo ? { ...atk, ...atk.combo[step] } : atk;
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
@@ -872,16 +880,16 @@
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
-            const foe = st.shape === 'mark' ? this.markTarget(a) : this.foeOf(a);
+            const foe = st.shape === 'mark' || st.markRider ? this.markTarget(a) : this.foeOf(a);
             a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
             if (step === 0) a.lastWasSpecial = atk.cooldownMs >= 5000;
-            if (step === 0 && atk.quietMs) {   // a crow storm: no other crow special right after it (your window to hit back)
+            if (atk.quietMs) {   // counted from the last storm of a chain   // a crow storm: no other crow special right after it (your window to hit back)
                 for (const x of this.attacksOf(a)) if (x.cooldownMs >= 5000 && x.name !== atk.name) a.atkReady[x.name] = Math.max(a.atkReady[x.name] || 0, this.now + windup + atk.quietMs);
             }
             a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
-            if (st.shape === 'mark') { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
+            if (st.shape === 'mark' || st.markRider) { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
             if (st.shape === 'arena') a.windup.storm = this.nextStorm(a);
         }
 
@@ -940,7 +948,7 @@
         /** The mark follows its prey until lockMs before the dive, then stays where it was. */
         trackMark(a) {
             const w = a.windup, m = w.mark;
-            const lock = w.atk.lockMs != null ? w.atk.lockMs : 500;
+            const lock = w.atk.markRider ? (w.atk.markRider.lockMs ?? 450) : w.atk.lockMs != null ? w.atk.lockMs : 500;
             const prey = this.liveBody(w.foe);
             if (this.now >= a.stateEnd - lock || !prey) { m.locked = true; return; }
             m.x = prey.x; m.y = prey.y;
@@ -976,7 +984,12 @@
             const st = (a.windup && a.windup.atk) || this.attacksOf(a)[0];
             const kind = st.shape || 'arc';
             if (kind === 'mark') { const m = (a.windup && a.windup.mark) || { x: a.x, y: a.y }; return { kind: 'circle', x: m.x, y: m.y, radius: st.radius || 22 }; }
-            if (kind === 'arena') return { kind: 'multi', shapes: (a.windup && a.windup.storm && a.windup.storm.shapes) || [] };
+            if (kind === 'arena') {
+                const shapes = ((a.windup && a.windup.storm && a.windup.storm.shapes) || []).slice();
+                const m = a.windup && a.windup.mark;
+                if (m && st.markRider) shapes.push({ kind: 'circle', x: m.x, y: m.y, radius: st.markRider.radius || 22 });   // the crow on you lands with the storm
+                return { kind: 'multi', shapes };
+            }
             if (kind === 'ground') return { kind: 'multi', shapes: (a.windup && a.windup.circles || []).map((c) => ({ kind: 'circle', x: c.x, y: c.y, radius: st.radius || 20 })) };
             if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: st.reach || 100, width: st.width || 6 };
             if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (st.reach || 20) + (st.lunge && !(st.reach > st.lunge) ? st.lunge : 0), width: st.width || 10 };
@@ -997,7 +1010,7 @@
             }
             const touches = (b) => (w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, b)) : this.inShape(w.shape, b));
             this.strikeBodies(a, touches, st);
-            if (st.shape === 'mark') for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.shape.x + (i - 1) * 6, y: w.shape.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
+            if (w.mark) for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.mark.x + (i - 1) * 6, y: w.mark.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
             if (st.shape === 'arena') this.fx.push({ type: 'crow_storm', name: w.storm && w.storm.name });
             if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
         }
