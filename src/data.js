@@ -1173,10 +1173,71 @@
             'Sourdough Starter':   { type: 'quest', bound: true, sellable: false, description: 'A jar of Oda\'s starter. It is older than you are. Probably.' },
             'Briarwell Pale':      { type: 'quest', bound: true, sellable: false, description: 'A small cask of pale ale you brewed with Brother Fenric.' },
             'Shamefield Rye Loaf': { type: 'quest', bound: true, sellable: false, description: 'Dark rye with a crust that cracks when you look at it.' },
-            "Elian's Letter":      { type: 'quest', bound: true, sellable: false, description: 'Folded twice. A list of names, and the roads where they were last seen.' }
+            "Elian's Letter":      { type: 'quest', bound: true, sellable: false, description: 'Folded twice. A list of names, and the roads where they were last seen.' },
+
+            // ----- The kitchen (Tokelo, 2026-11-02; docs/design/COOKING_AND_FOOD.md). Gauge's first pass on every number.
+            // Food: use 'meal' | 'drink', heal (HP at once), seconds (buff length, never over foodRules.maxSeconds) and
+            // mods (damage / defence / crit / speed shares, regen HP per second). Engine: src/engine/kitchen.js.
+            // Seeds and young animals (cropDefinitions says where each goes)
+            'Wheat Seed':     { type: 'material', sellable: true, sellPrice: 1, description: 'Seed wheat. Plant it in a field or garden bed.' },
+            'Seed Potato':    { type: 'material', sellable: true, sellPrice: 1, description: 'A sprouting potato. Plant it and it makes more of itself.' },
+            'Cabbage Seed':   { type: 'material', sellable: true, sellPrice: 1, description: 'A twist of cabbage seed. Sauerkraut, eventually.' },
+            'Onion Set':      { type: 'material', sellable: true, sellPrice: 1, description: 'Little onion bulbs for planting.' },
+            'Cannabis Seed':  { type: 'material', sellable: true, sellPrice: 2, description: "One of Shane's seeds. It only grows on your own homestead field. \"For medicine,\" he says." },
+            'Piglet':         { type: 'material', sellable: false, description: 'A piglet from Greta Rusk. It needs a sty, and feeding.' },
+            'Hen':            { type: 'material', sellable: false, description: 'A speckled hen. Give her a coop and grain and she lays eggs.' },
+            // Ingredients: farmed, foraged, dropped, bought or given
+            'Wheat':          { type: 'material', sellable: true, sellPrice: 1, description: 'Ripe wheat. Grind it at the watermill for flour, or brew it into Weizen.' },
+            'Potato':         { type: 'material', sellable: true, sellPrice: 1, description: 'A good, dirty potato.' },
+            'Cabbage':        { type: 'material', sellable: true, sellPrice: 1, description: 'A head of white cabbage.' },
+            'Onion':          { type: 'material', sellable: true, sellPrice: 1, description: 'Makes everything better, and you cry.' },
+            'Cannabis Leaf':  { type: 'material', sellable: true, sellPrice: 2, description: "Sticky, fragrant, and Shane swears it's medicinal. Bake it into a brownie." },
+            'Flour':          { type: 'material', sellable: true, sellPrice: 1, description: 'Wheat flour, fine and white.' },
+            'Egg':            { type: 'material', sellable: true, sellPrice: 1, description: 'A brown egg, still warm.' },
+            'Pork':           { type: 'material', sellable: true, sellPrice: 2, description: 'Good pork: schnitzel, sausage, Mett.' },
+            'Rat Meat':       { type: 'material', sellable: false, description: 'Stringy rat meat. Cook it long enough and it is goulash.' },
+            'Wolf Meat':      { type: 'material', sellable: false, description: 'Tough, gamey wolf meat. Goulash meat.' },
+            'Fresh Milk':     { type: 'material', sellable: true, sellPrice: 1, description: 'A jug of milk. Only from a shop, or a grateful neighbour.' },
+            'Cheese':         { type: 'material', sellable: true, sellPrice: 2, description: 'A wedge of mountain cheese, for Käsespätzle.' },
+            'Butter':         { type: 'material', sellable: true, sellPrice: 1, description: 'A crock of salted butter.' },
+            'Chanterelles':   { type: 'material', sellable: true, sellPrice: 1, description: 'Golden Pfifferlinge from the woods. Soup, or a Jäger sauce.' },
+            'Apple':          { type: 'material', sellable: true, sellPrice: 1, description: 'A tart orchard apple.' },
+            // German dishes (at least ten, Tokelo): crafted at a hearth or oven, some sold in Shamefield
+            'Brötchen':         { type: 'consumable', use: 'meal', heal: 6, sellable: true, sellPrice: 1, description: 'A crusty white bread roll. Half the recipes here start with one.' },
+            'Brezel':           { type: 'consumable', use: 'meal', heal: 10, seconds: 90, mods: { speed: 0.05 }, sellable: true, sellPrice: 1, description: 'A salted pretzel, eaten walking.' },
+            'Bratwurst':        { type: 'consumable', use: 'meal', heal: 18, seconds: 150, mods: { damage: 0.06 }, sellable: true, sellPrice: 2, description: 'A grilled pork sausage.' },
+            'Leberkäsbrötchen': { type: 'consumable', use: 'meal', heal: 22, seconds: 150, mods: { defence: 0.06 }, sellable: true, sellPrice: 3, description: 'A thick hot slice of Leberkäse in a roll, with mustard.' },
+            'Mettbrötchen':     { type: 'consumable', use: 'meal', heal: 20, seconds: 150, mods: { damage: 0.08 }, sellable: true, sellPrice: 2, description: 'Raw seasoned pork on a roll, with onion. Brave, and good.' },
+            'Schnitzel':        { type: 'consumable', use: 'meal', heal: 30, seconds: 180, mods: { damage: 0.12 }, sellable: true, sellPrice: 4, description: 'Pork beaten thin, breaded and fried golden.' },
+            'Jägerschnitzel':   { type: 'consumable', use: 'meal', heal: 35, seconds: 180, mods: { damage: 0.12, crit: 0.05 }, sellable: true, sellPrice: 5, description: "Schnitzel under a hunter's sauce of chanterelles." },
+            'Käsespätzle':      { type: 'consumable', use: 'meal', heal: 30, seconds: 180, mods: { defence: 0.10 }, sellable: true, sellPrice: 4, description: 'Egg noodles baked with cheese and crisp onions. Heavy armour for the stomach.' },
+            'Semmelknödel':     { type: 'consumable', use: 'meal', heal: 25, seconds: 180, mods: { regen: 1 }, sellable: true, sellPrice: 3, description: 'Bread dumplings: old rolls, milk and egg, boiled round.' },
+            'Sauerkraut':       { type: 'consumable', use: 'meal', heal: 10, seconds: 180, mods: { regen: 0.5 }, sellable: true, sellPrice: 1, description: 'Fermented cabbage. Sour, and it keeps you going.' },
+            'Kartoffelsalat':   { type: 'consumable', use: 'meal', heal: 20, seconds: 180, mods: { speed: 0.08 }, sellable: true, sellPrice: 2, description: 'Potato salad with onion and vinegar, Swabian style.' },
+            'Pilzsuppe':        { type: 'consumable', use: 'meal', heal: 25, seconds: 150, mods: { regen: 0.5, defence: 0.04 }, sellable: true, sellPrice: 2, description: 'Creamy chanterelle soup.' },
+            'Apfelstrudel':     { type: 'consumable', use: 'meal', heal: 25, seconds: 180, mods: { crit: 0.06, speed: 0.04 }, sellable: true, sellPrice: 3, description: 'Apples and butter rolled in pastry thin enough to read through.' },
+            // Low tier (Tokelo): meat off rats and wolves. It heals and helps a little, never much.
+            'Rattengulasch':    { type: 'consumable', use: 'meal', heal: 12, seconds: 90, mods: { regen: 0.3 }, sellable: false, description: "Rat goulash. Don't ask. It's hot, at least." },
+            'Wolfsgulasch':     { type: 'consumable', use: 'meal', heal: 16, seconds: 120, mods: { damage: 0.04 }, sellable: false, description: 'Wolf goulash, stewed with herbs until it gives up.' },
+            // Shane's cannabis (Tokelo): grown on your own field, baked into a brownie with extra buffs.
+            "Shane's Brownie":  { type: 'consumable', use: 'meal', heal: 20, seconds: 180, mods: { damage: 0.10, defence: 0.10, regen: 1, crit: 0.05 }, sellable: false, description: 'A dense, green-flecked brownie. Everything feels fine. Better than fine.' },
+            // Beer (Tokelo: semi-OP, and more than four inverts the controls). Brewed with Brother Fenric or bought from him.
+            'Helles':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { damage: 0.15 }, sellable: true, sellPrice: 2, description: 'A pale, clean lager. Courage in a mug.' },
+            'Dunkel':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { defence: 0.12, regen: 0.5 }, sellable: true, sellPrice: 2, description: 'A dark malty lager. You feel thicker-skinned already.' },
+            'Weizen':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { crit: 0.08, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy wheat beer, banana and clove. Quick on your feet, sharp in the eye.' }
         };
 
         // Global balance knobs.
+        // The kitchen (Gauge, 2026-11-02, first pass; docs/design/COOKING_AND_FOOD.md). Food buffs are a separate,
+        // long category from fight buffs (realtimeRules.statuses.buffs, 6 to 15 s): up to 3 minutes (Tokelo).
+        const foodRules = {
+            maxSeconds: 180,          // no meal or drink lasts longer than 3 minutes (Tokelo)
+            sameDishStacks: 2,        // eating the same dish again refreshes it and adds a stack, up to this
+            drinkStacks: 3,           // the same beer stacks higher: that's what makes it semi-OP
+            fullAt: 4,                // four different dishes at once and you're full (beer doesn't count)
+            caps: { damage: 0.75, defence: 0.5, crit: 0.35, speed: 0.4, regen: 5 },   // totals over every meal and beer
+            drunk: { beersBeforeDrunk: 4, tipsySeconds: 120, seconds: 20 }   // the 5th beer inside 2 minutes: controls inverted 20 s
+        };
         const gameRules = {
             statDamagePer: 4,          // +1 damage per 4 points of the scaling stat
             physicalStat: { default: 'strength', rogue: 'agility', mage: 'intelligence', necromancer: 'intelligence' },   // Gauge 2026-11-01: caster staff bolts scale with INT
@@ -1824,6 +1885,23 @@
         for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
             Object.assign(enemies[id], { lootLevel, lootProfile, lootRank, lootTable: 'chapter1' });
         enemies.crow_touched_warden.materialDrops = false;
+        // Meat for the pot (the kitchen, Tokelo 2026-11-02): rats and wolves always leave some. Goulash, not glory.
+        for (const id of ['rust_rat', 'cellar_vermin']) enemies[id].foodDrops = [{ item: 'Rat Meat' }];
+        enemies.hungry_wolf.foodDrops = [{ item: 'Wolf Meat' }];
+        // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
+        for (const [name, d] of Object.entries(itemDefinitions)) {
+            if (d.use !== 'meal' && d.use !== 'drink') continue;
+            if (d.mods) statusDefinitions[name] = { category: 'buff', maxStacks: d.use === 'drink' ? foodRules.drinkStacks : foodRules.sameDishStacks };
+            const pct = (v) => `${Math.round(v * 100)}%`, m = d.mods || {}, parts = [];
+            if (m.damage) parts.push(`+${pct(m.damage)} damage`);
+            if (m.defence) parts.push(`-${pct(m.defence)} damage taken`);
+            if (m.crit) parts.push(`+${pct(m.crit)} crit`);
+            if (m.speed) parts.push(`+${pct(m.speed)} speed`);
+            if (m.regen) parts.push(`+${m.regen} HP/s`);
+            d.effectText = `Heals ${d.heal || 0}${parts.length ? `; ${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s` : ''}.`;
+        }
+        statusDefinitions['Tipsy'] = { category: 'other', maxStacks: 99 };   // one stack per beer (foodRules.drunk)
+        statusDefinitions['Drunk'] = { category: 'debuff', maxStacks: 1 };   // controls inverted
         enemies.crow_touched_warden.bossDrops = [{ item: 'Seal-Key of the First Echo', storyKey: 'item:crow_warden_memory_key' }];
         for (const cls of Object.values(basePlayerClasses)) for (const id of cls.startingItems) {
             if (!Object.keys(itemDefinitions).some(name => name.toLowerCase() === id.toLowerCase()))
@@ -1834,28 +1912,81 @@
         const data = {
             lootProfiles, lootTables, equipmentAffixes, equipmentRarities, starterEquipment,
             shopDefinitions: {
-                mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
+                // Dairy is store-bought or a quest gift (Tokelo): Mara keeps milk, cheese, butter and eggs.
+                mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 },
+                    'Fresh Milk': { buyPrice: 3, quantity: 10 }, 'Cheese': { buyPrice: 5, quantity: 8 }, 'Butter': { buyPrice: 3, quantity: 8 }, 'Egg': { buyPrice: 2, quantity: 12 },
+                    'Flour': { buyPrice: 3, quantity: 10 }, 'Onion': { buyPrice: 2, quantity: 10 } } },
                 bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
                 iona: { stock: { 'Healing Herb Bundle': { buyPrice: 12, quantity: 5 }, 'Bandages': { buyPrice: 8, quantity: 3 }, 'Wild Herbs': { buyPrice: 3, quantity: 6 } } },
-                shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 } } }
+                shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 },
+                    // Shane grows what he sells (Tokelo): seed for your field, and his own cannabis.
+                    'Cannabis Seed': { buyPrice: 5, quantity: 6 }, 'Wheat Seed': { buyPrice: 2, quantity: 10 }, 'Seed Potato': { buyPrice: 2, quantity: 10 },
+                    'Cabbage Seed': { buyPrice: 2, quantity: 10 }, 'Onion Set': { buyPrice: 2, quantity: 10 } } },
+                // The kitchen's Shamefield trade (2026-11-02): the baker, the butcher and the brewer sell what they make.
+                oda: { stock: { 'Brötchen': { buyPrice: 2, quantity: 12 }, 'Brezel': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 6 } } },
+                greta: { stock: { 'Pork': { buyPrice: 5, quantity: 8 }, 'Bratwurst': { buyPrice: 6, quantity: 6 }, 'Leberkäsbrötchen': { buyPrice: 8, quantity: 4 },
+                    'Piglet': { buyPrice: 15, quantity: 2 }, 'Hen': { buyPrice: 8, quantity: 3 } } },
+                fenric: { stock: { 'Helles': { buyPrice: 6, quantity: 6 }, 'Dunkel': { buyPrice: 7, quantity: 4 }, 'Weizen': { buyPrice: 7, quantity: 4 } } }
             }, constructionDefinitions: {
                 // Orin's first job (Q07). Free for now (Tokelo, 2026-10-24): a story repair until the economy is tuned.
                 homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} },
                 // Bread and Beer (Shamefield locals, Tokelo 2026-11-02): the first real use of planting and crafting.
                 // Sister Merrow lends a bed in the cloister garden; digging it is free, like the gate.
-                briarwell_bed: { name: 'Briarwell garden bed', verb: 'Dig', goldCost: 0, materials: {} }
+                briarwell_bed: { name: 'Briarwell garden bed', verb: 'Dig', goldCost: 0, materials: {} },
+                // Your own lot at the homestead (the kitchen, 2026-11-02): two fields, a pigsty and a hen coop.
+                homestead_field_west: { name: 'west field', verb: 'Dig', goldCost: 0, materials: {} },
+                homestead_field_east: { name: 'east field', verb: 'Dig', goldCost: 0, materials: {} },
+                homestead_sty: { name: 'pigsty', verb: 'Build', goldCost: 12, materials: {} },
+                homestead_coop: { name: 'hen coop', verb: 'Build', goldCost: 8, materials: {} }
             }, cropDefinitions: {
-                // Tended by hand, never by the clock: each 'tend' is one step (exploration.js).
-                'Barley Seed': { produces: 'Barley', yield: 2, actionsToGrow: 2, requiresUpgrade: 'briarwell_bed' }
+                // Tended by hand, never by the clock: each 'tend' is one step (exploration.js). plantIn: the plots it may go in.
+                'Barley Seed':   { produces: 'Barley', yield: 2, actionsToGrow: 2, plantIn: ['briarwell_bed', 'homestead_field_west', 'homestead_field_east'] },
+                'Wheat Seed':    { produces: 'Wheat', yield: 2, actionsToGrow: 2, plantIn: ['briarwell_bed', 'homestead_field_west', 'homestead_field_east'] },
+                'Seed Potato':   { produces: 'Potato', yield: 3, actionsToGrow: 2, plantIn: ['homestead_field_west', 'homestead_field_east'] },
+                'Cabbage Seed':  { produces: 'Cabbage', yield: 2, actionsToGrow: 2, plantIn: ['homestead_field_west', 'homestead_field_east'] },
+                'Onion Set':     { produces: 'Onion', yield: 3, actionsToGrow: 2, plantIn: ['homestead_field_west', 'homestead_field_east'] },
+                // Shane's seeds grow on the player's own lot only (Tokelo).
+                'Cannabis Seed': { produces: 'Cannabis Leaf', yield: 3, actionsToGrow: 3, plantIn: ['homestead_field_west', 'homestead_field_east'] },
+                // Livestock (Tokelo: meat needs farmed animals somewhere). Each tending feeds them one of `feed`.
+                'Piglet':        { produces: 'Pork', yield: 3, actionsToGrow: 3, plantIn: ['homestead_sty'], feed: ['Potato', 'Cabbage', 'Apple', 'Barley', 'Wheat'], plantVerb: 'Settled', harvestVerb: 'Butchered' },
+                'Hen':           { produces: 'Egg', yield: 2, actionsToGrow: 2, plantIn: ['homestead_coop'], feed: ['Wheat', 'Barley', 'Cabbage'], keeps: true, plantVerb: 'Settled', harvestVerb: 'Collected' }
             }, recipeDefinitions: {
                 // Station recipes: offered by the place that makes them (Fenric's casks, the watermill, Oda's oven).
                 brew_briarwell_pale: { verb: 'Brewed', ingredients: { 'Barley': 2, 'Wild Hops': 1 }, output: 'Briarwell Pale' },
                 mill_rye_flour: { verb: 'Milled', ingredients: { 'Rye Sheaf': 1 }, output: 'Rye Flour' },
-                bake_rye_loaf: { verb: 'Baked', ingredients: { 'Rye Flour': 1, 'Sourdough Starter': 1 }, output: 'Shamefield Rye Loaf' }
+                bake_rye_loaf: { verb: 'Baked', ingredients: { 'Rye Flour': 1, 'Sourdough Starter': 1 }, output: 'Shamefield Rye Loaf' },
+                // The kitchen (2026-11-02). `station`: where it's offered (hearth: your homestead; oven: Oda; mill: the
+                // watermill; brewery: Brother Fenric, once Bread and Beer is done). `yield`: how many come out.
+                mill_flour:          { station: 'mill', verb: 'Milled', ingredients: { 'Wheat': 1 }, output: 'Flour', yield: 2 },
+                bake_broetchen:      { station: 'oven', verb: 'Baked', ingredients: { 'Flour': 1 }, output: 'Brötchen', yield: 3 },
+                bake_brezel:         { station: 'oven', verb: 'Baked', ingredients: { 'Flour': 1, 'Butter': 1 }, output: 'Brezel', yield: 2 },
+                brew_helles:         { station: 'brewery', verb: 'Brewed', ingredients: { 'Barley': 2, 'Wild Hops': 1 }, output: 'Helles', yield: 3 },
+                brew_dunkel:         { station: 'brewery', verb: 'Brewed', ingredients: { 'Barley': 3, 'Wild Hops': 1 }, output: 'Dunkel', yield: 3 },
+                brew_weizen:         { station: 'brewery', verb: 'Brewed', ingredients: { 'Wheat': 2, 'Wild Hops': 1 }, output: 'Weizen', yield: 3 },
+                cook_bratwurst:      { station: 'hearth', verb: 'Grilled', ingredients: { 'Pork': 1 }, output: 'Bratwurst', yield: 2 },
+                cook_leberkaese:     { station: 'hearth', verb: 'Baked', ingredients: { 'Pork': 1, 'Brötchen': 1 }, output: 'Leberkäsbrötchen' },
+                cook_mett:           { station: 'hearth', verb: 'Made', ingredients: { 'Pork': 1, 'Brötchen': 1, 'Onion': 1 }, output: 'Mettbrötchen', yield: 2 },
+                cook_schnitzel:      { station: 'hearth', verb: 'Fried', ingredients: { 'Pork': 1, 'Flour': 1, 'Egg': 1 }, output: 'Schnitzel' },
+                cook_jaegerschnitzel:{ station: 'hearth', verb: 'Fried', ingredients: { 'Pork': 1, 'Flour': 1, 'Egg': 1, 'Chanterelles': 2 }, output: 'Jägerschnitzel' },
+                cook_kaesespaetzle:  { station: 'hearth', verb: 'Baked', ingredients: { 'Flour': 1, 'Egg': 1, 'Cheese': 1, 'Onion': 1 }, output: 'Käsespätzle', yield: 2 },
+                cook_knoedel:        { station: 'hearth', verb: 'Boiled', ingredients: { 'Brötchen': 2, 'Fresh Milk': 1, 'Egg': 1 }, output: 'Semmelknödel', yield: 2 },
+                cook_sauerkraut:     { station: 'hearth', verb: 'Pickled', ingredients: { 'Cabbage': 2 }, output: 'Sauerkraut', yield: 3 },
+                cook_kartoffelsalat: { station: 'hearth', verb: 'Made', ingredients: { 'Potato': 2, 'Onion': 1 }, output: 'Kartoffelsalat', yield: 2 },
+                cook_pilzsuppe:      { station: 'hearth', verb: 'Cooked', ingredients: { 'Chanterelles': 2, 'Fresh Milk': 1 }, output: 'Pilzsuppe', yield: 2 },
+                cook_apfelstrudel:   { station: 'hearth', verb: 'Baked', ingredients: { 'Apple': 2, 'Flour': 1, 'Butter': 1 }, output: 'Apfelstrudel', yield: 2 },
+                cook_rattengulasch:  { station: 'hearth', verb: 'Stewed', ingredients: { 'Rat Meat': 2 }, output: 'Rattengulasch' },
+                cook_wolfsgulasch:   { station: 'hearth', verb: 'Stewed', ingredients: { 'Wolf Meat': 1, 'Wild Herbs': 1 }, output: 'Wolfsgulasch' },
+                bake_brownies:       { station: 'hearth', verb: 'Baked', ingredients: { 'Cannabis Leaf': 1, 'Flour': 1, 'Egg': 1, 'Butter': 1 }, output: "Shane's Brownie", yield: 2 }
+            }, forageDefinitions: {
+                // World objects of kind 'forage' (src/engine/kitchen.js): gathered, then back after regrowSeconds of calm time.
+                chanterelles: { item: 'Chanterelles', yield: 2, regrowSeconds: 150 },
+                wild_hops:    { item: 'Wild Hops', yield: 1, regrowSeconds: 120 },
+                apples:       { item: 'Apple', yield: 2, regrowSeconds: 180 },
+                wild_herbs:   { item: 'Wild Herbs', yield: 1, regrowSeconds: 120 }
             },
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
-            statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules
+            statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules, foodRules
         };
 
         const ENSO = global.ENSO || (global.ENSO = {});

@@ -625,6 +625,56 @@
             rect(g, px + 22, py + 12 + b, 2, 2, '#c07a74'); rect(g, px + 7, py + 16 + b, 1, 2, '#c07a74');
             for (const x of [10, 14, 18, 22]) rect(g, px + x, py + 24, 2, 3, '#a86a64');
         },
+        // The kitchen (2026-11-02): the homestead hearth and pens, and things you gather (all code-drawn).
+        cookfire(g, px, py, T, t) {
+            const f = Math.sin((t || 0) / 120) * 1.2;
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 25, 11, 3, 0, 0, Math.PI * 2); g.fill();
+            for (const [x, y] of [[6, 22], [10, 25], [16, 26], [22, 25], [26, 22]]) circle(g, px + x, py + y, 2.6, '#7a7468');
+            rect(g, px + 7, py + 4, 2, 20, '#3a2a1e'); rect(g, px + 23, py + 4, 2, 20, '#3a2a1e'); rect(g, px + 7, py + 4, 18, 2, '#3a2a1e');
+            g.fillStyle = '#e8902a'; g.beginPath(); g.moveTo(px + 11, py + 23); g.quadraticCurveTo(px + 16, py + 12 + f, px + 21, py + 23); g.fill();
+            g.fillStyle = '#f8d060'; g.beginPath(); g.moveTo(px + 13, py + 23); g.quadraticCurveTo(px + 16, py + 16 - f, px + 19, py + 23); g.fill();
+            rect(g, px + 15, py + 6, 1, 4, '#2a2a2e');
+            g.fillStyle = '#2a2a30'; g.beginPath(); g.ellipse(px + 16, py + 13, 6, 4, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 11, py + 9, 10, 2, '#4a4a52');
+            g.fillStyle = 'rgba(220,220,220,0.35)'; g.beginPath(); g.arc(px + 14 + f, py + 5, 2, 0, Math.PI * 2); g.arc(px + 17 - f, py + 1, 2.5, 0, Math.PI * 2); g.fill();
+        },
+        sty(g, px, py) {
+            rect(g, px + 2, py + 12, 28, 14, '#5a4632'); rect(g, px + 4, py + 14, 24, 10, '#6a5238');
+            for (const x of [2, 9, 16, 23, 28]) rect(g, px + x, py + 8, 2, 18, '#7a5a3a');
+            rect(g, px + 2, py + 10, 28, 2, '#8a6a44'); rect(g, px + 2, py + 17, 28, 2, '#8a6a44');
+            rect(g, px + 18, py + 21, 9, 3, '#4a3a2a'); rect(g, px + 19, py + 21, 7, 1, '#9a8a6a');
+        },
+        coop(g, px, py) {
+            rect(g, px + 8, py + 22, 2, 5, '#4a3a2a'); rect(g, px + 22, py + 22, 2, 5, '#4a3a2a');
+            rect(g, px + 6, py + 12, 20, 11, '#9a7a52'); rect(g, px + 6, py + 12, 20, 1, '#b8946a');
+            g.fillStyle = '#6a3a2a'; g.beginPath(); g.moveTo(px + 4, py + 13); g.lineTo(px + 16, py + 4); g.lineTo(px + 28, py + 13); g.fill();
+            rect(g, px + 13, py + 16, 6, 7, '#2a2018');
+            g.strokeStyle = '#7a5a3a'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 16, py + 23); g.lineTo(px + 22, py + 29); g.stroke();
+            circle(g, px + 25, py + 27, 2.4, '#e8e0d0'); rect(g, px + 26, py + 24, 1, 2, '#c03030');
+        },
+        mushrooms(g, px, py) {
+            for (const [x, y, r] of [[11, 21, 4], [18, 23, 3.4], [22, 19, 3], [14, 25, 2.6]]) {
+                rect(g, px + x - 1, py + y, 2, 4, '#efe2c0');
+                g.fillStyle = '#e0a020'; g.beginPath(); g.ellipse(px + x, py + y, r, r * 0.6, 0, Math.PI, 0); g.fill();
+                rect(g, px + x - r + 1, py + y - 1, r * 2 - 2, 1, '#f0c040');
+            }
+        },
+        hops(g, px, py) {
+            rect(g, px + 15, py + 4, 2, 24, '#6a5440');
+            g.strokeStyle = '#4a7a32'; g.lineWidth = 1.5; g.beginPath();
+            for (let y = 6; y < 27; y += 3) { g.moveTo(px + 16, py + y); g.lineTo(px + (y % 2 ? 10 : 22), py + y + 2); } g.stroke();
+            for (const [x, y] of [[11, 10], [21, 14], [11, 18], [21, 22], [12, 25]]) { g.fillStyle = '#9ac85a'; g.beginPath(); g.ellipse(px + x, py + y, 2.4, 3.2, 0, 0, Math.PI * 2); g.fill(); }
+        },
+        apples(g, px, py) {
+            for (const [x, y] of [[10, 22], [15, 24], [20, 21], [23, 25], [13, 19]]) { circle(g, px + x, py + y, 2.6, '#b8322a'); rect(g, px + x, py + y - 3, 1, 1, '#4a3a2a'); rect(g, px + x - 1, py + y - 1, 1, 1, '#e8786a'); }
+        },
+        herbs(g, px, py) {
+            for (const [x, h] of [[9, 8], [13, 11], [17, 9], [21, 12], [24, 7]]) {
+                rect(g, px + x, py + 26 - h, 1, h, '#4a7a3a');
+                circle(g, px + x, py + 26 - h, 2, x % 2 ? '#e8e0b0' : '#8a6ac0');
+                rect(g, px + x - 2, py + 24 - h / 2, 2, 1, '#5a9a4a'); rect(g, px + x + 1, py + 22 - h / 2, 2, 1, '#5a9a4a');
+            }
+        },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {

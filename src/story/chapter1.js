@@ -165,7 +165,7 @@
                 { id: 'favours', text: 'Help five Shamefield households', on: { type: 'quests', ids: ['SF1', 'SF2', 'SF3', 'SF4', 'SF5'], count: 5 } },
                 { id: 'report', text: 'Tell the Watch Captain you know the locals now', on: { type: 'story', id: 'locals_reported' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
-            onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }]
+            onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }, { item: 'Cheese', key: 'item:l01_cheese' }, { item: 'Fresh Milk', key: 'item:l01_milk' }]
         },
         // Bread and Beer: the first real use of planting and crafting (cropDefinitions / recipeDefinitions in src/data.js).
         SF1: {
@@ -183,7 +183,9 @@
                 { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } },
                 { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 3, y: 4 } }
             ],
-            onComplete: [{ flag: 'bread_and_beer' }]
+            // The kitchen (2026-11-02): dairy is a gift or a purchase. Oda and Merrow send you home with some.
+            onComplete: [{ flag: 'bread_and_beer' }, { say: 'Oda presses a jug of milk and a crock of butter on you. "For the next loaf. Make it yourself."' },
+                { item: 'Fresh Milk', key: 'item:sf1_milk' }, { item: 'Butter', key: 'item:sf1_butter' }]
         },
         SF2: {
             title: 'The Brown Hops', kind: 'side', xp: 15, candidate: true,
@@ -207,7 +209,8 @@
                 { id: 'church', text: 'Find Bishop, the big one, up by the church', on: { type: 'inspect', id: 'stray_pig_church' }, marker: { map: 'shamefield', x: 25, y: 4 } },
                 { id: 'greta', text: 'Tell Greta her pigs are on their way home', on: { type: 'story', id: 'greta_pigs' }, marker: { map: 'village_residential_lane', x: 19, y: 3 } }
             ],
-            onComplete: []
+            // The good sausage, and a hen to start your own coop (the kitchen, 2026-11-02).
+            onComplete: [{ item: 'Bratwurst', key: 'item:sf3_wurst_1' }, { item: 'Bratwurst', key: 'item:sf3_wurst_2' }, { item: 'Hen', key: 'item:sf3_hen' }]
         },
         SF4: {
             title: 'Singing at the Mill', kind: 'side', xp: 15, candidate: true,
@@ -218,7 +221,7 @@
                 { id: 'shade', text: 'Quiet whatever is singing under the falls', on: { type: 'defeat', id: 'mill_shade' }, marker: { map: 'shamefield', x: 6, y: 4 } },
                 { id: 'tamsin', text: 'Tell Tamsin the mill is quiet', on: { type: 'story', id: 'tamsin_mill' }, marker: { map: 'shamefield', x: 15, y: 12 } }
             ],
-            onComplete: [{ flag: 'mill_reopened' }]
+            onComplete: [{ flag: 'mill_reopened' }, { say: 'Tamsin sends a wedge of mountain cheese after you, wrapped in a cloth.' }, { item: 'Cheese', key: 'item:sf4_cheese' }]
         },
         SF5: {
             title: 'Names for the Bell', kind: 'side', xp: 10, candidate: true,
@@ -251,6 +254,50 @@
     // Shared bits of dialogue
     const shop = (id) => ({ text: 'What have you got?', say: 'What have you got for sale?', stay: true, effects: [{ shop: id }] });
     const met = { event: { type: 'story', id: 'met_shopkeeper' } };
+
+    // ------------------------------------------------------------- The kitchen (Tokelo, 2026-11-02)
+    // Built from the data (recipeDefinitions, cropDefinitions in src/data.js), so a new recipe or seed needs no story
+    // edit. A recipe shows up at its station only while you carry its ingredients; "What can I make here?" lists all.
+    const DATA = isNode ? require('../data.js') : ENSO.data;
+    const amount = (ings) => Object.entries(ings).map(([n, q]) => (q > 1 ? `${q} ${n}` : n)).join(', ');
+    const STATION_VERB = { hearth: 'Cook', oven: 'Bake', mill: 'Grind', brewery: 'Brew' };
+    const recipesAt = (station) => Object.entries(DATA.recipeDefinitions).filter(([, r]) => r.station === station);
+    const cook = (station, when) => recipesAt(station).map(([id, r]) => ({
+        text: `${STATION_VERB[station] || 'Make'} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output} (${amount(r.ingredients)})`,
+        if: { ...(when || {}), has: r.ingredients }, stay: true, effects: [{ craft: id }]
+    }));
+    const recipeBook = (station, when) => ({
+        text: 'What can I make here?', ...(when ? { if: when } : {}), stay: true,
+        effects: [{ say: recipesAt(station).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+    });
+    /** A homestead plot or pen: dig or build it, then plant, tend (feed) and harvest whatever its data allows. */
+    function plotStation(plotId, name, look, unbuilt, nouns) {
+        const crops = Object.entries(DATA.cropDefinitions).filter(([, c]) => (c.plantIn || []).includes(plotId));
+        const feed = [...new Set(crops.flatMap(([, c]) => c.feed || []))];
+        const tendText = feed.length ? `Feed them (${feed.join(', ')})` : nouns.tend;
+        return {
+            name, title: 'Your homestead',
+            talk: [{ if: { built: [plotId] }, node: 'plot' }, { node: 'unbuilt' }],
+            nodes: {
+                unbuilt: {
+                    lines: [[null, unbuilt]],
+                    effects: [{ construction: plotId }],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                plot: {
+                    lines: [[null, look]],
+                    choices: [
+                        ...crops.map(([seed]) => ({ text: `${nouns.plant} the ${seed}`, if: { items: [seed], plots: { [plotId]: 'empty' } }, stay: true, effects: [{ plant: { plot: plotId, seed } }] })),
+                        { text: tendText, if: { plots: { [plotId]: 'growing' }, ...(feed.length ? { any: feed.map((f) => ({ items: [f] })) } : {}) }, stay: true, effects: [{ tend: plotId }] },
+                        ...(feed.length ? [{ text: 'You have nothing to feed them.', if: { plots: { [plotId]: 'growing' }, notAny: feed }, stay: true, effects: [{ say: `They eat ${feed.join(', ')}. Grow some, or buy some.` }] }] : []),
+                        { text: nouns.harvest, if: { plots: { [plotId]: 'ready' } }, stay: true, effects: [{ harvest: plotId }] },
+                        { text: 'What grows here?', stay: true, effects: [{ say: crops.map(([seed, c]) => `${seed}: ${c.yield || 1} ${c.produces} after ${c.actionsToGrow} ${feed.length ? 'feedings' : 'tendings'}${c.keeps ? ', again and again' : ''}`).join('\n') }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                }
+            }
+        };
+    }
 
     const npcs = {
         // ------------------------------------------------------------- Elian, the road witness
@@ -571,7 +618,11 @@
                     ]
                 },
                 farm: {
-                    lines: [['npc', "Mend one field plot and I'll give you seed. Plant it, tend it, harvest it, and you'll have ingredients instead of excuses. Two of those and a pot make a remedy. Easy. Mostly."]],
+                    lines: [
+                        ['npc', "Mend one field plot and I'll give you seed. Plant it, tend it, harvest it, and you'll have ingredients instead of excuses. Two of those and a pot make a remedy. Easy. Mostly."],
+                        ['npc', "Here: potatoes, and a few of mine. Mine only grow on your own dirt, and only for people who don't ask what they are. Dry the leaves, bake them into a brownie. Medicinal. Extremely."]
+                    ],
+                    effects: [{ item: 'Seed Potato', key: 'item:shane_seed_potato' }, { item: 'Cannabis Seed', key: 'item:shane_cannabis_seed' }],
                     choices: [shop('shane')]
                 }
             }
@@ -653,6 +704,8 @@
                         { text: 'Brew a cask of Briarwell Pale (2 Barley, 1 Wild Hops)', say: "I've brought barley and hops. Shall we brew?", if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'brew_briarwell_pale' }] },
                         { text: 'Oda baked you this.', if: { quests: { SF1: 'active' }, items: ['Shamefield Rye Loaf'] }, effects: [{ removeItem: 'Shamefield Rye Loaf' }, { event: { type: 'story', id: 'fenric_loaf' } }], to: 'sf1_loaf' },
                         { text: "It was rats, nesting under the south wall. They're gone.", if: { quests: { SF2: 'active' }, flags: ['sf2_nest_cleared'] }, effects: [{ event: { type: 'story', id: 'fenric_rats' } }], to: 'sf2_done' },
+                        // After Bread and Beer, Fenric lets you brew with him (and sells his own).
+                        ...cook('brewery', { quests: { SF1: 'complete' } }), recipeBook('brewery', { quests: { SF1: 'complete' } }), shop('fenric'),
                         { text: 'What do you argue about?', to: 'bread' }, { text: 'The hops look sick at the end of the row.', to: 'hops' }, { text: 'Goodbye.', end: true }
                     ]
                 },
@@ -714,6 +767,7 @@
                         { text: 'The Captain says you and Fenric are at it again.', if: { quests: { SF1: 'available' } }, to: 'sf1_start' },
                         { text: 'Bake a rye loaf (1 Rye Flour, 1 Sourdough Starter)', say: 'May I use your oven?', if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'bake_rye_loaf' }] },
                         { text: 'Fenric brewed you this.', if: { quests: { SF1: 'active' }, items: ['Briarwell Pale'] }, effects: [{ removeItem: 'Briarwell Pale' }, { event: { type: 'story', id: 'oda_ale' } }], to: 'sf1_ale' },
+                        ...cook('oven'), recipeBook('oven'), shop('oda'),
                         { text: 'It smells wonderful.', to: 'crust' }, { text: 'What about the brewer?', to: 'brewer' }, { text: 'Goodbye.', end: true }
                     ]
                 },
@@ -749,6 +803,7 @@
                     choices: [
                         { text: 'The Captain says you have lost some pigs.', if: { quests: { SF3: 'available' } }, to: 'sf3_start' },
                         { text: 'Your pigs are on their way home.', if: { quests: { SF3: 'active' }, flags: ['pig_bridge_home', 'pig_houses_home', 'pig_church_home'] }, effects: [{ event: { type: 'story', id: 'greta_pigs' } }], to: 'sf3_done' },
+                        shop('greta'), { text: 'Could I keep a pig of my own?', to: 'livestock' },
                         { text: 'Business is good?', to: 'salt' }, { text: 'Goodbye.', end: true }
                     ]
                 },
@@ -763,6 +818,10 @@
                 sf3_done: {
                     lines: [[null, 'Three muddy pigs are already back in the pen, looking pleased with themselves.'], ['npc', "There they are. Not a word of apology between them. Here, you've earned the good sausage. Don't tell the Captain; he thinks he gets the good sausage."]],
                     choices: [{ text: 'Goodbye.', end: true }]
+                },
+                livestock: {
+                    lines: [['npc', "A piglet, a sty, and slops twice a day, and come winter you've pork. A hen's easier: grain, a dry coop, and she pays you in eggs for as long as you're kind to her. I'll sell you either. The sty you build yourself."]],
+                    choices: [shop('greta'), { text: 'Goodbye.', end: true }]
                 },
                 salt: {
                     lines: [['npc', "Good as the salt road. No salt, no smoking, no winter stores. The carts have come late all season. Bragg says it's the road. I say it's somebody on the road."]],
@@ -792,6 +851,29 @@
                 }
             }
         },
+        // The homestead kitchen and lot (2026-11-02): your own hearth, two fields, a pigsty and a hen coop.
+        homestead_hearth: {
+            name: 'Cooking hearth', title: 'Your homestead',
+            talk: [{ node: 'hearth' }],
+            nodes: {
+                hearth: {
+                    lines: [[null, 'A ring of stones, an iron hook and a blackened pot. Whatever you carry, it will cook.']],
+                    choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
+                }
+            }
+        },
+        homestead_field_west: plotStation('homestead_field_west', 'West field', 'Your west field: dug, raked and waiting.',
+            "A strip of old tilled soil gone to weeds. It would take an afternoon with a spade to make it a field again.",
+            { plant: 'Plant', tend: 'Water and weed', harvest: 'Harvest it' }),
+        homestead_field_east: plotStation('homestead_field_east', 'East field', 'Your east field: dug, raked and waiting.',
+            'More old tilled soil, under thistles. Dig it and it is a second field.',
+            { plant: 'Plant', tend: 'Water and weed', harvest: 'Harvest it' }),
+        homestead_sty: plotStation('homestead_sty', 'Pigsty', 'A mud wallow behind a stout fence, and a trough.',
+            "A tumbledown fence round a patch of mud. With timber and a trough it would hold a pig. (Greta Rusk sells piglets.)",
+            { plant: 'Put in', harvest: 'Take the pig to slaughter' }),
+        homestead_coop: plotStation('homestead_coop', 'Hen coop', 'A dry little coop on legs, straw inside, a ramp to the yard.',
+            'Planks and wire where a coop once stood. Mend it and it will keep hens. (Greta Rusk sells them.)',
+            { plant: 'Put in', harvest: 'Collect the eggs' }),
         watermill: {
             name: 'The old watermill', title: 'Shamefield',
             talk: [{ node: 'mill' }],
@@ -800,6 +882,7 @@
                     lines: [[null, 'The wheel still turns in the race, and the millstones grind whatever is poured into the hopper. Nobody has swept the floor since Old Hob.']],
                     choices: [
                         { text: 'Grind the rye into flour (1 Rye Sheaf)', if: { items: ['Rye Sheaf'] }, stay: true, effects: [{ craft: 'mill_rye_flour' }] },
+                        ...cook('mill'),
                         { text: 'Leave it.', end: true }
                     ]
                 }
@@ -918,7 +1001,7 @@
         ],
         start: { effects: [{ start: 'Q01' }] },
         // Merchant ids for Rook's shopDefinitions (CH1-04): mara, bragg, iona, shane. Construction: homestead_gate (CH1-05).
-        merchants: { mara: 'Mara', bragg: 'Bragg', iona: 'Iona', shane: 'Shane' },
+        merchants: { mara: 'Mara', bragg: 'Bragg', iona: 'Iona', shane: 'Shane', oda: 'Oda', greta: 'Greta', fenric: 'Fenric' },
         quests, npcs, triggers, anchors
     };
 
