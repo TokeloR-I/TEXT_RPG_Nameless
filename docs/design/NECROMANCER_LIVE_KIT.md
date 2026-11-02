@@ -30,11 +30,25 @@ A live audit (1 Nov 2026) found that several Necromancer skills were built for t
 | Wrath Ghost | +25% damage on your attacks and skills |
 | Siphon Ghost | +1 Soul Energy each pulse (every 2 s; once per round in turn mode) |
 | Swift Ghost | Haste 25%: skill cooldowns *and* your weapon swing run 25% faster |
-| Venom Ghost | Every hit you land applies Poison (2 per tick, 3 s) |
-| Rend Ghost | Every hit you land applies Bleed (2 per tick, 3 s) |
+| Venom Ghost | Every hit you land applies Poison (2 per tick, 3 s), **up to 2 stacks**; after that a hit only refreshes it |
+| Rend Ghost | Every hit you land applies Bleed (2 per tick, 3 s), **up to 2 stacks**; after that a hit only refreshes it |
 
 The ghosts are statuses on you (`ghost: true`), shown as wisps that circle you. Each ghost's duration is set in
 `realtimeRules.statuses.buffs`, and the pool is set on the skill's `channel_ghosts` effect, so Gauge can tune both in data.
+
+### Stack caps (Tokelo, 2 Nov 2026: "nerf Necro to add stack caps")
+
+The first benchmark run against the Crow Warden (level 3, 20 seeds, `qa/scripts/necro_warden.js`) found that the Venom and
+Rend ghosts made the Bone Warden kill the Warden in **24.5 s** (the target is 60 to 90 s). Live DoTs stack to 99 and tick faster
+per stack, and each hit added a stack, so the Warden had 10 or more stacks within about 6 s. Without those two ghosts, the fight took 74 s.
+
+The ghosts' on-hit DoTs now stack only to `dotStackCap` (2, on each pool entry). A capped source only refreshes after that. It
+never strips stacks that another source added. The cap is per source (`stackCap` on `applyStatus` / `applyDot` / `infect`),
+so Grave Bleed, Black Spit, Contagion and Plague of Ages are untouched.
+
+| Level 3 vs Crow Warden (20 seeds) | Before #209 | After #209 | With caps |
+|---|---|---|---|
+| Bone Warden | 84 s, 100% | 24.5 s, 100% | **68.4 s, 95%** (the one miss is a 240 s timeout, not a death) |
 
 ## Why Bone Cage (the research for the Shield of the Dead swap)
 

@@ -144,7 +144,7 @@
                             }
                         }
                         if (caster.isPlayer && actual > 0 && target.hp > 0) {   // Venom / Rend Ghost: your hits poison or bleed
-                            for (const st of caster.statusEffects.filter((x) => x.type === 'on_hit_dot')) this.applyDot(caster, target, { name: st.dot, value: st.value, duration: st.dotDuration || 1 });
+                            for (const st of caster.statusEffects.filter((x) => x.type === 'on_hit_dot')) this.applyDot(caster, target, { name: st.dot, value: st.value, duration: st.dotDuration || 1, stackCap: st.dotStackCap });
                         }
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);

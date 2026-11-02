@@ -252,8 +252,8 @@
                 { name: 'Wrath Ghost', type: 'damage_boost', value: 0.25, text: '+25% damage' },
                 { name: 'Siphon Ghost', type: 'resource_regen', value: 1, text: '+1 Soul Energy every pulse' },
                 { name: 'Swift Ghost', type: 'haste', value: 0.25, text: 'swings and cooldowns 25% faster' },
-                { name: 'Venom Ghost', type: 'on_hit_dot', dot: 'Poison', value: 2, dotDuration: 1, text: 'your hits poison' },
-                { name: 'Rend Ghost', type: 'on_hit_dot', dot: 'Bleed', value: 2, dotDuration: 1, text: 'your hits cause bleeding' }
+                { name: 'Venom Ghost', type: 'on_hit_dot', dot: 'Poison', value: 2, dotDuration: 1, dotStackCap: 2, text: 'your hits poison' },
+                { name: 'Rend Ghost', type: 'on_hit_dot', dot: 'Bleed', value: 2, dotDuration: 1, dotStackCap: 2, text: 'your hits cause bleeding' }
             ] }], target: 'self' },
 
             // Bone Warden Branch Skills
@@ -783,6 +783,7 @@
             minion: { actionSeconds: 2.5, referenceSpeed: 10, minSeconds: 1.2, maxSeconds: 5 },
             statuses: {
                 dotMaxStacks: 99,          // Bleed, Poison, Infection and every other 'dot' stack to 99 (Tokelo, 2026-10-25)
+                virulentTouchMaxStacks: 2, // Gauge (2026-11-02, Tokelo: "nerf Necro to add stack caps"): Virulent Touch basics stack Infection only this high, then refresh. Ghost on-hit DoTs use dotStackCap on the pool entry.
                 tickSeconds: 1,            // a DoT ticks every second at 1 stack...
                 perStackSpeedup: 0.02,     // ...and each stack above 1 shortens the tick: interval = tick / (1 + 0.02 x (stacks - 1))
                 minTickSeconds: 0.25,      // never faster than this
