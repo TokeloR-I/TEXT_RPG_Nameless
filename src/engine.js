@@ -191,8 +191,12 @@
         // =====================================================================
         // Output
         // =====================================================================
+        /** opts.notice tags a system line (quest, objective, xp, level, item, gold) so a graphical front end can
+         *  show it as a notification instead of inside a character's speech. The text game prints it as before. */
         say(text, opts = {}) {
-            this.out.push({ type: 'text', text: String(text), important: !!opts.important, html: !!opts.html });
+            const ev = { type: 'text', text: String(text), important: !!opts.important, html: !!opts.html };
+            if (opts.notice) ev.notice = String(opts.notice);
+            this.out.push(ev);
         }
         clear() { this.out.push({ type: 'clear' }); }
         flush() { const events = this.out; this.out = []; return events; }

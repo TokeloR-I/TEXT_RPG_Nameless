@@ -71,7 +71,7 @@ test('merchant UI: menu selection buys, refreshes feedback and returns to dialog
         engine: g, els: { dialog: root }, esc: String, menu: null,
         makeMenu: (items, options) => ({ items, index: 0, ...options }),
         menuHtml: () => '<ul class="shop-goods"></ul>', bindMenuClicks: () => {},
-        updateHud: () => updates++, renderTalk: (_, conversationOnly) => { back = conversationOnly; }
+        updateHud: () => updates++, renderTalk: (_, conversationOnly) => { back = conversationOnly; }, stopTyping: () => {}
     };
     vm.createContext(context);
     vm.runInContext(source.slice(start, end), context);
