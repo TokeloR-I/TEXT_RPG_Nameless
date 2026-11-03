@@ -21,6 +21,8 @@ collision, exits and where each thing stands, and the scene paints what the tile
 
 | `overgrown_road` | `road` (Zone 1) | Tokelo's reference (2026-11-01), painted in `ui/scene-road.js`: a bright crossroads in a green wood. The stream down the west side between mossy boulders, with a waterfall at each end and the plank bridge carrying the west track over it; a travellers' camp (stained canvas tent, campfire under a cooking pot, barrel, crate, log seat, lantern posts); three crow banners on posts with hanging lanterns; broken stone walls with ivy (NE and SE, a small one SW); the stone arch on a quiet corner to the east; the covered wagon left by the east track; the signpost at the crossing; green trees with a few red-leaved ones, bushes, stumps, flowers and reeds. Animated: falling water, the campfire and its smoke, lantern flicker. |
 
+| `kloster` | `briarwell_cloister_court` (Chapter One, above Shamefield) | Tokelo's reference (2026-11-03, "Kloster Sankt Alban"), painted in `ui/scene-kloster.js`: a walled German monastery (Kloster, not a cloister walk). The abbey church with buttresses, pinnacles, lit lancets and a rose window over the great door; the bell tower with its bell; the cloister garth (Kreuzgang) with arcades, hedged rose beds, cypresses and a fountain with a cross; the monks' cells; the refectory; the abbot's house with a cross gable; the cemetery behind a low wall; the herb garden and hop poles; the timber brewery with its copper kettle and fire; the storehouse and woodpile; round corner towers on the curtain wall; the gatehouse with two towers, banners and a cross; a field with a scarecrow outside. Animated: torches, the brewing fire, chimney smoke, the fountain. |
+
 Tile names the homestead adds (map `legend`): `tilled_soil`, `drystone_wall`, `dock`, `footbridge`, `cart`, `stump`,
 `bush`, `anvil`.
 
@@ -38,3 +40,9 @@ after `ui/scene-art.js` in `world.html`, and in `tools/preview-scene.js` and the
 
 To give another map a scene: add a function to `scenes` in `ui/scene-art.js` (reuse the painters there), set
 `scene` on the map, and preview it.
+
+Tile names the Kloster adds (its map `legend`): `flagstones`, `gate` (walkable; the gatehouse hangs over it), `kloster_wall` (curtain wall:
+a front face in a row, a wall walk seen from above in a column), `wall_tower`, `gatehouse`, `abbey_church`, `bell_tower`, `monks_cells`
+(a range seen along its ridge), `refectory`, `abbots_house`, `brewery`, `storehouse` (ranges seen from the front), `arcade` (the
+cloister walk; a flagstone gap in the south arcade is the way into the garth and the roof hangs over it), `hedge_bed`, `cypress`,
+`cloister_fountain`, `herb_bed`, `hop_trellis`, `grave`, `grave_cross`, `low_wall`, `woodpile`, `bench`, `crops`, `scarecrow`.

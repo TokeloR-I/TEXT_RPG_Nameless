@@ -1244,8 +1244,8 @@
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
             'Small Coin Purse': { type: 'consumable', use: 'gold', value: 6, sellable: false, description: 'A few coins from an earlier life.' },
             // Shamefield locals (2026-11-02). Quest goods: bound, unsellable, so they add nothing to the economy.
-            'Barley Seed':         { type: 'quest', bound: true, sellable: false, description: 'A twist of seed barley from the cloister granary.' },
-            'Barley':              { type: 'quest', bound: true, sellable: false, description: 'Barley from your own bed in the cloister garden.' },
+            'Barley Seed':         { type: 'quest', bound: true, sellable: false, description: 'A twist of seed barley from the Kloster granary.' },
+            'Barley':              { type: 'quest', bound: true, sellable: false, description: 'Barley from your own bed in the Kloster herb garden.' },
             'Wild Hops':           { type: 'quest', bound: true, sellable: false, description: 'Green, sticky and bitter. Healthy, unlike Fenric\'s.' },
             'Rye Sheaf':           { type: 'quest', bound: true, sellable: false, description: 'Rye from the field behind the square.' },
             'Rye Flour':           { type: 'quest', bound: true, sellable: false, description: 'Coarse and grey, straight off the millstone.' },
@@ -2012,7 +2012,7 @@
                 // Orin's next job once the gate is up (Tokelo, 2026-11-03). Placeholder price for Gauge to tune.
                 homestead_walls: { name: 'Homestead Walls', goldCost: 40, materials: {}, requires: ['homestead_gate'] },
                 // Bread and Beer (Shamefield locals, Tokelo 2026-11-02): the first real use of planting and crafting.
-                // Sister Merrow lends a bed in the cloister garden; digging it is free, like the gate.
+                // Sister Merrow lends a bed in the Kloster herb garden; digging it is free, like the gate.
                 briarwell_bed: { name: 'Briarwell garden bed', verb: 'Dig', goldCost: 0, materials: {} },
                 // Your own lot at the homestead (the kitchen, 2026-11-02): two fields, a pigsty and a hen coop.
                 homestead_field_west: { name: 'west field', verb: 'Dig', goldCost: 0, materials: {} },
