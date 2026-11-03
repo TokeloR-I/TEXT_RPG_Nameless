@@ -667,7 +667,7 @@
         // ------------------------------------------------------------- Orin Vale, mason (after the seal)
         orin: {
             name: 'Orin Vale', title: 'Mason',
-            talk: [{ if: { flags: ['orin_met'] }, node: 'again' }, { node: 'first' }],
+            talk: [{ if: { built: ['homestead_gate'] }, node: 'walls' }, { if: { flags: ['orin_met'] }, node: 'again' }, { node: 'first' }],
             nodes: {
                 first: {
                     lines: [
@@ -687,6 +687,12 @@
                 again: {
                     lines: [['npc', 'The gate first. Then we\'ll talk about walls.']],
                     effects: [{ construction: 'homestead_gate' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                // After the gate (Tokelo, 2026-11-03): the walls are the next page of the ledger. DRAFT lines.
+                walls: {
+                    lines: [['npc', 'A gate with no wall is a polite suggestion. Next, the walls. Stone I can find. Coin you can find.']],
+                    effects: [{ construction: 'homestead_walls' }],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
@@ -832,6 +838,59 @@
 
         // ------------------------------------------------------------- Stations (world objects of kind 'station')
         // Places, not people: their choices run the homestead rules (plant / tend / harvest / craft) and story events.
+        // The homestead (Tokelo, 2026-11-03): the gate you mend with Orin makes the house safe. Then the bed heals
+        // you fully and the old chest keeps what you don't want to carry. DRAFT lines.
+        homestead_gate: {
+            name: 'The gate', title: 'The Homestead',
+            talk: [{ if: { built: ['homestead_gate'] }, node: 'mended' }, { node: 'broken' }],
+            nodes: {
+                broken: {
+                    lines: [[null, 'The gate in the old fence has rotted off its hinges. Anything could walk in and out. Nobody sleeps soundly behind a gate like this.']],
+                    choices: [
+                        { text: 'Mend it with Orin\'s ledger', if: { flags: ['orin_met'] }, stay: true, effects: [{ construction: 'homestead_gate' }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                },
+                mended: {
+                    lines: [[null, 'New oak on old hinges, a bar across, a latch that holds. The homestead is shut to whatever walks the road at night.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                }
+            }
+        },
+        home_bed: {
+            name: 'Made bed', title: 'The Homestead',
+            talk: [{ if: { built: ['homestead_gate'] }, node: 'safe' }, { node: 'unsafe' }],
+            nodes: {
+                unsafe: {
+                    lines: [[null, 'The blanket is pulled tight, the corners tucked. Someone made this bed with care and never slept in it again.'],
+                        [null, 'With the gate hanging open, you would not close your eyes here.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                safe: {
+                    lines: [[null, 'The bed is dry now, and the gate is barred. Here, at least, you can sleep.']],
+                    choices: [
+                        { text: 'Sleep until morning (restores all HP and resource)', effects: [{ rest: true }], end: true },
+                        { text: 'Leave it.', end: true }
+                    ]
+                }
+            }
+        },
+        home_chest: {
+            name: 'Travelling chest', title: 'The Homestead',
+            talk: [{ if: { built: ['homestead_gate'] }, node: 'stash' }, { node: 'shut' }],
+            nodes: {
+                shut: {
+                    lines: [[null, 'A chest packed and strapped shut for a journey. It never left the hallway.'],
+                        [null, 'Anything you left in it now would be gone by morning. Not with that gate.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                stash: {
+                    lines: [[null, 'You unbuckle the straps. With the gate barred, what you leave here will still be here when you come back.']],
+                    effects: [{ stash: true }],
+                    choices: [{ text: 'Close the chest.', end: true }]
+                }
+            }
+        },
         briarwell_bed: {
             name: 'Garden bed', title: 'Briarwell Cloister',
             talk: [{ if: { built: ['briarwell_bed'] }, node: 'bed' }, { node: 'unturned' }],

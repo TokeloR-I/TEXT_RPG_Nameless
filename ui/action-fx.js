@@ -504,6 +504,22 @@
             p(-1, -1, '#5a9a30', 3); p(0, -1, '#eaffb0');
             for (let i = 1; i <= 4; i++) p(-i * 2 - 1, (i % 2) + Math.floor(now / 90 + i) % 2, i < 3 ? '#9ade4a' : '#3c7a28');
         },
+        shuriken(p, c, s, now) {         // a spinning four-point star, steel with a dark centre (ninja rework)
+            const a = (Math.floor(now / 40) % 2);
+            p(0, 0, '#2a2a34'); p(a ? 1 : 0, a ? -1 : -2, '#d8dce8'); p(a ? -1 : 0, a ? 1 : 2, '#d8dce8'); p(a ? -2 : -1, a ? -1 : 0, '#d8dce8'); p(a ? 1 : 2, a ? 1 : 0, '#d8dce8');
+            p(-3, 0, '#8a8ea0'); p(-5, 0, '#5a5e70');
+        },
+        bomb(p, c, s, now) {             // a round black bomb, fuse spitting sparks
+            p(-1, -1, '#1a1a20', 4); p(0, -1, '#4a4a58'); p(2, -3, '#8a6440');
+            const f = Math.floor(now / 60) % 3;
+            p(3, -4 - (f === 1 ? 1 : 0), f ? '#ffd060' : '#ff7a20'); if (f === 2) p(4, -5, '#fff4a0');
+            p(-4, 0, '#3a3a44'); p(-6, 1, '#2a2a30');
+        },
+        flask(p, c, s, now) {            // a stoppered glass flask of green venom, tumbling
+            const t = Math.floor(now / 80) % 2;
+            p(-1, -1, '#3c7a28', 3); p(0, 0, '#9ade4a'); p(t ? 2 : 1, t ? -1 : -2, '#c8b890'); p(-1, 1, '#eaffb0');
+            p(-4, 0, '#5a9a30'); p(-6, t ? 1 : -1, '#3c7a28');
+        },
         feather(p, c, s, now) {          // the Crow Warden's feather: black vane, a lighter rachis, flutter
             const w = Math.sin(now / 60) * 1.2;
             for (let i = -4; i <= 3; i++) { p(i, w * (i / 4), '#141018'); if (i > -3 && i < 3) { p(i, w * (i / 4) - 1, '#2a2430'); p(i, w * (i / 4) + 1, '#2a2430'); } }
@@ -587,7 +603,48 @@
     // Original 64px, eight-direction enemy frames are preferred at native resolution.
     // Older 64px battle and 32px map painters remain the unknown-enemy fallback.
     const SCALE_HD = 0.5;                       // 64px HD painters at half size: about the height of the 64px-frame player
+    // Rogue ninja kit (2026-11-02): the shadow bodies (clone, hound, stag), code-drawn on a 32 px box, feet at (16, 28).
+    const sRect = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    const sCircle = (g, x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+    const SHADOW_BODIES = {
+        // Ink-black with a violet rim and pale eyes; they smoke at the edges.
+        shadow_clone(g, px, py, t) {   // the rogue's silhouette: hood, scarf tail, short blade
+            const b = Math.sin(t / 180) * 0.8, f = Math.floor(t / 90) % 3;
+            g.fillStyle = 'rgba(40,10,60,0.35)'; g.beginPath(); g.ellipse(px + 16, py + 28, 8, 3, 0, 0, Math.PI * 2); g.fill();
+            sRect(g, px + 12, py + 20, 3, 8, '#140c1c'); sRect(g, px + 17, py + 20, 3, 8, '#140c1c');
+            g.fillStyle = '#1c1228'; g.beginPath(); g.moveTo(px + 11, py + 22 + b); g.lineTo(px + 21, py + 22 + b); g.lineTo(px + 22, py + 13 + b); g.lineTo(px + 19, py + 11 + b); g.lineTo(px + 13, py + 11 + b); g.lineTo(px + 10, py + 13 + b); g.fill();
+            sCircle(g, px + 16, py + 8 + b, 5, '#221632');
+            sRect(g, px + 13, py + 7 + b, 6, 2, '#0a0610'); sRect(g, px + 14, py + 7 + b, 1, 1, '#d8c8ff'); sRect(g, px + 17, py + 7 + b, 1, 1, '#d8c8ff');
+            g.strokeStyle = '#3a2458'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 12, py + 12 + b); g.lineTo(px + 6 - f, py + 15 + b + f); g.stroke();   // scarf tail
+            sRect(g, px + 22, py + 14 + b, 6, 1, '#9a88c8');   // the blade
+            sRect(g, px + 11, py + 6 + b, 1, 4, '#6a4aa8'); sRect(g, px + 10, py + 12 + b, 1, 9, '#5a3a98');   // a violet rim on the lit side
+            sRect(g, px + 14, py + 3 + b, 4, 1, '#4a3478');
+            for (let i = 0; i < 3; i++) sRect(g, px + 9 + ((i * 7 + f * 3) % 14), py + 24 - ((i * 5 + f * 2) % 8), 1, 1, '#5a3a88');   // smoke motes
+        },
+        shadow_hound(g, px, py, t) {   // a low hound of ink with a ragged smoke tail and violet eyes
+            const b = Math.sin(t / 140) * 0.8, f = Math.floor(t / 110) % 2;
+            g.fillStyle = 'rgba(40,10,60,0.35)'; g.beginPath(); g.ellipse(px + 16, py + 28, 11, 3, 0, 0, Math.PI * 2); g.fill();
+            sRect(g, px + 9, py + 21, 2, 7 - f, '#120a1a'); sRect(g, px + 21, py + 21, 2, 6 + f, '#120a1a');
+            g.fillStyle = '#1a1024'; g.beginPath(); g.ellipse(px + 15, py + 18 + b, 9, 5, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#221432'; g.beginPath(); g.moveTo(px + 21, py + 13 + b); g.lineTo(px + 30, py + 17 + b); g.lineTo(px + 21, py + 20 + b); g.fill();
+            g.fillStyle = '#1a1024'; g.beginPath(); g.moveTo(px + 21, py + 13 + b); g.lineTo(px + 23, py + 8 + b); g.lineTo(px + 25, py + 14 + b); g.fill();
+            sRect(g, px + 25, py + 15 + b, 2, 1, '#c8a0ff');
+            g.strokeStyle = 'rgba(90,58,136,0.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 6, py + 17 + b); g.lineTo(px + 2, py + 13 + b + f); g.lineTo(px - 1, py + 15 + b - f); g.stroke();
+        },
+        shadow_stag(g, px, py, t) {   // a tall stag of shadow, antlers like bare branches
+            const b = Math.sin(t / 260) * 0.8;
+            g.fillStyle = 'rgba(40,10,60,0.35)'; g.beginPath(); g.ellipse(px + 16, py + 28, 12, 3.5, 0, 0, Math.PI * 2); g.fill();
+            for (const x of [8, 11, 20, 23]) sRect(g, px + x, py + 18, 2, 10, '#120a1a');
+            g.fillStyle = '#1c1228'; g.beginPath(); g.ellipse(px + 15, py + 16 + b, 10, 5, 0, 0, Math.PI * 2); g.fill();
+            sRect(g, px + 22, py + 6 + b, 4, 9, '#221632'); sRect(g, px + 24, py + 6 + b, 6, 3, '#221632');
+            g.strokeStyle = '#4a3070'; g.lineWidth = 1;
+            g.beginPath(); g.moveTo(px + 24, py + 6 + b); g.lineTo(px + 21, py + 0 + b); g.lineTo(px + 18, py - 2 + b); g.moveTo(px + 22, py + 2 + b); g.lineTo(px + 24, py - 2 + b);
+            g.moveTo(px + 26, py + 6 + b); g.lineTo(px + 29, py + 0 + b); g.lineTo(px + 32, py - 2 + b); g.moveTo(px + 28, py + 2 + b); g.lineTo(px + 27, py - 2 + b); g.stroke();
+            sRect(g, px + 27, py + 7 + b, 1, 1, '#d8c8ff');
+        },
+    };
     function painterFor(enemyKey, style, pose = {}) {
+        if (SHADOW_BODIES[enemyKey]) return { draw: (g, t) => SHADOW_BODIES[enemyKey](g, 0, 0, t), box: 32, feet: [16, 28], scale: 1 };
         const art = ENSO.enemySprites;
         if (art && art.keys.includes(enemyKey)) {
             return { draw: (g) => art.draw(g, enemyKey, pose), box: art.frame.w,
@@ -718,6 +775,10 @@
             [6, -16, 2, 7, '#48563e'], [-3, -5, 3, 5, '#5a6a50'], [1, -5, 3, 5, '#4a5a42']]
     };
     BONES.skeleton_champion = BONES.skeleton;
+    // Shadow bodies (rogue ninja kit) don't fall apart: they come loose as ink and smoke.
+    BONES.shadow_clone = [[-4, -24, 8, 6, '#221632'], [-5, -17, 10, 6, '#1c1228'], [-4, -11, 8, 4, '#3a2458'], [-3, -6, 2, 6, '#140c1c'], [1, -6, 2, 6, '#140c1c'], [6, -14, 5, 1, '#9a88c8']];
+    BONES.shadow_hound = [[-6, -12, 10, 5, '#1a1024'], [4, -14, 6, 4, '#221432'], [-7, -7, 2, 5, '#120a1a'], [5, -7, 2, 5, '#120a1a'], [-10, -12, 4, 2, '#5a3a88']];
+    BONES.shadow_stag = [[-6, -14, 12, 5, '#1c1228'], [6, -22, 4, 9, '#221632'], [6, -26, 6, 2, '#4a3070'], [-7, -9, 2, 9, '#120a1a'], [4, -9, 2, 9, '#120a1a']];
     const CRUMBLE_MS = 1600;
     /**
      * crumble(g, enemyKey, x, y, t): a dead or dismissed summon at feet (x, y), t ms after it fell. The pieces drop

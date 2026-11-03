@@ -675,6 +675,25 @@
                 rect(g, px + x - 2, py + 24 - h / 2, 2, 1, '#5a9a4a'); rect(g, px + x + 1, py + 22 - h / 2, 2, 1, '#5a9a4a');
             }
         },
+        // The homestead gate (Tokelo, 2026-11-03): hanging off its hinges, then mended once Orin's first job is built.
+        broken_gate(g, px, py) {
+            rect(g, px + 1, py + 6, 4, 22, '#4a3626'); rect(g, px + 1, py + 6, 4, 2, '#6a5040');      // the posts still stand
+            rect(g, px + 27, py + 6, 4, 22, '#4a3626'); rect(g, px + 27, py + 6, 4, 2, '#6a5040');
+            g.save(); g.translate(px + 6, py + 26); g.rotate(-0.5);                                    // one leaf in the weeds
+            rect(g, 0, -4, 16, 4, '#6a5440'); rect(g, 0, -12, 16, 3, '#5a4632'); rect(g, 3, -13, 2, 13, '#4a3626');
+            g.restore();
+            rect(g, px + 22, py + 22, 6, 3, '#5a4632'); rect(g, px + 5, py + 9, 3, 2, '#3a2a1e');      // a snapped rail, a bare hinge
+        },
+        mended_gate(g, px, py) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(px + 2, py + 27, 28, 2);
+            rect(g, px + 1, py + 4, 4, 24, '#4a3626'); rect(g, px + 1, py + 4, 4, 2, '#7a6044');
+            rect(g, px + 27, py + 4, 4, 24, '#4a3626'); rect(g, px + 27, py + 4, 4, 2, '#7a6044');
+            for (let x = 6; x < 26; x += 4) { rect(g, px + x, py + 9, 3, 18, '#8a6a48'); rect(g, px + x, py + 9, 1, 18, '#a0805a'); }
+            rect(g, px + 5, py + 11, 22, 3, '#6a5036'); rect(g, px + 5, py + 21, 22, 3, '#6a5036');      // rails
+            g.strokeStyle = '#6a5036'; g.lineWidth = 2; g.beginPath(); g.moveTo(px + 7, py + 21); g.lineTo(px + 25, py + 13); g.stroke();
+            rect(g, px + 4, py + 11, 3, 2, '#9a9aa2'); rect(g, px + 4, py + 22, 3, 2, '#9a9aa2');       // new iron hinges
+            rect(g, px + 24, py + 16, 4, 3, '#9a9aa2');                                                  // the latch
+        },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {

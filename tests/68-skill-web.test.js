@@ -48,7 +48,7 @@ test('Skill Web: a new character owns its heart and starting skills for free and
     assert.strictEqual(node(g, 'warrior.war_cry').state, 'available');
     assert.strictEqual(node(g, 'heart.rogue').reason.code, 'NOT_CONNECTED');   // another class's web: only through a gateway
     assert.strictEqual(node(g, 'vanguard.1.skill').reason.code, 'LEVEL_TOO_LOW');
-    assert.strictEqual(node(g, 'rogue.backstab').reason.code, 'NOT_CONNECTED');
+    assert.strictEqual(node(g, 'rogue.shuriken_volley').reason.code, 'NOT_CONNECTED');
 });
 
 test('Skill Web: choosing a path at level 3 evolves exactly as the old trees did (skills, traits, title, resource)', () => {
@@ -75,7 +75,7 @@ test('Skill Web: choosing a path at level 3 evolves exactly as the old trees did
 
 test('Skill Web: the existing evolutions still come out the same for every class (Bone Warden, Plaguecaller, Soulbinder…)', () => {
     for (const [cls, path, title, skill] of [['necromancer', 'bone warden', 'Bone Warden', 'Bone Wall'], ['necromancer', 'plaguecaller', 'Plaguecaller', 'Contagion'],
-        ['rogue', 'assassin', 'Assassin', 'Shadowstep'], ['mage', 'chronomancer', 'Chronomancer', 'haste']]) {
+        ['rogue', 'assassin', 'Assassin', 'Shadow Hounds'], ['mage', 'chronomancer', 'Chronomancer', 'haste']]) {
         const g = newGame().do(cls, 'add_xp 250', path);
         assert.strictEqual(g.progression.evolutionName, title, cls + path);
         assert.ok(g.player.skills.includes(skill), skill);
@@ -93,32 +93,32 @@ test('Skill Web: a warrior crosses a gateway into the rogue web, uses its skills
     levelTo(g, 5);                                              // the guide learns Whirlwind (Ravager)
     g.do('guide off');
     levelTo(g, 10);                                             // five free points
-    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Flurry' }).error.code, 'NOT_CONNECTED');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Blade Focus' }).error.code, 'NOT_CONNECTED');
     let r = g.act({ type: 'learn_node', nodeId: 'gate.blade_frenzy' });
     assert.ok(r.ok, JSON.stringify(r.error));
     assert.strictEqual(g.getSkillWeb().points, 3);              // a gateway costs 2
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'flurry' }).ok);   // by name, any case
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'blade focus' }).ok);   // by name, any case
     assert.ok(g.getSkillWeb().webs.find((w) => w.classId === 'rogue').entered);
     // Inside the rogue web its nodes link as usual: back down the Duelist path.
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Riposte deals +50% dmg' }).ok);
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Riposte' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Follow-Up Cut' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Iaido Draw' }).ok);
     assert.strictEqual(g.progression.branch, 'berserker');    // learning does not change who you are
     assert.deepStrictEqual(g.getSkillWeb().specializations.map((x) => x.branchId).sort(), ['berserker', 'duelist']);
     assert.ok(g.act({ type: 'set_specialization', branchId: 'duelist' }).ok);
-    assert.strictEqual(g.progression.evolutionName, 'Duelist');
-    assert.strictEqual(g.player.resource.type, 'Combo Points');
+    assert.strictEqual(g.progression.evolutionName, 'Ronin');
+    assert.strictEqual(g.player.resource.type, 'Energy');   // ninja rework: the rogue paths run on Energy
     assert.ok(g.act({ type: 'set_specialization', branchId: 'Berserker' }).ok);
     assert.strictEqual(g.player.resource.type, 'Fury Gauge');
     assert.strictEqual(g.act({ type: 'set_specialization', branchId: 'soulbinder' }).error.code, 'SPEC_LOCKED');
     // The borrowed skill sits on the skill bar and works in a fight, paid from the warrior's pool.
-    assert.ok(g.skillBarView().some((x) => x.skillId === 'Flurry'));
+    assert.ok(g.skillBarView().some((x) => x.skillId === 'Blade Focus'));
     g.do('engage');
     assert.strictEqual(g.mode, 'combat');
     g.player.resource.current = 5;
-    const opt = g.getAvailableActions().actions.find((a) => a.skillId === 'Flurry');
+    const opt = g.getAvailableActions().actions.find((a) => a.skillId === 'Blade Focus');
     assert.ok(opt.enabled, JSON.stringify(opt.reason));
     assert.strictEqual(opt.resource, 'Fury Gauge');
-    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Backstab' }).error.code, 'IN_COMBAT');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Shuriken Volley' }).error.code, 'IN_COMBAT');
     assertHealthy(g);
 });
 
@@ -127,7 +127,7 @@ test('Skill Web: a gateway only opens from its own web; the other class cannot u
     levelTo(g, 8);
     g.do('guide off');
     levelTo(g, 10);
-    assert.ok(node(g, 'duelist.2.skill').owned);               // Flurry: the far end of the warrior's Blade Frenzy gateway
+    assert.ok(node(g, 'duelist.2.skill').owned);               // Blade Focus: the far end of the warrior's Blade Frenzy gateway
     assert.strictEqual(node(g, 'gate.blade_frenzy').reason.code, 'NOT_CONNECTED');
     assert.strictEqual(node(g, 'berserker.2.skill').reason.code, 'NOT_CONNECTED');
     assert.strictEqual(node(g, 'gate.tempo').reason.code, 'NOT_CONNECTED');       // the mage's gateway into the rogue web
@@ -179,8 +179,8 @@ test('Skill Web: text commands show the web and learn by name', () => {
     assert.match(g.text(), /War Cry \(skill, 1 pt\)/);
     g.do('learn war cry');
     assert.ok(g.player.skills.includes('War Cry'));
-    g.do('learn backstab');
-    assert.match(g.text(), /Backstab isn't connected/);
+    g.do('learn shuriken volley');
+    assert.match(g.text(), /Shuriken Volley isn't connected/);
 });
 
 test('Skill Web: the Hollow King stands outside the web', () => {
@@ -231,8 +231,8 @@ test('Skill Web: "walk freely" at level 3 leaves every point to the player and n
     levelTo(g, 5);
     assert.strictEqual(g.mode, 'explore');                       // no second prompt
     assert.strictEqual(g.getSkillWeb().points, 4);              // nothing spent for the player
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Shadowstep' }).ok);
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Caltrops' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Shadow Hounds' }).ok);
+    assert.ok(g.act({ type: 'learn_node', nodeId: 'Fire Bomb' }).ok);
     assert.strictEqual(g.progression.branch, null);              // no stage one complete yet
 });
 

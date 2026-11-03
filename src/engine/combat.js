@@ -38,7 +38,8 @@
             }
 
             for (const e of enemies) this.say(`${cap(this.withArticle(e))} appears! (HP: ${e.hp})`);
-            if (this.combatMode === 'realtime' || this.combatMode === 'action') { this.rtBegin(); return; }   // combat v2 (src/engine/realtime.js)
+            if (this.combatMode === 'realtime' || this.combatMode === 'action') { this.rtBegin(); this.fightOpeners(); return; }   // combat v2 (src/engine/realtime.js)
+            this.fightOpeners();
             this.newRound();
             this.say('--- Battle Order ---', { important: true });
             for (const c of this.combat.order) this.say(`${c.name} (SPD: ${this.speedOf(c)})`);
@@ -196,6 +197,16 @@
             return this.turnSkipped(actor); // skip_turn statuses, unless CR protection keeps this turn (statuses.js)
         }
 
+        /** Traits that act the moment a fight starts. Born of Shadow (Assassin ascended): Evasion is already up. */
+        fightOpeners() {
+            const p = this.player;
+            if (!p || !this.hasTrait('Born of Shadow')) return;
+            const fx = ((this.data.skillDefinitions.Evasion || {}).effects || []).find((x) => x.type === 'dodge_chance');
+            const value = fx ? fx.value + (fx.persistent && this.hasTrait('Shadow Veil') ? 0.15 : 0) : 0;
+            if (fx && this.applyStatus(p, p, { name: 'Evasion', type: 'dodge', value, duration: fx.duration, ...(fx.persistent ? { persistent: true } : {}) }))
+                this.say('Born of Shadow: you start the fight already hard to hit.');
+        }
+
         resourceRule() { return (this.data.resourceRules || {})[this.player.resource.type] || {}; }
 
         resourceEvent(event, amount = 1, label = '') {
@@ -210,6 +221,7 @@
             const trap = c.traps.shift();
             if (!trap) return;
             this.say(`${enemy.name} steps on your ${trap.name}!`, { important: true });
+            if (trap.blast) { this.castSkill(this.player, trap.blast, [enemy]); return; }   // Explosive Caltrops (turn and v2 fights)
             this.applyDot(this.player, enemy, { name: trap.dot.charAt(0).toUpperCase() + trap.dot.slice(1), value: trap.value, duration: trap.duration });
         }
 
@@ -370,14 +382,15 @@
             const blind = this.statusOfType(attacker, 'blind');
             if (blind && this.rng() < this.intensity(blind)) {
                 this.say(`${attacker.name} swings blindly and misses ${target.name}!`);
+                if (target.isPlayer) this.playerEvaded('blind');
                 return false;
             }
             const dodge = this.statusOfType(target, 'dodge');
             if (dodge) {
-                this.consumeStatusStack(target, dodge);
+                if (!dodge.persistent) this.consumeStatusStack(target, dodge);   // Evasion (ninja) rolls for every attack while it lasts
                 if (this.rng() < dodge.value) {
                     this.say(`${attacker.name} attacks — but ${target.name} ${dodge.name === 'Mirror Image' ? 'was an illusion' : 'dodges'}! (${dodge.name})`, { important: true });
-                    if (target.isPlayer) this.resourceEvent('onDodge', 1, 'dodge');
+                    if (target.isPlayer) { this.resourceEvent('onDodge', 1, 'dodge'); this.playerEvaded('dodge'); }
                     this.counterAttack(target, attacker);
                     return false;
                 }
@@ -392,6 +405,12 @@
                 return false;
             }
             return true;
+        }
+
+        /** An attack on the player missed (blind or a dodge buff). Action fights show it (EVADE); Shadow Veil pays Energy. */
+        playerEvaded(why) {
+            if (this.combat) this.combat.lastEvade = why;
+            if (this.hasTrait('Shadow Veil') && this.gainResource(this.player, 1) > 0) this.say(`Shadow Veil: +1 ${this.player.resource.type}.`);
         }
 
         /** Riposte (any holder): answer the attacker with your basic attack, boosted. */

@@ -1691,7 +1691,9 @@
             case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); break;
             case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); break;
-            case 'aoe': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius }, now); break;
+            case 'aoe': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
+            case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
+            case 'mines': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'physical' }, now); break;
             case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); break;
             case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); break;
             case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); break;
@@ -1703,6 +1705,7 @@
             case 'resolve_end': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true', shake: 1 }, now); break;
             case 'crow_mark': notice(ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!', 'quest'); break;
             case 'crow_dive': afx.spawn('hit', { x: ev.x, y: ev.y - 4, damageType: 'shadow', shake: 1 }, now); break;
+            case 'illusion_pop': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'shadow' }, now); break;
             case 'crow_storm': afx.spawn('aoe', { x: P.x, y: P.y, radius: 6, damageType: 'shadow', shake: 3 }, now); break;
             case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
             case 'notice': toast(ev.text); break;
@@ -1766,6 +1769,16 @@
         })));
     }
 
+    /** Explosive Caltrops: a spiked iron charge on the ground; its fuse glows once armed and blinks in its last 3 s. */
+    function drawMine(g, m, time) {
+        const x = Math.round(m.x), y = Math.round(m.y);
+        g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 3, y + 1, 7, 2);
+        g.fillStyle = '#3a3a44'; g.fillRect(x - 2, y - 2, 5, 4);
+        g.fillStyle = '#8a8ea0'; g.fillRect(x, y - 4, 1, 2); g.fillRect(x - 4, y, 2, 1); g.fillRect(x + 3, y, 2, 1); g.fillRect(x, y + 2, 1, 1);   // spikes
+        const blink = m.leftMs < 3000 && Math.floor(time / 150) % 2;
+        if (m.armed && !blink) { g.fillStyle = Math.floor(time / 300) % 2 ? '#ff7a20' : '#ffd060'; g.fillRect(x, y - 1, 1, 1); }
+    }
+
     /** Channel the Grave's ghosts, tinted by what they give (damage red, Soul Energy violet, speed cyan, poison green, bleed crimson). */
     const GHOST_TINT = { damage_boost: '#ffb0a0', resource_regen: '#d6b8ff', haste: '#b8f4ff', on_hit_dot: '#c8ffb0' };
 
@@ -1803,6 +1816,7 @@
             }
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
+            for (const m of sim.view().mines || []) drawMine(g, m, ctx.time);   // Explosive Caltrops
         });
         // Over the bodies: the player's swing, projectiles, sparks and numbers.
         renderer.addHook('foreground', (g, ctx) => {

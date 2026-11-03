@@ -31,7 +31,7 @@
     // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
     // touch its own HP and resource. A skill with any other handled effect works in a fight only.
     const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
-        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn', 'channel_ghosts']);
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'extra_turn', 'channel_ghosts', 'self_buff']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
@@ -277,11 +277,15 @@
                     this.player.statusEffects.push(guard);
                     this.say('You take it on your guard.');
                 }
+                c.lastEvade = null;
                 try { this.castSkill(e, skill, [target]); } finally {
                     for (const s of [guard, heavy]) if (s) { const i = target.statusEffects.indexOf(s); if (i >= 0) target.statusEffects.splice(i, 1); }
                 }
+                const evaded = target === this.player && c.lastEvade;   // Evasion or a blinded swing: it reached you and missed
+                c.lastEvade = null;
                 end();
                 this.checkBattleEnd();
+                if (evaded) return { result: 'evaded', why: evaded };
                 return { result: guard ? 'guarded' : 'hit' };
             });
         }
@@ -330,6 +334,46 @@
             });
         }
 
+        /**
+         * Crow's Illusion (Tokelo, 2026-11-02): `count` copies of an engaged enemy join its group. They look and hit
+         * exactly like it (same name, stats and skills) but have `hp` HP, give no XP or loot, and vanish when the
+         * real one falls (actionCheckEnd). Returns their ids.
+         */
+        actionSpawnIllusions(enemyId, { count = 4, hp = 2 } = {}) {
+            return this.actionRun(() => {
+                const e = this.actionEnemy(enemyId);
+                if (!e) return null;
+                const c = this.combat, a = c.action, g = a.groups[e.encounterId];
+                if (!g) { this.refuse('NOT_ENGAGED', `${e.name} isn't in a group.`); return null; }
+                const n = Math.max(0, Math.min(8, count | 0));
+                const clones = this.buildEnemies(Array(n).fill(e.key), `illusion:${e.encounterId}`, null, a.nextEnemyId).map((x) => Object.assign(x, {
+                    hp: hp, maxHp: hp, illusion: true, illusionOf: e.id, lootEligible: false, noLoot: true, xp: 0, encounterId: e.encounterId
+                }));
+                a.nextEnemyId += n;
+                c.enemies.push(...clones);
+                g.ids.push(...clones.map((x) => x.id));
+                this.say(`${cap(this.withArticle(e))} bursts into crows... and ${n + 1} of him step out of the flock!`, { important: true });
+                this.out.push({ type: 'action.illusions', enemyId: e.id, ids: clones.map((x) => x.id) });
+                return { ids: clones.map((x) => x.id) };
+            });
+        }
+
+        /** The illusions of `enemyId` (or every illusion) scatter: they leave the fight without a death. */
+        actionDispelIllusions(enemyId = null) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                const gone = this.actionDropIllusions(enemyId);
+                if (gone) this.say('The false Wardens scatter into crows.');
+                return { dispelled: gone };
+            });
+        }
+        actionDropIllusions(enemyId = null) {
+            const c = this.combat;
+            const gone = c.enemies.filter((x) => x.illusion && x.hp > 0 && (enemyId == null || x.illusionOf === enemyId));
+            for (const x of gone) { x.hp = 0; delete c.action.windups[x.id]; }
+            return gone.length;
+        }
+
         /** damage() hook: an active stance scales what the enemy takes; the fraction carries so small ticks lose 20% too. */
         actionStanceScale(target, amount) {
             const st = target && target.actionStance;
@@ -362,6 +406,7 @@
             for (const id of Object.keys(c.action.groups)) {
                 const g = c.action.groups[id];
                 const members = c.enemies.filter((e) => g.ids.includes(e.id));
+                for (const e of members) if (!e.illusion && e.hp <= 0) this.actionDropIllusions(e.id);   // the real one fell: his copies go with him
                 if (members.some((e) => e.hp > 0)) continue;
                 this.actionClearGroup(g, members);
             }
@@ -378,7 +423,8 @@
             this.world.defeated.push(g.encounterId);
             this.world.lastEncounter = g.encounterId;
             this.world.lastResult = 'victory';
-            this.say(`You defeated ${members.length > 1 ? 'them' : this.withArticle(members[0])} and gained ${xp} XP!`, { important: true });
+            const real = members.filter((e) => !e.illusion);
+            this.say(`You defeated ${real.length > 1 ? 'them' : this.withArticle(real[0] || members[0])} and gained ${xp} XP!`, { important: true });
             this.out.push({ type: 'action.cleared', encounterId: g.encounterId, xp });
             this.addExperience(xp, { quiet: true });
             this.storyEvent({ type: 'defeat', id: g.encounterId });
@@ -433,7 +479,7 @@
          */
         actionKeepFollowers(c) {
             if (!this.world) return;
-            this.world.followers = this.alive(c.minions).filter((m) => !m.ghoul).map((m) => ({ ...m, statusEffects: [] }));   // a ghoul's job ends with the fight
+            this.world.followers = this.alive(c.minions).filter((m) => !m.ghoul && !m.timed).map((m) => ({ ...m, statusEffects: [] }));   // a ghoul's job ends with the fight, and shadows fade with it
         }
 
         /** A new fight starts: your followers join it with the ids they had (their bodies don't change). */
@@ -458,6 +504,27 @@
                 for (const m of f) this.say(`Your ${m.name} crumbles to dust.`);
                 this.out.push({ type: 'action.followers_gone', ids: f.map((m) => m.id) });
                 return { ids: f.map((m) => m.id) };
+            });
+        }
+
+        /**
+         * Explosive Caltrops (ninja rework 2026-11-02): one of the charges the sim laid blew up. `targetIds`: engaged
+         * enemies inside its blast (the one that stepped on it first). The skill was paid when the charges were laid.
+         */
+        actionMineBlast(skillName, targetIds = []) {
+            return this.actionRun(() => {
+                if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
+                if (!this.player.skills.includes(skillName)) { this.refuse('SKILL_NOT_KNOWN', `You don't know '${skillName}'.`); return null; }
+                const blast = this.mineBlastSkill(skillName);
+                if (!blast) { this.refuse('INVALID_TARGET', `'${skillName}' lays no charges.`); return null; }
+                const c = this.combat;
+                const living = this.alive(c.enemies);
+                const targets = (Array.isArray(targetIds) ? targetIds : []).map((id) => living.find((e) => e.id === id && e.encounterId && c.action.groups[e.encounterId])).filter(Boolean);
+                if (!targets.length) return { hit: [] };
+                this.say(`A spiked charge explodes under ${targets[0].name}!`, { important: true });
+                this.castSkill(this.player, blast, targets);
+                this.checkBattleEnd();
+                return { hit: targets.map((t) => t.id) };
             });
         }
 

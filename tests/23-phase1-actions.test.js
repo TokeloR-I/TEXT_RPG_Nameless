@@ -1,7 +1,7 @@
 // Phase 1, slice 2: getAvailableActions() + act() (architecture/PHASE1_ENGINE_INTERFACE_SPEC.md §4, §6A, §8;
 // authorized in #64). Invariants checked here: I2 JSON safety, I9 pure availability, I10 availability agrees
 // with act(), I12 parser equivalence, I15 liveness, I17 world isolation, C11 transactions.
-const { test, assert, GameEngine, data, newGame } = require('./helpers.js');
+const { test, assert, GameEngine, data, newGame, gameWith } = require('./helpers.js');
 
 const texts = (events) => events.filter((e) => e.type === 'text').map((e) => e.text);
 /** An independent copy of a game (same data, same RNG state), for trying actions without touching the original. */
@@ -228,9 +228,10 @@ test('Phase 1: Shield Bash availability carries the QA-2/QA-16 stun notes withou
 });
 
 test('Phase 1: Assassinate is checked per target (too healthy on one enemy, allowed on another)', () => {
-    const g = newGame(1).do('rogue', 'add_xp 2000', 'assassin', 'n', 'engage');
-    const name = Object.keys(data.skillDefinitions).find((k) => (data.skillDefinitions[k].effects || []).some((e) => e.type === 'execute_below' || e.threshold));
-    if (!name) return;
+    // The ninja Assassinate (2026-11-02) no longer refuses; the per-target check is kept alive with the legacy execute.
+    const g = gameWith((d) => { d.skillDefinitions['Legacy Assassinate'] = { description: 'If target <20% HP, kill instantly.', cost: 3, resource: 'Energy', effects: [{ type: 'instant_kill_if_low_hp', threshold: 0.2 }], target: 'enemy_single', damage_type: 'true' }; }, 1)
+        .do('rogue', 'add_xp 2000', 'assassin', 'n', 'engage');
+    const name = 'Legacy Assassinate';
     if (!g.player.skills.includes(name)) g.player.skills.push(name);
     g.player.resource.current = g.player.resource.max = 99;
     g.combat.enemies[1].hp = 1;

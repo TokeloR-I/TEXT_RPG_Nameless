@@ -21,29 +21,36 @@ test('Mirror Image: the next hit always misses', () => {
     assert.match(g.text(), /was an illusion/);
 });
 
-test('Assassin: Stealth Tokens come from dodges', () => {
-    const g = newGame().do('rogue', 'add_xp 250', 'assassin', 'engage');
-    assert.strictEqual(g.player.resource.type, 'Stealth Tokens');
-    assert.strictEqual(g.player.resource.regen, 0);
-    g.player.hp = 9999;
-    g.player.resource.current = 0;
-    g.player.skills.push('Evasion');
-    g.rng = () => 0;
-    g.do('evasion');
-    assert.match(g.text(), /\+1 Stealth Tokens \(dodge\)/);
+test('Ninja rework: every rogue path runs on Energy (no branch pool)', () => {
+    for (const br of ['assassin', 'duelist', 'saboteur']) {
+        const g = newGame().do('rogue', 'add_xp 250', br, 'engage');
+        assert.strictEqual(g.player.resource.type, 'Energy', br);
+    }
 });
 
-test('Duelist: Combo Points from basic attacks, Riposte counters', () => {
-    const g = newGame().do('rogue', 'add_xp 250', 'duelist', 'engage');
-    assert.strictEqual(g.player.resource.type, 'Combo Points');
+test('Assassin: Shadow Veil pays +1 Energy for every attack you evade', () => {
+    const g = newGame().do('rogue', 'add_xp 250', 'assassin', 'engage');
+    assert.ok(g.hasTrait('Shadow Veil'));
     g.player.hp = 9999;
-    g.player.resource.current = 0;
+    g.player.resource.current = 5;
+    g.rng = () => 0;
+    g.do('evasion');
+    assert.match(g.text(), /dodges! \(Evasion\)/);
+    assert.match(g.text(), /Shadow Veil: \+1 Energy/);
+});
+
+test('Ronin: Follow-Up Cut swings a second cut through armour after a weapon hit; Riposte counters', () => {
+    const g = newGame().do('rogue', 'add_xp 250', 'duelist', 'engage');
+    assert.ok(g.hasTrait('Follow-Up Cut'));
+    g.player.hp = 9999;
+    g.rng = () => 0.1;   // under the 30% chance
     g.do('attack 1');
-    assert.match(g.text(), /\+1 Combo Points \(combo\)/);
+    assert.match(g.text(), /Rogue uses Follow-Up Cut on James Newton/);
+    g.player.skills.push('Riposte');
+    g.player.resource.current = 10;
     g.do('riposte');
     assert.match(g.text(), /Riposte! Rogue counters James Newton/);
 });
-
 test('Shadowstep: next hit is a guaranteed crit', () => {
     const g = hallway('rogue', 'Shadowstep');
     g.rng = () => 0.99; // no natural crits
@@ -61,15 +68,26 @@ test('Garrote: silenced enemies fall back to a basic attack', () => {
     assert.match(g.text(), /James Newton uses Basic Attack/);
 });
 
-test('Assassinate: refused above 20% HP (free), kills below', () => {
+test('Assassinate (ninja rework): never an instant kill; double damage under 30% HP', () => {
     const g = tanky('rogue', 'Assassinate');
-    const res = g.player.resource.current;
+    g.rng = () => 0.5;
+    const e = g.combat.enemies[0];
+    e.def = 0;
+    e.hp = e.maxHp;
+    g.player.resource.current = 10;
     g.do('assassinate');
-    assert.match(g.text(), /too healthy to assassinate/);
-    assert.strictEqual(g.player.resource.current, res);
-    g.combat.enemies[0].hp = 100;
-    g.do('assassinate');
-    assert.match(g.text(), /VICTORY/);
+    const healthyHit = e.maxHp - e.hp;
+    assert.ok(healthyHit > 0 && e.hp > 0, 'a healthy target takes a normal cut');
+    const g2 = tanky('rogue', 'Assassinate');
+    g2.rng = () => 0.5;
+    const e2 = g2.combat.enemies[0];
+    e2.def = 0;
+    e2.hp = Math.floor(e2.maxHp * 0.25);
+    const before = e2.hp;
+    g2.player.resource.current = 10;
+    g2.do('assassinate');
+    assert.match(g2.text(), /cuts deep/);
+    assert.ok(before - Math.max(0, e2.hp) >= Math.min(before, healthyHit * 2 - 1), 'doubled under 30%');
 });
 
 test('Caltrops: all enemies slowed 50%', () => {

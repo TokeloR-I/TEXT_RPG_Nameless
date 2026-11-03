@@ -92,6 +92,7 @@
                 guarding: false, guardSince: null, hurtUntil: 0, sprinting: false
             };
             this.projectiles = [];
+            this.mines = [];
             this.groups = {};
             this.actors = [];
             this.minions = [];        // the player's summons: bodies for combat.minions (and world.followers between fights)
@@ -223,6 +224,7 @@
             for (const m of this.minions) this.stepMinion(m);
             this.stepFollowerTimer();
             this.stepProjectiles();
+            this.stepMines();
             if (!this.engaged && e.actionCalmRegen) this.collect(e.actionCalmRegen(STEP));   // out of a fight your skill resource refills
             this.separate();
             this.checkDrops();
@@ -275,7 +277,7 @@
                     if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp }); }
                     Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
                     const b = this.bossOf(a);
-                    if (b && b.phases) {   // boss phases by HP: a new phase opens with its signature move
+                    if (b && b.phases && !a.illusionOf) {   // boss phases by HP: a new phase opens with its signature move
                         const idx = b.phases.reduce((k, x, i) => (en.hp / en.maxHp <= x.fromHpPct + 1e-9 ? i : k), 0);
                         if (idx > a.phaseIdx) {
                             for (let n = a.phaseIdx + 1; n <= idx; n++) if (b.resolve && b.resolve.atPhase === n + 1 && !a.resolveUsed) this.beginResolve(a, b.resolve);   // once per fight
@@ -286,6 +288,9 @@
                         }
                     }
                     if (a.resolve) this.stepResolve(a);
+                    const ill = b && b.illusion;
+                    if (ill && !a.illusionOf && !a.illusionUsed && en.hp > 0 && en.hp / en.maxHp <= ill.atHpPct + 1e-9) this.castIllusion(a, ill);
+                    if (a.illusionUntil && this.now >= a.illusionUntil) { a.illusionUntil = null; this.collect(this.engine.actionDispelIllusions(a.engineId).events); }
                     if (en.hp <= 0) this.kill(a);
                 }
             }
@@ -302,6 +307,7 @@
         kill(a) {
             if (a.dead) return;
             a.dead = true; a.deadAt = this.now; a.state = 'dead'; a.windup = null;
+            if (a.illusionOf) { this.fx.push({ type: 'illusion_pop', x: a.x, y: a.y }); return; }   // a false Warden bursts into crows
             this.fx.push({ type: 'death', x: a.x, y: a.y, key: a.key });
         }
 
@@ -318,8 +324,9 @@
         resetGroup(g) {
             g.engaged = false;
             g.reengageAt = this.now + 1500;
+            this.actors = this.actors.filter((x) => !(x.illusionOf && x.encounterId === g.encounterId));   // the false Wardens are gone
             for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -329,6 +336,7 @@
             for (const a of this.actors) if (!a.dead) { a.x = a.homeX; a.y = a.homeY; a.state = 'idle'; }
             this.projectiles = [];
             this.minions = [];
+            this.mines = [];
             const s = this.session;
             s.x = this.entry.x; s.y = this.entry.y;
             const p = this.player;
@@ -508,6 +516,7 @@
             if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
             const shape = r.shape || {};
             if (shape.shape === 'summon') this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
+            if (r.resolved) this.layMines(r.skill, shape);   // Explosive Caltrops: the charges land where you aim
             // Haste (Swift Ghost, Time Mage): the weapon's swing runs faster too, not just skill cooldowns
             const haste = slot == null && e.rtHasteMult ? e.rtHasteMult(e.player) : 1;
             const startup = Math.round((shape.startupMs != null ? shape.startupMs : (shape.castMs || 150)) * haste);
@@ -635,7 +644,8 @@
             const s = at.shape;
             const kind = s.shape || s.kind || 'arc';
             if (kind === 'projectile') {
-                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane' });
+                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
+                    burst: s.burstRadius || 0, burstKind: s.burstKind || 'fire' });   // a bomb or flask bursts where it lands (Saboteur)
                 return;
             }
             if (at.cosmetic) {   // out of a fight: the shape shows, nothing is hit
@@ -805,6 +815,7 @@
         bossOf(a) { return (this.rules.bosses || {})[a.key] || null; }
         bossPhase(a) {
             const b = this.bossOf(a);
+            if (a.illusionOf) a = a.illusionOf;   // a false Warden fights in the real one's phase (his 2-hit sweep)
             if (!b || !b.phases || a.hp == null || !a.maxHp) return null;
             let ph = null;   // a later phase keeps what an earlier one set (phase 3 still sweeps twice) unless it says otherwise
             for (const x of b.phases) if (a.hp / a.maxHp <= x.fromHpPct + 1e-9) ph = { ...(ph || {}), ...x };
@@ -813,10 +824,12 @@
         /** Every attack this enemy can use right now: its table, or the boss's current phase. */
         attacksOf(a) {
             const b = this.bossOf(a);
+            if (b && b.attacks && a.illusionOf) return ((b.illusion || {}).attacks || ['halberd_sweep']).filter((n) => b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));   // a false Warden swings, it doesn't call crows
             if (b && b.attacks) {
                 let names = Object.keys(b.attacks), drop = [];
                 for (const x of b.phases || []) if (a.hp != null && a.maxHp && a.hp / a.maxHp <= x.fromHpPct + 1e-9) { if (x.attacks) names = x.attacks; if (x.drop) drop = drop.concat(x.drop); }
-                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n] }));
+                const over = (this.bossPhase(a) || {}).attackOverrides || {};   // a phase can speed a move up (phase 3 crows)
+                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n], ...(over[n] || {}) }));
             }
             const pr = a.prof;
             if (Array.isArray(pr.attacks) && pr.attacks.length) return pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
@@ -867,6 +880,13 @@
             this.collect(r.events);
             if (!r.ok) { a.attackReadyAt = this.now + 300; return; }
             const b = this.bossOf(a);
+            if (step === 0 && atk.chain && !atk.combo) {   // a crow storm chain: 2-3 patterns back to back, then the usual recovery
+                const c = atk.chain, n = c.min + Math.floor(this.rng() * (c.max - c.min + 1));
+                atk = { ...atk, combo: Array.from({ length: n }, (_, i) => ({
+                    ...(i ? { windupMs: c.windupMs, markRider: c.markRider || null } : {}),
+                    ...(i < n - 1 ? { recoveryMs: c.gapMs } : {})
+                })) };
+            }
             const st = atk.combo ? { ...atk, ...atk.combo[step] } : atk;
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
@@ -874,16 +894,16 @@
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
-            const foe = st.shape === 'mark' ? this.markTarget(a) : this.foeOf(a);
+            const foe = st.shape === 'mark' || st.markRider ? this.markTarget(a) : this.foeOf(a);
             a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;
             if (step === 0) a.lastWasSpecial = atk.cooldownMs >= 5000;
-            if (step === 0 && atk.quietMs) {   // a crow storm: no other crow special right after it (your window to hit back)
+            if (atk.quietMs) {   // counted from the last storm of a chain   // a crow storm: no other crow special right after it (your window to hit back)
                 for (const x of this.attacksOf(a)) if (x.cooldownMs >= 5000 && x.name !== atk.name) a.atkReady[x.name] = Math.max(a.atkReady[x.name] || 0, this.now + windup + atk.quietMs);
             }
             a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
-            if (st.shape === 'mark') { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
+            if (st.shape === 'mark' || st.markRider) { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
             if (st.shape === 'arena') a.windup.storm = this.nextStorm(a);
         }
 
@@ -930,6 +950,47 @@
             this.fx.push({ type: 'notice', text: 'The Warden staggers!' });
         }
 
+        /**
+         * Crow's Illusion (Tokelo, 2026-11-02): once, at `atHpPct`, he bursts into crows and steps out as one of
+         * count + 1 identical Wardens on a ring around the arena's middle. The copies have 2 HP and hit as hard as he
+         * does; hit one and it bursts. They scatter after `ms`, or when he falls.
+         */
+        castIllusion(a, cfg) {
+            a.illusionUsed = true;
+            const r = this.engine.actionSpawnIllusions(a.engineId, { count: cfg.count || 4, hp: cfg.hp || 2 });
+            this.collect(r.events);
+            if (!r.ok) return;
+            const ar = (this.bossOf(a) || {}).arena || {};
+            const c = ar.home || { x: a.homeX, y: a.homeY };
+            const n = r.ids.length + 1, ring = cfg.ringPx || 80, off = this.rng() * 2 * Math.PI;
+            const spots = [];
+            for (let i = 0; i < n; i++) {
+                const ang = off + (i / n) * 2 * Math.PI;
+                let x = c.x + Math.cos(ang) * ring, y = c.y + Math.sin(ang) * ring;
+                if (this.bodyBlocked(x, y, a.r)) { x = c.x + Math.cos(ang) * ring * 0.5; y = c.y + Math.sin(ang) * ring * 0.5; }
+                if (this.bodyBlocked(x, y, a.r)) { x = a.x; y = a.y; }
+                spots.push({ x, y });
+            }
+            for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(this.rng() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }   // which spot is real is a coin toss
+            this.fx.push({ type: 'illusion_pop', x: a.x, y: a.y });
+            Object.assign(a, { x: spots[0].x, y: spots[0].y, state: 'recover', stateEnd: this.now + (cfg.revealMs || 600), windup: null });
+            delete this.engine.combat.action.windups[a.engineId];
+            a.attackReadyAt = this.now + (cfg.revealMs || 600) + 400;
+            r.ids.forEach((id, i) => {
+                const sp = spots[i + 1];
+                this.actors.push({
+                    sid: `${a.encounterId}#illusion${id}`, encounterId: a.encounterId, index: a.index, key: a.key, engineId: id, prof: a.prof, illusionOf: a,
+                    x: sp.x, y: sp.y, homeX: a.homeX, homeY: a.homeY, r: a.r, angle: a.angle,
+                    state: 'recover', stateEnd: this.now + (cfg.revealMs || 600), nextThinkAt: 0, attackReadyAt: this.now + (cfg.revealMs || 600) + 400 + this.rng() * 900, path: null, repathAt: 0,
+                    wanderTo: null, hp: null, maxHp: null, stunned: false, speedMult: 1, dead: false, deadAt: 0,
+                    windup: null, hurtUntil: 0, name: a.name, atkReady: {}, openWith: null, phaseIdx: a.phaseIdx, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: null
+                });
+            });
+            for (const s of spots) this.fx.push({ type: 'illusion_pop', x: s.x, y: s.y });
+            a.illusionUntil = cfg.ms ? this.now + cfg.ms : null;
+            this.fx.push({ type: 'notice', text: "Crow's Illusion: which Warden is real?" });
+        }
+
         /** Marked Prey picks its prey: with summons out it alternates between one of them (the one on him) and you. */
         markTarget(a) {
             const mins = this.liveMinions().filter((m) => m.state !== 'rise');
@@ -942,7 +1003,7 @@
         /** The mark follows its prey until lockMs before the dive, then stays where it was. */
         trackMark(a) {
             const w = a.windup, m = w.mark;
-            const lock = w.atk.lockMs != null ? w.atk.lockMs : 500;
+            const lock = w.atk.markRider ? (w.atk.markRider.lockMs ?? 450) : w.atk.lockMs != null ? w.atk.lockMs : 500;
             const prey = this.liveBody(w.foe);
             if (this.now >= a.stateEnd - lock || !prey) { m.locked = true; return; }
             m.x = prey.x; m.y = prey.y;
@@ -978,7 +1039,12 @@
             const st = (a.windup && a.windup.atk) || this.attacksOf(a)[0];
             const kind = st.shape || 'arc';
             if (kind === 'mark') { const m = (a.windup && a.windup.mark) || { x: a.x, y: a.y }; return { kind: 'circle', x: m.x, y: m.y, radius: st.radius || 22 }; }
-            if (kind === 'arena') return { kind: 'multi', shapes: (a.windup && a.windup.storm && a.windup.storm.shapes) || [] };
+            if (kind === 'arena') {
+                const shapes = ((a.windup && a.windup.storm && a.windup.storm.shapes) || []).slice();
+                const m = a.windup && a.windup.mark;
+                if (m && st.markRider) shapes.push({ kind: 'circle', x: m.x, y: m.y, radius: st.markRider.radius || 22 });   // the crow on you lands with the storm
+                return { kind: 'multi', shapes };
+            }
             if (kind === 'ground') return { kind: 'multi', shapes: (a.windup && a.windup.circles || []).map((c) => ({ kind: 'circle', x: c.x, y: c.y, radius: st.radius || 20 })) };
             if (kind === 'projectile') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: st.reach || 100, width: st.width || 6 };
             if (kind === 'line') return { kind: 'line', x: a.x, y: a.y, angle: a.angle, length: (st.reach || 20) + (st.lunge && !(st.reach > st.lunge) ? st.lunge : 0), width: st.width || 10 };
@@ -999,7 +1065,7 @@
             }
             const touches = (b) => (w.shape.kind === 'multi' ? w.shape.shapes.some((c) => this.inShape(c, b)) : this.inShape(w.shape, b));
             this.strikeBodies(a, touches, st);
-            if (st.shape === 'mark') for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.shape.x + (i - 1) * 6, y: w.shape.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
+            if (w.mark) for (let i = 0; i < (st.count || 3); i++) this.fx.push({ type: 'crow_dive', x: w.mark.x + (i - 1) * 6, y: w.mark.y + (i % 2 ? -4 : 3), delayMs: i * 60 });
             if (st.shape === 'arena') this.fx.push({ type: 'crow_storm', name: w.storm && w.storm.name });
             if (w.shape.kind === 'multi' || w.shape.kind === 'circle') for (const c of (w.shape.shapes || [w.shape])) this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: c.radius });
         }
@@ -1017,7 +1083,8 @@
             a.state = 'recover';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + rec;
-            a.attackReadyAt = a.stateEnd + (b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700);
+            const gap = a.illusionOf && b.illusion && b.illusion.attackGapMs != null ? b.illusion.attackGapMs : b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700;
+            a.attackReadyAt = a.stateEnd + gap;
         }
 
         enemyLunge(a, dt) {
@@ -1061,6 +1128,7 @@
             const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1, targetId: this.engine.player.id });
             this.collect(r.events);
             if (!r.ok) return;
+            if (r.result === 'evaded') { this.fx.push({ type: 'evade', x: p.x, y: p.y, why: r.why }); return; }   // Evasion or a blinded swing: no flinch
             if (r.result === 'parried') { this.fx.push({ type: 'parry', x: p.x, y: p.y }); return; }
             if (r.result === 'guarded') {
                 p.stamina = Math.max(0, p.stamina - (st.blockCost || g.staminaPerHit || 14) * (g.staminaMult ?? 1));
@@ -1193,8 +1261,9 @@
             for (const sh of Object.values(by)) if (sh.minions && sh.minions[type]) return sh.minions[type];   // March's champion
             for (const [name, sh] of Object.entries(by)) {
                 if (!sh.minion) continue;
-                if (sh.minion.attack) first = first || sh.minion;   // a fighter's profile is the fallback (not the ghoul's)
-                if (((defs[name] || {}).effects || []).some((x) => x.summon_type === type && (x.type === 'summon' || x.type === 'ghoul_shield'))) return sh.minion;
+                const fx = (defs[name] || {}).effects || [];
+                if (sh.minion.attack && fx.some((x) => x.type === 'summon')) first = first || sh.minion;   // a raised fighter's profile is the fallback (not the ghoul's or a shadow's)
+                if (fx.some((x) => x.summon_type === type && (x.type === 'summon' || x.type === 'ghoul_shield' || x.type === 'shadow_summon'))) return sh.minion;
             }
             return first || { radius: 5, speed: 64, followMin: 24, followMax: 40, engageRadius: 110, teleportBeyond: 220, attack: { shape: 'arc', reach: 16, arcDeg: 70, windupMs: 350, activeMs: 80, recoveryMs: 450, cooldownMs: 1500 } };
         }
@@ -1406,9 +1475,16 @@
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
                 const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player' && pj.cosmetic) {   // cast out of a fight: flies to its range or a wall
-                    if (wall || pj.travelled >= pj.range) { this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); continue; }
                 } else if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
+                    if (pj.burst && (hit || wall || pj.travelled >= pj.range)) {   // bomb or flask: everyone in the blast, nearest first
+                        const at = wall && !hit ? { x: pj.x - Math.cos(pj.angle) * pj.speed * dt, y: pj.y - Math.sin(pj.angle) * pj.speed * dt } : { x: pj.x, y: pj.y };
+                        const hits = this.liveActors().filter((a) => dist(at, a) <= pj.burst + a.r).sort((a, b) => dist(at, a) - dist(at, b));
+                        this.fx.push({ type: 'aoe', x: at.x, y: at.y, radius: pj.burst, damageType: pj.burstKind });
+                        this.resolve(pj.castId, hits);
+                        continue;
+                    }
                     if (hit) { this.resolve(pj.castId, [hit]); continue; }
                     if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
                 } else {
@@ -1423,6 +1499,49 @@
                 keep.push(pj);
             }
             this.projectiles = keep;
+        }
+
+        // =====================================================================
+        // Explosive Caltrops (Saboteur, ninja rework 2026-11-02): spiked charges on the ground
+        // =====================================================================
+        /** A skill with a lay_mines effect resolved: scatter its charges around the aim point (walkable spots only). */
+        layMines(skill, shape) {
+            const def = skill && this.engine.data.skillDefinitions[skill];
+            const fx = def && (def.effects || []).find((x) => x.type === 'lay_mines');
+            if (!fx || !this.engaged) return;
+            const p = this.player;
+            const aim = this.input.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
+            const d = Math.min(dist(p, aim), shape.range || 110), ang = angleTo(p, aim);
+            const c = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
+            const n = this.engine.mineCount ? this.engine.mineCount(fx) : (fx.count || 3);
+            this.mines = this.mines || [];
+            for (let i = 0; i < n; i++) {
+                const a = ang + (i * Math.PI * 2) / Math.max(1, n - 1);
+                const r = i === 0 ? 0 : (fx.spreadPx || 22);
+                const spot = { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r };
+                if (this.bodyBlocked(spot.x, spot.y, 2)) continue;
+                this.mines.push({ id: `mine${this.now}_${i}`, skill, x: spot.x, y: spot.y, armAt: this.now + 250, until: this.now + (fx.seconds || 20) * 1000, trigger: fx.triggerPx || 14, blast: fx.blastPx || 28 });
+            }
+            this.fx.push({ type: 'mines', x: c.x, y: c.y, count: n });
+        }
+
+        /** Charges blow up under the first enemy to step close; they wink out when their time is up or the fight ends. */
+        stepMines() {
+            if (!this.mines || !this.mines.length) return;
+            if (!this.engaged) { this.mines = []; return; }
+            const keep = [];
+            for (const m of this.mines) {
+                if (this.now >= m.until) continue;
+                const foes = this.now >= m.armAt ? this.liveActors() : [];
+                const stepped = foes.find((a) => dist(m, a) <= m.trigger + a.r);
+                if (!stepped) { keep.push(m); continue; }
+                const hits = foes.filter((a) => dist(m, a) <= m.blast + a.r).sort((a, b) => (a === stepped ? -1 : b === stepped ? 1 : dist(m, a) - dist(m, b)));
+                const r = this.engine.actionMineBlast(m.skill, hits.map((a) => a.engineId));
+                this.collect(r.events);
+                this.fx.push({ type: 'aoe', x: m.x, y: m.y, radius: m.blast, damageType: 'fire' });
+                if (r.ok) for (const a of hits) if ((r.hit || []).includes(a.engineId)) { this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(m, a) }); this.bossHit(a); }
+            }
+            this.mines = keep;
         }
 
         /** Bodies don't overlap: enemies push apart and off the player. */
@@ -1490,10 +1609,10 @@
                         duration: Math.max(1, a.stateEnd - a.visualStateStart),
                         progress: Math.max(0, Math.min(1, (this.now - a.visualStateStart) / Math.max(1, a.stateEnd - a.visualStateStart)))
                     } : null,
-                    hp: a.hp, maxHp: a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
+                    hp: a.illusionOf ? a.illusionOf.hp : a.hp, maxHp: a.illusionOf ? a.illusionOf.maxHp : a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
                     mark: a.state === 'windup' && a.windup && a.windup.mark ? { x: a.windup.mark.x, y: a.windup.mark.y, locked: a.windup.mark.locked, target: a.windup.mark.target } : null,
                     storm: a.state === 'windup' && a.windup && a.windup.storm ? a.windup.storm.name : null,
-                    engaged: !!this.groups[a.encounterId].engaged, statuses: a.statuses || [], stunned: a.stunned, phase: a.phaseIdx + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
+                    engaged: !!this.groups[a.encounterId].engaged, statuses: (a.illusionOf ? a.illusionOf.statuses : a.statuses) || [], stunned: a.stunned, phase: (a.illusionOf ? a.illusionOf.phaseIdx : a.phaseIdx) + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),
                 minions: (this.minions || []).map((m) => ({
@@ -1505,6 +1624,7 @@
                     timeLeftMs: m.dead || !this.followerTimeLeft ? null : this.followerTimeLeft()   // out of a fight: time before it crumbles
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
+                mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
                 engaged: this.engaged
             };
         }
