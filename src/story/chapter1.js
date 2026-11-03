@@ -179,9 +179,9 @@
                 { id: 'brew', text: 'Brew a cask of Briarwell Pale with Brother Fenric', on: { type: 'craft', id: 'brew_briarwell_pale' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
                 { id: 'rye', text: 'Cut a sheaf of rye from the field behind the square', on: { type: 'pickup', id: 'village_rye' }, marker: { map: 'shamefield', x: 22, y: 17 } },
                 { id: 'mill', text: 'Grind the rye at the old watermill', on: { type: 'craft', id: 'mill_rye_flour' }, marker: { map: 'shamefield', x: 4, y: 10 } },
-                { id: 'bake', text: "Bake a rye loaf in Oda's oven", on: { type: 'craft', id: 'bake_rye_loaf' }, marker: { map: 'village_residential_lane', x: 3, y: 4 } },
+                { id: 'bake', text: "Bake a rye loaf in Oda's oven", on: { type: 'craft', id: 'bake_rye_loaf' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } },
                 { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
-                { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 3, y: 4 } }
+                { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } }
             ],
             // The kitchen (2026-11-02): dairy is a gift or a purchase. Oda and Merrow send you home with some.
             onComplete: [{ flag: 'bread_and_beer' }, { say: 'Oda presses a jug of milk and a crock of butter on you. "For the next loaf. Make it yourself."' },
@@ -207,7 +207,7 @@
                 { id: 'bridge', text: 'Find the pig by the plank bridge', on: { type: 'inspect', id: 'stray_pig_bridge' }, marker: { map: 'shamefield', x: 6, y: 16 } },
                 { id: 'houses', text: 'Find the pig by the south houses', on: { type: 'inspect', id: 'stray_pig_houses' }, marker: { map: 'shamefield', x: 12, y: 20 } },
                 { id: 'church', text: 'Find Bishop, the big one, up by the church', on: { type: 'inspect', id: 'stray_pig_church' }, marker: { map: 'shamefield', x: 25, y: 4 } },
-                { id: 'greta', text: 'Tell Greta her pigs are on their way home', on: { type: 'story', id: 'greta_pigs' }, marker: { map: 'village_residential_lane', x: 19, y: 3 } }
+                { id: 'greta', text: 'Tell Greta her pigs are on their way home', on: { type: 'story', id: 'greta_pigs' }, marker: { map: 'village_residential_lane', x: 24, y: 5 } }
             ],
             // The good sausage, and a hen to start your own coop (the kitchen, 2026-11-02).
             onComplete: [{ item: 'Bratwurst', key: 'item:sf3_wurst_1' }, { item: 'Bratwurst', key: 'item:sf3_wurst_2' }, { item: 'Hen', key: 'item:sf3_hen' }]

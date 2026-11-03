@@ -75,3 +75,22 @@ test('Kloster rebuild: every quest marker in the Kloster stands on the villager 
     }
     assert.ok(n >= 8);
 });
+
+test("Baker's Lane rebuild: Oda and Greta's quest markers stand on them, and every lane thing can be reached", () => {
+    const story = require('../src/story/chapter1.js');
+    const map = ZONE1.maps.village_residential_lane;
+    let n = 0;
+    for (const q of Object.values(story.quests)) for (const o of q.objectives || []) {
+        if (!o.marker || o.marker.map !== 'village_residential_lane') continue;
+        n++;
+        assert.ok(map.interactables.some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
+    }
+    assert.ok(n >= 3);
+    const { s } = village();
+    s.place('village_residential_lane', 'from_village');
+    for (const o of map.interactables) {
+        s.place('village_residential_lane', 'from_village');
+        assert.ok(inspect(s, o.id).type !== 'none', `${o.id} can be reached and responds`);
+        if (o.kind === 'npc') s.engine.act({ type: 'dialogue_leave' });
+    }
+});
