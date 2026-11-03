@@ -381,7 +381,10 @@
         road.boundaries = (road.boundaries || []).filter((b) => b.id !== 'road_zone_edge');
         road.exits.push(ch1.homestead.roadExit);
         Object.assign(road.spawns, ch1.homestead.roadSpawn);
-        for (const [mid, list] of Object.entries(ch1.homestead.interactables)) maps[mid].interactables.push(...list);
+        for (const [mid, list] of Object.entries(ch1.homestead.interactables)) for (const o of list) {
+            const at = maps[mid].interactables.findIndex((x) => x.id === o.id);   // same id: Chapter One's version replaces the base one
+            if (at === -1) maps[mid].interactables.push(o); else maps[mid].interactables[at] = o;
+        }
     }
 
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;
