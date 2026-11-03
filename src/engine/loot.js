@@ -175,7 +175,7 @@
             for (const id of awarded) counts[id] = (counts[id] || 0) + 1;
             const summary = Object.entries(counts).map(([id, n]) => `${n} × ${this.itemName(id)} (${this.itemDetails(id)})`);
             const notes = pending.flatMap(c => c.result.notes);
-            this.say(`Loot: ${gold} Gold${summary.length ? ` · ${summary.join(' · ')}` : ''}.`, { important: true });
+            this.say(`Loot: ${gold} Gold${summary.length ? ` · ${summary.join(' · ')}` : ''}.`, { important: true, notice: 'gold' });
             for (const note of notes) this.say(note);
             this.out.push({ type: 'loot', gold, items: awarded.map(id => ({ id, name: this.itemName(id), ...this.itemDef(id) })), claims: ids });
             return { gold, items: awarded };

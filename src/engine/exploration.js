@@ -301,7 +301,7 @@
             // `keeps`: the animal stays and starts over (hens lay again); anything else leaves the plot empty.
             if (rule.keeps) plot.remaining = rule.actionsToGrow;
             else delete this.player.homestead.plots[plotId];
-            this.say(`${rule.harvestVerb || 'Harvested'} ${n > 1 ? `${n} ` : ''}${rule.produces}.`);
+            this.say(`${rule.harvestVerb || 'Harvested'} ${n > 1 ? `${n} ` : ''}${rule.produces}.`, { notice: 'item' });
             this.storyEvent({ type: 'harvest', id: rule.produces });
             return true;
         }
@@ -321,7 +321,7 @@
                 for (let i = 0; i < qty; i++) p.inventory.splice(p.inventory.indexOf(name), 1);
             const n = Number.isSafeInteger(recipe.yield) && recipe.yield > 1 ? recipe.yield : 1;
             for (let i = 0; i < n; i++) p.inventory.push(recipe.output);
-            this.say(`${recipe.verb || 'Crafted'} ${n > 1 ? `${n} ` : ''}${recipe.output}.`);
+            this.say(`${recipe.verb || 'Crafted'} ${n > 1 ? `${n} ` : ''}${recipe.output}.`, { notice: 'item' });
             this.storyEvent({ type: 'craft', id });
             return true;
         }

@@ -148,3 +148,11 @@ References: Octopath Traveler and Sea of Stars battle and town shots (owner-supp
 - *Battle on 16:9:* the stage is shorter for its width, so battle text drops to 1.45cqw, the field ends higher, the
   help line is one line, and the command window still shows all four root commands.
 - The Black Flight effects overlay follows the canvas size instead of a fixed 640×448.
+
+## Paged dialogue box and notifications (Tokelo, 2026-11-03; spec docs/ui/DIALOGUE_BOX.md)
+- *One long block of text became pages* of at most two sentences, typed out, with the speaker on a nameplate.
+  Enter, Space, E or a click turns the page, and choices show only on the last page.
+- *Quest, objective, XP, level, item and Gold lines left the box.* The engine tags them (`notice`), and the world
+  front end shows them as notifications top right. They are visible over dialogue, so the HUD's own reward feed
+  now routes into the same list.
+- *Dialogue text 2.1cqw → 1.7cqw.* It still scales with the stage (UI-2 rev). The box is about three lines tall.

@@ -64,6 +64,18 @@ test('Shamefield rebuild: every quest marker in the square stands on the village
     assert.ok(n >= 6);
 });
 
+test('Kloster rebuild: every quest marker in the Kloster stands on the villager or thing it points at', () => {
+    const story = require('../src/story/chapter1.js');
+    const map = ZONE1.maps.briarwell_cloister_court;
+    let n = 0;
+    for (const q of Object.values(story.quests)) for (const o of q.objectives || []) {
+        if (!o.marker || o.marker.map !== 'briarwell_cloister_court') continue;
+        n++;
+        assert.ok([...map.interactables, ...(map.encounters || [])].some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
+    }
+    assert.ok(n >= 8);
+});
+
 test("Baker's Lane rebuild: Oda and Greta's quest markers stand on them, and every lane thing can be reached", () => {
     const story = require('../src/story/chapter1.js');
     const map = ZONE1.maps.village_residential_lane;

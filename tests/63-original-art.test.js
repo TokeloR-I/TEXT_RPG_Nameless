@@ -137,6 +137,29 @@ test('Scene art: the Overgrown Road paints whole after the reference, the same e
     for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
 });
 
+test('Scene art: the Kloster paints whole after the reference, the same every time, with its own moving parts', () => {
+    require('../ui/scene-kloster.js');
+    const map = ZONE1.maps.briarwell_cloister_court;
+    assert.ok(SCENE.has(map), 'the Kloster opts in with scene: kloster');
+    const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+    assert.strictEqual(a.w, map.tiles[0].length * 32); assert.strictEqual(a.h, map.tiles.length * 32);
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    assert.strictEqual(sha(a.base), sha(b.base), 'deterministic');
+    assert.strictEqual(sha(a.over), sha(b.over), 'deterministic crowns');
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
+    const at = (x, y) => a.over[(y * a.w + x) * 4 + 3];
+    assert.strictEqual(at(15 * 32 + 16, 9 * 32 + 16), 0, 'nothing hangs over the open cloister walk');
+    assert.ok(at(15 * 32 + 16, 16 * 32 + 4) > 0, 'the arcade roof hangs over the way into the garth');
+    assert.ok(at(16 * 32 + 16, 21 * 32 - 6) > 0, 'the gatehouse hangs over the gate');
+    assert.ok(a.water.length > 5 && typeof a.animate === 'function', 'the fountain shimmers; torches, the brewing fire and smoke move');
+    // Every thing the map names is something the scene knows how to paint (no tile left as bare ground by accident).
+    const painted = new Set(['grass', 'dirt_path', 'flagstones', 'gate', 'kloster_wall', 'wall_tower', 'gatehouse', 'abbey_church', 'bell_tower',
+        'monks_cells', 'refectory', 'abbots_house', 'brewery', 'storehouse', 'arcade', 'hedge_bed', 'cypress', 'cloister_fountain', 'herb_bed',
+        'hop_trellis', 'grave', 'grave_cross', 'low_wall', 'tree', 'dead_tree', 'barrel', 'crate', 'cart', 'woodpile', 'lantern', 'crops',
+        'scarecrow', 'fence', 'bench']);
+    for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
+});
+
 test("Scene art: Baker's Lane paints whole after the reference, the same every time, with its own moving parts", () => {
     require('../ui/scene-bakers-lane.js');
     const map = ZONE1.maps.village_residential_lane;

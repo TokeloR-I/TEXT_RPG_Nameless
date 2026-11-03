@@ -611,7 +611,7 @@
         },
         wolf(g, px, py, T, t) { creatures.wolf(g, px, py, t); },
         shade(g, px, py, T, t) { creatures.shade(g, px - 6, py, t); creatures.shade(g, px + 6, py - 3, t + 450); },
-        // Shamefield locals (2026-11-02): the cloister's lent garden bed, and Greta's runaway pigs.
+        // Shamefield locals (2026-11-02): the Kloster's lent garden bed, and Greta's runaway pigs.
         garden_bed(g, px, py) {
             rect(g, px + 3, py + 8, 26, 18, '#5a4030'); rect(g, px + 3, py + 8, 26, 2, '#7a5a40'); rect(g, px + 3, py + 24, 26, 2, '#3a281e');
             for (const y of [12, 17, 22]) rect(g, px + 5, py + y, 22, 1, '#3e2a1e');

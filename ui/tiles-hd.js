@@ -399,7 +399,7 @@
 
     /** What casts a shadow: tall things. Height in tiles (roughly) sets how far the shadow reaches. */
     const TALL = {
-        roof: 1, house_wall: 0.6, house_window: 0.6, timber_wall: 0.6, stone_wall: 0.7, wood_wall: 0.5,
+        roof: 1, house_wall: 0.6, house_window: 0.6, stone_wall: 0.7, wood_wall: 0.5,
         shed_wall: 0.5, shed_roof: 0.8, shed_door_shut: 0.5
     };
     /** Cast shadows and contact occlusion onto the neighbours of tall tiles (static layer, after all tiles). */

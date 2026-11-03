@@ -156,7 +156,7 @@
         },
         // ------------------------------------------------------------- Get to know the locals (optional; Tokelo 2026-11-02)
         // The Watch Captain gives it when the register comes back. Five households, five favours, in the parts of
-        // Shamefield nobody had a reason to visit: the cloister garden, the mill falls, the rye field, the church,
+        // Shamefield nobody had a reason to visit: the Kloster herb garden, the mill falls, the rye field, the church,
         // the south houses. XP and Gold here are candidates for Gauge.
         L01: {
             title: 'Get to Know the Locals', kind: 'side', xp: 20, candidate: true,
@@ -172,15 +172,15 @@
             title: 'Bread and Beer', kind: 'side', xp: 25, candidate: true,
             summary: 'Oda the baker and Brother Fenric the brewer argue about grain. Oda bets that a stranger can make a good loaf and a good ale from scratch.',
             objectives: [
-                { id: 'bed', text: 'Ask Sister Merrow for a garden bed at the cloister, and dig it', on: { type: 'build', id: 'briarwell_bed' }, marker: { map: 'briarwell_cloister_court', x: 4, y: 6 } },
-                { id: 'plant', text: 'Plant the barley seed in your garden bed', on: { type: 'plant', id: 'Barley Seed' }, marker: { map: 'briarwell_cloister_court', x: 6, y: 10 } },
-                { id: 'grow', text: 'Tend the barley until it is ripe, then harvest it', on: { type: 'harvest', id: 'Barley' }, marker: { map: 'briarwell_cloister_court', x: 6, y: 10 } },
+                { id: 'bed', text: 'Ask Sister Merrow for a garden bed at the Kloster, and dig it', on: { type: 'build', id: 'briarwell_bed' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 20 } },
+                { id: 'plant', text: 'Plant the barley seed in your garden bed', on: { type: 'plant', id: 'Barley Seed' }, marker: { map: 'briarwell_cloister_court', x: 23, y: 11 } },
+                { id: 'grow', text: 'Tend the barley until it is ripe, then harvest it', on: { type: 'harvest', id: 'Barley' }, marker: { map: 'briarwell_cloister_court', x: 23, y: 11 } },
                 { id: 'hops', text: 'Pick wild hops by the mill falls', on: { type: 'pickup', id: 'village_wild_hops' }, marker: { map: 'shamefield', x: 3, y: 11 } },
-                { id: 'brew', text: 'Brew a cask of Briarwell Pale with Brother Fenric', on: { type: 'craft', id: 'brew_briarwell_pale' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } },
+                { id: 'brew', text: 'Brew a cask of Briarwell Pale with Brother Fenric', on: { type: 'craft', id: 'brew_briarwell_pale' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
                 { id: 'rye', text: 'Cut a sheaf of rye from the field behind the square', on: { type: 'pickup', id: 'village_rye' }, marker: { map: 'shamefield', x: 22, y: 17 } },
                 { id: 'mill', text: 'Grind the rye at the old watermill', on: { type: 'craft', id: 'mill_rye_flour' }, marker: { map: 'shamefield', x: 4, y: 10 } },
                 { id: 'bake', text: "Bake a rye loaf in Oda's oven", on: { type: 'craft', id: 'bake_rye_loaf' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } },
-                { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } },
+                { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
                 { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } }
             ],
             // The kitchen (2026-11-02): dairy is a gift or a purchase. Oda and Merrow send you home with some.
@@ -191,12 +191,12 @@
             title: 'The Brown Hops', kind: 'side', xp: 15, candidate: true,
             summary: "Brother Fenric's hops are browning at the end of the row. He blames the water, the soil, and his enemies, in that order.",
             objectives: [
-                { id: 'roots', text: 'Look closely at the sick hops', on: { type: 'inspect', id: 'cloister_hops' }, marker: { map: 'briarwell_cloister_court', x: 18, y: 8 },
+                { id: 'roots', text: 'Look closely at the sick hops', on: { type: 'inspect', id: 'cloister_hops' }, marker: { map: 'briarwell_cloister_court', x: 29, y: 10 },
                     effects: [{ say: 'You kneel and part the leaves. The roots are gnawed half through, and caught on the stems are tufts of rust-red fur.' }] },
-                { id: 'granary', text: "Look for the same tracks in Sister Merrow's granary", on: { type: 'inspect', id: 'cloister_granary' }, marker: { map: 'briarwell_cloister_court', x: 2, y: 4 },
+                { id: 'granary', text: "Look for the same tracks in Sister Merrow's granary", on: { type: 'inspect', id: 'cloister_granary' }, marker: { map: 'briarwell_cloister_court', x: 25, y: 19 },
                     effects: [{ say: 'Behind the red-cord sacks: more rust-red fur, a gnawed hole, and a trail of spilled barley running along the wall to the south lawn.' }, { flag: 'sf2_tracks' }] },
-                { id: 'nest', text: 'Clear out the rat nest on the south lawn', on: { type: 'defeat', id: 'cloister_rat_nest' }, marker: { map: 'briarwell_cloister_court', x: 20, y: 13 } },
-                { id: 'tell', text: 'Tell Brother Fenric what was eating his hops', on: { type: 'story', id: 'fenric_rats' }, marker: { map: 'briarwell_cloister_court', x: 17, y: 6 } }
+                { id: 'nest', text: 'Clear out the rat nest behind the storehouse', on: { type: 'defeat', id: 'cloister_rat_nest' }, marker: { map: 'briarwell_cloister_court', x: 28, y: 17 } },
+                { id: 'tell', text: 'Tell Brother Fenric what was eating his hops', on: { type: 'story', id: 'fenric_rats' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } }
             ],
             onComplete: []
         },
@@ -507,7 +507,7 @@
                 },
                 locals_who: {
                     lines: [
-                        ['npc', "Oda the baker and Brother Fenric up at the cloister are fighting about bread and beer again. Fenric's hops are dying, too, and he's blaming everyone."],
+                        ['npc', "Oda the baker and Brother Fenric up at the Kloster are fighting about bread and beer again. Fenric's hops are dying, too, and he's blaming everyone."],
                         ['npc', "Greta Rusk has lost her pigs. Tamsin says there's singing at the old mill after dark. And your friend Elian keeps looking at the church steps and not climbing them."]
                     ],
                     choices: [{ text: 'Goodbye.', end: true }]
@@ -701,7 +701,7 @@
         // ------------------------------------------------------------- Shamefield expansion (Vaelis's DRAFT cast; working names)
         // SHAMEFIELD_VILLAGE_LORE_AND_PRODUCTION.md. Talk only: no shops until Rook's bread/beer/pork items exist.
         fenric: {
-            name: 'Brother Fenric', title: 'Cloister brewer',
+            name: 'Brother Fenric', title: 'Kloster brewer',
             talk: [{ node: 'hello' }],
             nodes: {
                 hello: {
@@ -751,7 +751,7 @@
                 },
                 sf1_bed: {
                     lines: [
-                        ['npc', "For Oda's bet? Of course it is. Everything in this cloister is a bet between those two. Very well: the bed by the west wall is yours while you need it. Dig it yourself."],
+                        ['npc', "For Oda's bet? Of course it is. Everything in this Kloster is a bet between those two. Very well: the bed at the end of the herb garden is yours while you need it. Dig it yourself."],
                         ['npc', 'And take this: a twist of seed barley. Plant it, water it, weed it, and it will grow faster than you would believe. The spring here is good for that.']
                     ],
                     effects: [{ construction: 'briarwell_bed' }, { item: 'Barley Seed', key: 'item:barley_seed' }],
@@ -780,7 +780,7 @@
                 sf1_start: {
                     lines: [
                         ['npc', "At it? We're having a disagreement of principle. Fenric says nobody can make a good loaf and a good ale from the same patch of ground. I say a stranger could, before his barley's even dry."],
-                        ['npc', "So. Here's my starter: don't drop it. Ask Sister Merrow at the cloister for a bed to grow barley in. Fenric's own hops are sick, but wild ones climb the fence down by the mill falls."],
+                        ['npc', "So. Here's my starter: don't drop it. Ask Sister Merrow at the Kloster for a bed to grow barley in. Fenric's own hops are sick, but wild ones climb the fence down by the mill falls."],
                         ['npc', "Rye's in the field behind the square, and the old watermill still turns, if you don't mind grinding it yourself. Bake a loaf in my oven, brew a cask in his, and then we'll see who's right."]
                     ],
                     effects: [{ start: 'SF1' }, { item: 'Sourdough Starter', key: 'item:sourdough_starter' }],
@@ -791,7 +791,7 @@
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crust: {
-                    lines: [['npc', "Dark rye, sourdough, beech fire. The city bakes white bread so soft you could sleep on it. Here, a crust has to survive a week on the road. I'd sell you one, but the cloister hasn't milled this week's flour yet."]],
+                    lines: [['npc', "Dark rye, sourdough, beech fire. The city bakes white bread so soft you could sleep on it. Here, a crust has to survive a week on the road. I'd sell you one, but the Kloster hasn't milled this week's flour yet."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 brewer: {
@@ -892,7 +892,7 @@
             }
         },
         briarwell_bed: {
-            name: 'Garden bed', title: 'Briarwell Cloister',
+            name: 'Garden bed', title: 'Briarwell Kloster',
             talk: [{ if: { built: ['briarwell_bed'] }, node: 'bed' }, { node: 'unturned' }],
             nodes: {
                 unturned: {
@@ -900,7 +900,7 @@
                     choices: [{ text: 'Leave it.', end: true }]
                 },
                 bed: {
-                    lines: [[null, 'Your bed in the cloister garden: dark earth, turned and weeded. The spring water runs past it in a little stone channel.']],
+                    lines: [[null, 'Your bed at the end of the Kloster herb garden: dark earth, turned and weeded. The spring water runs past it in a little stone channel.']],
                     choices: [
                         { text: 'Plant the Barley Seed', if: { items: ['Barley Seed'], plots: { briarwell_bed: 'empty' } }, stay: true, effects: [{ plant: { plot: 'briarwell_bed', seed: 'Barley Seed' } }] },
                         { text: 'Water and weed the barley', if: { plots: { briarwell_bed: 'growing' } }, stay: true, effects: [{ tend: 'briarwell_bed' }] },
@@ -1035,7 +1035,7 @@
         { id: 'pig_bridge', on: { type: 'inspect', id: 'stray_pig_bridge' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_bridge_home' }, { say: "You mention crusts. The pig considers this, then trots off toward Baker's Lane." }] },
         { id: 'pig_houses', on: { type: 'inspect', id: 'stray_pig_houses' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_houses_home' }, { say: 'You scratch it behind the ear. It leaves the cabbages with obvious regret and wanders home.' }] },
         { id: 'pig_church', on: { type: 'inspect', id: 'stray_pig_church' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_church_home' }, { say: 'Bishop looks at you for a long moment, sighs like an old man, and walks slowly back down the hill.' }] },
-        { id: 'rat_nest', on: { type: 'defeat', id: 'cloister_rat_nest' }, effects: [{ flag: 'sf2_nest_cleared' }, { say: 'Under the wall, a nest of shredded barley sacks and hop roots. Nothing else will be chewing on the cloister this year.' }] },
+        { id: 'rat_nest', on: { type: 'defeat', id: 'cloister_rat_nest' }, effects: [{ flag: 'sf2_nest_cleared' }, { say: 'Under the wall, a nest of shredded barley sacks and hop roots. Nothing else will be chewing on the Kloster this year.' }] },
         { id: 'mill_shade', on: { type: 'defeat', id: 'mill_shade' }, effects: [{ flag: 'mill_quiet' }, { say: 'The singing stops in the middle of a verse. For a moment the falls sound almost like applause. Then just like water.' }] },
         // The Warden: DRAFT aftermath from the narrative foundation (Vaelis owns the final lines).
         { id: 'warden_falls', on: { type: 'defeat', id: 'sanctuary_warden' }, effects: [

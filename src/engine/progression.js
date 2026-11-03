@@ -18,14 +18,14 @@
             const p = this.player;
             if (!p) return;
             p.xp += amount;
-            if (!opts.quiet) this.say(`You gained ${amount} experience points!`);
+            if (!opts.quiet) this.say(`You gained ${amount} experience points!`, { notice: 'xp' });
             while (p.xp >= p.xpToNext) {
                 p.xp -= p.xpToNext;
                 p.level++;
                 p.xpToNext = Math.floor(p.xpToNext * 1.5);
                 const gains = this.applyLevelGrowth(p);
-                this.say(`Congratulations! You have reached Level ${p.level}!`, { important: true });
-                this.say(`Stats increased: ${gains.join(', ')}. HP and ${p.resource.type} refilled.`);
+                this.say(`Congratulations! You have reached Level ${p.level}!`, { important: true, notice: 'level' });
+                this.say(`Stats increased: ${gains.join(', ')}. HP and ${p.resource.type} refilled.`, { notice: 'level' });
                 this.evolve();
             }
         }
@@ -70,7 +70,7 @@
             }
             this.applyStages();
             const left = this.webPoints();
-            if (left > 0) this.say(`You have ${left} unspent Skill Web point${left === 1 ? '' : 's'}. Type 'web' to see where they can go.`);
+            if (left > 0) this.say(`You have ${left} unspent Skill Web point${left === 1 ? '' : 's'}. Type 'web' to see where they can go.`, { notice: 'level' });
         }
 
         maybePromptBranch() {
