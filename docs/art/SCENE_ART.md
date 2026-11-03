@@ -21,6 +21,8 @@ collision, exits and where each thing stands, and the scene paints what the tile
 
 | `overgrown_road` | `road` (Zone 1) | Tokelo's reference (2026-11-01), painted in `ui/scene-road.js`: a bright crossroads in a green wood. The stream down the west side between mossy boulders, with a waterfall at each end and the plank bridge carrying the west track over it; a travellers' camp (stained canvas tent, campfire under a cooking pot, barrel, crate, log seat, lantern posts); three crow banners on posts with hanging lanterns; broken stone walls with ivy (NE and SE, a small one SW); the stone arch on a quiet corner to the east; the covered wagon left by the east track; the signpost at the crossing; green trees with a few red-leaved ones, bushes, stumps, flowers and reeds. Animated: falling water, the campfire and its smoke, lantern flicker. |
 
+| `bakers_lane` | `village_residential_lane` (Baker's Lane, Shamefield) | Tokelo's reference (2026-11-03), painted in `ui/scene-bakers-lane.js`: a dusk lane of timber-framed houses with dark slate roofs and cross gables inside the town wall. The cobbled road from the west gate (round towers either side, raven banners on the wall) with a ring-laid drain where the lane turns south; Oda's bakery with its cream awning, shelves of loaves and bread sign; the domed stone oven with a brick mouth, fire and tall brick chimney; the woodshed stacked with logs; a table of flour and loaves; a cabbage and kale plot under a washing line; Greta's plank smokehouse; a fenced hen yard with a coop and hay; the pig pen with two pigs, a trough and a lean-to; the well; rose beds; lantern posts; bare autumn trees. Animated: the oven fire, lantern flicker, chimney smoke. |
+
 Tile names the homestead adds (map `legend`): `tilled_soil`, `drystone_wall`, `dock`, `footbridge`, `cart`, `stump`,
 `bush`, `anvil`.
 
@@ -38,3 +40,8 @@ after `ui/scene-art.js` in `world.html`, and in `tools/preview-scene.js` and the
 
 To give another map a scene: add a function to `scenes` in `ui/scene-art.js` (reuse the painters there), set
 `scene` on the map, and preview it.
+
+Tile names Baker's Lane adds (its map `legend`): `cobble`, `drain`, `town_wall`, `wall_banner`, `house`, `bakery`, `smokehouse`, `oven`,
+`woodshed`, `bread_table`, `sacks`, `laundry`, `cabbages`, `coop`, `chickens`, `hay`, `pig_mud`, `pig_shed`, `mounting_stone`, `rose_bed`
+(plus the common `grass`, `dirt_path`, `fence`, `well`, `lantern`, `tree`, `dead_tree`, `bush`, `stump`, `barrel`, `crate`). Buildings and
+yards are blocks; the painter finds each block and draws it whole.

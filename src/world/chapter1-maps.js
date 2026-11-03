@@ -303,39 +303,73 @@
         village_residential_lane: {
             zoneId: 'shamefield_vale',
             name: "Baker's Lane",
-            ambient: { tint: 'rgba(90, 70, 50, 0.12)', particles: { kind: 'smoke', count: 10 }, grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
+            // Original scene art (ui/scene-bakers-lane.js, Saffron/Quill) paints this map whole after Tokelo's reference
+            // (2026-11-03): timber-framed houses inside the town wall, the cobbled road from the west gate with a drain
+            // where the lane turns south, Oda's bakery, oven and woodshed, Greta's smokehouse and hen yard, the pig pen,
+            // the well, washing lines and lantern posts. Its tiles still decide collision.
+            scene: 'bakers_lane',
+            ambient: { darkness: 0.12, tint: 'rgba(90, 70, 50, 0.12)', particles: { kind: 'smoke', count: 10 }, grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
+            legend: {
+                ',': { name: 'grass' }, ':': { name: 'dirt_path' }, '+': { name: 'cobble' }, 'd': { name: 'drain' },
+                '#': { name: 'town_wall', solid: true }, 'B': { name: 'wall_banner', solid: true },
+                'h': { name: 'house', solid: true }, 'K': { name: 'bakery', solid: true }, 'Z': { name: 'smokehouse', solid: true },
+                'O': { name: 'oven', solid: true }, 'S': { name: 'woodshed', solid: true }, 'm': { name: 'bread_table', solid: true },
+                'k': { name: 'sacks', solid: true }, 'L': { name: 'laundry', solid: true }, 'j': { name: 'cabbages', solid: true },
+                'f': { name: 'fence', solid: true }, 'c': { name: 'coop', solid: true }, 'e': { name: 'chickens', solid: true },
+                'H': { name: 'hay', solid: true }, 'P': { name: 'pig_mud', solid: true }, 'y': { name: 'pig_shed', solid: true },
+                'o': { name: 'well', solid: true }, 'l': { name: 'lantern', solid: true }, 'n': { name: 'mounting_stone', solid: true },
+                'T': { name: 'tree', solid: true }, 'Y': { name: 'dead_tree', solid: true }, 'v': { name: 'bush', solid: true },
+                'r': { name: 'rose_bed', solid: true }, 'u': { name: 'stump', solid: true }, 'b': { name: 'barrel', solid: true },
+                'x': { name: 'crate', solid: true }
+            },
             tiles: [
-                'TTTTTTTTTTTTTTTTTTTTTTTT',
-                'T,hhhhhh,,hhhhhh,,hhhhhT',
-                'T,XXnXXX,,XnXXXX,,XXnXXT',
-                'T,,,,,,,,,,,,,,,,,,,,,,T',
-                'T,V,,,,,l,,,,,,,l,,,,o,T',
-                'T++++++++++++++++++++++T',
-                'T++++++++++++++++++++++T',
-                ':++++++++++++++++++++++T',
-                'T,,,,,,,l,,,,,,,l,,,,,,T',
-                'T,hhhhh,,ffffff,,hhhhh,T',
-                'T,XXnXX,,f,e,,f,,XXnXX,T',
-                'T,,,,,,,,f,,e,f,,,,,,,,T',
-                'T,,,,x,,,ffffff,,,,,,,,T',
-                'TTTTTTTTTTTTTTTTTTTTTTTT'
+                '##TTvvvvvvTTTvvTvvKKKKKKTTTTTTTT',
+                '##,,hhhhhh,,,,,,v,KKKKKKZZfffffT',
+                '##,,hhhhhh,,,SSOOOKKKKKKZZf,ccfT',
+                '##,,hhhhhhLLLSSOOOKKKKKKZZfeccfT',
+                '#B,,hhhhhhjjjSSOOOKKKKKKZZf,,HfT',
+                '##,,hhhhhhjjjSSOOOKKKKKK,,fe,efT',
+                '##,,hhhhhhjjj,mm++++++kk,,fffffT',
+                '##,l,,,bx,,,n+++++,,,,,,,l,,,,,T',
+                '##++++++++++++++++++++++++++++++',
+                '+++++++++++++++d++++++++++++++++',
+                '##++++++++++++++++++++++++++++++',
+                '##,hhhhhhY,l,+++++,hhhhhhhhh,,T,',
+                '##,hhhhhh,fff,::,ffhhhhhhhhh,,TT',
+                '##,hhhhhh,,,,,::,bbhhhhhhhhh,,,T',
+                '#Bvhhhhhh,,o,,::,,,hhhhhhhhh,v,T',
+                '##,hhhhhh,,,b,::,,,hhhhhhhhh,,,,',
+                '##yyfffff,,,,,::,,,hhhhhhhhhbx,,',
+                '##yyPPPPf,u,,,::,Y,hhhhhhhhh,LL,',
+                '##fPPPPPf,,,,,,:::,,rr,,,,,,b,,,',
+                '##fPPPPPf,hhhhhh,::::::::::::,,,',
+                '##fffffff,hhhhhh,,:::::::::::,,,',
+                '##,,,v,LL,hhhhhh,,,,,,,,,,,,,hhh',
+                '#######vv,hhhhhh,Tffffffffffvhhh',
+                '#######vvvhhhhhhvvvvTvvvvTvvvhhh'
             ],
-            spawns: { from_village: { x: 1, y: 7, facing: 'right' } },
+            // Warm light from the oven mouth and the bigger windows (the lantern posts light themselves).
+            lights: [
+                { x: 16, y: 5, radius: 1.8, color: 'rgba(255, 140, 60, 0.3)' }, { x: 7, y: 6, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 20, y: 5, radius: 1.3, color: 'rgba(255, 170, 80, 0.22)' }, { x: 6, y: 15, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 23, y: 17, radius: 1.4, color: 'rgba(255, 170, 80, 0.22)' }, { x: 12, y: 22, radius: 1.1, color: 'rgba(255, 170, 80, 0.2)' }
+            ],
+            spawns: { from_village: { x: 1, y: 9, facing: 'right' } },
             exits: [
-                { id: 'lane_west', x: 0, y: 7, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_lane' }
+                { id: 'lane_west', x: 0, y: 9, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_lane' }
             ],
             interactables: [
-                { id: 'lane_oda', kind: 'npc', npc: 'oda', x: 3, y: 4, name: 'Oda of the Oven', sprite: 'baker' },
-                { id: 'lane_greta', kind: 'npc', npc: 'greta', x: 19, y: 3, name: 'Greta Rusk', sprite: 'butcher' },
-                { id: 'lane_oven', kind: 'inspect', x: 2, y: 4, name: 'Bread oven',
+                { id: 'lane_oda', kind: 'npc', npc: 'oda', x: 17, y: 6, name: 'Oda of the Oven', sprite: 'baker' },
+                { id: 'lane_greta', kind: 'npc', npc: 'greta', x: 24, y: 5, name: 'Greta Rusk', sprite: 'butcher' },
+                { id: 'lane_oven', kind: 'inspect', x: 16, y: 5, name: 'Bread oven',
                     text: 'A domed oven of blackened brick, still warm. Dark rye loaves cool on a board beside it. The crust cracks when you so much as look at it.' },
-                { id: 'lane_smokehouse', kind: 'inspect', x: 20, y: 2, name: 'Smokehouse',
+                { id: 'lane_smokehouse', kind: 'inspect', x: 25, y: 4, name: 'Smokehouse',
                     text: 'Beechwood smoke seeps out between the boards. Inside, in the dark, hams and long sausages hang in rows like bells.' },
-                { id: 'lane_pigs', kind: 'inspect', x: 9, y: 10, name: 'Pig pen',
+                { id: 'lane_pigs', kind: 'inspect', x: 8, y: 18, name: 'Pig pen',
                     text: 'Two pigs, very pleased with the mud. A bucket of bran and bakery crusts stands by the gate: nothing in this lane is wasted.' },
-                { id: 'lane_woodpile', kind: 'inspect', x: 5, y: 12, name: 'Woodpile',
+                { id: 'lane_woodpile', kind: 'inspect', x: 13, y: 5, name: 'Woodpile',
                     text: 'Split beech for the oven, oak for the smokehouse. They are stacked apart, and you get the feeling that matters to someone.' },
-                { id: 'lane_stone', kind: 'inspect', x: 21, y: 4, name: 'Mounting stone',
+                { id: 'lane_stone', kind: 'inspect', x: 12, y: 7, name: 'Mounting stone',
                     text: 'A worn stone for climbing onto carts. Children have scratched a game board into the top.' }
             ]
         },

@@ -136,3 +136,28 @@ test('Scene art: the Overgrown Road paints whole after the reference, the same e
         'rock', 'stump', 'ruin', 'arch', 'tent', 'campfire', 'barrel', 'crate', 'log', 'banner', 'lantern', 'fence', 'wagon', 'signpost']);
     for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
 });
+
+test("Scene art: Baker's Lane paints whole after the reference, the same every time, with its own moving parts", () => {
+    require('../ui/scene-bakers-lane.js');
+    const map = ZONE1.maps.village_residential_lane;
+    assert.ok(SCENE.has(map), 'the lane opts in with scene: bakers_lane');
+    const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+    assert.strictEqual(a.w, map.tiles[0].length * 32); assert.strictEqual(a.h, map.tiles.length * 32);
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    assert.strictEqual(sha(a.base), sha(b.base), 'deterministic');
+    assert.strictEqual(sha(a.over), sha(b.over), 'deterministic over layer');
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
+    const at = (x, y) => a.over[(y * a.w + x) * 4 + 3];
+    assert.strictEqual(at(15 * 32 + 16, 9 * 32 + 16), 0, 'nothing hangs over the drain in the middle of the road');
+    assert.ok(at(9 * 32 + 16, 10 * 32 + 16) > 0, 'the bare tree by the road reaches over the cobbles behind it');
+    assert.ok(a.windows.length >= 15 && typeof a.animate === 'function', 'lit windows; the oven fire, lanterns and smoke move');
+    // The oven mouth glows: warm, bright pixels low on the oven block.
+    const px = (x, y) => [0, 1, 2].map((k) => a.base[(y * a.w + x) * 4 + k]);
+    const [r, g, bl] = px(16 * 32 + 16, 6 * 32 - 30);
+    assert.ok(r > 200 && r > g && g > bl, `the fire in the oven mouth (${r},${g},${bl})`);
+    // Every thing the map names is something the scene knows how to paint (no tile left as bare ground by accident).
+    const painted = new Set(['grass', 'dirt_path', 'cobble', 'drain', 'town_wall', 'wall_banner', 'house', 'bakery', 'smokehouse', 'oven', 'woodshed',
+        'bread_table', 'sacks', 'laundry', 'cabbages', 'fence', 'coop', 'chickens', 'hay', 'pig_mud', 'pig_shed', 'well', 'lantern', 'mounting_stone',
+        'tree', 'dead_tree', 'bush', 'rose_bed', 'stump', 'barrel', 'crate']);
+    for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
+});
