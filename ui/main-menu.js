@@ -48,7 +48,7 @@
             const def = defs[o.item];
             if (!def || !def.use) continue;                      // only things with a use go on the Use list
             listed.add(o.item);
-            usable.push({ item: o.item, count: o.count || 1, enabled: !!o.enabled, reason: o.reason || null, description: def.description || '' });
+            usable.push({ item: o.item, count: o.count || 1, enabled: !!o.enabled, reason: o.reason || null, description: [def.effectText, def.description].filter(Boolean).join(' ') });
         }
         const counts = new Map();
         for (const i of inventory || []) if (!listed.has(i)) counts.set(i, (counts.get(i) || 0) + 1);

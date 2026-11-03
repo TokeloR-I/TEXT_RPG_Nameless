@@ -15,7 +15,7 @@
             const stats = Object.entries(d.statModifiers || {}).map(([k, n]) => `${n >= 0 ? '+' : ''}${k === 'critChance' ? `${Math.round(n * 100)}%` : n} ${labels[k] || k}`).join(', ');
             return [d.rarity, d.itemLevel ? `item level ${d.itemLevel}` : '', stats,
                 (d.affixes || []).map(a => this.data.equipmentAffixes[a].name).join(', '),
-                d.sellable ? `Sell: ${d.sellPrice} Gold` : 'Cannot sell', d.description].filter(Boolean).join(' · ');
+                d.effectText, d.sellable ? `Sell: ${d.sellPrice} Gold` : 'Cannot sell', d.description].filter(Boolean).join(' · ');
         }
         rarityForLevel(rarity, level) {
             const names = Object.keys(this.data.equipmentRarities);

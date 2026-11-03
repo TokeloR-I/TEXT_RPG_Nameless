@@ -108,7 +108,7 @@
             const map = this.session.map, cells = new Set();
             for (const e of map.exits || []) if (e.requires) cells.add(e.y * this.w + e.x);
             for (const o of [...(map.interactables || []), ...(map.encounters || [])]) {
-                if (!o.when && o.kind !== 'pickup') continue;
+                if (!o.when && o.kind !== 'pickup' && o.kind !== 'forage') continue;
                 for (let y = o.y; y < o.y + (o.h || 1); y++) for (let x = o.x; x < o.x + (o.w || 1); x++) cells.add(y * this.w + x);
             }
             this.storyCells = [...cells].filter((c) => c >= 0 && c < this.solid.length);
@@ -199,6 +199,8 @@
             for (const k of ['attack', 'dodge', 'interact']) if (input[k]) this.input[k] = true;
             if (input.slot != null) this.input.slot = input.slot;
             Object.assign(this.input, { move: input.move || { x: 0, y: 0 }, aim: input.aim || null, sprint: !!input.sprint, guard: !!input.guard });
+            // Drunk (too much beer, src/engine/kitchen.js): up is down and left is right until it wears off.
+            if (this.engine.controlsInverted && this.engine.controlsInverted()) this.input.move = { x: -(this.input.move.x || 0), y: -(this.input.move.y || 0) };
             this.acc = Math.min(this.acc + Math.max(0, ms || 0), STEP * MAX_STEPS);
             while (this.acc >= STEP) {
                 this.acc -= STEP;
@@ -353,7 +355,7 @@
             const st = R.stamina || {};
             const dt = STEP / 1000;
             const stunned = !!(this.pview && this.pview.stunned);
-            const slow = this.pview ? this.pview.speedMult : 1;
+            const slow = (this.pview ? this.pview.speedMult : 1) * (this.engine.playerMoveMult ? this.engine.playerMoveMult() : 1);   // food can speed you up
             // Commit an action's direction before starting its cast. Walking must not rotate a swing.
             if (!stunned && (p.state === 'idle' || p.state === 'move')) {
                 if (inp.aim) p.angle = angleTo(p, inp.aim);

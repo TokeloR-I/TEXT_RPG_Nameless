@@ -608,6 +608,7 @@
             if (!calm || this.mode === 'combat' || !this.player) return [];
             calm.now += Math.max(0, Number(ms) || 0);
             for (const k of Object.keys(calm.cooldowns)) if (calm.cooldowns[k] <= calm.now) delete calm.cooldowns[k];
+            this.foodRegen(ms);   // meal regeneration keeps working out of a fight (src/engine/kitchen.js)
             const gone = this.player.statusEffects.filter((x) => x.calm && x.rtEndsAt != null && x.rtEndsAt <= calm.now);
             if (!gone.length) return [];
             this.player.statusEffects = this.player.statusEffects.filter((x) => !gone.includes(x));
@@ -675,7 +676,7 @@
          */
         actionBuffsLeavingFight(c) {
             if (!c || !c.rt || !this.player) return [];
-            return this.player.statusEffects.filter((x) => this.rtBuffRule(x.name))
+            return this.player.statusEffects.filter((x) => this.rtBuffRule(x.name) || x.food)   // meals and beer run on too
                 .map((x) => ({ inst: x, leftMs: x.rtEndsAt != null ? Math.max(0, x.rtEndsAt - c.rt.now) : null }))
                 .filter((b) => b.leftMs == null || b.leftMs > 0);
         }

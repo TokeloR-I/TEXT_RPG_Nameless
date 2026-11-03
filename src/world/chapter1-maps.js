@@ -104,6 +104,10 @@
                     text: 'Bolts of cloth, a cracked jar of honey, a child\'s wooden horse. Whoever owned them left in a hurry, or didn\'t leave at all.' },
                 { id: 'tollway_booth', kind: 'inspect', x: 4, y: 3, name: 'Toll booth',
                     text: 'The toll booth\'s shutter hangs open. A ledger shelf inside is empty except for a ring of dust where a book once sat.' },
+                { id: 'tollway_chanterelles', kind: 'forage', forage: 'chanterelles', x: 18, y: 15, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'Chanterelles pushing up between the old toll stones.' },
+                { id: 'tollway_herbs', kind: 'forage', forage: 'wild_herbs', x: 3, y: 17, name: 'Wild herbs', sprite: 'herbs',
+                    text: 'Wild thyme in the cracks of the road.' },
                 { id: 'tollway_register', kind: 'inspect', x: 16, y: 16, name: 'Strongbox', sprite: 'strongbox', when: { quests: { Q05: 'active' } },
                     guardedBy: 'tollway_strongbox_looters',
                     guardedText: 'The looters are crowded round the strongbox. You won\'t get the lid open with them on top of it.',
@@ -214,6 +218,11 @@
                 { id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, name: 'Watermill', verb: 'Use' },
                 { id: 'village_wild_hops', kind: 'pickup', x: 3, y: 11, item: 'Wild Hops', name: 'Wild hops', sprite: 'bundle', when: { quests: { SF1: 'active' } },
                     text: 'Wild hops climb the old mill-race fence, green and sticky and nothing like Fenric\'s brown ones.' },
+                // After Bread and Beer the hops keep growing on the falls bank (the kitchen: Fenric brews with you).
+                { id: 'village_hops_vine', kind: 'forage', forage: 'wild_hops', x: 2, y: 5, name: 'Wild hops', sprite: 'hops', when: { quests: { SF1: 'complete' } },
+                    text: 'The hops have climbed back up the mill-race fence.' },
+                { id: 'village_chanterelles', kind: 'forage', forage: 'chanterelles', x: 5, y: 14, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'Chanterelles under the bridge willows.' },
                 // The rye field behind the square:
                 { id: 'village_rye', kind: 'pickup', x: 22, y: 17, item: 'Rye Sheaf', name: 'Rye sheaves', sprite: 'bundle', when: { quests: { SF1: 'active' } },
                     text: 'Cut rye leans against the field fence in sheaves, waiting for someone with the patience to take it to the mill.' },
@@ -418,6 +427,14 @@
                     text: 'A circle scraped into the causeway stones, left open at the top. You have seen this mark before: in the cellar, on the dead tree, in the well.' },
                 { id: 'orchard_herbs', kind: 'pickup', x: 23, y: 18, item: 'Healing Herb Bundle', name: 'Wild herbs', sprite: 'bundle',
                     text: 'A clump of yarrow and feverfew growing in the shade of the last tree. Iona would want these.' },
+                { id: 'orchard_apples', kind: 'forage', forage: 'apples', x: 6, y: 7, name: 'Windfall apples', sprite: 'apples',
+                    text: 'Windfalls in the grass under the trees, most of them sound.' },
+                { id: 'orchard_apples_east', kind: 'forage', forage: 'apples', x: 20, y: 10, name: 'Windfall apples', sprite: 'apples',
+                    text: 'Apples the wasps have not found yet.' },
+                { id: 'orchard_chanterelles', kind: 'forage', forage: 'chanterelles', x: 2, y: 11, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'Chanterelles in the shade along the orchard wall.' },
+                { id: 'orchard_chanterelles_east', kind: 'forage', forage: 'chanterelles', x: 24, y: 14, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'A clump of chanterelles at the foot of the wall.' },
                 { id: 'orchard_old_tree', kind: 'inspect', x: 9, y: 15, name: 'Old apple tree',
                     text: 'The oldest tree in the orchard. Someone tied a ribbon round it for every year since the old crown fell. There is only one ribbon.' }
             ]
@@ -468,6 +485,10 @@
             interactables: [
                 { id: 'featherwatch_cage', kind: 'inspect', x: 13, y: 8, name: 'Broken cage',
                     text: 'A heavy cage, its door bent outward. The lock was mended many times, by someone patient, before it finally gave.' },
+                { id: 'featherwatch_chanterelles', kind: 'forage', forage: 'chanterelles', x: 3, y: 10, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'Mushrooms in the cold moss of the climb.' },
+                { id: 'featherwatch_chanterelles_low', kind: 'forage', forage: 'chanterelles', x: 15, y: 17, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'A golden cluster against the rock.' },
                 { id: 'featherwatch_perch', kind: 'inspect', x: 2, y: 12, name: 'Crow perch',
                     text: 'A perch built from a broken cart axle, with a dish of water and a few scraps of meat. The crows here are fat and unafraid.' },
                 { id: 'featherwatch_roost', kind: 'inspect', x: 14, y: 4, name: 'Splinted crow',
@@ -581,7 +602,22 @@
                 { id: 'grounds_gate', kind: 'station', station: 'homestead_gate', x: 22, y: 12, name: 'Broken gate', sprite: 'broken_gate', verb: 'Inspect',
                     looks: [{ when: { built: ['homestead_gate'] }, name: 'Mended gate', sprite: 'mended_gate' }] },
                 { id: 'grounds_orin', kind: 'npc', npc: 'orin', x: 18, y: 10, name: 'Orin Vale', sprite: 'mason', when: { flags: ['fragment_one'] } },
-                { id: 'grounds_shane', kind: 'npc', npc: 'shane', x: 9, y: 11, name: 'Shane', sprite: 'shane', when: { flags: ['shane_recruited'] } }
+                { id: 'grounds_shane', kind: 'npc', npc: 'shane', x: 9, y: 11, name: 'Shane', sprite: 'shane', when: { flags: ['shane_recruited'] } },
+                // The kitchen (Tokelo, 2026-11-02): your hearth, two fields on the old tilled soil, a pigsty and a hen coop.
+                { id: 'grounds_hearth', kind: 'station', station: 'homestead_hearth', verb: 'Cook at', x: 17, y: 6, name: 'Cooking hearth', sprite: 'cookfire' },
+                { id: 'grounds_field_west', kind: 'station', station: 'homestead_field_west', verb: 'Tend', x: 3, y: 11, name: 'West field', sprite: 'garden_bed' },
+                { id: 'grounds_field_east', kind: 'station', station: 'homestead_field_east', verb: 'Tend', x: 6, y: 11, name: 'East field', sprite: 'garden_bed' },
+                { id: 'grounds_sty', kind: 'station', station: 'homestead_sty', verb: 'Look at', x: 20, y: 14, name: 'Pigsty', sprite: 'sty' },
+                { id: 'grounds_coop', kind: 'station', station: 'homestead_coop', verb: 'Look at', x: 26, y: 14, name: 'Hen coop', sprite: 'coop' }
+            ],
+            // Things that grow back (forageDefinitions): mushrooms and herbs along the homestead road.
+            road: [
+                { id: 'road_chanterelles', kind: 'forage', forage: 'chanterelles', x: 7, y: 3, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'Golden chanterelles in the moss under the trees, smelling faintly of apricot.' },
+                { id: 'road_chanterelles_east', kind: 'forage', forage: 'chanterelles', x: 28, y: 3, name: 'Chanterelles', sprite: 'mushrooms',
+                    text: 'A ring of chanterelles where nobody walks.' },
+                { id: 'road_herbs', kind: 'forage', forage: 'wild_herbs', x: 7, y: 10, name: 'Wild herbs', sprite: 'herbs',
+                    text: 'Yarrow and thyme growing wild along the verge.' }
             ]
         }
     };

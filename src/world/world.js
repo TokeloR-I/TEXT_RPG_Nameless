@@ -25,7 +25,7 @@
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const FACINGS = Object.keys(DIRS);
     const TRIGGERS = ['step', 'interact'];
-    const OBJECT_KINDS = ['inspect', 'pickup', 'npc', 'station'];
+    const OBJECT_KINDS = ['inspect', 'pickup', 'npc', 'station', 'forage'];
     const LOOK_FIELDS = ['name', 'sprite', 'verb'];   // what a `looks` entry may change
 
     // ---------------------------------------------------------------------
@@ -150,6 +150,7 @@
                 if (o.guardedBy && !o.guardedText) err(`${where}: guarded object ${o.id} needs guardedText (why it can't be used yet)`);
                 if (!o.text) err(`${where}: object ${o.id} has no text`);
                 if (o.kind === 'pickup' && (!o.item || (gameData && !gameData.itemDefinitions[o.item]))) err(`${where}: pickup ${o.id} has unknown item '${o.item}'`);
+                if (o.kind === 'forage' && (!o.forage || (gameData && !(gameData.forageDefinitions || {})[o.forage]))) err(`${where}: forage ${o.id} has unknown forage '${o.forage}'`);
             }
             for (const b of map.boundaries || []) {
                 claim(b.id, `${where} boundary`);
@@ -243,6 +244,7 @@
         /** Is this placed thing (on `map`, default the current one) still there? Collected pickups and beaten enemies are gone. */
         present(o, map = this.map) {
             if (o.when && !this.allows(o.when)) return false;      // story-conditional people and enemies
+            if (o.kind === 'forage') return this.engine ? this.engine.forageReady(o.id) : !this.local.collected.includes(o.id);   // grows back (kitchen.js)
             return isEncounter(map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id));
         }
         /** How a placed thing looks right now: the first of its `looks` whose `when` holds changes only its
@@ -385,6 +387,15 @@
                 const events = this.engine ? this.engine.act({ type: 'talk', npcId: npc }).events : [];
                 return { type: 'talk', id: obj.id, npc, title: obj.name || null, events };
             }
+            if (obj && obj.kind === 'forage') {   // mushrooms, hops, apples: gathered, then they grow back
+                let events = [];
+                if (this.engine) {
+                    const r = this.engine.act({ type: 'world_forage', nodeId: obj.id, forageId: obj.forage });
+                    events = r.events;
+                    if (!r.ok) return { type: 'nothing', events };
+                } else this.local.collected.push(obj.id);
+                return { type: 'pickup', id: obj.id, item: obj.item || null, title: obj.name || null, text: obj.text || '', events };
+            }
             if (obj && obj.kind === 'pickup') {
                 let events = [];
                 if (this.engine) events = this.engine.worldPickup(obj.id, obj.item);
@@ -408,6 +419,7 @@
             const obj = this.objectAt(fx, fy);
             if (obj && isEncounter(this.map, obj)) return { verb: this.cooldown === obj.id ? 'Step away first' : 'Walk into it to fight', name: obj.name || 'Enemy', kind: 'encounter' };
             if (obj && obj.kind === 'pickup') return { verb: 'Pick up', name: obj.name || obj.item, kind: 'pickup' };
+            if (obj && obj.kind === 'forage') return { verb: obj.verb || 'Gather', name: obj.name || 'it', kind: 'pickup' };
             if (obj && obj.kind === 'npc') return { verb: 'Talk to', name: obj.name || (this.engine ? this.engine.npcName(obj.npc) : obj.npc), kind: 'npc' };
             if (obj && obj.kind === 'station') return { verb: obj.verb || 'Use', name: obj.name || 'it', kind: 'station' };
             if (obj) return { verb: 'Inspect', name: obj.name || 'something', kind: 'inspect' };

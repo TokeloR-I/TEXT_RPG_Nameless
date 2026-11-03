@@ -103,10 +103,14 @@ People, story gates and required fights (Chapter One, `src/world/chapter1-maps.j
 { id: 'tollway_register', kind: 'inspect', ..., guardedBy: 'tollway_strongbox_looters', guardedText: 'The looters are crowded round...' }
 // a place you use, not a person: E opens its choices like a talk (the story data has a faceless "npc" for it)
 { id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, name: 'Watermill', verb: 'Use' }
+// something that grows back (forageDefinitions in src/data.js): E gathers it, it vanishes, and it returns after
+// regrowSeconds of out-of-fight time (src/engine/kitchen.js)
+{ id: 'road_chanterelles', kind: 'forage', forage: 'chanterelles', x: 7, y: 3, name: 'Chanterelles', sprite: 'mushrooms' }
 ```
-Conditions: `{ flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' }, items: [...], built: [...], plots: { id: 'empty' | 'growing' | 'ready' }, any: [...] }`.
+Conditions: `{ flags: [...], notFlags: [...], quests: { Q05: 'complete' | 'active+' }, items: [...], has: { item: count }, notAny: [...], built: [...], plots: { id: 'empty' | 'growing' | 'ready' }, any: [...] }`.
 Arriving on a map, inspecting, talking, picking up and winning a map fight are story events the quests listen for,
-and so are the homestead rules: `plant` (seed), `tend` (plot), `harvest` (crop), `craft` (recipe id) and `build`.
+and so are the homestead rules: `plant` (seed), `tend` (plot), `harvest` (crop), `craft` (recipe id) and `build`,
+plus the kitchen's `forage` (forage id) and `eat` (item).
 A quest objective `{ type: 'quests', ids: [...], count: n }` completes once n of those quests are complete
 (Get to Know the Locals counts the five Shamefield favours this way).
 New tiles: `_` bridge, `+` cobble, `m` stall, `N` notice board, `A` fruit tree, `Z` seal door, `k` cage, `M` memorial, `w` wagon, `C` cart.
