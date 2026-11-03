@@ -188,7 +188,7 @@
                     lockedText: 'The orchard gate is chained shut. A painted board on it reads: CLOSED BY ORDER OF THE WATCH. ASK THE WATCH CAPTAIN.' },
                 { id: 'shamefield_west', x: 0, y: 18, trigger: 'step', toMap: 'allotment', toSpawn: 'from_village' },
                 { id: 'shamefield_cloister', x: 31, y: 9, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_village',
-                    text: 'The lane climbs past the last houses to a stone arch. Beyond it, a bell, a courtyard, and the warm, sour smell of malt.' },
+                    text: 'The lane climbs past the last houses to the Kloster gate: two towers, a cross, and beyond them a bell and the warm, sour smell of malt.' },
                 { id: 'shamefield_lane', x: 31, y: 16, trigger: 'step', toMap: 'village_residential_lane', toSpawn: 'from_village',
                     text: 'Behind the square, the houses lean together over a narrow cobbled lane. Bread, woodsmoke and pigs, in roughly that order.' }
             ],
@@ -206,9 +206,9 @@
                 { id: 'village_well', kind: 'inspect', x: 26, y: 12, name: 'Village well',
                     text: 'The well\'s stones are carved with names: everyone who helped rebuild the bridge last spring. Someone has chalked SHAME ON SHANE across the bucket.' },
                 { id: 'village_fountain', kind: 'inspect', x: 24, y: 13, name: 'Market fountain',
-                    text: 'Three stone basins, one above the other, splashing into each other. Names are chiselled round the rim: the families who paid to bring the cloister spring down to the square. The well is for drawing water; the fountain is for meeting people.' },
+                    text: 'Three stone basins, one above the other, splashing into each other. Names are chiselled round the rim: the families who paid to bring the Kloster spring down to the square. The well is for drawing water; the fountain is for meeting people.' },
                 { id: 'village_cloister_sign', kind: 'inspect', x: 30, y: 10, name: 'Signpost',
-                    text: 'East, uphill: BRIARWELL CLOISTER. Someone has added in chalk: AND BEER.' },
+                    text: 'East, uphill: BRIARWELL KLOSTER. Someone has added in chalk: AND BEER.' },
                 { id: 'village_memorial', kind: 'inspect', x: 28, y: 13, name: 'Memorial stone',
                     text: 'FOR THOSE TAKEN UNDER THE OLD CROWN. Fresh flowers. No names: the list was too long to carve.' },
                 // Get to know the locals (Tokelo, 2026-11-02): the corners of the village nothing used before.
@@ -245,58 +245,98 @@
         },
 
         // -----------------------------------------------------------------
-        // Shamefield expansion (SHAMEFIELD_VILLAGE_MAP_AND_IMPLEMENTATION_HANDOFF.md, Vaelis): the cloister
-        // courtyard and a residential lane. No quest gates and no shops; since 2026-11-02 the "get to know the
-        // locals" side quests (L01, SF1-SF5) use them: Fenric, Merrow, the garden bed, Oda's oven, Greta's pigs.
+        // Briarwell Kloster (map id kept from the Shamefield expansion so saves and quests still find it). Tokelo
+        // meant "Kloster", a German monastery, not a cloister walk: rebuilt 2026-11-03 after Tokelo's reference
+        // ("Kloster Sankt Alban") and painted whole by ui/scene-kloster.js. The walled grounds hold the abbey church
+        // and its bell tower, the cloister garth, the monks' cells, the refectory, the abbot's house, the cemetery,
+        // the herb garden and hops, the brewery, the storehouse and the gatehouse down to the village. The "get to
+        // know the locals" side quests (L01, SF1-SF5) still use Fenric, Merrow and the garden bed here.
         briarwell_cloister_court: {
             zoneId: 'shamefield_vale',
-            name: 'Briarwell Cloister',
-            ambient: { tint: 'rgba(90, 80, 60, 0.12)', particles: { kind: 'smoke', count: 8 }, grade: { ambient: 0.78, exposure: 1.05, highlights: [0.08, 0.04, -0.03] } },
+            name: 'Briarwell Kloster',
+            scene: 'kloster',
+            ambient: { darkness: 0.08, tint: 'rgba(90, 70, 50, 0.1)', particles: { kind: 'smoke', count: 6 },
+                grade: { ambient: 0.8, exposure: 1.04, highlights: [0.08, 0.04, -0.03] } },
+            legend: {
+                ',': { name: 'grass' }, ':': { name: 'dirt_path' }, '+': { name: 'flagstones' }, 'g': { name: 'gate' },
+                '#': { name: 'kloster_wall', solid: true }, 'O': { name: 'wall_tower', solid: true }, 'H': { name: 'gatehouse', solid: true },
+                'A': { name: 'abbey_church', solid: true }, 'K': { name: 'bell_tower', solid: true }, 'Z': { name: 'monks_cells', solid: true },
+                'F': { name: 'refectory', solid: true }, 'P': { name: 'abbots_house', solid: true }, 'V': { name: 'brewery', solid: true },
+                'L': { name: 'storehouse', solid: true }, 'a': { name: 'arcade', solid: true }, 'h': { name: 'hedge_bed', solid: true },
+                'i': { name: 'cypress', solid: true }, 'U': { name: 'cloister_fountain', solid: true }, 'q': { name: 'herb_bed', solid: true },
+                'r': { name: 'hop_trellis', solid: true }, 'e': { name: 'grave', solid: true }, 'X': { name: 'grave_cross', solid: true },
+                'w': { name: 'low_wall', solid: true }, 'T': { name: 'tree', solid: true }, 'Y': { name: 'dead_tree', solid: true },
+                'b': { name: 'barrel', solid: true }, 'x': { name: 'crate', solid: true }, 'C': { name: 'cart', solid: true },
+                'W': { name: 'woodpile', solid: true }, 'l': { name: 'lantern', solid: true }, 'j': { name: 'crops', solid: true },
+                's': { name: 'scarecrow', solid: true }, 'f': { name: 'fence', solid: true }, 'n': { name: 'bench', solid: true }
+            },
             tiles: [
-                '########################',
-                '#hhhhhhhh######hhhhhhhh#',
-                '#XXXnXXXX######XXXnXXXX#',
-                '#++++++++++J+++++++++++#',
-                '#+gg+++++++++++++++uuu+#',
-                '#+gg+++++++++++++++uuu+#',
-                '#++++++++++U+++++++++++#',
-                '#+++++l+++++++++l++++++#',
-                '#,,,,,,,,,,::,,,,,jjjj,#',
-                '#,,,,,,,,,l::,,,,,,,,,,#',
-                '#,,,,,,,,,,::,,,,,jjjj,#',
-                '#,,,,,,,,,,::,,,,,,,,,,#',
-                ':::::::::::::,,,,,jjjj,#',
-                '#,,,,,,,,,,,,,,,,,,,,,,#',
-                '#,,T,,,,,,,,,,,,,,,T,,,#',
-                '########################'
+                'TTTTT,TTT,TTTTTTTTTTTTTTTT,TTTTT',
+                'TO#####KKK#AAAAAAAAAA#########OT',
+                'T#,,,T,KKK:AAAAAAAAAA,w,,,,,,,#T',
+                'T#,T,,,KKK:AAAAAAAAAA,we,e,X,e#T',
+                'T#,,,,,KKK:AAAAAAAAAA,w,,,e,,,#T',
+                'T#T,,T,KKK:AAAAAAAAAA,wee,,,eY#T',
+                ',#,Y,,,KKK:AAAAAAAAAA,wwww:www#T',
+                'T#:::::::::AAAAAAAAAA,:,,,,,,,#T',
+                'T#:ZZZZZ,a++l++++++l+a:qq:qq:r#,',
+                'T#:ZZZZZ,a+++++++++++a:qq:qq:r#T',
+                'T#:ZZZZZ,a+hhh+++hhh+a:qq:qq:r#T',
+                'TO:ZZZZZ,a+hhhi+ihhh+a:,,:qq:rOT',
+                'T#:ZZZZZ,a+++++U+++++a::::::::#T',
+                ',#:ZZZZZ,a+hhhi+ihhh+a:VVVVVVV#T',
+                'T#:ZZZZZ,a+hhh+++hhh+a:VVVVVVV#T',
+                'T#:ZZZZZ,a+++++++++++a:VVVVVVV#,',
+                'T#:,,,T,,aaaaa+++aaaaa:bb,,,Cx#T',
+                ',#:Y,,,,FFFFFF+++PPPPP:,,,,,,,#T',
+                'T#:,,Y,,FFFFFF+++PPPPP:bLLLL,,#T',
+                'T#:,,,,,FFFFFF+++PPPPP:xLLLLWW#T',
+                'T#:,,,n,,,,n,,+++:::::::::::::#T',
+                'TO###########HHHgHHH##########OT',
+                'Tfjjsjjjf,,C,,l:::l,,,T,,,,,T,,,',
+                ',fjjjjjjf,T,,T,,:,,,T,,,,T,,,,,T'
             ],
-            spawns: { from_village: { x: 1, y: 12, facing: 'right' } },
+            // Warm light from the windows, the rose window and the brewing fire (the torches light themselves).
+            lights: [
+                { x: 15, y: 5, radius: 2, color: 'rgba(255, 150, 60, 0.2)' }, { x: 26, y: 15, radius: 1.6, color: 'rgba(255, 150, 60, 0.24)' },
+                { x: 10, y: 18, radius: 1.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 19, y: 18, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 5, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.2)' }
+            ],
+            spawns: { from_village: { x: 16, y: 22, facing: 'up' } },
             exits: [
-                { id: 'cloister_west', x: 0, y: 12, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' }
+                { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' }
             ],
             interactables: [
-                { id: 'cloister_fenric', kind: 'npc', npc: 'fenric', x: 17, y: 6, name: 'Brother Fenric', sprite: 'monk' },
-                { id: 'cloister_merrow', kind: 'npc', npc: 'merrow', x: 4, y: 6, name: 'Sister Merrow', sprite: 'steward' },
-                { id: 'cloister_charter', kind: 'inspect', x: 4, y: 2, name: 'Cloister charter',
-                    text: 'A board behind glass, the ink brown with age: the cloister may brew, bake and keep a granary "for the living, and against the winter". Older than the old crown. Nobody tore it down, so nobody had to put it back up.' },
-                { id: 'cloister_casks', kind: 'inspect', x: 19, y: 4, name: 'Casks',
+                { id: 'cloister_fenric', kind: 'npc', npc: 'fenric', x: 26, y: 16, name: 'Brother Fenric', sprite: 'monk' },
+                { id: 'cloister_merrow', kind: 'npc', npc: 'merrow', x: 26, y: 20, name: 'Sister Merrow', sprite: 'steward' },
+                { id: 'cloister_charter', kind: 'inspect', x: 19, y: 19, name: 'Kloster charter',
+                    text: 'A board behind glass by the abbot\'s door, the ink brown with age: the Kloster may brew, bake and keep a granary "for the living, and against the winter". Older than the old crown. Nobody tore it down, so nobody had to put it back up.' },
+                { id: 'cloister_casks', kind: 'inspect', x: 24, y: 16, name: 'Casks',
                     text: 'Chalk on every cask: BRIARWELL PALE, a date, and a small cross for each time the brewer tasted it. Some have a great many crosses.' },
-                { id: 'cloister_granary', kind: 'inspect', x: 2, y: 4, name: 'Granary sacks',
-                    text: 'Barley for the brewery, rye for the ovens, and a row set apart, tied with red cord: the reserve. A slate says DO NOT TOUCH in two different hands.' },
-                { id: 'cloister_cistern', kind: 'inspect', x: 11, y: 6, name: 'Fountain house',
-                    text: 'The spring comes up cold under a little stone roof. From here it runs to the brewery, to the gardens, and down the hill to the square. A cup on a chain. The water tastes of stone.' },
-                { id: 'cloister_bell', kind: 'inspect', x: 11, y: 3, name: 'Cloister bell',
-                    text: 'Its rope is worn smooth. It rings for dawn, for meals, and once, a year ago, for an hour without stopping.' },
-                { id: 'cloister_hops', kind: 'inspect', x: 18, y: 8, name: 'Hop trellis',
+                { id: 'cloister_granary', kind: 'inspect', x: 25, y: 19, name: 'Granary sacks',
+                    text: 'Inside the storehouse door: barley for the brewery, rye for the ovens, and a row set apart, tied with red cord: the reserve. A slate says DO NOT TOUCH in two different hands.' },
+                { id: 'cloister_cistern', kind: 'inspect', x: 15, y: 12, name: 'Fountain',
+                    text: 'The spring comes up cold in the middle of the cloister garth, under a little stone cross. From here it runs to the brewery, to the gardens, and down the hill to the square. A cup on a chain. The water tastes of stone.' },
+                { id: 'cloister_bell', kind: 'inspect', x: 8, y: 6, name: 'Bell tower',
+                    text: 'The bell rope hangs inside the door, worn smooth. It rings for dawn, for meals, and once, a year ago, for an hour without stopping.' },
+                { id: 'cloister_hops', kind: 'inspect', x: 29, y: 10, name: 'Hop poles',
                     text: 'Green cones hang in rows, sticky and bitter-smelling. A few leaves at the end have gone brown at the edges.' },
-                // Bread and Beer (SF1): the bed Sister Merrow lends you. Planting, tending and harvesting happen here.
-                { id: 'cloister_garden_bed', kind: 'station', station: 'briarwell_bed', x: 6, y: 10, name: 'Garden bed', sprite: 'garden_bed', verb: 'Tend' }
+                { id: 'kloster_church', kind: 'inspect', x: 15, y: 7, name: 'Abbey church',
+                    text: 'The great door stands under the rose window. Inside it is cool and dim, and smells of candle smoke and old stone. Someone has left a sprig of hops on the altar.' },
+                { id: 'kloster_cemetery', kind: 'inspect', x: 27, y: 3, name: 'Cemetery cross',
+                    text: 'The brothers and sisters of Briarwell lie here under plain stones, and a good many villagers with them. Fresh candles burn on the newest graves.' },
+                { id: 'kloster_refectory', kind: 'inspect', x: 10, y: 19, name: 'Refectory',
+                    text: 'Through the tall windows: long tables, a reading desk and a kitchen hatch. It smells of rye bread and barley soup. Nobody talks while the reader reads.' },
+                { id: 'kloster_cells', kind: 'inspect', x: 5, y: 15, name: 'Monks\' cells',
+                    text: 'A row of small doors, one for each brother and sister. Each cell has a bed, a candle and a window onto the garth.' },
+                // Bread and Beer (SF1): the bed Sister Merrow lends you, at the end of the herb garden. Planting, tending and harvesting happen here.
+                { id: 'cloister_garden_bed', kind: 'station', station: 'briarwell_bed', x: 23, y: 11, name: 'Garden bed', sprite: 'garden_bed', verb: 'Tend' }
             ],
             encounters: [
                 // The Brown Hops (SF2): what's been eating Fenric's roots and Merrow's sacks.
-                { id: 'cloister_rat_nest', x: 20, y: 13, name: 'Granary Rats', enemies: ['rust_rat', 'rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
+                { id: 'cloister_rat_nest', x: 28, y: 17, name: 'Granary Rats', enemies: ['rust_rat', 'rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
                     when: { quests: { SF2: 'active' }, flags: ['sf2_tracks'] },
-                    text: 'Under the south wall, three fat rust-red rats sit on a nest of shredded sacking and hop roots. They do not look sorry.' }
+                    text: 'Behind the storehouse, by the woodpile, three fat rust-red rats sit on a nest of shredded sacking and hop roots. They do not look sorry.' }
             ]
         },
 

@@ -855,7 +855,7 @@
 
     // The painting kit, for scenes kept in their own files (ui/scene-shamefield.js adds 'shamefield').
     const kit = { C, hash, vnoise, fbm, hex, R, PAL, Img, put, alphaAt, rectFill, shape, sset, ellipse, box, poly, thick, fill, shadow,
-        field, paintDetails, tree, deadTree, rock, bush, stump, barrel, crate, cart, fence, well, blockOf, masonry, slates, windowAt, ivy };
+        field, paintDetails, tree, deadTree, rock, bush, stump, barrel, crate, cart, scarecrow, fence, well, blockOf, masonry, slates, windowAt, ivy };
     const api = { has, paint, layers, animate, scenes, PAL, kit };
     ENSO.sceneArt = api;
     if (isNode) module.exports = api;
