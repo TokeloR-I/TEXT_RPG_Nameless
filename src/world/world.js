@@ -26,6 +26,7 @@
     const FACINGS = Object.keys(DIRS);
     const TRIGGERS = ['step', 'interact'];
     const OBJECT_KINDS = ['inspect', 'pickup', 'npc', 'station'];
+    const LOOK_FIELDS = ['name', 'sprite', 'verb'];   // what a `looks` entry may change
 
     // ---------------------------------------------------------------------
     // Map geometry
@@ -131,6 +132,10 @@
                     continue;
                 }
                 if (!OBJECT_KINDS.includes(o.kind)) err(`${where}: object ${o.id} has unknown kind '${o.kind}'`);
+                for (const l of o.looks || []) {
+                    if (!l || !l.when) err(`${where}: object ${o.id} has a look without a 'when'`);
+                    else for (const k of Object.keys(l)) if (k !== 'when' && !LOOK_FIELDS.includes(k)) err(`${where}: object ${o.id} has a look that changes '${k}' (only ${LOOK_FIELDS.join(', ')})`);
+                }
                 if (o.kind === 'npc') {           // Chapter One people: dialogue lives in the story data (src/story/)
                     if (!o.npc) err(`${where}: npc ${o.id} needs an npc id`);
                     else if (storyData && !storyData.npcs[o.npc]) err(`${where}: npc ${o.id} uses unknown story npc '${o.npc}'`);
@@ -240,6 +245,15 @@
             if (o.when && !this.allows(o.when)) return false;      // story-conditional people and enemies
             return isEncounter(map, o) ? !this.isDefeated(o.id) : !(o.kind === 'pickup' && this.isCollected(o.id));
         }
+        /** How a placed thing looks right now: the first of its `looks` whose `when` holds changes only its
+         *  name, sprite and verb (the homestead gate, mended once it's built). Same id, same tile, same use. */
+        look(o) {
+            const v = (o.looks || []).find((l) => this.engine && this.allows(l.when));
+            if (!v) return o;
+            const out = { ...o };
+            for (const k of LOOK_FIELDS) if (v[k] !== undefined) out[k] = v[k];
+            return out;
+        }
         /** Story conditions are the engine's (src/engine/story.js). Without an engine, everything is open. */
         allows(cond) { return !cond || !this.engine || !this.engine.story || this.engine.storyAllows(cond); }
         /** Objects and enemies still on a map (default: the current one). A front end draws the map it is
@@ -247,7 +261,7 @@
         visibleObjects(mapId = this.mapId) {
             const map = this.world.maps[mapId];
             if (!map) return [];
-            return placed(map).filter((o) => this.present(o, map)).map((o) => ({ ...o, kind: isEncounter(map, o) ? 'encounter' : o.kind }));
+            return placed(map).filter((o) => this.present(o, map)).map((o) => ({ ...this.look(o), kind: isEncounter(map, o) ? 'encounter' : o.kind }));
         }
 
         /** An exit's arrival narration plays once per run (#98): true the first time, false after.
@@ -276,7 +290,7 @@
         }
 
         tile(x, y) { return tileAt(this.world, this.map, x, y); }
-        objectAt(x, y) { return placed(this.map).find((o) => inRect(o, x, y) && this.present(o)) || null; }
+        objectAt(x, y) { const o = placed(this.map).find((p) => inRect(p, x, y) && this.present(p)); return o ? this.look(o) : null; }
         boundaryAt(x, y) { return (this.map.boundaries || []).find((b) => inRect(b, x, y)) || null; }
         exitAt(x, y, trigger) { return (this.map.exits || []).find((e) => e.x === x && e.y === y && (!trigger || e.trigger === trigger)) || null; }
         isBlocked(x, y) { return isSolidTile(this.world, this.map, x, y) || !!this.objectAt(x, y); }

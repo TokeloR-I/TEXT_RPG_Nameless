@@ -569,11 +569,17 @@
                 { id: 'cellar_inscription', kind: 'inspect', x: 0, y: 4, name: 'Cracked inscription',
                     text: 'Words are cut into the stone, half lost to a crack: "...WHO SLEEPS HERE IS NOT TO BE..." The rest has crumbled. Someone tried hard to scratch it out.' }
             ],
+            // Replaces the base house's bed and chest (same ids, same tiles): a safe home once the gate is mended.
+            house: [
+                { id: 'house_bed', kind: 'station', station: 'home_bed', x: 17, y: 9, name: 'Made bed', verb: 'Use' },
+                { id: 'house_chest', kind: 'station', station: 'home_chest', x: 2, y: 9, name: 'Travelling chest', verb: 'Open' }
+            ],
             grounds: [
                 { id: 'grounds_foundation', kind: 'inspect', x: 11, y: 12, name: 'Old foundation stone',
                     text: 'A cornerstone far too big for a farmhouse. Old masonry runs under the grass in straight lines, out toward the trees: the footprint of something much larger, long gone.' },
-                { id: 'grounds_gate', kind: 'inspect', x: 22, y: 12, name: 'Broken gate',
-                    text: 'The gate in the old fence has rotted off its hinges. It could be mended, with the right hands and the right materials.' },
+                // The gate (Tokelo, 2026-11-03): drawn broken, then mended once Orin's first job is built.
+                { id: 'grounds_gate', kind: 'station', station: 'homestead_gate', x: 22, y: 12, name: 'Broken gate', sprite: 'broken_gate', verb: 'Inspect',
+                    looks: [{ when: { built: ['homestead_gate'] }, name: 'Mended gate', sprite: 'mended_gate' }] },
                 { id: 'grounds_orin', kind: 'npc', npc: 'orin', x: 18, y: 10, name: 'Orin Vale', sprite: 'mason', when: { flags: ['fragment_one'] } },
                 { id: 'grounds_shane', kind: 'npc', npc: 'shane', x: 9, y: 11, name: 'Shane', sprite: 'shane', when: { flags: ['shane_recruited'] } }
             ]

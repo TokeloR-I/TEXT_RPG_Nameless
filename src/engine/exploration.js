@@ -203,6 +203,54 @@
             return true;
         }
 
+        // -----------------------------------------------------------------
+        // A safe home (Tokelo, 2026-11-03): once the gate is mended, the homestead bed heals you fully and
+        // the old chest keeps what you don't want to carry. Both are used from their stations' choices.
+        // -----------------------------------------------------------------
+        /** A full night's rest: all HP and resource back, lingering statuses gone. Out of fights only. */
+        restAtHome() {
+            const p = this.player;
+            if (this.mode !== 'explore') { this.refuse('WRONG_MODE', 'Not now.'); return false; }
+            p.hp = p.maxHp;
+            if (p.resource) p.resource.current = p.resource.max;
+            p.statusEffects = [];
+            this.say(`You bar the gate and sleep under your own roof. You wake rested. (${p.hp}/${p.maxHp} HP${p.resource ? `, ${p.resource.current}/${p.resource.max} ${p.resource.type}` : ''})`, { important: true });
+            return true;
+        }
+
+        stashContents() { const h = this.player.homestead; return (h && h.stash) || []; }
+        countOf(list, item) { const n = list.filter((x) => x === item).length; return n > 1 ? ` (${n})` : ''; }
+
+        /** Why this item can't go in the stash, or null (pure). Story items stay with you so no quest is stranded. */
+        stashBlock(item) {
+            if (!this.player.inventory.includes(item)) return { code: 'NOT_CARRIED', message: "You aren't carrying that." };
+            const def = this.itemDef(item);
+            if (!def || def.type === 'quest' || def.bound) return { code: 'KEEP_ITEM', message: 'You keep that on you.' };
+            return null;
+        }
+
+        stashItem(item) {
+            const block = this.stashBlock(item);
+            if (block) { this.refuse(block.code, block.message); return false; }
+            const p = this.player;
+            p.homestead = p.homestead || { built: {}, plots: {} };
+            p.homestead.stash = p.homestead.stash || [];
+            p.inventory.splice(p.inventory.indexOf(item), 1);
+            p.homestead.stash.push(item);
+            this.say(`Put ${this.itemName(item)} in the chest.`);
+            return true;
+        }
+
+        unstashItem(item) {
+            const stash = this.stashContents();
+            const i = stash.indexOf(item);
+            if (i === -1) { this.refuse('NOT_STASHED', "That isn't in the chest."); return false; }
+            stash.splice(i, 1);
+            this.player.inventory.push(item);
+            this.say(`Took ${this.itemName(item)} from the chest.`);
+            return true;
+        }
+
         plantCrop(plotId, seed) {
             const p = this.player;
             p.homestead = p.homestead || { built: {}, plots: {} };

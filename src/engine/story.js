@@ -69,6 +69,7 @@
             // Homestead state (src/engine/exploration.js): constructions built, and what a plot is doing.
             const home = (this.player && this.player.homestead) || { built: {}, plots: {} };
             for (const id of cond.built || []) if (!home.built || !home.built[id]) return false;
+            for (const id of cond.notBuilt || []) if (home.built && home.built[id]) return false;
             for (const [id, want] of Object.entries(cond.plots || {})) if (this.plotState(id) !== want) return false;
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
             return true;
@@ -88,6 +89,7 @@
         //   { shop: merchantId } { construction: upgradeId }: show Rook's CH1-04/05 data (no rules here)
         //   { plant: { plot, seed } } { tend: plot } { harvest: plot } { craft: recipeId }: run the homestead
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
+        //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
             for (const e of effects || []) {
@@ -105,6 +107,8 @@
                 if (e.tend) this.tendPlot(String(e.tend));
                 if (e.harvest) this.harvestPlot(String(e.harvest));
                 if (e.craft) this.craftRecipe(String(e.craft));
+                if (e.rest) this.restAtHome();
+                if (e.stash && this.story.dialogue) this.story.dialogue.stash = true;
                 if (e.start) this.startQuest(e.start, opts);
                 if (e.event) this.storyEvent(e.event);
             }
@@ -304,6 +308,16 @@
                     out.unshift({ choiceId: `build:${d.construction}`, text: `${rule.verb || 'Build'} ${rule.name || d.construction} (${rule.goldCost ? `${rule.goldCost} Gold` : 'free'})`, ends: false });
                 }
             }
+            // At the homestead stash: one choice per thing you can put away, and per thing already in it.
+            if (d.stash) {
+                const stashed = this.stashContents();
+                const away = [...new Set(this.player.inventory)].filter((i) => !this.stashBlock(i));
+                const back = [...new Set(stashed)];
+                const at = out.findIndex((c) => c.ends);
+                out.splice(at === -1 ? out.length : at, 0,
+                    ...away.map((i) => ({ choiceId: `stash:${i}`, text: `Put away ${this.itemName(i)}${this.countOf(this.player.inventory, i)}`, ends: false })),
+                    ...back.map((i) => ({ choiceId: `unstash:${i}`, text: `Take out ${this.itemName(i)}${this.countOf(stashed, i)}`, ends: false })));
+            }
             if (!out.some((c) => c.ends)) out.push({ choiceId: 'leave', text: 'Goodbye.', ends: true });
             return out;
         }
@@ -338,6 +352,12 @@
             if (pick.choiceId.startsWith('build:')) {
                 const id = pick.choiceId.slice(6);
                 if (this.buildUpgrade(id)) this.storyEvent({ type: 'build', id });
+                if (this.story.dialogue) this.showDialogueChoices();
+                return;
+            }
+            if (pick.choiceId.startsWith('stash:') || pick.choiceId.startsWith('unstash:')) {
+                const [verb, ...rest] = pick.choiceId.split(':');
+                if (verb === 'stash') this.stashItem(rest.join(':')); else this.unstashItem(rest.join(':'));
                 if (this.story.dialogue) this.showDialogueChoices();
                 return;
             }

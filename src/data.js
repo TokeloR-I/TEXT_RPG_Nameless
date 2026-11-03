@@ -1920,6 +1920,8 @@
             }, constructionDefinitions: {
                 // Orin's first job (Q07). Free for now (Tokelo, 2026-10-24): a story repair until the economy is tuned.
                 homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} },
+                // Orin's next job once the gate is up (Tokelo, 2026-11-03). Placeholder price for Gauge to tune.
+                homestead_walls: { name: 'Homestead Walls', goldCost: 40, materials: {}, requires: ['homestead_gate'] },
                 // Bread and Beer (Shamefield locals, Tokelo 2026-11-02): the first real use of planting and crafting.
                 // Sister Merrow lends a bed in the cloister garden; digging it is free, like the gate.
                 briarwell_bed: { name: 'Briarwell garden bed', verb: 'Dig', goldCost: 0, materials: {} }
