@@ -41,7 +41,7 @@
     const renderer = ENSO.gfx.createView(canvas, WORLD, { tile: 32 });   // HD-2D when WebGL is there (ui/postfx.js)
     const els = {
         title: $('title'), dialog: $('dialog'), pause: $('pause'), hud: $('hud'), banner: $('banner'),
-        problems: $('problems'), combat: $('combat'), toast: $('toast'), prompt: $('prompt'), pad: $('touch-pad')
+        problems: $('problems'), combat: $('combat'), toast: $('toast'), prompt: $('prompt'), pad: $('touch-pad'), notices: $('notices')
     };
     // ---------------------------------------------------------------------
     // Display: the stage is sized in whole screen pixels per canvas pixel when that fits well
@@ -498,28 +498,110 @@
         toastTimer = setTimeout(() => { els.toast.hidden = true; }, 2200);
     }
 
+    // ---------------------------------------------------------------------
+    // Notifications (Pixie, docs/ui/DIALOGUE_BOX.md): quest started or complete, objectives, XP, level
+    // ups, items and Gold stack top right, beside the dialogue box and never inside it. They stay
+    // visible while a conversation is open, fade on their own, and never need a key press.
+    // ---------------------------------------------------------------------
+    const NOTIFY_MAX = 5;
+    const NOTIFY_MS = { quest: 6000, level: 6000, objective: 5000 };
+    function notify(text, kind = 'quest') {
+        if (!els.notices || !text) return;
+        const el = document.createElement('div');
+        el.className = `notice n-${kind}`;
+        el.innerHTML = `<i aria-hidden="true">${NOTICE_ICON[kind] || '◆'}</i><span>${esc(text)}</span>`;
+        els.notices.appendChild(el);
+        while (els.notices.children.length > NOTIFY_MAX) els.notices.firstChild.remove();
+        setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), REDUCED ? 0 : 400); }, NOTIFY_MS[kind] || 4000);
+    }
+    const NOTICE_ICON = { quest: '!', objective: '◆', xp: '✦', level: '▲', loot: '◈' };
+
+    // ---------------------------------------------------------------------
+    // The dialogue box (Pixie, docs/ui/DIALOGUE_BOX.md). Text comes a page at a time: at most two
+    // sentences (ui/dialogue-pages.js), typed out, with the speaker on a nameplate. Enter, Space, E or a
+    // left click finishes the typing, then turns the page; Esc closes. System lines go to notify().
+    // ---------------------------------------------------------------------
+    const DP = ENSO.dialoguePages;
+    /** Text plus engine events -> paged box + notifications. `lead` is the place's or object's own text. */
+    function showStory(lead, events, title, onClose, fallback) {
+        const lines = [].concat(lead || []).filter(Boolean).map((text) => ({ text })).concat(readable(events || []));
+        const { pages, notices } = DP.arrange(lines, { skipSpeaker: engine.player && engine.player.name });
+        for (const n of notices) notify(n.text, n.kind);
+        if (!pages.length && fallback && !notices.length) pages.push({ speaker: null, text: fallback });
+        openPages(pages, title, onClose);
+    }
     function openDialog(pages, title, onClose) {
-        dialog = { pages: [].concat(pages).filter(Boolean), title, onClose: onClose || null };
+        openPages(DP.arrange([].concat(pages).filter(Boolean)).pages, title, onClose);
+    }
+    function openPages(pages, title, onClose) {
+        dialog = { pages, i: 0, title, onClose: onClose || null };
         if (!dialog.pages.length) { dialog = null; if (onClose) onClose(); return; }
         modal = 'dialog'; syncActionHudVisibility();
         muteHeldKeys();
         renderDialog();
     }
+    /** Nameplate + page text; the text types itself out (instantly when motion is reduced). */
+    function pageHtml(page, title, last, hint) {
+        const name = page.speaker || title;
+        return `${name ? `<div class="dialog-title nameplate">${esc(name)}</div>` : ''}
+            <div class="dialog-text dialog-page" data-full="${esc(page.text)}">${esc(REDUCED ? page.text : '')}</div>
+            ${hint ? `<div class="dialog-more" aria-hidden="true">${last ? '■' : '▼'}</div>` : ''}`;
+    }
+    let typing = null;   // { el, text, t0, timer }
+    let closedAt = 0;    // a quick double press that closes the box must not also talk to the NPC again
+    function startTyping() {
+        stopTyping();
+        const el = els.dialog.querySelector('.dialog-page');
+        if (!el) return;
+        const text = el.dataset.full || '';
+        el.setAttribute('aria-label', text);
+        if (REDUCED) { el.textContent = text; return; }
+        typing = { el, text, t0: performance.now(), timer: 0 };
+        const step = () => {
+            if (!typing) return;
+            const n = DP.revealed(text, performance.now() - typing.t0);
+            el.textContent = text.slice(0, n);
+            if (n >= text.length) { typing = null; return; }
+            typing.timer = requestAnimationFrame(step);
+        };
+        step();
+    }
+    function stopTyping() { if (typing) { cancelAnimationFrame(typing.timer); typing = null; } }
+    /** First press: show the whole page. Returns true if it did (so the press doesn't also turn the page). */
+    function finishTyping() {
+        if (!typing) return false;
+        const t = typing; stopTyping();
+        t.el.textContent = t.text;
+        return true;
+    }
     function renderDialog() {
         els.dialog.hidden = false;
-        els.dialog.innerHTML = `${dialog.title ? `<div class="dialog-title">${esc(dialog.title)}</div>` : ''}
-            <div class="dialog-text">${esc(dialog.pages[0])}</div>
-            <div class="dialog-more">${dialog.pages.length > 1 ? '▼' : '■'}</div>`;
+        els.dialog.className = 'dialog paged';
+        const last = dialog.i >= dialog.pages.length - 1;
+        els.dialog.innerHTML = `${pageHtml(dialog.pages[dialog.i], dialog.title, last, true)}
+            <div class="dialog-count" aria-hidden="true">${dialog.pages.length > 1 ? `${dialog.i + 1}/${dialog.pages.length}` : ''}</div>`;
+        startTyping();
     }
     function advanceDialog(all) {
-        if (all) dialog.pages = []; else dialog.pages.shift();
-        if (dialog.pages.length) { renderDialog(); return; }
+        if (!dialog) return;
+        if (!all && finishTyping()) return;
+        if (!all && dialog.i < dialog.pages.length - 1) { dialog.i++; renderDialog(); return; }
+        stopTyping();
         els.dialog.hidden = true;
+        els.dialog.className = 'dialog';
         modal = null; syncActionHudVisibility();
         muteHeldKeys();
+        closedAt = performance.now();
         const cb = dialog.onClose; dialog = null;
         if (cb) cb();
     }
+    /** A left click on the box is the same as Enter (choices take their own clicks). */
+    els.dialog.addEventListener('click', (ev) => {
+        if (ev.button !== 0 || ev.target.closest('.menu')) return;
+        if (modal === 'dialog') advanceDialog(false);
+        else if (modal === 'talk' && talk && talk.reading) talkAdvance();
+        else if (modal === 'talk') finishTyping();
+    });
 
     /** Engine text lines worth showing in a dialog or the battle log (drops the text game's menus and prompts). */
     function readable(events) {
@@ -533,8 +615,9 @@
             if (!t.trim() || /^> /.test(t) || t === '(Type anything to continue.)' || t === '--- Your Turn! ---' || /^--- COMBAT INITIATED/.test(t) || /appears! \(HP: \d+\)$/.test(t)) continue;
             if (/^Type the name of a path/.test(t) || /^- [a-z_ ]+: /.test(t) || t === 'Choose your path:') continue;  // evolution prompt: shown as a menu
             if (/^ {2}\d+\. /.test(t)) continue;                                     // the text game's numbered dialogue choices: shown as a menu
-            t = t.replace(/ Type 'start' to play again\.?/, '').replace(/ Type 'look'.*$/, '');
-            out.push({ text: ev.html ? t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : t, important: ev.important });
+            if (/^\(To buy: '/.test(t)) continue;                                      // text-game hint; the shop menu does this
+            t = t.replace(/ Type 'start' to play again\.?/, '').replace(/ Type 'look'.*$/, '').replace(/ To build: '[^']*'\./, '');
+            out.push({ text: ev.html ? t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : t, important: ev.important, notice: ev.notice });
         }
         return out;
     }
@@ -553,12 +636,29 @@
         const avail = engine.getAvailableActions();
         if (avail.awaiting !== 'dialogue') { closeTalk(events); return; }
         if (avail.shop && !conversationOnly) { renderShop(avail); return; }
-        const said = readable(events);
+        const { pages, notices } = DP.arrange(readable(events), { skipSpeaker: engine.player.name });
+        for (const n of notices) notify(n.text, n.kind);
         const choices = avail.actions.filter((a) => a.type === 'dialogue_choice');
         const leave = () => renderTalk(engine.act({ type: 'dialogue_leave' }).events);
+        const keep = talk && talk.npcId === avail.dialogue.npcId ? talk.lastPage : null;
+        talk = { npcId: avail.dialogue.npcId, avail, pages, i: 0, reading: pages.length > 1, lastPage: pages[pages.length - 1] || keep };
         menu = makeMenu(choices.map((c) => ({ label: c.text, action: () => renderTalk(engine.act({ type: 'dialogue_choice', choiceId: c.choiceId }).events) })),
-            { back: leave, render: () => drawTalk(avail, said) });
-        drawTalk(avail, said);
+            { back: leave, render: () => drawTalk(avail, false) });
+        drawTalk(avail, true);
+    }
+    /** Conversation state: the pages still to read, then the choices under the last one. */
+    let talk = null;   // { npcId, avail, pages, i, reading, lastPage }
+    function talkAdvance() {
+        if (finishTyping()) return;
+        talk.i++;
+        talk.reading = talk.i < talk.pages.length - 1;
+        drawTalk(talk.avail, true);
+    }
+    function talkSkip() { stopTyping(); talk.i = Math.max(0, talk.pages.length - 1); talk.reading = false; drawTalk(talk.avail, false); }
+    function talkKey(ev) {
+        if (ev.repeat) return;
+        if (isAct(ev)) talkAdvance();
+        else if (ev.key === 'Escape') talkSkip();
     }
     /** Shop goods and refusals come from the same engine checks as buy(). */
     function renderShop(avail, message = '', selected = 0, selling = false) {
@@ -578,7 +678,9 @@
         draw();
         function draw() {
             const good = goods[menu.index];
+            stopTyping();
             els.dialog.hidden = false;
+            els.dialog.className = 'dialog';
             els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · ${selling ? 'Sell' : 'Buy'} <span class="dialog-role">${avail.shop.gold} Gold</span></div>
                 ${menuHtml(menu, 'shop-goods')}
                 <div class="shop-detail">${esc(good ? good.description : menu.items[menu.index].label)}</div>
@@ -590,18 +692,26 @@
         }
     }
 
-    function drawTalk(avail, said) {
+    /** One page of the conversation. While pages remain: the page and ▼. On the last page: the choices too.
+     *  `type` restarts the typewriter (a new page); menu moves redraw without retyping. */
+    function drawTalk(avail, type) {
         const d = avail.dialogue;
+        if (!type) stopTyping();
         els.dialog.hidden = false;
-        const title = `<div class="dialog-title">${esc(d.name)}${d.title ? ` <span class="dialog-role">${esc(d.title)}</span>` : ''}</div>`;
-        const portrait = PORTRAITS[d.npcId];
+        els.dialog.className = 'dialog paged talk';
+        const page = talk.pages[talk.i] || talk.lastPage;
+        const speaker = page && page.speaker && page.speaker !== d.name ? page.speaker : null;
+        const title = `<div class="dialog-title nameplate">${esc(speaker || d.name)}${!speaker && d.title ? ` <span class="dialog-role">${esc(d.title)}</span>` : ''}</div>`;
+        const portrait = !speaker && PORTRAITS[d.npcId];
+        const text = page ? `<div class="dialog-text dialog-page talk-text" data-full="${esc(page.text)}">${esc(type && !REDUCED ? '' : page.text)}</div>` : '';
+        const count = talk.pages.length > 1 ? `<div class="dialog-count" aria-hidden="true">${Math.min(talk.i + 1, talk.pages.length)}/${talk.pages.length}</div>` : '';
         els.dialog.innerHTML = `${portrait ? `<div class="talk-head"><canvas class="portrait" width="16" height="16" aria-hidden="true"></canvas>${title}</div>` : title}
-            <div class="dialog-text talk-text">${said.map((l) => `<p class="${l.important ? 'imp' : ''}">${esc(l.text)}</p>`).join('')}</div>
-            ${menuHtml(menu, 'talk-choices')}
-            <div class="dialog-keys">↑ ↓ choose · Enter say · Esc goodbye</div>`;
-        bindMenuClicks(els.dialog, menu);
+            ${text}${count}
+            ${talk.reading ? '<div class="dialog-more" aria-hidden="true">▼</div><div class="dialog-keys">Enter / click next · Esc skip</div>'
+                : `${menuHtml(menu, 'talk-choices')}<div class="dialog-keys">↑ ↓ choose · Enter say · Esc goodbye</div>`}`;
+        if (!talk.reading) bindMenuClicks(els.dialog, menu);
         if (portrait) drawPixels(els.dialog.querySelector('canvas.portrait'), portrait.rows, portrait.colours());
-        const box = els.dialog.querySelector('.talk-text'); if (box) box.scrollTop = 0;   // read from the top
+        if (type) startTyping();
     }
     /** Speaker portraits by npc id: pixel rows plus colours read from the palette tokens. */
     const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -614,12 +724,15 @@
         rows.forEach((row, y) => [...row].forEach((c, x) => { if (colours[c]) { g.fillStyle = colours[c]; g.fillRect(x, y, 1, 1); } }));
     }
     function closeTalk(events) {
+        stopTyping();
         els.dialog.hidden = true;
+        els.dialog.className = 'dialog';
         modal = null; syncActionHudVisibility();
         menu = null;
+        talk = null;
+        closedAt = performance.now();
         updateHud();
-        const lines = readable(events).map((l) => l.text);
-        if (lines.length) openDialog([lines.join('\n')], null, afterStory); else afterStory();
+        showStory(null, events, null, afterStory);
     }
     /** After anything that can complete a quest: the HUD, and the evolution choice if one is due. */
     function afterStory() {
@@ -988,7 +1101,7 @@
         const r = engine.act({ type: 'talk_crow' });
         closePause();
         if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events);
-        else openDialog(readable(r.events).map((l) => l.text).join('\n') || '…', 'Crow', afterStory);
+        else showStory(null, r.events, 'Crow', afterStory, '…');
     }
     function blackFlight(f) {
         closePause();
@@ -1065,14 +1178,14 @@
         bindMenuClicks(els.pause, menu);
     }
     function chooseBranch(key) {
-        const lines = readable(engine.act({ type: 'choose_branch', branchId: key }).events).map((l) => l.text);
+        const events = engine.act({ type: 'choose_branch', branchId: key }).events;
         els.pause.hidden = true;
         els.hud.hidden = false;
         menu = null;
         modal = null; syncActionHudVisibility();
         updateHud();
         if (engine.mode === 'branch_select') { openBranchMenu(); return; }
-        openDialog([lines.join('\n')], 'Evolution');
+        showStory(null, events, 'Evolution');
     }
 
     // ---------------------------------------------------------------------
@@ -1537,8 +1650,6 @@
     const press = { attack: false, pointerAttack: false, dodge: false, interact: false, slot: null };
     let guardHeld = false;
     let lockId = null;
-    const notices = [];
-    let noticeSeq = 0;
     let lastPlayerHp = null;
     let hud = null;
     let playerAnim = { name: null, t0: 0, key: '' };
@@ -1548,7 +1659,6 @@
         sim = new ENSO.actionSim.ActionSim({ engine, session, rules: DATA.actionRules, seed: engine.seed });
         lastActionFrame = 0;
         lockId = null;
-        notices.length = 0;
         lastPlayerHp = engine.player.hp;
         if (!hud && ENSO.actionHud) {
             hud = ENSO.actionHud.create($('world-stage'));
@@ -1620,10 +1730,7 @@
         return input;
     }
 
-    function notice(text, kind = 'loot') {
-        notices.push({ id: `n${++noticeSeq}`, text, kind, at: performance.now() });
-        while (notices.length > 6) notices.shift();
-    }
+    function notice(text, kind = 'loot') { notify(text, kind); }
 
     function syncActionHudVisibility() {
         if (!hud) return;
@@ -1646,7 +1753,8 @@
                 if (ev.type === 'world.drop') notice(`${ev.drop.gold ? `${ev.drop.gold} Gold` : ''}${ev.drop.gold && ev.drop.items.length ? ' · ' : ''}${ev.drop.items.map((i) => i.name).join(', ')} dropped`, 'loot');
                 if (ev.type === 'loot') notice(`Picked up ${[ev.gold ? `${ev.gold} Gold` : '', ...(ev.items || []).map((i) => i.name || i)].filter(Boolean).join(', ')}`, 'loot');
                 if (ev.type === 'action.cleared') notice(`+${ev.xp} XP`, 'xp');
-                if (ev.type === 'text' && /level|Level|evolve|Quest|quest|journal/.test(ev.text) && ev.important) notice(ev.text, 'quest');
+                if (ev.type === 'text' && ev.notice) notice(ev.text, DP.noticeKind(ev.notice));
+                else if (ev.type === 'text' && /evolve|journal/.test(ev.text) && ev.important) notice(ev.text, 'quest');
             }
             for (const r of out.world) {
                 if (r.type === 'transition') { sim.enterMap(); arriveAction(r); }
@@ -1673,9 +1781,7 @@
         fade = { t0: performance.now(), phase: 'in', result: r };
         showBanner(WORLD.maps[session.mapId].name);
         updateHud();
-        const story = readable(r.events || []).map((l) => l.text);
-        const pages = [r.text, story.length ? story.join('\n') : null].filter(Boolean);
-        if (pages.length) openDialog(pages, null, afterStory); else afterStory();
+        showStory(r.text, r.events, null, afterStory);
     }
 
     function actionFxEvent(ev, now) {
@@ -1789,7 +1895,6 @@
         const enemies = v.actors.filter((a) => a.engaged && a.state !== 'dead' && a.engineId).map((a) => ({ id: a.sid, name: a.name, hp: a.hp, maxHp: a.maxHp, boss: a.boss, phase: a.phase, phases: a.phases }));
         const boss = enemies.find((e) => e.boss);
         const pr = !v.engaged && screen === 'explore' && !modal && !fade && !flash ? session.prompt() : null;
-        while (notices.length && now - notices[0].at > 4000) notices.shift();
         return {
             appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
             stamina: { cur: p.stamina, max: p.staminaMax },
@@ -1800,7 +1905,7 @@
             enemies,
             boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp, phase: boss.phase, phases: boss.phases } : null,
             prompt: pr && pr.kind !== 'encounter' ? { key: 'E', verb: pr.verb, name: pr.name } : null,
-            notices: notices.map((n) => ({ id: n.id, text: n.text, kind: n.kind }))
+            notices: []   // reward notices show in the shared feed (notify), so they stay visible over dialogue
         };
     }
 
@@ -1874,18 +1979,17 @@
     }
 
     function interact() {
+        if (performance.now() - closedAt < 300) return;
         const r = session.interact();
-        if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else openDialog(readable(r.events).map((l) => l.text).join('\n') || '…', r.title, afterStory); return; }
+        if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else showStory(null, r.events, r.title, afterStory, '…'); return; }
         if (r.type === 'message') {
             seen.add(r.id);
-            const story = readable(r.events || []).map((l) => l.text);
-            openDialog([story.length ? `${r.text}\n\n${story.join('\n')}` : r.text], r.title, afterStory);
+            showStory(r.text, r.events, r.title, afterStory);
             return;
         }
         if (r.type === 'pickup') {
-            const got = readable(r.events).map((l) => l.text).join('\n');
             updateHud();
-            openDialog([`${r.text}\n\n${got}`], r.title, afterStory);
+            showStory(r.text, r.events, r.title, afterStory);
             return;
         }
         if (r.type === 'transition') startFade(r);
@@ -1914,6 +2018,8 @@
             if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
             if (modal === 'pause' && menu && (dir === 'left' || dir === 'right') && !ev.repeat && mainMenuSideways(dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
+            if (modal === 'talk' && talk && talk.reading) { talkKey(ev); return; }
+            if (modal === 'talk' && typing && isAct(ev) && !ev.repeat) { finishTyping(); return; }
             if (menu) menuKey(menu, ev, dir);
             return;
         }
@@ -1982,9 +2088,7 @@
                 fade = { t0: now, phase: 'in', result: fade.result };
                 showBanner(WORLD.maps[session.mapId].name);
                 updateHud();
-                const story = readable(fade.result.events || []).map((l) => l.text);
-                const pages = [fade.result.text, story.length ? story.join('\n') : null].filter(Boolean);
-                if (pages.length) openDialog(pages, null, afterStory); else afterStory();
+                showStory(fade.result.text, fade.result.events, null, afterStory);
             } else if (k >= 1) { fade = null; view.fade = 0; }
         }
         if (flash) {
@@ -2019,6 +2123,18 @@
             for (const [dx, dy, f] of [[0, 1, 'up'], [0, -1, 'down'], [1, 0, 'left'], [-1, 0, 'right']]) {
                 if (session.isBlocked(e.x + dx, e.y + dy)) continue;
                 session.x = e.x + dx; session.y = e.y + dy; session.facing = f; syncView(); return f;
+            }
+            return null;
+        },
+        /** Stand next to a map object (an NPC, a sign, a station), facing it; then E talks or uses it. */
+        nextToObject(id) {
+            const o = (session.map.interactables || []).find((x) => x.id === id);
+            if (!o) return null;
+            for (const [dx, dy, f] of [[0, 1, 'up'], [0, -1, 'down'], [1, 0, 'left'], [-1, 0, 'right']]) {
+                if (session.isBlocked(o.x + dx, o.y + dy)) continue;
+                session.x = o.x + dx; session.y = o.y + dy; session.facing = f;
+                if (sim) sim.enterMap();
+                syncView(); return f;
             }
             return null;
         },

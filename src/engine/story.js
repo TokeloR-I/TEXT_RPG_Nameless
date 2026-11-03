@@ -142,7 +142,7 @@
             if (this.story.claimed.includes(key)) return false;
             this.story.claimed.push(key);
             this.player.inventory.push(item);
-            this.say(`Received: ${item}.`, { important: true });
+            this.say(`Received: ${item}.`, { important: true, notice: 'item' });
             return true;
         }
 
@@ -155,7 +155,7 @@
             if (!def || !q || ORDER[q.state] >= ORDER.active) return;
             q.state = 'active';
             q.step = 0;
-            if (!opts.quiet) this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} started: ${def.title}`, { important: true });
+            if (!opts.quiet) this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} started: ${def.title}`, { important: true, notice: 'quest' });
             this.announceObjective(id, opts);
             this.catchUpQuest(id);
         }
@@ -168,7 +168,7 @@
 
         announceObjective(id, opts = {}) {
             const o = this.currentObjective(id);
-            if (o && !opts.quiet) this.say(`Objective: ${o.text}`);
+            if (o && !opts.quiet) this.say(`Objective: ${o.text}`, { notice: 'objective' });
         }
 
         /** Has this objective's event already happened? A `quests` objective ({ type: 'quests', ids, count })
@@ -206,7 +206,7 @@
             const key = `quest:${id}`;
             const pay = !this.story.claimed.includes(key);
             if (pay) this.story.claimed.push(key);
-            this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} complete: ${def.title}${pay && def.xp ? ` (+${def.xp} XP)` : ''}`, { important: true });
+            this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} complete: ${def.title}${pay && def.xp ? ` (+${def.xp} XP)` : ''}`, { important: true, notice: 'quest' });
             if (pay && def.xp) this.addExperience(def.xp, { quiet: true });
             this.applyStoryEffects(def.onComplete);
             // A quest waiting on a count of quests (the Shamefield locals) may be done now.
@@ -214,7 +214,7 @@
                 const o = this.currentObjective(qid);
                 if (o && o.on && o.on.type === 'quests' && (o.on.ids || []).includes(id)) {
                     if (this.objectiveMet(o)) this.catchUpQuest(qid);
-                    else this.say(`${qdef.title}: ${this.questsDone(o.on)}/${o.on.count || o.on.ids.length}`);
+                    else this.say(`${qdef.title}: ${this.questsDone(o.on)}/${o.on.count || o.on.ids.length}`, { notice: 'quest' });
                 }
             }
             if (!this.story.dialogue) this.maybePromptBranch();
