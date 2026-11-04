@@ -52,6 +52,18 @@
             return value ? Math.floor(value / r.statDamagePer) : 0;
         }
 
+        /** Passive traits whose data carries `mods`: `damageVsFlags` ({ undead: 0.2 }) on the attacker's side and
+         *  `damageTaken` (-0.1 = 10% less) on the target's. Data, so a new passive never needs its name in the engine. */
+        traitDamageMult(attacker, target) {
+            let m = 1;
+            for (const t of attacker.traits || []) {
+                const v = t.mods && t.mods.damageVsFlags;
+                if (v) for (const f of target.specialFlags || []) if (v[f]) m *= 1 + v[f];
+            }
+            for (const t of target.traits || []) if (t.mods && t.mods.damageTaken) m *= 1 + t.mods.damageTaken;
+            return m;
+        }
+
         rollDamage(attacker, target, skill, hit) {
             let dmg = this.randInt(skill.base_damage[0], skill.base_damage[1]);
             if (attacker.isPlayer) dmg += this.statBonus(attacker, skill.damage_type) + this.equipmentDamageBonus(skill.damage_type, attacker.equipment || {});
@@ -85,6 +97,7 @@
                     (target.specialFlags || []).includes(status.flag)) final *= 1 + status.value;
             }
             for (const status of attacker.statusEffects) if (status.type === 'damage_boost') final *= 1 + (Number(status.value) || 0);   // Wrath Ghost, Blade Focus
+            final *= this.traitDamageMult(attacker, target);   // passive traits with `mods` (the Fallen Seraphim web)
             if (ninja) final *= ninja.damageMult;
             final *= 1 + this.foodMod(attacker, 'damage');   // meals and beer (src/engine/kitchen.js)
             hit.damage = Math.max(0, Math.floor(final));

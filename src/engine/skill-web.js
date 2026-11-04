@@ -239,7 +239,9 @@
                 const ok = info && info.stages.slice(0, Number(st)).every((ids) => ids.every(has));
                 if (!ok) missing.push(info ? this.branchDef(b).stages[Number(st) - 1].name : r);
             }
-            if (req.event && !this.flags.eventsUnlocked) missing.push(req.event);
+            // A story flag (the Fallen Seraphim: the Kloster statue woke) is the event itself; the dev cheat still opens it.
+            if (req.flag) { if (!(this.hasStoryFlag && this.hasStoryFlag(req.flag)) && !this.flags.eventsUnlocked) missing.push(req.event || req.flag); }
+            else if (req.event && !this.flags.eventsUnlocked) missing.push(req.event);
             return missing;
         }
         webPointsEarned() {

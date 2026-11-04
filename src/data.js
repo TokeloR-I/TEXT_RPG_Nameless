@@ -384,6 +384,14 @@
             'March of Endless Bones': { description: 'Raise skeletons up to your minion limit, plus a Skeleton Champion with double a skeleton\'s stats.', cost: 6, cooldown: 45, resource: 'Soul Energy', effects: [{ type: 'raise_army', summon_type: 'skeleton', champion: 'skeleton_champion' }], target: 'self' }, // Black Pharaoh Ascended
             'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', liveDescription: 'Every enemy around you (160 px) gains 10 Infection stacks that deal true damage.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe', stacks: 10 }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
             'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', liveDescription: 'All enemies become undead under your control for 3 s.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
+
+
+            // Fallen Seraphim Legendary (Tokelo 2026-11-04): heavenly light that fell. Like the other legendary skills,
+            // these are paid from whatever pool your class runs on. Gauge's first numbers; tune in data.
+            'Halo of Ash': { description: 'A halo of ash and light: take 30% less damage for 3 turns.', liveDescription: 'A halo of ash and light: take 30% less damage for 9 s. 20 s cooldown.', cost: 2, cooldown: 20, resource: 'any', effects: [{ type: 'damage_reduction', value: 0.3, duration: 3 }], target: 'self' },
+            'Fallen Judgement': { description: 'A spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void).', liveDescription: 'Hurl a spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void). 6 s cooldown.', cost: 2, cooldown: 6, resource: 'any', base_damage: [14, 20], effects: [{ type: 'bonus_damage_vs_flag', flag: 'undead', value: 6 }, { type: 'bonus_damage_vs_flag', flag: 'void', value: 6 }], target: 'enemy_single', damage_type: 'radiant' },
+            'Wings of Sorrow': { description: 'Six wings beat once: 8–12 radiant dmg to every enemy, and the glare blinds them (50% to miss) for 1 turn.', liveDescription: 'Six wings beat once around you (160 px): 8–12 radiant dmg to every enemy, blinded for 4 s (50% of their attacks miss). 18 s cooldown.', cost: 3, cooldown: 18, resource: 'any', base_damage: [8, 12], effects: [{ type: 'blind', value: 0.5, duration: 1, seconds: 4 }], target: 'all_enemies', damage_type: 'radiant' },
+            'Six-Winged Descent': { description: 'Fall on your enemies like judgement: 20–28 true dmg to every enemy and stun them for 1 turn.', liveDescription: 'Fall on everything around you (160 px): 20–28 true dmg to every enemy, stunned for 3 s. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [20, 28], effects: [{ type: 'true_damage' }, { type: 'stun', duration: 1 }], target: 'all_enemies', damage_type: 'radiant' },
             
             'Eternal Lich Unmake': { description: 'Eternal Lich erases one non-boss enemy from this fight.', cost: 5, resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'eternal_lich_unmake' }], target: 'enemy_single', damage_type: 'true' },
 
@@ -731,6 +739,22 @@
                         { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', links: ['deathlord_eternal.legion'] }
                     ]
                 },
+                // Fallen Seraphim (Tokelo 2026-11-04): no evolution needed. Stare at the robed statue in the Kloster's inner
+                // courtyard for 2 minutes (gazeRules): it wakes, speaks, and opens this web. Six nodes, one per wing; the
+                // levels spread the heavenly powers over the game so a fresh character can't take them all at once.
+                fallen_seraphim: {
+                    requires: { stages: [], flag: 'seraph_awakened', event: 'the statue in the Kloster courtyard wakes' },
+                    nodes: [
+                        { id: 'fallen_seraphim.halo_of_ash', kind: 'active', skill: 'Halo of Ash', links: ['heart.fallen_seraphim'] },
+                        { id: 'fallen_seraphim.judgement', kind: 'active', skill: 'Fallen Judgement', minLevel: 3, links: ['heart.fallen_seraphim'] },
+                        { id: 'fallen_seraphim.grace', kind: 'passive', minLevel: 5, links: ['fallen_seraphim.judgement'],
+                            trait: { name: 'Grace of the Fallen', effect: '+20% damage against Undead and Void.', mods: { damageVsFlags: { undead: 0.2, void: 0.2 } } } },
+                        { id: 'fallen_seraphim.wings_of_sorrow', kind: 'active', skill: 'Wings of Sorrow', minLevel: 8, links: ['fallen_seraphim.halo_of_ash'] },
+                        { id: 'fallen_seraphim.what_is_evil', kind: 'passive', minLevel: 10, links: ['fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
+                            trait: { name: 'What Is Evil?', effect: 'Neither saint nor sinner: take 10% less damage from everything.', mods: { damageTaken: -0.1 } } },
+                        { id: 'fallen_seraphim.descent', kind: 'active', skill: 'Six-Winged Descent', minLevel: 14, links: ['fallen_seraphim.what_is_evil'] }
+                    ]
+                },
                 // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
                 reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
             }
@@ -761,6 +785,14 @@
                 ],
                 skills: ['Unmake', 'Echo of Nothing'],
                 overdrive: { name: 'Oblivion’s Call', description: 'Erase the entire enemy team for 1 turn; they cannot act or be targeted.' }
+            },
+            'fallen_seraphim': {
+                name: 'Fallen Seraphim',
+                description: 'Heavenly power that chose to fall. Light that burns whoever holds it.',
+                unlockPath: 'Stare at the robed statue in the Kloster courtyard for 2 minutes: a halo, then six wings, then it speaks.',
+                mechanic: 'Grace of the Fallen — radiant power that cuts deepest into the Undead and the Void.',
+                signatureSkill: 'Six-Winged Descent',
+                lore: "Evil is only a good that someone else did not choose. You were called fallen before you ever fell."
             },
             'reality_breaker': {
                 name: 'Reality Breaker',
@@ -2056,6 +2088,15 @@
                 // Livestock (Tokelo: meat needs farmed animals somewhere). Each tending feeds them one of `feed`.
                 'Piglet':        { produces: 'Pork', yield: 3, actionsToGrow: 3, plantIn: ['homestead_sty'], feed: ['Potato', 'Cabbage', 'Apple', 'Barley', 'Wheat'], plantVerb: 'Settled', harvestVerb: 'Butchered' },
                 'Hen':           { produces: 'Egg', yield: 2, actionsToGrow: 2, plantIn: ['homestead_coop'], feed: ['Wheat', 'Barley', 'Cabbage'], keeps: true, plantVerb: 'Settled', harvestVerb: 'Collected' }
+            }, gazeRules: {
+                // Legendary awakenings (Tokelo, 2026-11-04): stand facing this world object, still, within `range` tiles
+                // (32 px map tiles) for `wakeSeconds` of calm time. At `haloSeconds` a halo lights over it; at
+                // `wakeSeconds` it wakes: `flag` is set and `talk` (an NPC in the story data) speaks. Looking away,
+                // walking or a fight starts the count again. Keyed by the interactable's id.
+                // anchorUp: px from the object's bottom edge up to the statue's hood, where ui/gaze-fx.js hangs the halo.
+                kloster_seraph_statue: { legend: 'fallen_seraphim', haloSeconds: 60, wakeSeconds: 120, range: 4, coneDeg: 50, anchorUp: 94,
+                    flag: 'seraph_awakened', talk: 'seraph_statue',
+                    haloText: 'A thin ring of light kindles above the statue\'s hood. Nobody else in the courtyard seems to see it.' }
             }, farmingRules: {
                 // Tokelo (2026-11-04): "which plant grows that fast". A crop takes growSeconds of calm time (out of a
                 // fight) to ripen. Watering and weeding it once takes tendCutsSeconds off; a second time does nothing.

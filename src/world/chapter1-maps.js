@@ -43,7 +43,7 @@
 
     const zones = {
         broken_tollway: { name: 'The Broken Tollway', mapIds: ['tollway'] },
-        shamefield_vale: { name: 'Shamefield', mapIds: ['shamefield', 'allotment', 'orchard', 'briarwell_cloister_court', 'village_residential_lane'] },
+        shamefield_vale: { name: 'Shamefield', mapIds: ['shamefield', 'allotment', 'orchard', 'briarwell_cloister_court', 'kloster_inner', 'village_residential_lane'] },
         featherwatch_heights: { name: 'Featherwatch', mapIds: ['featherwatch', 'sanctuary', 'seal_chamber'] }
     };
 
@@ -289,11 +289,11 @@
                 ',#:ZZZZZ,a+hhhi+ihhh+a:VVVVVVV#T',
                 'T#:ZZZZZ,a+hhh+++hhh+a:VVVVVVV#T',
                 'T#:ZZZZZ,a+++++++++++a:VVVVVVV#,',
-                'T#:,,,T,,aaaaa+++aaaaa:bb,,,Cx#T',
+                'T#:,,,T,,aaaaaa+aaaaaa:bb,,,Cx#T',
                 ',#:Y,,,,FFFFFF+++PPPPP:,,,,,,,#T',
                 'T#:,,Y,,FFFFFF+++PPPPP:bLLLL,,#T',
                 'T#:,,,,,FFFFFF+++PPPPP:xLLLLWW#T',
-                'T#:,,,n,,,,n,,+++:::::::::::::#T',
+                'T#:,,,n,,,,,,,+++:::::::::::::#T',
                 'TO###########HHHgHHH##########OT',
                 'Tfjjsjjjf,,C,,l:::l,,,T,,,,,T,,,',
                 ',fjjjjjjf,T,,T,,:,,,T,,,,T,,,,,T'
@@ -304,9 +304,13 @@
                 { x: 10, y: 18, radius: 1.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 19, y: 18, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 5, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.2)' }
             ],
-            spawns: { from_village: { x: 16, y: 22, facing: 'up' } },
+            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_inner: { x: 15, y: 17, facing: 'down' } },
             exits: [
-                { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' }
+                { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' },
+                // The door under the arcade into the Klausur, the enclosed house round the garth (Tokelo's interior
+                // reference, 2026-11-04): map kloster_inner.
+                { id: 'kloster_inner_door', x: 15, y: 16, trigger: 'step', toMap: 'kloster_inner', toSpawn: 'from_garth',
+                    text: 'Under the arcade a door stands open. Inside it is cool and quiet, and it smells of candle wax, old books and malt.' }
             ],
             interactables: [
                 { id: 'cloister_fenric', kind: 'npc', npc: 'fenric', x: 26, y: 16, name: 'Brother Fenric', sprite: 'monk' },
@@ -339,6 +343,94 @@
                 { id: 'cloister_rat_nest', x: 28, y: 17, name: 'Granary Rats', enemies: ['rust_rat', 'rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
                     when: { quests: { SF2: 'active' }, flags: ['sf2_tracks'] },
                     text: 'Behind the storehouse, by the woodpile, three fat rust-red rats sit on a nest of shredded sacking and hop roots. They do not look sorry.' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Inside the Kloster (Tokelo's reference, 2026-11-04: "Pixel-Art Monastery Cloister Map"). The enclosed house
+        // (Klausur) round the cloister court, entered from under the garth arcade. Painted whole by ui/scene-kloster-inner.js.
+        // North: the abbey chapel (stained glass, altar, pews, robed saints in niches). West: the library with its
+        // armillary sphere, the study, the infirmary and a herb garden. East: the refectory, the brewery with its copper
+        // vats, the cellar and the dormitory cells. Two corridors run down either side. In the middle the cloister
+        // court: four flower beds with cypresses and benches round the fountain of the robed statue, which wakes as the
+        // Fallen Seraph if you stare at it for two minutes (gazeRules in src/data.js). South: the entrance hall.
+        kloster_inner: {
+            zoneId: 'shamefield_vale',
+            name: 'Briarwell Kloster, inside',
+            scene: 'kloster_inner',
+            ambient: { darkness: 0.22, tint: 'rgba(80, 55, 30, 0.14)', particles: { kind: 'dust', count: 10 },
+                grade: { ambient: 0.74, exposure: 1.06, highlights: [0.1, 0.05, -0.04] } },
+            legend: {
+                '#': { name: 'klausur_wall', solid: true }, '.': { name: 'stone_floor' }, '=': { name: 'red_carpet' }, ',': { name: 'court_paving' },
+                's': { name: 'stairs' }, 'B': { name: 'bookshelf', solid: true }, 'k': { name: 'desk', solid: true }, 'O': { name: 'armillary', solid: true },
+                'p': { name: 'pew', solid: true }, 'A': { name: 'altar', solid: true }, 'S': { name: 'saint_statue', solid: true }, 'l': { name: 'candelabra', solid: true },
+                'T': { name: 'long_table', solid: true }, 'F': { name: 'hearth', solid: true }, 'V': { name: 'copper_vat', solid: true }, 'b': { name: 'barrel', solid: true },
+                'R': { name: 'barrel_rack', solid: true }, 'D': { name: 'cell_bed', solid: true }, 'h': { name: 'planter', solid: true }, 'x': { name: 'brazier', solid: true },
+                'a': { name: 'court_pillar', solid: true }, 'g': { name: 'flower_bed', solid: true }, 'i': { name: 'cypress', solid: true }, 'n': { name: 'bench', solid: true },
+                'U': { name: 'seraph_fountain', solid: true }
+            },
+            tiles: [
+                '#######################################',
+                '#BBBBB.BBB#.#S.l..lAl..l.S#.#l.......F#',
+                '#.........#.#......=......#.#.TTT.TTT.#',
+                '#.k...O.......pppp.=.pppp.............#',
+                '#.kk......#.#.pppp.=.pppp.#.#.TTT.TTT.#',
+                '#.........#.#......=......#.#.........#',
+                '###########.#######=#######.###########',
+                '#BBB..BBB.#.#a.a.a.=.a.a.a#.#.VV..VV.b#',
+                '#.........#.#,,,,,,,,,,,,,#.#.VV..VV.b#',
+                '#.kk..kk....#,iggg,,,gggi,#...........#',
+                '#.........#.#,ggng,,,gngg,#.#bb.....bb#',
+                '###########.#,,,,,UUU,,,,,#.###########',
+                '#D..BBB...#..,,,,,UUU,,,,,..#RRR.RRR.R#',
+                '#D........#.#,iggg,,,gggi,#.#.........#',
+                '#.....kk....#,ggng,,,gngg,#...RRR.RRR.#',
+                '#.........#.#,,,,,,,,,,,,,#.#.........#',
+                '###########.#,,,,,,,,,,,,,#.###########',
+                '#hhh.hhh..#.#######.#######.#D.D.D.D.l#',
+                '#.........#.#.............#.#D.D.D.D..#',
+                '#hhh.hhhh.............................#',
+                '#.........#.#....S...S....#.#.........#',
+                '#hhhh.hhh.#.#.....x.x.....#.#.........#',
+                '###################s###################'
+            ],
+            lights: [
+                { x: 19, y: 1, radius: 2.6, color: 'rgba(255, 170, 80, 0.26)' }, { x: 6, y: 3, radius: 2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 33, y: 3, radius: 2.4, color: 'rgba(255, 160, 70, 0.24)' }, { x: 37, y: 1, radius: 1.6, color: 'rgba(255, 120, 40, 0.3)' },
+                { x: 33, y: 8, radius: 2, color: 'rgba(255, 150, 60, 0.2)' }, { x: 33, y: 13, radius: 1.8, color: 'rgba(255, 160, 70, 0.16)' },
+                { x: 33, y: 19, radius: 2, color: 'rgba(255, 170, 80, 0.18)' }, { x: 5, y: 9, radius: 1.8, color: 'rgba(255, 170, 80, 0.18)' },
+                { x: 5, y: 13, radius: 1.8, color: 'rgba(255, 170, 80, 0.16)' }, { x: 19, y: 20, radius: 2.2, color: 'rgba(255, 150, 60, 0.26)' },
+                { x: 19, y: 12, radius: 2.4, color: 'rgba(255, 220, 150, 0.16)' }
+            ],
+            spawns: { from_garth: { x: 19, y: 21, facing: 'up' } },
+            exits: [
+                { id: 'kloster_inner_out', x: 19, y: 22, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_inner' }
+            ],
+            interactables: [
+                // The robed statue on the fountain: a station, so E always gets an answer; staring wakes it (gazeRules).
+                { id: 'kloster_seraph_statue', kind: 'station', station: 'seraph_statue', x: 18, y: 11, w: 3, h: 2, name: 'Robed statue', verb: 'Look at' },
+                { id: 'kloster_inner_altar', kind: 'inspect', x: 19, y: 1, name: 'Altar',
+                    text: 'White linen, a golden cross and seven candles. Above it the three windows throw red and blue light across the pews. On the altar step someone has carved, very small: HE FELL FOR US.' },
+                { id: 'kloster_inner_saints', kind: 'inspect', x: 13, y: 1, name: 'Saint in a niche',
+                    text: 'A hooded saint in a niche, hands folded like the statue in the courtyard. Its face is worn smooth where people touch it for luck.' },
+                { id: 'kloster_inner_globe', kind: 'inspect', x: 6, y: 3, name: 'Armillary sphere',
+                    text: 'Brass rings for the sun, the moon and the wandering stars, on a star-patterned rug. One ring has been bent back by hand, as if someone wanted a star to go where it was not meant to.' },
+                { id: 'kloster_inner_books', kind: 'inspect', x: 2, y: 7, name: 'Study shelves',
+                    text: 'Psalters, herbals and brewing ledgers. One thin book is chained to the shelf: "On the Six-Winged Ones, and Why They Are Not Spoken Of". Most of its pages are cut out.' },
+                { id: 'kloster_inner_infirmary', kind: 'inspect', x: 5, y: 12, name: 'Apothecary shelves',
+                    text: 'Jars of comfrey, yarrow, willow bark and something labelled only FOR THE ABBOT. A bed by the wall, made up tight.' },
+                { id: 'kloster_inner_herbs', kind: 'inspect', x: 1, y: 17, name: 'Herb planters',
+                    text: 'Lavender, sage and rue in stone troughs under the windows, and the sour green smell of hops drying on strings.' },
+                { id: 'kloster_inner_refectory', kind: 'inspect', x: 30, y: 2, name: 'Refectory table',
+                    text: 'Long tables laid for the evening meal: bread, cheese, a jug of Briarwell Pale at every place, and a candle in the middle of each. Nobody talks while the reader reads.' },
+                { id: 'kloster_inner_vats', kind: 'inspect', x: 30, y: 7, name: 'Copper vats',
+                    text: 'Two great copper vats, still warm. The mash smells of bread and honey. Brother Fenric has chalked a tally of every brew on the wall.' },
+                { id: 'kloster_inner_cellar', kind: 'inspect', x: 29, y: 12, name: 'Barrel racks',
+                    text: 'Casks on racks, nose to tail, in the cool of the cellar. Each has a date, a cross, and a name: who it is to be opened for.' },
+                { id: 'kloster_inner_cells', kind: 'inspect', x: 29, y: 17, name: 'Dormitory cell',
+                    text: 'A narrow bed, a wooden cross on the wall, a candle and a pair of worn sandals. Every cell is the same, on purpose.' },
+                { id: 'kloster_inner_hall', kind: 'inspect', x: 17, y: 20, name: 'Hall statue',
+                    text: 'A robed saint by the door, a brazier at its feet. The hood hides its face; the hands are folded like the statue in the courtyard.' }
             ]
         },
 

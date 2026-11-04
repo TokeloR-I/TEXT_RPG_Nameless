@@ -8,6 +8,7 @@ require('../ui/scene-shamefield.js');                      // adds the 'shamefie
 require('../ui/scene-road.js');                            // adds the 'overgrown_road' scene
 require('../ui/scene-bakers-lane.js');                     // adds the 'bakers_lane' scene
 require('../ui/scene-kloster.js');                         // adds the 'kloster' scene
+require('../ui/scene-kloster-inner.js');                   // adds the 'kloster_inner' scene
 const { encode } = require('./lib/png.js');
 const [mapId = 'grounds', out = 'scene.png', scaleArg = '1'] = process.argv.slice(2);
 const S = Number(scaleArg);

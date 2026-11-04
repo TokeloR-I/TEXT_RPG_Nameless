@@ -1815,6 +1815,8 @@
                 else if (r.type === 'respawn') { syncFromSim(); openDialog(['You fall… and come to where you entered, aching but alive.'], null, afterStory); }
             }
             if (out.engineEvents.some((e) => e.type === 'action.end')) { updateHud(); afterStory(); }
+            // A gaze woke something (the Fallen Seraph): it speaks at once.
+            if (out.engineEvents.some((e) => e.type === 'gaze' && e.stage === 'awake') && engine.getAvailableActions().awaiting === 'dialogue') { syncFromSim(); updateHud(); openTalk(out.engineEvents.filter((e) => !e.notice)); }   // its notices already showed above
         }
         syncFromSim(now);
         if (engine.player.hp < lastPlayerHp) afx.spawn('damage', { x: sim.player.x, y: sim.player.y - 18, amount: lastPlayerHp - engine.player.hp, taken: true }, now);
@@ -1988,8 +1990,20 @@
             }
             for (const pj of v.projectiles) AFX.projectile(g, { x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, now: ctx.time });
             for (const a of v.actors) if (a.mark) AFX.crowMark(g, a.mark.x, a.mark.y, { locked: a.mark.locked, now: ctx.time });   // Marked Prey
+            drawGaze(g, ctx.time);   // the Kloster statue's halo and wings (ui/gaze-fx.js)
             afx.draw(g, ctx.time);
         });
+    }
+
+    /** Objects with a gaze rule (the Fallen Seraph statue): draw what the engine says the gaze has woken. */
+    function drawGaze(g, now) {
+        if (!ENSO.gazeFx || !engine.gazeView) return;
+        const rules = DATA.gazeRules || {};
+        for (const o of session.map.interactables || []) {
+            const r = rules[o.id];
+            if (!r || !session.present(o)) continue;
+            ENSO.gazeFx.draw(g, { id: o.id, view: engine.gazeView(o.id), x: (o.x + (o.w || 1) / 2) * sim.T, y: (o.y + (o.h || 1)) * sim.T - (r.anchorUp || 0) }, now);
+        }
     }
 
     // ---------------------------------------------------------------------
