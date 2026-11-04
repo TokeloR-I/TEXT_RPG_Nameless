@@ -24,17 +24,164 @@ const legend = (g) => g.getSkillWeb().legendaryWebs.find((w) => w.webId === 'fal
 const gaze = (g, seconds, id = STATUE) => { const out = []; for (let t = 0; t < seconds * 10; t++) out.push(...g.gazeTick(id, 100)); return out; };
 const stages = (events) => events.filter((e) => e.type === 'gaze').map((e) => e.stage);
 
-test('Fallen Seraphim: a legendary web of six nodes (one per wing), every skill defined and every effect built', () => {
+const FS = data.skillWeb.legendaryWebs.fallen_seraphim;
+const PATHS = {   // docs/design/FALLEN_SERAPHIM.md: one path per pair of wings, six nodes each, a capstone at 14
+    face: ['judgement', 'grace', 'brand', 'rain_of_feathers', 'burning_grace', 'verdict'],
+    feet: ['halo_of_ash', 'feather_ward', 'mercy', 'what_is_evil', 'communion', 'door'],
+    wings: ['wingstep', 'gale', 'wings_of_sorrow', 'weightless', 'from_above', 'descent']
+};
+const trait = (id) => FS.nodes.find((n) => n.id === `fallen_seraphim.${id}`).trait;
+/** Wake the statue, level to `level`, and learn these nodes (short ids) in order. */
+function seraph(level, ids = [], cls = 'mage', seed = 96) {
+    const g = world(cls, seed);
+    gaze(g, 120); g.act({ type: 'dialogue_leave' });
+    levelTo(g, level);
+    if (g.pendingBranchChoice) { g.maybePromptBranch(); g.act({ type: 'choose_branch', branchId: 'free' }); }   // walk freely: no guide spends the points
+    for (const id of ids) { g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
+    return g;
+}
+
+test('Fallen Seraphim: a legendary web of three wing paths (six nodes each) and Seraph Unbound; every skill defined and every effect built', () => {
     assert.deepStrictEqual(SkillWeb.validateSkillWeb(data), []);
     const web = SkillWeb.buildSkillWeb(data);
     assert.ok(web.legendary.includes('fallen_seraphim'));
     const nodes = web.list.filter((n) => n.region === 'fallen_seraphim' && n.kind !== 'heart');
-    assert.strictEqual(nodes.length, 6);
-    assert.strictEqual(nodes.filter((n) => n.kind === 'active').length, 4);
+    assert.strictEqual(nodes.length, 19);
+    assert.deepStrictEqual(nodes.map((n) => n.id.split('.')[1]).sort(), [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound'].sort());
+    assert.strictEqual(nodes.filter((n) => n.kind === 'active').length, 14);
+    for (const path of Object.values(PATHS)) assert.strictEqual(web.nodes.get(`fallen_seraphim.${path[5]}`).minLevel, 14, `${path[5]} is a capstone`);
+    // The six original nodes keep their ids (saves own them).
+    for (const id of ['halo_of_ash', 'judgement', 'grace', 'wings_of_sorrow', 'what_is_evil', 'descent']) assert.ok(web.nodes.get(`fallen_seraphim.${id}`), id);
     const { registry } = require('../src/effects.js');
-    for (const n of nodes.filter((x) => x.skill)) for (const e of data.skillDefinitions[n.skill].effects || []) assert.ok(registry[e.type], `${n.skill}: ${e.type}`);
+    for (const n of nodes.filter((x) => x.skill)) {
+        const def = data.skillDefinitions[n.skill];
+        assert.strictEqual(def.resource, 'any', `${n.skill} is paid from your own class resource`);
+        assert.ok(def.liveDescription, `${n.skill} says what it does in a live fight`);
+        for (const e of def.effects || []) assert.ok(registry[e.type] && !registry[e.type].partial, `${n.skill}: ${e.type}`);
+    }
     for (const n of nodes.filter((x) => x.kind === 'passive')) assert.ok(n.trait.mods, `${n.trait.name} does what it says through data`);
     assert.strictEqual(data.legendaryAndSecretClasses.fallen_seraphim.name, 'Fallen Seraphim');
+    assert.deepStrictEqual(data.legendaryAndSecretClasses.fallen_seraphim.ranks, FS.ranks.map((r) => r.name));
+});
+
+test('Fallen Seraphim: Seraph Unbound needs all three capstones, and holds them in place', () => {
+    // The cheapest way there: every capstone's path, without Grace (5 + 6 + 4 through What Is Evil?) and Seraph Unbound.
+    const g = seraph(18);
+    g.webState().bonusPoints += 10;   // spare points; this test is about the rule, not the budget
+    for (const id of ['judgement', 'brand', 'rain_of_feathers', 'burning_grace', 'verdict', ...PATHS.feet.slice(0, 5), 'wings_of_sorrow', 'weightless', 'from_above', 'descent'])
+        { g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
+    const unbound = () => g.getSkillWeb().nodes.find((n) => n.id === 'fallen_seraphim.unbound');
+    assert.strictEqual(unbound().reason.code, 'NEEDS_NODES');
+    assert.match(unbound().reason.message, /The Door Held Open/);
+    assert.deepStrictEqual(unbound().needs, ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent']);
+    g.act({ type: 'learn_node', nodeId: 'fallen_seraphim.door' });
+    g.act({ type: 'learn_node', nodeId: 'fallen_seraphim.unbound' });
+    assert.ok(g.webOwns('fallen_seraphim.unbound'));
+    // Unlearning a capstone it rests on is refused (it is still linked to the other two, so links alone would allow it).
+    assert.strictEqual(g.webUnlearnProblem('fallen_seraphim.verdict').code, 'NODE_ANCHORS_OTHERS');
+});
+
+test('Fallen Seraphim: five ranks (Fallen, Watcher, Ashen Seraph, Seraph Unbound, The Six-Winged), each announced once and answered by the statue', () => {
+    const g = seraph(18);
+    g.webState().bonusPoints += 10;
+    assert.strictEqual(legend(g).rank, 'Fallen');
+    const out = [];
+    const learn = (id) => { const r = g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(r.ok, `${id}: ${r.error && r.error.message}`); out.push(...r.events); };
+    for (const id of ['halo_of_ash', 'feather_ward', 'mercy', 'wingstep', 'gale']) learn(id);
+    assert.strictEqual(legend(g).rank, 'Fallen');
+    const before = g.webPoints();
+    learn('judgement');   // heart + 6 nodes
+    assert.strictEqual(legend(g).rank, 'Watcher');
+    assert.strictEqual(g.webPoints(), before, 'the rank gives back the point the node cost');
+    // Unlearn and learn again: the title is lost and won back, the gift is not paid twice.
+    g.act({ type: 'unlearn_node', nodeId: 'fallen_seraphim.judgement' });
+    assert.strictEqual(legend(g).rank, 'Fallen');
+    learn('judgement');
+    assert.strictEqual(g.webPoints(), before, 'paid for again, no second gift (the refund covered it)');
+    assert.ok(out.some((e) => e.type === 'text' && /You rise: Watcher/.test(e.text)));
+    assert.ok(g.hasStoryFlag('seraph_rank_watcher'));
+    // The statue has something new to say, once: its name.
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'watcher');
+    g.act({ type: 'dialogue_leave' });
+    assert.ok(g.hasStoryFlag('seraph_heard_watcher'));
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'again');
+    g.act({ type: 'dialogue_leave' });
+    const view = legend(g).ranks;
+    assert.deepStrictEqual(view.map((r) => r.reached), [true, true, false, false, false]);
+    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings]) if (!g.webOwns(`fallen_seraphim.${id}`)) learn(id);
+    assert.strictEqual(legend(g).rank, 'Ashen Seraph');
+    learn('unbound');   // the last node: Seraph Unbound and The Six-Winged at once
+    assert.strictEqual(legend(g).rank, 'The Six-Winged');
+    assert.strictEqual(out.filter((e) => e.type === 'text' && /You rise:/.test(e.text)).length, 5, 'each rank once (Watcher twice: it was lost and won back)');
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'six', 'the last rank is heard first; the others wait for the next visits');
+});
+
+test('Fallen Seraphim on you: a halo once the web opens; six wings and red eyes once every skill is learned', () => {
+    const g = world();
+    assert.deepStrictEqual(g.legendaryLook(), {}, 'nothing before the statue wakes');
+    const s = seraph(18);
+    assert.deepStrictEqual(s.legendaryLook(), { halo: true });
+    s.webState().bonusPoints += 10;
+    const all = [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound'];
+    for (const id of all.slice(0, -1)) s.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
+    assert.deepStrictEqual(s.legendaryLook(), { halo: true }, 'one skill short');
+    s.act({ type: 'learn_node', nodeId: 'fallen_seraphim.unbound' });
+    assert.deepStrictEqual(s.legendaryLook(), { halo: true, wings: true, redEyes: true });
+    assert.deepStrictEqual(s.getSkillWeb().look, { halo: true, wings: true, redEyes: true });
+});
+
+test('Fallen Seraphim mastered: Caelith offers five holy weapons; you take the one you choose, once', () => {
+    const g = seraph(18);
+    g.webState().bonusPoints += 10;
+    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound']) g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'six');
+    const HOLY = ['Doorward', 'Spear of the Cold Door', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];
+    for (const w of HOLY) { const d = data.itemDefinitions[w]; assert.ok(d.holy && d.type === 'weapon' && d.slot === 'mainHand' && d.bound && !d.sellable, w); assert.ok(!d.legalClasses, `${w}: any class`); }
+    const choices = g.getAvailableActions().actions.filter((x) => x.type === 'dialogue_choice');
+    assert.strictEqual(choices.length, 6, 'five weapons, or not yet');
+    const pick = choices.find((c) => /Censer of Ash/.test(c.text));
+    const r = g.act({ type: 'dialogue_choice', choiceId: pick.choiceId });
+    assert.ok(r.ok, r.error && r.error.message);
+    assert.ok(g.player.inventory.includes('Censer of Ash'));
+    assert.ok(HOLY.filter((w) => w !== 'Censer of Ash').every((w) => !g.player.inventory.includes(w)), 'the others go back to the water');
+    g.act({ type: 'dialogue_leave' });
+    const eq = g.act({ type: 'equip', item: 'Censer of Ash' });
+    assert.ok(eq.ok, eq.error && eq.error.message);
+    assert.strictEqual(g.player.equipment.mainHand, 'Censer of Ash', 'a mage wields it');
+    // Heard once; the gift is never paid twice.
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.notStrictEqual(g.story.dialogue.node, 'six');
+    assert.ok(g.story.claimed.includes('seraph_holy_weapon'));
+});
+
+test('Fallen Seraphim: the new passives (Burning Grace, Weightless, Seraph Unbound) work through data', () => {
+    const g = world();
+    const low = { traits: [trait('burning_grace')], hp: 40, maxHp: 100, specialFlags: [] };
+    assert.ok(Math.abs(g.traitDamageMult(low, { specialFlags: [] }) - 1.25) < 1e-9, 'under half HP');
+    assert.strictEqual(g.traitDamageMult({ ...low, hp: 60 }, { specialFlags: [] }), 1, 'over half HP');
+    assert.ok(Math.abs(g.traitDamageMult({ traits: [trait('weightless')] }, {}) - 1.1) < 1e-9);
+    const unbound = { traits: [trait('unbound')], specialFlags: [] };
+    assert.ok(Math.abs(g.traitDamageMult(unbound, {}) - 1.15) < 1e-9);
+    assert.ok(Math.abs(g.traitDamageMult({}, unbound) - 0.9) < 1e-9);
+});
+
+test('Fallen Seraphim: Mercy of the Fallen heals a quarter of max HP and burns poison away; The Door Held Open heals 40%', () => {
+    const { registry } = require('../src/effects.js');
+    const g = world();
+    const p = g.player;
+    p.hp = 10;
+    p.statusEffects.push({ name: 'Poison', type: 'dot', category: 'dot', value: 3, duration: 3 });
+    const mercy = data.skillDefinitions['Mercy of the Fallen'];
+    for (const effect of mercy.effects) registry[effect.type].apply({ engine: g, caster: p, targets: [p], skill: { name: 'Mercy of the Fallen', ...mercy }, effect });
+    assert.strictEqual(p.hp, Math.min(p.maxHp, 10 + Math.floor(p.maxHp * 0.25)));
+    assert.ok(!p.statusEffects.some((x) => x.name === 'Poison'), 'poison burned away');
+    p.hp = 1;
+    registry.heal_percent.apply({ engine: g, caster: p, targets: [p], skill: { name: 'The Door Held Open' }, effect: { type: 'heal_percent', value: 0.4 } });
+    assert.strictEqual(p.hp, 1 + Math.floor(p.maxHp * 0.4));
 });
 
 test('Fallen Seraphim: sealed until the statue wakes; the heart refuses with the reason the web view shows', () => {
@@ -176,4 +323,37 @@ test('Scene art: inside the Kloster paints whole after the reference, the same e
     assert.strictEqual(a.anchors.seraph.x, (st.x + st.w / 2) * 32);
     const at = (x, y) => a.over[(y * a.w + x) * 4 + 3];
     assert.ok(at(19 * 32 + 16, 11 * 32 - 20) > 0, 'the statue reaches over the court behind it');
+});
+
+test('Fallen Seraphim: every skill casts cleanly, in a turn fight and in a live action fight', () => {
+    const { hallway } = require('./helpers.js');
+    const { doubleWorld: dw } = require('../src/world/scale16.js');
+    const skills = FS.nodes.filter((n) => n.skill).map((n) => n.skill);
+    assert.strictEqual(skills.length, 14);
+    for (const name of skills) {
+        const t = hallway('mage', name);
+        t.player.hp = Math.floor(t.player.maxHp / 2);   // room to heal
+        const single = data.skillDefinitions[name].target === 'enemy_single';
+        const r = t.act({ type: 'skill', skillId: name, ...(single ? { targetIds: ['enemy_0'] } : {}) });
+        assert.ok(r.ok, `${name} (turn): ${r.error && r.error.message}`);
+        // Live: on the skill bar, in a fight with the grounds rats.
+        const g = new GameEngine({ seed: 96, combatMode: 'action' });
+        g.start(); g.input('warrior'); g.enterWorld();
+        g.player.hp = g.player.maxHp = 9999;
+        g.player.skills.push(name);
+        const bar = g.ensureSkillBar(); bar[bar.indexOf(null) === -1 ? 5 : bar.indexOf(null)] = name;
+        const s = new WorldSession(dw(ZONE1), { engine: g });
+        s.place('grounds', Object.keys(WORLD.maps.grounds.spawns)[0]);
+        s.x = 41; s.y = 37;
+        const sim = new ActionSim({ engine: g, session: s, rules: g.data.actionRules, seed: 96 });
+        sim.engageGroup(sim.groups.grounds_weed_rats);
+        g.player.resource.current = g.player.resource.max;
+        const outs = [];
+        outs.push(sim.update(1000 / 60, { slot: g.ensureSkillBar().indexOf(name) }));
+        const fx = outs[0].fx || [];
+        assert.ok((sim.player.attack && sim.player.attack.skill === name) || fx.some((f) => f.type === 'cast' && f.skill === name), `${name} (live) is cast`);
+        for (let i = 0; i < 90; i++) outs.push(sim.update(1000 / 60, {}));
+        const said = outs.flatMap((o) => o.engineEvents || []).filter((e) => e.type === 'text').map((e) => e.text).join('\n');
+        assert.ok(!/INTERNAL|Error/.test(said), `${name} (live): ${said.slice(0, 200)}`);
+    }
 });

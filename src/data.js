@@ -392,6 +392,21 @@
             'Fallen Judgement': { description: 'A spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void).', liveDescription: 'Hurl a spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void). 6 s cooldown.', cost: 2, cooldown: 6, resource: 'any', base_damage: [14, 20], effects: [{ type: 'bonus_damage_vs_flag', flag: 'undead', value: 6 }, { type: 'bonus_damage_vs_flag', flag: 'void', value: 6 }], target: 'enemy_single', damage_type: 'radiant' },
             'Wings of Sorrow': { description: 'Six wings beat once: 8–12 radiant dmg to every enemy, and the glare blinds them (50% to miss) for 1 turn.', liveDescription: 'Six wings beat once around you (160 px): 8–12 radiant dmg to every enemy, blinded for 4 s (50% of their attacks miss). 18 s cooldown.', cost: 3, cooldown: 18, resource: 'any', base_damage: [8, 12], effects: [{ type: 'blind', value: 0.5, duration: 1, seconds: 4 }], target: 'all_enemies', damage_type: 'radiant' },
             'Six-Winged Descent': { description: 'Fall on your enemies like judgement: 20–28 true dmg to every enemy and stun them for 1 turn.', liveDescription: 'Fall on everything around you (160 px): 20–28 true dmg to every enemy, stunned for 3 s. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [20, 28], effects: [{ type: 'true_damage' }, { type: 'stun', duration: 1 }], target: 'all_enemies', damage_type: 'radiant' },
+            // The full Fallen Seraphim kit (Thorne, Gauge; Tokelo 2026-11-04 "design the lore, attacks and skill tree"):
+            // docs/design/FALLEN_SERAPHIM.md. Paid from your own class resource ('any'). Verdict of Ash costs HP too: the light burns.
+            // The Veiled Face (judgement)
+            'Brand of the Watcher': { description: 'Mark an enemy with a burning sigil: 6–9 radiant dmg and [Expose] (+25% dmg taken) for 2 turns.', liveDescription: 'Brand an enemy: 6–9 radiant dmg and [Expose] (+25% dmg taken) for 6 s. 10 s cooldown.', cost: 1, cooldown: 10, resource: 'any', base_damage: [6, 9], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.25, duration: 2 }], target: 'enemy_single', damage_type: 'radiant' },
+            'Rain of Feathers': { description: 'Four burning feathers: 4x 5–7 radiant dmg to one enemy.', liveDescription: 'Loose four burning feathers at one enemy: 4x 5–7 radiant dmg. 10 s cooldown.', cost: 2, cooldown: 10, resource: 'any', base_damage: [5, 7], effects: [{ type: 'multi_hit', count: 4 }], target: 'enemy_single', damage_type: 'radiant' },
+            'Verdict of Ash': { description: 'Pass sentence: 30–40 radiant dmg, doubled under 30% HP. The verdict burns you for 8 HP.', liveDescription: 'Pass sentence on one enemy: 30–40 radiant dmg, doubled against a target under 30% HP. Costs you 8 HP. 30 s cooldown.', cost: 4, cooldown: 30, resource: 'any', base_damage: [30, 40], effects: [{ type: 'execute_bonus', threshold: 0.3, value: 1 }, { type: 'take_true_damage', value: 8 }], target: 'enemy_single', damage_type: 'radiant' },
+            // The Covered Feet (mercy)
+            'Feather Ward': { description: 'A wing folds over you: absorb the next hit.', liveDescription: 'A wing folds over you: absorb the next hit. Lasts 12 s; stacks to 2. 14 s cooldown.', cost: 1, cooldown: 14, resource: 'any', effects: [{ type: 'absorb_hit', duration: 2, say: 'folds a grey wing close against the next hit.' }], target: 'self' },
+            'Mercy of the Fallen': { description: 'Heal 25% of your max HP and burn away poison, bleeding and infection.', liveDescription: 'Heal 25% of your max HP and burn away damage over time (poison, bleed, burn, infection). 24 s cooldown.', cost: 2, cooldown: 24, resource: 'any', effects: [{ type: 'heal_percent', value: 0.25 }, { type: 'cleanse', categories: ['dot'] }], target: 'self' },
+            'Ashen Communion': { description: 'Ash falls on every enemy: 8–12 radiant dmg each, and you heal for half of it.', liveDescription: 'Ash falls around you (160 px): 8–12 radiant dmg to every enemy, and you heal for half the damage dealt. 16 s cooldown.', cost: 3, cooldown: 16, resource: 'any', base_damage: [8, 12], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'all_enemies', damage_type: 'radiant' },
+            'The Door Held Open': { description: 'Hold the door, as it once did: take 50% less damage for 3 turns, heal 40% of your max HP, and shed every DoT and debuff.', liveDescription: 'Hold the door: take 50% less damage for 10 s, heal 40% of your max HP, and shed every DoT and debuff. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'damage_reduction', value: 0.5, duration: 3 }, { type: 'heal_percent', value: 0.4 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
+            // The Wide Wings (flight)
+            'Wingstep': { description: 'Lift off the ground: for 2 turns, every attack on you has a 40% chance to miss.', liveDescription: 'Lift off the ground: for 6 s, every attack on you has a 40% chance to miss. 14 s cooldown.', cost: 1, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.4, duration: 2, persistent: true }], target: 'self' },
+            'Gale of Pinions': { description: 'One beat of the wide wings: 6–9 radiant dmg to every enemy and slow them by 50% for 2 turns.', liveDescription: 'One beat of the wide wings (160 px): 6–9 radiant dmg to every enemy, slowed by 50% for 6 s. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
+            'Judgement from Above': { description: 'Rise and strike down: 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Rise and strike down (160 px): 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown.', cost: 3, cooldown: 20, resource: 'any', base_damage: [12, 16], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
             
             'Eternal Lich Unmake': { description: 'Eternal Lich erases one non-boss enemy from this fight.', cost: 5, resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'eternal_lich_unmake' }], target: 'enemy_single', damage_type: 'true' },
 
@@ -740,19 +755,53 @@
                     ]
                 },
                 // Fallen Seraphim (Tokelo 2026-11-04): no evolution needed. Stare at the robed statue in the Kloster's inner
-                // courtyard for 2 minutes (gazeRules): it wakes, speaks, and opens this web. Six nodes, one per wing; the
-                // levels spread the heavenly powers over the game so a fresh character can't take them all at once.
+                // courtyard for 2 minutes (gazeRules): it wakes, speaks, and opens this web. Full design (Tokelo: "design the
+                // lore, attacks and skill tree"): docs/design/FALLEN_SERAPHIM.md. Three paths, one per pair of wings, six nodes
+                // each with a capstone at 14; Seraph Unbound at 18 needs all three capstones (`needs`). `ranks` are the web's
+                // evolutions: a title by nodes owned (the heart counts), each one a flag the statue answers to, and `points`
+                // a free Skill Web point the first time it is reached ("it gets lighter the more of it you give away").
                 fallen_seraphim: {
                     requires: { stages: [], flag: 'seraph_awakened', event: 'the statue in the Kloster courtyard wakes' },
+                    ranks: [
+                        { name: 'Fallen', at: 1 },
+                        { name: 'Watcher', at: 7, points: 1, flag: 'seraph_rank_watcher', say: 'Six places between your shoulders ache. The statue in the Kloster would know why.' },
+                        { name: 'Ashen Seraph', at: 14, points: 1, flag: 'seraph_rank_ashen', say: 'Ash falls when you walk now, and nothing it touches is cold. Go back to the courtyard.' },
+                        { name: 'Seraph Unbound', node: 'fallen_seraphim.unbound', flag: 'seraph_rank_unbound', say: 'All six wings open at once. Somewhere, a door you never saw swings wide.' },
+                        // Tokelo (2026-11-04): every skill learned gives the six wings, red eyes and a holy weapon of your choosing.
+                        { name: 'The Six-Winged', all: true, flag: 'seraph_rank_six', say: 'Every feather is yours now. Six wings stand at your back, and your eyes burn red. Caelith is waiting with a gift.' }
+                    ],
+                    // How it shows on your character (ui/gaze-fx.js, drawn by code): 'heart' = once the web opens, 'all' = every node owned.
+                    look: { halo: 'heart', wings: 'all', redEyes: 'all' },
                     nodes: [
-                        { id: 'fallen_seraphim.halo_of_ash', kind: 'active', skill: 'Halo of Ash', links: ['heart.fallen_seraphim'] },
+                        // The Veiled Face: judgement. Two wings over the eyes, so as not to see what it judged.
                         { id: 'fallen_seraphim.judgement', kind: 'active', skill: 'Fallen Judgement', minLevel: 3, links: ['heart.fallen_seraphim'] },
                         { id: 'fallen_seraphim.grace', kind: 'passive', minLevel: 5, links: ['fallen_seraphim.judgement'],
                             trait: { name: 'Grace of the Fallen', effect: '+20% damage against Undead and Void.', mods: { damageVsFlags: { undead: 0.2, void: 0.2 } } } },
-                        { id: 'fallen_seraphim.wings_of_sorrow', kind: 'active', skill: 'Wings of Sorrow', minLevel: 8, links: ['fallen_seraphim.halo_of_ash'] },
-                        { id: 'fallen_seraphim.what_is_evil', kind: 'passive', minLevel: 10, links: ['fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
+                        { id: 'fallen_seraphim.brand', kind: 'active', skill: 'Brand of the Watcher', minLevel: 6, links: ['fallen_seraphim.judgement'] },
+                        { id: 'fallen_seraphim.rain_of_feathers', kind: 'active', skill: 'Rain of Feathers', minLevel: 9, links: ['fallen_seraphim.brand'] },
+                        { id: 'fallen_seraphim.burning_grace', kind: 'passive', minLevel: 11, links: ['fallen_seraphim.rain_of_feathers', 'fallen_seraphim.grace'],
+                            trait: { name: 'Burning Grace', effect: 'The further you fall, the brighter you burn: +25% damage while under half HP.', mods: { lowHpDamage: { below: 0.5, value: 0.25 } } } },
+                        { id: 'fallen_seraphim.verdict', kind: 'active', skill: 'Verdict of Ash', minLevel: 14, links: ['fallen_seraphim.burning_grace'] },
+                        // The Covered Feet: mercy. Two wings over the feet, over the ground it would not give up.
+                        { id: 'fallen_seraphim.halo_of_ash', kind: 'active', skill: 'Halo of Ash', links: ['heart.fallen_seraphim'] },
+                        { id: 'fallen_seraphim.feather_ward', kind: 'active', skill: 'Feather Ward', minLevel: 4, links: ['fallen_seraphim.halo_of_ash'] },
+                        { id: 'fallen_seraphim.mercy', kind: 'active', skill: 'Mercy of the Fallen', minLevel: 7, links: ['fallen_seraphim.feather_ward'] },
+                        { id: 'fallen_seraphim.what_is_evil', kind: 'passive', minLevel: 10, links: ['fallen_seraphim.mercy', 'fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
                             trait: { name: 'What Is Evil?', effect: 'Neither saint nor sinner: take 10% less damage from everything.', mods: { damageTaken: -0.1 } } },
-                        { id: 'fallen_seraphim.descent', kind: 'active', skill: 'Six-Winged Descent', minLevel: 14, links: ['fallen_seraphim.what_is_evil'] }
+                        { id: 'fallen_seraphim.communion', kind: 'active', skill: 'Ashen Communion', minLevel: 12, links: ['fallen_seraphim.what_is_evil'] },
+                        { id: 'fallen_seraphim.door', kind: 'active', skill: 'The Door Held Open', minLevel: 14, links: ['fallen_seraphim.communion'] },
+                        // The Wide Wings: flight. The two it flew with, and fell with.
+                        { id: 'fallen_seraphim.wingstep', kind: 'active', skill: 'Wingstep', minLevel: 2, links: ['heart.fallen_seraphim'] },
+                        { id: 'fallen_seraphim.gale', kind: 'active', skill: 'Gale of Pinions', minLevel: 5, links: ['fallen_seraphim.wingstep'] },
+                        { id: 'fallen_seraphim.wings_of_sorrow', kind: 'active', skill: 'Wings of Sorrow', minLevel: 8, links: ['fallen_seraphim.gale', 'fallen_seraphim.halo_of_ash'] },
+                        { id: 'fallen_seraphim.weightless', kind: 'passive', minLevel: 11, links: ['fallen_seraphim.wings_of_sorrow'],
+                            trait: { name: 'Weightless', effect: 'Nothing holds you down any more: +10% damage with everything.', mods: { damageDealt: 0.1 } } },
+                        { id: 'fallen_seraphim.from_above', kind: 'active', skill: 'Judgement from Above', minLevel: 12, links: ['fallen_seraphim.weightless'] },
+                        { id: 'fallen_seraphim.descent', kind: 'active', skill: 'Six-Winged Descent', minLevel: 14, links: ['fallen_seraphim.from_above'] },
+                        // All six wings.
+                        { id: 'fallen_seraphim.unbound', kind: 'passive', minLevel: 18, needs: ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent'],
+                            links: ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent'],
+                            trait: { name: 'Seraph Unbound', effect: 'All six wings open: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
                 },
                 // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
@@ -790,8 +839,11 @@
                 name: 'Fallen Seraphim',
                 description: 'Heavenly power that chose to fall. Light that burns whoever holds it.',
                 unlockPath: 'Stare at the robed statue in the Kloster courtyard for 2 minutes: a halo, then six wings, then it speaks.',
-                mechanic: 'Grace of the Fallen — radiant power that cuts deepest into the Undead and the Void.',
+                mechanic: 'Grace and ash: radiant power that cuts deepest into the Undead and the Void, and burns brightest as you fall. Three paths, one per pair of wings: the Veiled Face (judgement), the Covered Feet (mercy), the Wide Wings (flight).',
                 signatureSkill: 'Six-Winged Descent',
+                seraph: 'Caelith, Keeper of the Cold Door',
+                ranks: ['Fallen', 'Watcher', 'Ashen Seraph', 'Seraph Unbound', 'The Six-Winged'],
+                mastery: 'Every skill learned: six wings at your back, red eyes, and a holy weapon of your choosing from Caelith.',
                 lore: "Evil is only a good that someone else did not choose. You were called fallen before you ever fell."
             },
             'reality_breaker': {
@@ -867,6 +919,10 @@
             'Riposte':          { category: 'buff' },
             'Guaranteed Crit':  { category: 'buff' },
             'Taunt':            { category: 'buff' },
+            'Halo of Ash':      { category: 'buff' },     // Fallen Seraphim buffs, so a buff cleanse sees them
+            'Feather Ward':     { category: 'buff' },
+            'Wingstep':         { category: 'buff' },
+            'The Door Held Open': { category: 'buff' },
             'Dragon’s Dominion': { category: 'buff' },     // QA-15: so a buff cleanse sees it, like every other status
             // --- bookkeeping statuses from apply_status (no gameplay effect yet)
             'Channel Cooldown':     { category: 'cooldown' },
@@ -939,7 +995,12 @@
                     'Guaranteed Crit': { maxStacks: 1 },                // Shadowstep: until used; one banked crit only
                     'Dragon’s Dominion': { seconds: 10, maxStacks: 1 }, // once per fight ultimate: a 10 s burst window
                     'Taunt':           { seconds: 6,  maxStacks: 1 },   // Shield of the Dead: minions hold aggro
-                    'Haste':           { seconds: 8,  maxStacks: 1 },   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
+                    'Haste':           { seconds: 8,  maxStacks: 1 },
+                    // Fallen Seraphim (docs/design/FALLEN_SERAPHIM.md)
+                    'Halo of Ash':        { seconds: 9,  maxStacks: 1 },   // 30% damage reduction; 20 s cooldown
+                    'Feather Ward':       { seconds: 12, maxStacks: 2 },   // each stack absorbs one hit; 14 s cooldown
+                    'Wingstep':           { seconds: 6,  maxStacks: 1 },   // 40% to dodge every attack; 14 s cooldown
+                    'The Door Held Open': { seconds: 10, maxStacks: 1 },   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
                     // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
                     'Wrath Ghost':     { seconds: 20, maxStacks: 1 },
                     'Siphon Ghost':    { seconds: 20, maxStacks: 1 },
@@ -1126,6 +1187,11 @@
                     'Riposte':           { shape: 'self', castMs: 0, durationMs: 3000, counter: { shape: 'arc', reach: 26, arcDeg: 110 } },
                     'Caltrops':          { shape: 'ground', range: 110, radius: 32, castMs: 280, durationMs: 6000, applyOnEnter: true },
                     'Fireball':          { shape: 'projectile', range: 160, speed: 240, radius: 7, castMs: 380 },
+                    // Fallen Seraphim: the single-target light is thrown; the wide wings use the all-enemies circle.
+                    'Fallen Judgement':  { shape: 'projectile', range: 170, speed: 300, radius: 6, castMs: 300 },
+                    'Brand of the Watcher': { shape: 'projectile', range: 150, speed: 320, radius: 5, castMs: 200 },
+                    'Rain of Feathers':  { shape: 'projectile', range: 150, speed: 280, radius: 6, castMs: 260 },
+                    'Verdict of Ash':    { shape: 'line', reach: 60, width: 14, castMs: 500, maxTargets: 1 },
                     'mirrorImage':       { shape: 'self', castMs: 200, decoyMs: 3000 },
                     'haste':             { shape: 'self', castMs: 200 },
                     'Whirlwind':         { shape: 'circle', radius: 30, castMs: 200 }
@@ -1286,6 +1352,18 @@
             'Half-full Wine Bottle': { use: 'heal', value: 12, description: 'Sour, but it takes the edge off.' },
             'Bandages':              { use: 'heal', value: 25, description: 'Clean enough.' },
             'Healing Herb Bundle':   { use: 'heal', value: 40, description: 'Bitter leaves that knit flesh.' },
+            // The Fallen Seraphim's holy weapons (Tokelo 2026-11-04: "a holy weapon of their choosing"). Caelith offers all
+            // five when the whole web is learned; you take one (story key seraph_holy_weapon). Any class can wield them.
+            'Doorward': { type: 'weapon', slot: 'mainHand', weaponType: 'two-hand', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { physicalDamage: 6, strength: 2, def: 1 }, description: 'A holy greatsword, as long as a door is tall. Caelith held the Cold Door shut with it, once, and then did not.' },
+            'Spear of the Cold Door': { type: 'weapon', slot: 'mainHand', weaponType: 'spear', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { physicalDamage: 5, agility: 2, critChance: 0.05 }, description: 'A white-ash spear with a frost-blue head. It is warm to hold.' },
+            'Twin Pinions': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { physicalDamage: 4, agility: 3, critChance: 0.08 }, description: 'Two curved blades, each forged from a single gold-edged feather.' },
+            'Censer of Ash': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { magicDamage: 6, intelligence: 2, maxHp: 10 }, description: 'A holy staff hung with a censer. The smoke it gives off is grey, and smells of spring.' },
+            'Grey Feather Scythe': { type: 'weapon', slot: 'mainHand', weaponType: 'scythe', hands: 2, damageType: 'magic', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { magicDamage: 5, physicalDamage: 2, maxHp: 15 }, description: 'A reaper\'s blade of pale stone on a black haft. Even the holy have harvests.' },
             'Roadworn Blade': { type: 'weapon', slot: 'mainHand', rarity: 'common', statModifiers: { strength: 1 }, sellable: true, sellPrice: 3, description: 'A nicked but serviceable blade.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },

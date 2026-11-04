@@ -35,7 +35,7 @@
         }
         for (const w of view.legendaryWebs || []) {
             if (!w.open && !w.entered) continue;
-            out.push({ webId: w.webId, name: w.name, kind: 'legendary', home: false, entered: w.entered, learnable: learnable(w.webId), why: 'Legendary web' });
+            out.push({ webId: w.webId, name: w.name, kind: 'legendary', home: false, entered: w.entered, learnable: learnable(w.webId), why: w.rank ? `Legendary web, rank: ${w.rank}` : 'Legendary web' });   // ranks: FALLEN_SERAPHIM.md
         }
         return out;
     }

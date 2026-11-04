@@ -976,7 +976,14 @@
         // "Fallen" because the story calls you evil; the statue answers that with a question, not a verdict.
         seraph_statue: {
             name: 'The Fallen Seraph', title: 'The statue in the courtyard',
-            talk: [{ if: { flags: ['seraph_met'] }, node: 'again' }, { if: { flags: ['seraph_awakened'] }, node: 'wake' }, { node: 'still' }],
+            // Each rank of the web (skillWeb.legendaryWebs.fallen_seraphim.ranks sets the flag) has one new talk, heard once;
+            // the lore comes out a rank at a time (docs/design/FALLEN_SERAPHIM.md). Spoiler-safe: it never names what you were.
+            talk: [
+                { if: { flags: ['seraph_rank_six'], notFlags: ['seraph_heard_six'] }, node: 'six' },
+                { if: { flags: ['seraph_rank_unbound'], notFlags: ['seraph_heard_unbound'] }, node: 'unbound' },
+                { if: { flags: ['seraph_rank_ashen'], notFlags: ['seraph_heard_ashen'] }, node: 'ashen' },
+                { if: { flags: ['seraph_rank_watcher'], notFlags: ['seraph_heard_watcher'] }, node: 'watcher' },
+                { if: { flags: ['seraph_met'] }, node: 'again' }, { if: { flags: ['seraph_awakened'] }, node: 'wake' }, { node: 'still' }],
             nodes: {
                 still: {
                     lines: [[null, 'A robed figure in grey stone stands on the fountain, hood drawn low, hands folded over its heart. Water runs from the basin at its feet.'],
@@ -1009,6 +1016,55 @@
                     lines: [[null, 'The wings fold around you, and then they are gone. Between your shoulder blades you feel six places where something should be, and is not yet.'],
                         ['npc', 'Come back when you are heavier. I will still be here. I am very good at standing still.']],
                     choices: [{ text: 'Goodbye.', end: true }]
+                },
+                watcher: {   // rank 2: its name, and the door
+                    lines: [[null, 'The halo brightens as you come close. The stone face turns, very slowly, to follow you.'],
+                        ['npc', 'You are heavier. Good. Then you can carry my name as well: Caelith. I kept the Cold Door.'],
+                        ['npc', 'This hill was a gate once. Behind it, the warm country. In front of it, a winter that did not end.'],
+                        ['npc', 'My orders were to keep the warmth in and the world out. The ones outside knocked for a hundred years.']],
+                    effects: [{ flag: 'seraph_heard_watcher' }],
+                    choices: [{ text: 'And you opened it.', to: 'opened' }, { text: 'Goodbye.', end: true }]
+                },
+                opened: {
+                    lines: [['npc', 'I opened it. Spring ran down this hill for the first time. The water at my feet is the last of it.'],
+                        ['npc', 'Then the door was shut behind me, and I fell, and the hill closed over me. Stone is patient. So am I.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                ashen: {   // rank 3: the monks, the carving, and the question turned on you
+                    lines: [[null, 'Ash drifts off your shoulders and settles on the water. The fountain runs warm.'],
+                        ['npc', 'The monks found me in the hill and built their walls around me. They do not know what I am. One of them guessed.'],
+                        ['npc', 'He carved it on the altar step: he fell for us. Heaven wrote sin. A boy with a knife wrote that. Both are true.'],
+                        ['npc', 'Someone is writing your name down too, little shell. Make sure there is a second hand on the page.']],
+                    effects: [{ flag: 'seraph_heard_ashen' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                unbound: {   // rank 4: all six wings
+                    lines: [[null, 'The statue does not move. You do: six wings open behind you, and the courtyard goes quiet.'],
+                        ['npc', 'There. Now you are what I was, before the door. Six wings, and nobody left to tell you where to point them.'],
+                        ['npc', 'I will not ask what you will do with them. I was asked that once, and the answer took a thousand years.'],
+                        ['npc', 'Go on. Open something.']],
+                    effects: [{ flag: 'seraph_heard_unbound' }],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
+                },
+                six: {   // every skill of the web (Tokelo 2026-11-04): six wings, red eyes, and a holy weapon of your choosing
+                    lines: [[null, 'Your shadow on the courtyard stones has six wings. The statue\'s halo turns towards you, the way a flower turns to the sun.'],
+                        ['npc', 'All of it. Every feather. Even I never held all of it at once.'],
+                        ['npc', 'Your eyes have gone red. Mine did too, on the way down. It is only the light, burning from the inside.'],
+                        [null, 'Five shapes rise out of the fountain, dripping and bright: a greatsword, a spear, two feather blades, a censer staff, a scythe.'],
+                        ['npc', 'They were mine, when I had hands for them. Take the one that fits yours. The others go back to the water.']],
+                    choices: [
+                        { text: 'Doorward: The greatsword. I held the door shut with it, once.', effects: [{ item: 'Doorward', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Spear of the Cold Door: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Cold Door', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Twin Pinions: The two feather blades. Quick, like falling.', effects: [{ item: 'Twin Pinions', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Censer of Ash: The censer staff. Light, given away as smoke.', effects: [{ item: 'Censer of Ash', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Grey Feather Scythe: The scythe. Even the holy have harvests.', effects: [{ item: 'Grey Feather Scythe', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                armed: {
+                    lines: [[null, 'The other four sink back into the fountain. The one you chose is warm, and lighter than it looks.'],
+                        ['npc', 'Holy, they will call it. Or cursed. It will be both, depending on who you point it at.']],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
                 },
                 again: {
                     lines: [[null, 'Six stone wings stand folded over the fountain, and a ring of pale light hangs above the hood.'],

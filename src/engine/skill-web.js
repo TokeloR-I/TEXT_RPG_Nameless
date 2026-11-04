@@ -106,7 +106,7 @@
         for (const [legId, leg] of Object.entries(cfg.legendaryWebs || {})) {
             const lore = (data.legendaryAndSecretClasses || {})[legId] || {};
             legendary.push(legId);
-            add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), traits: [] });
+            add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), ranks: clone(leg.ranks || []), traits: [] });
             for (const x of leg.nodes || []) { const { links, ...rest } = x; add({ label: x.skill || (x.trait && x.trait.name) || x.id, ...rest, region: legId, stage: null }); }
             for (const x of leg.nodes || []) for (const to of x.links || []) link(x.id, to);
         }
@@ -165,6 +165,12 @@
             if (n.branch && !web.branches[n.branch]) problems.push(`${n.id}: unknown branch '${n.branch}'`);
             if (!(Number.isInteger(n.cost) && n.cost >= 0)) problems.push(`${n.id}: cost must be a whole number`);
             if (!n.links.length && !n.legendary) problems.push(`${n.id}: not linked to anything`);
+            for (const x of n.needs || []) {   // `needs`: nodes that must ALL be owned first (a capstone of capstones)
+                const t = web.nodes.get(x);
+                if (!t) problems.push(`${n.id}: needs a missing node '${x}'`);
+                else if (t.region !== n.region) problems.push(`${n.id}: needs '${x}' from another web`);
+            }
+            for (const r of n.ranks || []) if (r.node && !web.nodes.get(r.node)) problems.push(`${n.id}: rank '${r.name}' waits on a missing node '${r.node}'`);
             for (const req of (n.requires && n.requires.stages) || []) {
                 const [b, st] = String(req).split('.');
                 if (!web.branches[b] || !(Number(st) >= 1 && Number(st) <= web.branches[b].stages.length)) problems.push(`${n.id}: requires an unknown stage '${req}'`);
@@ -295,6 +301,8 @@
             }
             const touching = n.legendary || (n.kind === 'gateway' ? this.webOwns(n.from) : n.links.some((to) => this.webOwns(to)));   // a gateway opens from its own side only
             if (!touching) return { code: 'NOT_CONNECTED', message: `${n.label} isn't connected to anything you know yet.` };
+            const needed = (n.needs || []).filter((x) => !this.webOwns(x));
+            if (needed.length) return { code: 'NEEDS_NODES', message: `${n.label} needs ${needed.map((x) => web.nodes.get(x).label).join(', ')} first.` };
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
             if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
             const pts = this.webPoints();
@@ -313,6 +321,8 @@
             if (this.webNodeFixed(n)) return { code: 'NODE_FIXED', message: `${n.label} is part of who you are; it can't be unlearned.` };
             if (this.webRules().refund === false) return { code: 'NO_REFUND', message: 'Skill Web points cannot be refunded.' };
             const rest = new Set(this.webState().nodes.filter((x) => x !== id));
+            const needing = [...rest].map((x) => web.nodes.get(x)).filter((x) => x && (x.needs || []).includes(id));
+            if (needing.length) return { code: 'NODE_ANCHORS_OTHERS', message: `${needing.map((x) => x.label).join(', ')} needs ${n.label}. Unlearn that first.` };
             const heart = `heart.${this.player.className}`;
             const legends = [...rest].filter((x) => web.nodes.get(x).legendary);
             for (const l of legends) {
@@ -353,10 +363,41 @@
             this.refreshSpecialization();
         }
 
+        /** A legendary web's rank (its evolutions): the last of `ranks` reached, by nodes owned in that web (`at`,
+         *  the heart included) or by one node (`node`). -1: none yet. `owned`: a node-id Set to test instead. */
+        legendaryRank(legId, owned = null) {
+            const web = this.skillWeb();
+            const heart = web.nodes.get(`heart.${legId}`);
+            if (!heart) return -1;
+            const ids = owned ? [...owned] : (this.webState() || { nodes: [] }).nodes;
+            const count = ids.filter((id) => { const x = web.nodes.get(id); return x && x.region === legId; }).length;
+            const total = web.list.filter((x) => x.region === legId).length;
+            let rank = -1;
+            (heart.ranks || []).forEach((r, i) => { if (r.all ? count >= total : r.node ? ids.includes(r.node) : count >= (r.at || 1)) rank = i; });
+            return rank;
+        }
+
+        /** Pure: how your legendary webs show on your character, for the front end to draw (data: legendaryWebs.<id>.look,
+         *  'heart' = once the web is entered, 'all' = every node of it owned). { halo, wings, redEyes } -> true or missing. */
+        legendaryLook() {
+            const look = {};
+            const s = this.webState();
+            if (!s || !this.player) return look;
+            const web = this.skillWeb();
+            for (const [legId, leg] of Object.entries((this.data.skillWeb || {}).legendaryWebs || {})) {
+                if (!leg.look || !this.webOwns(`heart.${legId}`)) continue;
+                const all = web.list.every((x) => x.region !== legId || s.nodes.includes(x.id));
+                for (const [part, when] of Object.entries(leg.look)) if (when === 'heart' || (when === 'all' && all)) look[part] = true;
+            }
+            return look;
+        }
+
         /** Own a node and grant what it holds (no checks). */
         webGain(n) {
             const p = this.player;
             const s = this.webState();
+            const leg = this.skillWeb().legendary.includes(n.region) ? n.region : null;
+            const rankBefore = leg ? this.legendaryRank(leg) : -1;
             if (!s.nodes.includes(n.id)) s.nodes.push(n.id);
             if (n.legendary) this.say(`--- A legend wakes: the ${n.label} web opens to you! ---`, { important: true });
             else if (n.kind === 'heart' && !this.webNodeFixed(n)) this.say(`The ${n.label} heart opens to you.`, { important: true });
@@ -370,6 +411,22 @@
                 if (p.traits.some((x) => x.name === t.name)) continue;
                 p.traits.push(clone(t));
                 this.say(`New Trait: ${t.name}!`, { important: true });
+            }
+            const rankNow = leg ? this.legendaryRank(leg) : -1;
+            if (rankNow > rankBefore) {   // a legendary web's evolution: its title, its words, and a story flag (the statue answers it)
+                const ranks = this.skillWeb().nodes.get(`heart.${leg}`).ranks;
+                for (let i = rankBefore + 1; i <= rankNow; i++) {
+                    const r = ranks[i];
+                    if (i > 0) this.say(`--- You rise: ${r.name}! ---`, { important: true });
+                    if (r.say) this.say(r.say);
+                    if (r.flag && this.applyStoryEffects && this.story) this.applyStoryEffects([{ flag: r.flag }]);
+                    const key = `rank:${leg}:${i}`;   // a rank's gift is paid once, so unlearning and relearning pays nothing
+                    if (r.points && this.story && !this.story.claimed.includes(key)) {
+                        this.story.claimed.push(key);
+                        s.bonusPoints = (s.bonusPoints || 0) + r.points;
+                        this.say(`(+${r.points} Skill Web point${r.points === 1 ? '' : 's'}: the ${r.name}'s gift.)`, { notice: 'quest' });
+                    }
+                }
             }
         }
 
@@ -537,7 +594,10 @@
                     entered: s.nodes.some((id) => { const n = web.nodes.get(id); return n && n.region === c && n.kind !== 'gateway'; }) })),
                 // Legendary webs (on top of your build): `open` once their conditions are met, `entered` once learned.
                 legendaryWebs: web.legendary.map((c) => { const h = web.nodes.get(`heart.${c}`); const missing = this.legendaryMissing(h);
-                    return { webId: c, name: h.label, requires: clone(h.requires || {}), missing, open: !missing.length, entered: this.webOwns(h.id) }; }),
+                    const rank = this.legendaryRank(c);
+                    return { webId: c, name: h.label, requires: clone(h.requires || {}), missing, open: !missing.length, entered: this.webOwns(h.id),
+                        rank: rank >= 0 ? h.ranks[rank].name : null, ranks: (h.ranks || []).map((r, i) => ({ name: r.name, ...(r.all ? { all: true } : r.node ? { node: r.node } : { at: r.at || 1 }), reached: i <= rank })) }; }),
+                look: this.legendaryLook(),
                 specialization: prog.branch ? { branchId: prog.branch, name: prog.evolutionName, stageIndex: prog.stageIndex } : null,
                 specializations: this.webSpecializations().map((b) => ({ branchId: b, name: web.branches[b].name, classId: web.branches[b].classId, stageIndex: this.webStageReached(b) })),
                 nodes: web.list.map((n) => {
@@ -545,7 +605,7 @@
                     const problem = owned ? null : this.webLearnProblem(n.id);
                     return {
                         id: n.id, kind: n.kind, label: n.label, region: n.region, legendary: !!n.legendary, branch: n.branch, stage: n.stage,
-                        skill: n.skill || null, trait: n.trait ? clone(n.trait) : null, cost: n.cost, minLevel: n.minLevel,
+                        skill: n.skill || null, trait: n.trait ? clone(n.trait) : null, cost: n.cost, minLevel: n.minLevel, ...(n.needs ? { needs: [...n.needs] } : {}),
                         links: [...n.links], x: n.x, y: n.y, owned, fixed: this.webNodeFixed(n),
                         state: owned ? 'owned' : problem ? 'locked' : 'available',
                         ...(n.kind === 'gateway' ? { from: n.from, to: n.to, target: n.target, why: n.why } : {}),

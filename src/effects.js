@@ -114,6 +114,14 @@
         }
     });
 
+    register('heal_percent', { // Mercy of the Fallen, The Door Held Open (Fallen Seraphim): heal the caster `value` of max HP
+        apply(ctx) {
+            const c = ctx.caster;
+            const healed = ctx.engine.heal(c, Math.max(1, Math.floor(c.maxHp * ctx.effect.value)));
+            ctx.engine.say(healed > 0 ? `${c.name} heals ${healed} HP.` : `${c.name} is already whole.`);
+        }
+    });
+
     register('take_true_damage', {
         apply(ctx) {
             ctx.engine.damage(ctx.caster, ctx.effect.value, ctx.caster);
@@ -310,7 +318,7 @@
             if (!ctx.engine.applyStatus(ctx.caster, ctx.caster, {
                 name: ctx.skill.name, type: 'absorb', duration: ctx.effect.duration
             })) return;
-            ctx.engine.say(`${ctx.caster.name} raises a wall of bone against the next hit.`);
+            ctx.engine.say(ctx.effect.say ? `${ctx.caster.name} ${ctx.effect.say}` : `${ctx.caster.name} raises a wall of bone against the next hit.`);   // `say`: its own words (Feather Ward)
         }
     });
 

@@ -2274,6 +2274,7 @@
         const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id), crop: cropOn(o) }));   // action enemies are sim actors
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
+        view.look = engine.legendaryLook ? engine.legendaryLook() : null;   // the Fallen Seraphim's halo, wings and red eyes
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }
