@@ -138,15 +138,15 @@
     // Shared helpers
     // ---------------------------------------------------------------------
     /** Paint into the scratch layer, then move what was drawn onto the base, with anything above `split` on the
-     *  over layer when someone can stand behind it (`overhead`). `onlyOver(x, y)` narrows what may go over. */
-    function tall(L, box4, split, overhead, draw, onlyOver = null) {
+     *  over layer when someone can stand behind it (`overhead`). */
+    function tall(L, box4, split, overhead, draw) {
         const S = L.scratch;
         draw(S);
         const [x0, y0, x1, y1] = box4.map((v) => Math.round(v));
         for (let y = Math.max(0, y0); y < Math.min(S.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(S.w, x1); x++) {
             const i = (y * S.w + x) * 4, a = S.data[i + 3];
             if (!a) continue;
-            const up = overhead && y < split && (!onlyOver || onlyOver(x, y));
+            const up = overhead && y < split;
             put(up ? L.over : L.base, x, y, [S.data[i], S.data[i + 1], S.data[i + 2]], a / 255);
             S.data[i] = S.data[i + 1] = S.data[i + 2] = S.data[i + 3] = 0;
         }
@@ -239,8 +239,9 @@
     // The walls
     // ---------------------------------------------------------------------
     const WALLISH = new Set(['kloster_wall', 'wall_tower', 'gatehouse', 'gate']);
-    function curtain(L, map, nameAt, x, y, seed) {
-        const img = L.base, x0 = x * C, y0 = y * C;
+    function curtain(L, map, nameAt, x, y, seed, overhead = false) {
+        const x0 = x * C, y0 = y * C;
+        const img = L.base;
         const vert = WALLISH.has(nameAt(map, x, y - 1)) || WALLISH.has(nameAt(map, x, y + 1));
         if (vert) {                                                // seen from above: the wall walk and two parapets
             const l = x0 + 4, w = 24;
@@ -252,7 +253,11 @@
             }
             return;
         }
-        // Seen from the front: crenellations along the top, a stone face, moss at the foot.
+        // Seen from the front: crenellations along the top, a stone face, moss at the foot. The merlons reach into the
+        // tile above, so when someone can stand there they go over, and a player behind the wall is hidden by them.
+        if (overhead) return tall(L, [x0 - 2, y0 - 10, x0 + C + 2, y0 + C + 2], y0, true, (S) => front(S));
+        front(img);
+        function front(img) {
         const top = y0 - 4, faceTop = y0 + 6, B = y0 + C;
         const l = WALLISH.has(nameAt(map, x - 1, y)) || nameAt(map, x - 1, y) === 'bell_tower' || nameAt(map, x - 1, y) === 'abbey_church' ? x0 : x0 + 2;
         const r = WALLISH.has(nameAt(map, x + 1, y)) || nameAt(map, x + 1, y) === 'bell_tower' || nameAt(map, x + 1, y) === 'abbey_church' ? x0 + C : x0 + C - 2;
@@ -261,6 +266,7 @@
         stoneWall(img, l, faceTop, r - l, B - faceTop, seed + x * 7 + y);
         for (let i = l; i < r; i++) { put(img, i, faceTop, KP.stone[7]); put(img, i, B, KP.shadow, 0.5); }
         for (let i = l; i < r; i++) if (vnoise(i / 4, B / 4, seed + 3) > 0.5) for (let j = 0; j < 3 + hash(i, 1, seed) * 4; j++) put(img, i, B - 1 - j, pick(KP.moss, hash(i, j, seed)));
+        }
     }
     /** A round corner tower: a stone drum, an arrow slit and a pointed roof of tiles. */
     function tower(L, x, y, seed) {
@@ -760,7 +766,7 @@
                 rectFill(S, tcx - 1, top - 49, 2, 8, PAL.iron[3]);
                 crossBanner(S, tcx - 9, top + 30, 18, 32, seed + tcx);
             }
-        }, (x, y) => (x > gx - 36 && x < gx + 36) || y < B - 72);
+        });   // everything above the gatehouse row goes over: the towers and the gable hide a player standing behind them
         scene.windows.push({ x: gx, y: B - 30 });
     }
 
@@ -826,7 +832,7 @@
             }
             const cx = x * C + 16, gy = y * C + 28, ov = open(x, y - 1);
             const P = {
-                kloster_wall: () => curtain(L, map, nameAt, x, y, seed),
+                kloster_wall: () => curtain(L, map, nameAt, x, y, seed, ov),
                 wall_tower: () => tower(L, x, y, seed + x * 7 + y),
                 low_wall: () => lowWall(L, map, nameAt, x, y, seed),
                 tree: () => tree(L, x, y, seed, { big: 1.2 + hash(x, y, seed) * 0.4, ramp: KP.leaf, overhead: behind(x, y) }),
