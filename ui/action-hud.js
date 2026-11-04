@@ -25,6 +25,8 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const num = (v) => typeof v === 'number' && Number.isFinite(v);
+    /** Tracked quests the HUD shows at once (Tokelo, 2026-11-04; the engine's StoryMethods.TRACK_MAX). */
+    const QUEST_ROWS = 4;
     const clamp01 = (v) => (num(v) ? Math.max(0, Math.min(1, v)) : 0);
 
     /** Key hint per engine skill-bar slot (index = engine slot). */
@@ -169,11 +171,12 @@
         const sameCode = blocked.length && blocked.every((r) => r && r.code && r.code === blocked[0].code) ? blocked[0] : null;
         const barNote = sameCode && !/COOLDOWN/.test(sameCode.code) && sameCode.code !== 'NOT_ENOUGH_RESOURCE' ? sameCode.message : null;
 
-        let quest = sim.quest || null;
-        if (!quest && engine.story && typeof engine.trackedObjective === 'function') {
-            const o = engine.trackedObjective();
-            if (o) quest = { title: o.title, text: o.text, where: null, kind: o.kind };
-        }
+        // Quest tracker: every quest the player tracks (up to QUEST_ROWS, chosen in the journal), main first.
+        let quests = Array.isArray(sim.quests) ? sim.quests : sim.quest ? [sim.quest] : null;
+        if (!quests && engine.story && typeof engine.trackedObjectives === 'function') quests = engine.trackedObjectives();
+        else if (!quests && engine.story && typeof engine.trackedObjective === 'function') quests = [engine.trackedObjective()];
+        quests = (quests || []).filter(Boolean).slice(0, QUEST_ROWS).map((o) => ({ title: o.title, text: o.text, where: o.where || null, kind: o.kind }));
+        const quest = quests[0] || null;
 
         const stamina = sim.stamina && num(sim.stamina.max) && sim.stamina.max > 0 ? { cur: Math.max(0, sim.stamina.cur), max: sim.stamina.max } : null;
         const lock = sim.lockTargetId != null ? (sim.enemies || []).find((e) => e.id === sim.lockTargetId) || null : null;
@@ -199,6 +202,7 @@
             lock: lock && !(boss && lock.boss) ? { id: lock.id, name: lock.name, hp: Math.max(0, lock.hp), maxHp: lock.maxHp || 1 } : lock ? { id: lock.id, name: lock.name, boss: true } : null,
             prompt: sim.prompt ? { key: sim.prompt.key || 'E', verb: sim.prompt.verb || '', name: sim.prompt.name || '' } : null,
             quest,
+            quests,
             notices: (sim.notices || []).filter((n) => n && n.id != null).map((n) => ({ id: String(n.id), text: n.text, kind: n.kind || 'loot' }))
         };
     }
@@ -225,10 +229,13 @@
         const box = h('div', 'ahud', null);
         box.setAttribute('aria-label', 'Action HUD');
 
-        // ---- top-right: quest tracker
-        const quest = h('div', 'ahud-quest', box);
-        const qTitle = h('div', 'ahud-quest-title', quest);
-        const qText = h('div', 'ahud-quest-text', quest);
+        // ---- top-right: quest tracker (up to QUEST_ROWS tracked quests), reward notices under it
+        const right = h('div', 'ahud-right', box);
+        const quest = h('div', 'ahud-quest', right);
+        const qRows = Array.from({ length: QUEST_ROWS }, () => {
+            const row = h('div', 'ahud-quest-item', quest);
+            return { row, title: h('div', 'ahud-quest-title', row), text: h('div', 'ahud-quest-text', row) };
+        });
         // ---- top-centre: boss bar, lock-on plate
         const top = h('div', 'ahud-top', box);
         const boss = h('div', 'ahud-boss', top);
@@ -243,7 +250,7 @@
         const lockBar = h('div', 'ahud-bar ahud-lock-bar', lock);
         const lockFill = h('span', 'fill', lockBar);
         // ---- right: notices
-        const notices = h('div', 'ahud-notices', box);
+        const notices = h('div', 'ahud-notices', right);
         notices.setAttribute('role', 'status'); notices.setAttribute('aria-live', 'polite');
         // ---- top-left: portrait + compact vitals, statuses below
         const left = h('div', 'ahud-left', box);
@@ -463,8 +470,16 @@
                 if (!m.lock.boss) width(lockFill, qpct(m.lock.hp / m.lock.maxHp, 48));
             }
             // quest
-            show(quest, !!m.quest);
-            if (m.quest) { text(qTitle, m.quest.title || ''); text(qText, `◆ ${m.quest.text || ''}${m.quest.where ? ` → ${m.quest.where}` : ''}`); }
+            const qs = m.quests || (m.quest ? [m.quest] : []);
+            show(quest, qs.length > 0);
+            qRows.forEach((r, i) => {
+                const q = qs[i];
+                show(r.row, !!q);
+                if (!q) return;
+                cls(r.row, 'side', q.kind !== 'main');
+                text(r.title, q.title || '');
+                text(r.text, `◆ ${q.text || ''}${q.where ? ` → ${q.where}` : ''}`);
+            });
             paintNotices(m.notices || [], now);
         }
 

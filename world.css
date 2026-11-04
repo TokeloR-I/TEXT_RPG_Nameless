@@ -476,6 +476,8 @@ body {
 .hud-obj { margin-top: 0.3em; max-width: 34cqw; white-space: normal; color: var(--c-gold); font-size: 0.92em; line-height: 1.35; text-align: right; padding: 0.35em 0.4em 0.4em 1.6em; background: linear-gradient(270deg, rgba(10, 9, 16, 0.7) 0, rgba(10, 9, 16, 0.45) 70%, rgba(10, 9, 16, 0) 100%); }
 .hud-quest { display: block; color: var(--ink-dim); font-size: 0.85em; letter-spacing: 0.04em; }
 .hud-where { color: var(--ink-dim); }
+.hud-obj-row + .hud-obj-row { margin-top: 0.35em; }
+.hud-obj-row.side { color: var(--ink); opacity: 0.9; }
 .dialog-role { color: var(--ink-dim); font-weight: normal; font-size: 0.85em; margin-left: 0.4em; }
 .talk-text { max-height: 19cqw; overflow-y: auto; margin-bottom: 0.6em; white-space: normal; }
 .talk-text p { margin: 0.15em 0; }
@@ -882,12 +884,16 @@ body {
 .ahud-prompt .name { color: var(--ah-gold); }
 
 /* ---- top-right: compact quest tracker ---- */
-.ahud-quest { position: absolute; right: calc(var(--ap) * 8); top: calc(var(--ap) * 7); max-width: 28%; padding: calc(var(--ap) * 2) calc(var(--ap) * 5); overflow-wrap: anywhere;
+/* The right column: tracked quests, then reward notices, so a longer tracker pushes notices down instead of covering them. */
+.ahud-right { position: absolute; right: calc(var(--ap) * 8); top: calc(var(--ap) * 7); max-width: 28%; display: flex; flex-direction: column; align-items: flex-end; gap: calc(var(--ap) * 5); }
+.ahud-quest { display: flex; flex-direction: column; gap: calc(var(--ap) * 3); padding: calc(var(--ap) * 2) calc(var(--ap) * 5); overflow-wrap: anywhere; align-self: stretch;
     background: linear-gradient(90deg, rgba(10, 9, 16, 0.78) 0 70%, rgba(10, 9, 16, 0.4) 85%, transparent 100%);
     border-left: calc(var(--ap) * 2) solid var(--ah-gold); }
 .ahud-quest-title { color: var(--ah-gold); font-size: 0.75em; letter-spacing: 0.08em; text-transform: uppercase; }
 .ahud-quest-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 0.75em; color: var(--c-ink); }
 .ahud-quest-title:empty { display: none; }
+.ahud-quest-item.side .ahud-quest-title { color: var(--c-ink); opacity: 0.8; }
+.ahud-quest-item.side .ahud-quest-text { -webkit-line-clamp: 1; opacity: 0.9; }
 
 /* ---- top-centre: boss bar, lock-on plate ---- */
 .ahud-top { position: absolute; left: 51%; top: calc(var(--ap) * 7); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--ap) * 5); }
@@ -904,7 +910,7 @@ body {
 .ahud-lock-bar { width: calc(var(--ap) * 48); height: calc(var(--ap) * 3); }
 
 /* ---- right: reward notices ---- */
-.ahud-notices { position: absolute; right: calc(var(--ap) * 8); top: calc(var(--ap) * 40); display: flex; flex-direction: column; align-items: flex-end; gap: calc(var(--ap) * 3); }
+.ahud-notices { display: flex; flex-direction: column; align-items: flex-end; gap: calc(var(--ap) * 3); }
 .ahud-notice { display: flex; gap: calc(var(--ap) * 3); align-items: baseline; font-size: 0.75em; padding: calc(var(--ap) * 2) calc(var(--ap) * 5) calc(var(--ap) * 3) calc(var(--ap) * 16);
     background: linear-gradient(270deg, rgba(10, 9, 16, 0.85) 0 75%, transparent 100%); border-right: calc(var(--ap) * 2) solid var(--nc, var(--ah-gold));
     animation: ahud-slide 180ms steps(4); transition: opacity 400ms steps(4), transform 400ms steps(4); }
@@ -916,7 +922,7 @@ body {
 /* Portrait phones keep the player cluster at the top left, with targets beneath. */
 .world-stage.tall .ahud-left { max-width: 54%; }
 .world-stage.tall .ahud-top { top: calc(var(--ap) * 72); }
-.world-stage.tall .ahud-quest { max-width: 40%; }
+.world-stage.tall .ahud-right { max-width: 40%; }
 .ahud-slot:focus-visible { outline: calc(var(--ap) * 2) solid var(--c-accent); outline-offset: var(--ap); }
 /* Empty exploration slots need no panel; equipped actions stay directly accessible. */
 .ahud:not(.in-combat) .ahud-slot.empty { display: none; }
@@ -925,7 +931,6 @@ body {
 .ahud-prompt .name { min-width: 0; }
 
 .world-stage.tall .ahud-centre { bottom: calc(var(--ap) * 6); }
-.world-stage.tall .ahud-notices { top: calc(var(--ap) * 60); }
 
 /* combat tint: the frame warms a little when something is engaged; danger pulses the vitals frame */
 .ahud.in-combat .ahud-skills { box-shadow: 0 0 0 var(--ap) var(--c-frame-hi), 0 0 0 calc(var(--ap) * 2) var(--c-frame-lo), inset 0 var(--ap) 0 rgba(216, 198, 144, 0.35); }
@@ -1047,7 +1052,7 @@ body {
 /* ---------- notifications (Pixie): quests, objectives, XP, level, items, Gold ----------
    Top right under the tracker, visible over dialogue and fights, newest at the bottom, gone on their own. */
 .notices {
-    position: absolute; right: 2cqw; top: 13cqw; z-index: 7; pointer-events: none;
+    position: absolute; right: 2cqw; top: max(13cqw, var(--tracker-bottom, 0px)); z-index: 7; pointer-events: none;
     display: flex; flex-direction: column; align-items: flex-end; gap: 0.35em;
     font-size: max(10px, 1.35cqw); max-width: 44cqw;
 }
@@ -1067,7 +1072,7 @@ body {
 .notice.out { opacity: 0; transform: translateX(1.2em); }
 @keyframes notice-in { from { opacity: 0; transform: translateX(1.2em); } to { opacity: 1; transform: none; } }
 .reduce-motion .notice { animation: none; transition: none; }
-.world-stage.tall .notices { top: 24cqw; max-width: 70cqw; }
+.world-stage.tall .notices { top: max(24cqw, var(--tracker-bottom, 0px)); max-width: 70cqw; }
 @media (max-width: 640px) {
     .dialog.paged { max-height: 52%; }
     .notices { max-width: 60cqw; }

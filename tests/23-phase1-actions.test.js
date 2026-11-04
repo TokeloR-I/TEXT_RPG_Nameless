@@ -247,7 +247,7 @@ test('Phase 1: world intents are actions; the old method names still work; flags
     const g = newGame(5).do('warrior');
     const rooms = JSON.stringify(g.rooms);
     assert.ok(g.act({ type: 'enter_world' }).ok);
-    assert.deepStrictEqual(options(g).map((o) => o.type), [], 'no text-game rooms in world mode (and nothing usable at full HP)');
+    assert.deepStrictEqual(options(g).map((o) => o.type).filter((t) => t !== 'track_quest'), [], 'no text-game rooms in world mode (and nothing usable at full HP; the journal tracker toggles are story options)');
     assert.ok(g.act({ type: 'world_pickup', pickupId: 'shed_bandages', item: 'Bandages' }).ok);
     assert.strictEqual(g.act({ type: 'world_pickup', pickupId: 'shed_bandages', item: 'Bandages' }).error.code, 'ALREADY_COLLECTED');
     assert.match(texts(g.worldPickup('shed_bandages', 'Bandages')).join(), /nothing left here/, 'wrapper unchanged');
