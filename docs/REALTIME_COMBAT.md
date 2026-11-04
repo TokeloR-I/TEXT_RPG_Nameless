@@ -41,6 +41,7 @@ much fight time and returns events. Same seed + same `tick`/`act` sequence = sam
 |---|---|---|
 | Basic attack | Free, any time, own swing timer from SPD. Not blocked by the global cooldown. | 3 s × 10 / SPD, 1.5–4.5 s |
 | Skills | Use any time they're ready. Own cooldown, then the shared global cooldown. | GCD 1 s |
+| Items | Any time, back to back: items skip the global cooldown and never start it (Tokelo, 2026-11-04). `H` quick-heals with the best healing item (`quick_heal`). | — |
 | Cooldowns | A skill's own `cooldown` (seconds) if set; else from its cost. | 4 s + 3 s per cost; cost "all" 15 s |
 | Enemies | Act on their own clock from SPD; each action winds up first ("readies Heavy Slash!"), then lands. A stun during the wind-up interrupts it. | 2.5 s × 10 / SPD, 1.2–5 s; wind-up 0.6 s; first action after 1 s |
 | Minions | Act on their own clock, no wind-up. | 2.5 s × 10 / SPD, 1.2–5 s |

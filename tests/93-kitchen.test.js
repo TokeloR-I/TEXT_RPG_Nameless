@@ -267,7 +267,7 @@ test('Homestead in the world: hearth and field stations run the same rules throu
     say(g, /What can I make here/);
 });
 
-test('Eating in a fight (Tokelo, 2026-11-04): dishes skip the 1 s recovery so they stack back to back; bandages still wait', () => {
+test('Eating and healing in a fight (Tokelo, 2026-11-04): no waiting; items skip the 1 s recovery and never start it', () => {
     const g = new GameEngine({ seed: 4, combatMode: 'realtime' });
     g.start(); g.input('warrior'); g.input('engage');
     g.player.hp = g.player.maxHp = 99999;
@@ -276,13 +276,42 @@ test('Eating in a fight (Tokelo, 2026-11-04): dishes skip the 1 s recovery so th
     g.player.hp -= 500;
     assert.ok(g.act({ type: 'skill', skillId: 'Guard' }).ok, 'a skill starts the global cooldown');
     const opt = (item) => g.getAvailableActions().actions.find((o) => o.type === 'use_item' && o.item === item);
-    assert.ok(opt('Schnitzel').enabled, 'food is not held up by it');
-    assert.strictEqual(opt('Bandages').reason.code, 'GLOBAL_COOLDOWN', 'bandages are');
+    assert.ok(opt('Schnitzel').enabled && opt('Bandages').enabled, 'items are not held up by it');
     for (const dish of ['Schnitzel', 'Bratwurst', 'Brezel']) assert.ok(eat(g, dish).ok, `${dish} straight after the last`);
     assert.strictEqual(['Schnitzel', 'Bratwurst', 'Brezel'].filter((d) => g.findStatus(g.player, d)).length, 3, 'three meal buffs up at once');
-    g.tick(1000);
     assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok);
-    assert.strictEqual(g.act({ type: 'use_item', item: 'Bandages' }).error.code, 'GLOBAL_COOLDOWN', 'a potion or bandage still starts it');
+    assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok, 'bandage after bandage');
+});
+
+test('Quick heal (Tokelo, 2026-11-04): one key uses the best healing item; availability and act() agree', () => {
+    const g = new GameEngine({ seed: 5, combatMode: 'realtime' });
+    g.start(); g.input('warrior'); g.input('engage');
+    const qh = () => g.getAvailableActions().actions.find((o) => o.type === 'quick_heal');
+    assert.strictEqual(qh(), undefined, 'not listed while you carry nothing that heals');
+    const potions = Object.entries(items).filter(([, d]) => d.use === 'heal' && d.value > 0).sort((a, b) => a[1].value - b[1].value);
+    const [small, big] = [potions[0], potions[potions.length - 1]];
+    assert.ok(small[1].value < big[1].value, 'two sizes of healing item to choose between');
+    give(g, small[0]); give(g, big[0]); give(g, 'Schnitzel');
+    g.player.hp = g.player.maxHp;
+    assert.strictEqual(qh().reason.code, 'FULL_HEALTH');
+    assert.strictEqual(g.act({ type: 'quick_heal' }).error.code, 'FULL_HEALTH');
+    g.player.hp = g.player.maxHp - small[1].value;
+    assert.strictEqual(qh().item, small[0], 'the smallest that heals all you lost');
+    assert.ok(g.act({ type: 'quick_heal' }).ok);
+    assert.strictEqual(g.player.hp, g.player.maxHp);
+    assert.ok(!g.player.inventory.includes(small[0]));
+    g.player.hp = 1;
+    assert.strictEqual(qh().item, big[0], 'else the biggest');
+    g.act({ type: 'quick_heal' });
+    g.player.hp = 1;
+    assert.strictEqual(qh().item, 'Schnitzel', 'no potions left: the dish that heals most');
+    assert.ok(g.act({ type: 'quick_heal' }).ok);
+    assert.ok(g.findStatus(g.player, 'Schnitzel'), 'eaten, buff and all');
+    // Out of a fight, and in the text game, too.
+    const t = new GameEngine({ seed: 5 }); t.start(); t.input('warrior');
+    give(t, 'Bandages'); t.player.hp -= 5;
+    t.input('qh');
+    assert.ok(!t.player.inventory.includes('Bandages'), 'qh in the text game');
 });
 
 test('Farming (Tokelo, 2026-11-04): a crop takes 120 s to ripen; watering and weeding takes 60 s off, once', () => {

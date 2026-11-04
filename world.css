@@ -870,6 +870,10 @@ body {
 .ahud-slot.dodge .glyph { position: absolute; left: 0; right: 0; top: calc(var(--ap) * 3); text-align: center; font-size: 1em; color: var(--ah-stam-hi); }
 .ahud-slot.dodge .key { left: 0; right: 0; top: auto; bottom: calc(var(--ap) * 1); text-align: center; font-size: clamp(10px, calc(var(--ap) * 5), 12px); color: var(--c-ink-dim); }
 .ahud-slot.dodge.is-cooldown .glyph { color: var(--c-ink-mute); }
+.ahud-slot.heal { cursor: pointer; }
+.ahud-slot.heal .glyph { color: #e86a5a; font-size: 1.1em; line-height: 1; top: 0; z-index: 3; }
+.ahud-slot.heal.is-disabled .glyph { color: var(--c-ink-mute); }
+.ahud-slot.heal .secs { position: absolute; right: calc(var(--ap) * 1); top: 0; font-size: clamp(9px, calc(var(--ap) * 4.5), 11px); color: var(--c-ink-dim); }
 
 /* ---- whole-bar refusal note (stunned, silenced) ---- */
 .ahud-note { color: var(--c-hp-low); font-size: 0.75em; letter-spacing: 0.06em; padding: 0 calc(var(--ap) * 4); background: rgba(10, 9, 16, 0.7); }

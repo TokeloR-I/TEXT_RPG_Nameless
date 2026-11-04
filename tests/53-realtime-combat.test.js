@@ -58,13 +58,12 @@ test('RT-02: skills have cooldowns from cost (or their own), share a global cool
     g.run(g.rtCooldownMs('Power Strike'));
     assert.ok(option(g, 'skill', 'Power Strike').enabled, 'cooldown over');
     assert.ok(g.act({ type: 'skill', skillId: 'Power Strike' }).ok);
-    // QA #14 RT-1: an item shares the global cooldown, and availability says so too
-    g.player.inventory.push('Bandages'); g.player.hp -= 50;
-    assert.strictEqual(option(g, 'use_item').reason.code, 'GLOBAL_COOLDOWN');
-    assert.strictEqual(g.act({ type: 'use_item', item: 'Bandages' }).error.code, 'GLOBAL_COOLDOWN');
-    g.run(RT.globalCooldownSeconds * 1000);
-    assert.ok(option(g, 'use_item').enabled);
+    // Tokelo (2026-11-04) replaces QA #14 RT-1: items skip the global cooldown and don't start it ("which live
+    // action game forces you to wait for healing?"). Availability agrees.
+    g.player.inventory.push('Bandages', 'Bandages'); g.player.hp -= 50;
+    assert.ok(option(g, 'use_item').enabled, 'usable during the global cooldown');
     assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok);
+    assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok, 'and again straight away');
     assertHealthy(g);
 });
 

@@ -36,6 +36,7 @@
                 this.combatUseItem(item);
                 return;
             }
+            if (command === 'quickheal' || command === 'qh') { this.quickHeal(); return; }
             if (command === 'flee') { this.doFlee(); return; }
 
             const skillName = command === 'attack' ? this.basicAttackName() : this.resolveSkillName(command);

@@ -45,6 +45,7 @@
         take: (arg) => ({ type: 'take', item: arg }), get: (arg) => ({ type: 'take', item: arg }),
         inventory: () => ({ type: 'describe', subject: 'inventory' }), i: () => ({ type: 'describe', subject: 'inventory' }),
         use: (arg) => ({ type: 'use_item', item: arg }),
+        quickheal: () => ({ type: 'quick_heal' }), qh: () => ({ type: 'quick_heal' }),
         look: () => ({ type: 'describe', subject: 'room' }), l: () => ({ type: 'describe', subject: 'room' }),
         help: () => ({ type: 'describe', subject: 'help' }),
         quit: () => ({ type: 'quit' }),
@@ -328,9 +329,9 @@
         }
 
         showHelp() {
-            this.say('Commands: go <dir> (or n/s/e/w), take <item>, use <item>, inventory (i), look, engage, class_lore (cl), quit, start', { important: true });
+            this.say('Commands: go <dir> (or n/s/e/w), take <item>, use <item>, quickheal (qh), inventory (i), look, engage, class_lore (cl), quit, start', { important: true });
             this.say('Skill Web: web, learn <skill>, unlearn <skill>, specialize <path>, guide <path|off>');
-            this.say('Combat: attack <n>, <skill name or alias> <n>, use <item>, flee');
+            this.say('Combat: attack <n>, <skill name or alias> <n>, use <item>, quickheal (qh), flee');
             this.say('Dev cheats: add_xp <amount>, become_hollow_king, unlock_events');
         }
     }

@@ -417,6 +417,7 @@
                     if (!a.item || !this.player.inventory.includes(a.item)) { this.refuseCombat('NO_ITEM', a.item ? `You don't have a '${a.item}'.` : 'Use what? (e.g. use bandages)'); return; }
                     this.combatUseItem(a.item);
                     return;
+                case 'quick_heal': this.quickHeal(); return;
                 case 'flee':
                     if (c.action) { this.refuseCombat('WRONG_MODE', 'Run! Out of their reach, they give up the chase.'); return; }   // combat v3: you flee by moving
                     this.doFlee(); return;
@@ -451,14 +452,13 @@
         }
 
         /**
-         * Why this item can't be used in a real-time fight right now, or null. Meals and beer (src/engine/kitchen.js)
-         * skip the 1 s global cooldown, so dishes can be stacked one after another (Tokelo, 2026-11-04: "I can only
-         * eat one at a time"); potions and bandages still share it. A stun still stops everything.
+         * Why this item can't be used in a real-time fight right now, or null. Items skip the 1 s global cooldown and
+         * don't start it (Tokelo, 2026-11-04: "which live action game forces you to wait for healing?"), so dishes
+         * stack one after another and a potion is there when you need it. A stun still stops everything.
          */
         rtItemProblem(item) {
             const problem = this.rtActionProblem(item, false);
-            if (problem && problem.code === 'GLOBAL_COOLDOWN' && this.isFood(this.itemDef(item))) return null;
-            return problem;
+            return problem && problem.code === 'GLOBAL_COOLDOWN' ? null : problem;
         }
 
         /** The player's action is one opportunity (T-0 hooks), like an enemy's. useSkill() / combatUseItem() call these. */
@@ -470,8 +470,7 @@
         rtEndPlayerAction(name, isBasic, { item = false } = {}) {
             if (!this.rtActive()) return;   // that blow ended the fight
             this.endOpportunity(this.player);
-            if (item === 'food') { /* meals and beer neither wait on nor start the global cooldown */ }
-            else if (item) this.rtStartGcd(); else this.rtStartCooldowns(name, isBasic);
+            if (!item) this.rtStartCooldowns(name, isBasic);   // items neither wait on nor start the global cooldown
             this.checkBattleEnd();
         }
 
