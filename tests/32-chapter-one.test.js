@@ -1,5 +1,5 @@
 // Chapter One end to end through the real world model + engine (CH1-01..03): the mainline route, the
-// 290-XP-before-the-Warden guarantee for every class with ALL optional content skipped, the Warden's
+// 498-XP-before-the-Warden guarantee (290 until the road to the Warden got its extra fights, 2026-11-04) for every class with ALL optional content skipped, the Warden's
 // tragedy beats, the key and memory, Orin, Shane's quest and his exact "Suffer!" goodbye, no duplicate
 // rewards. Fights are won by forcing enemy HP to 1: this checks story and XP accounting, not balance
 // (class survival per encounter is Tally's QA, docs/design/ENSO_CH1_ENCOUNTERS_XP_AND_BALANCE.md).
@@ -77,13 +77,18 @@ function mainline(ctx) {
     talk(s, 'village_captain'); say(g, /Here it is/); bye(g);
     assert.strictEqual(g.questState('Q05'), 'complete');
     assert.ok(!g.player.inventory.includes('Tollway Register'), 'handed over');
+    // The road to the Warden (Tokelo 2026-11-04): the orchard lookouts (they spot you across the open rows in action
+    // play), the causeway gate, then the climb's rearguard, crows and ghoul. Level 3 and the path choice arrive on the way.
+    let chose = false;
+    const onward = (id) => {
+        fight(g, s, id);
+        if (g.mode === 'branch_select') { g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] }); chose = true; }
+    };
     travel(s, 'orchard');
-    fight(g, s, 'orchard_cultists');
+    for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) onward(id);
     takeExit(s, 'orchard_north');
-    fight(g, s, 'featherwatch_ghoul');
-    // With the strongbox looters (Q05), level 3 and the path choice arrive at the ghoul, still before the Warden.
-    assert.strictEqual(g.mode, 'branch_select', 'the evolution choice comes before the boss');
-    g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] });
+    for (const id of ['featherwatch_rearguard', 'featherwatch_crows', 'featherwatch_ghoul']) onward(id);
+    assert.ok(chose, 'the evolution choice comes before the boss');
     assert.strictEqual(g.mode, 'explore');
     takeExit(s, 'featherwatch_north');
     inspect(s, 'sanctuary_journal');
@@ -92,16 +97,16 @@ function mainline(ctx) {
     return total(g);
 }
 
-test('Chapter One: every class reaches level 3 with exactly 290 XP before the Warden, skipping all optional content', () => {
+test('Chapter One: every class reaches level 4 with exactly 498 XP before the Warden, skipping all optional content', () => {
     for (const cls of Object.keys(data.basePlayerClasses)) {
         const ctx = run(cls, 3);
         const xp = mainline(ctx);
-        assert.strictEqual(xp, 290, `${cls}: 135 quest + 115 gate + 40 strongbox-looter XP`);
-        assert.strictEqual(ctx.g.player.level, 3, cls);
-        assert.strictEqual(ctx.g.stats.fights, 5, `${cls}: only the five required fights`);
+        assert.strictEqual(xp, 498, `${cls}: 135 quest + 207 gate + 40 strongbox-looter + 116 orchard-lookout XP`);
+        assert.strictEqual(ctx.g.player.level, 4, `${cls}: level 4 at the Warden`);
+        assert.strictEqual(ctx.g.stats.fights, 9, `${cls}: only the nine fights on the way`);
         assert.strictEqual(ctx.g.mode, 'explore', `${cls}: still talking to the Warden`);
         bye(ctx.g);
-        assert.strictEqual(ctx.g.mode, 'explore', `${cls}: the path was chosen at the ghoul, so the Warden's goodbye opens nothing`);
+        assert.strictEqual(ctx.g.mode, 'explore', `${cls}: the path was chosen on the way, so the Warden's goodbye opens nothing`);
     }
 });
 
@@ -251,7 +256,7 @@ test('Chapter One: content integrity: every objective marker, npc and condition 
     const main = ['Q01', 'Q02', 'Q03', 'Q04', 'Q05', 'Q06'].map((q) => STORY.quests[q].xp);
     assert.deepStrictEqual(main, [15, 20, 25, 25, 20, 30]);
     const gates = Object.values(ZONE1.maps).flatMap((m) => m.encounters || []).filter((e) => e.gate);
-    assert.strictEqual(gates.reduce((sum, e) => sum + e.enemies.reduce((t, k) => t + data.enemies[k].xp, 0), 0), 115, 'required fights: 20+25+40+30');
+    assert.strictEqual(gates.reduce((sum, e) => sum + e.enemies.reduce((t, k) => t + data.enemies[k].xp, 0), 0), 207, 'required fights: 20+25+40+30, and the climb (2026-11-04) 68+24');
     assert.strictEqual(STORY.npcs.shane.farewell, 'Suffer!');
 });
 

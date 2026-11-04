@@ -37,7 +37,9 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
             else g.input(forced?'attack 1':choose(g));
         }
         if(g.world.lastResult!=='victory'){result.where=id;return false;}
-        s.fightOver(id,'victory');autoEquip();return true;
+        s.fightOver(id,'victory');
+        if(g.mode==='branch_select')g.act({type:'choose_branch',branchId:Object.keys(data.evolutionPaths[cls].branches)[branch]});
+        autoEquip();return true;
     };
     H.inspect(s,'cellar_old_purse');H.inspect(s,'cellar_inscription');H.travel(s,'house');
     H.travel(s,'grounds');H.inspect(s,'grounds_foundation');H.travel(s,'road');H.travel(s,'tollway');
@@ -52,10 +54,12 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
         for(const item of ['Healing Herb Bundle','Bandages']) while(g.act({type:'buy',shopId:'iona',item}).ok)result.bought++;
         bye();
     }
-    H.travel(s,'orchard');if(!fight('orchard_cultists'))return {...result,g,s};
-    H.takeExit(s,'orchard_north');if(!fight('featherwatch_ghoul'))return {...result,g,s};
-    // Level 3 (and the path choice) now arrives at the ghoul, because of Q05's strongbox looters.
-    if(g.mode==='branch_select')g.act({type:'choose_branch',branchId:Object.keys(data.evolutionPaths[cls].branches)[branch]});
+    // The road to the Warden (2026-11-04): the orchard lookouts (unskippable in action play), the causeway gate, then
+    // the climb's rearguard, crows and ghoul. Level 3 (and the path choice) arrives on the way; fight() makes the choice.
+    H.travel(s,'orchard');
+    for(const id of ['orchard_east_lookouts','orchard_west_lookouts','orchard_cultists'])if(!fight(id))return {...result,g,s};
+    H.takeExit(s,'orchard_north');
+    for(const id of ['featherwatch_rearguard','featherwatch_crows','featherwatch_ghoul'])if(!fight(id))return {...result,g,s};
     H.takeExit(s,'featherwatch_north');H.inspect(s,'sanctuary_journal');H.inspect(s,'sanctuary_warden_npc');
     result.preWardenGold=g.player.gold;
     result.totalXp=290; // caller verifies the actual level/xp below

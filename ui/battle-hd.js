@@ -67,6 +67,20 @@
             line(g, '#f0ece0', 1, [57, 34 + b, 57, 37 + b]); line(g, '#f0ece0', 1, [60, 34 + b, 60, 36 + b]);
             eye(g, 54, 26 + b, '#f0d060', 1.4);
         },
+        // A hex-eyed crow (the road to the Warden, 2026-11-04): hunched on the ground, wings half open, the cult's red in its eye.
+        crow(g, t) {
+            const b = Math.sin(t / 180) * 1.2, w = Math.sin(t / 140) * 3;
+            shadow(g, 32, 58, 16);
+            line(g, '#d0c5a1', 1.6, [28, 48, 26, 57, 23, 58]); line(g, '#d0c5a1', 1.6, [36, 48, 37, 57, 40, 58]);
+            poly(g, '#1e1f2c', [18, 44 + b, 6, 52 + b, 10, 54 + b, 22, 48 + b]);                                   // tail
+            poly(g, '#2e2f40', [24, 34 + b, 6, 26 + b + w, 10, 38 + b + w * 0.5, 22, 44 + b]);                    // far wing
+            shaded(g, 31, 40 + b, 13, 10, '#2a2b3a', '#181924', '#4a4c62');
+            poly(g, '#3a3b50', [28, 34 + b, 14, 30 + b - w, 16, 42 + b - w * 0.5, 30, 46 + b]);                   // near wing
+            for (let i = 0; i < 4; i++) line(g, '#5a5c74', 0.8, [16 + i * 3, 32 + b - w + i, 20 + i * 3, 42 + b - w * 0.4]);
+            shaded(g, 44, 30 + b, 8, 7.5, '#2a2b3a', '#181924', '#50526a');
+            poly(g, '#d0c5a1', [50, 28 + b, 61, 32 + b, 50, 34 + b]); line(g, '#8a7e62', 0.8, [50, 31 + b, 58, 32 + b]);
+            eye(g, 46, 28 + b, '#e0484a', 1.4);
+        },
         goblin(g, t) {
             const b = Math.sin(t / 180) * 1.2;
             shadow(g, 32, 58, 15);
@@ -224,7 +238,7 @@
     };
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
-        weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
+        weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul', carrion_crow: 'crow',
         watch_constable: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', heaven_doorwarden: 'constable',   // Aurevain (Fallen Seraphim trial): an armoured knight until it has its own painter
         skeleton: 'skeleton', skeleton_champion: 'skeleton', ghoul: 'ghoul'   // the necromancer's summons (minionDefinitions keys)
     };

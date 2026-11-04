@@ -144,6 +144,21 @@
                 critChance: 0.1, critMultiplier: 1.6,
                 skills: [{ name: 'Hexing Blade', base_damage: [7, 11] }]
             },
+            // The road to the Warden (Tokelo 2026-11-04: "add more enemy NPCs leading up to the Warden"). CANDIDATE kits,
+            // first-pass numbers for Gauge to tune: the Broken Oath's heavy (orchard and Featherwatch Path) and the crows
+            // that fed on the cult's leavings (Featherwatch Path). Not the Warden's own birds: those stay on his perches.
+            'cult_zealot': {
+                name: 'Broken Oath Zealot',
+                hp: 38, maxHp: 38, xp: 28, atk: 8, def: 3, spd: 8,
+                critChance: 0.1, critMultiplier: 1.6,
+                skills: [{ name: 'Oathbreaker Flail', base_damage: [8, 12] }, { name: 'Zealous Charge', base_damage: [6, 9] }]
+            },
+            'carrion_crow': {
+                name: 'Hex-Eyed Crow',
+                hp: 12, maxHp: 12, xp: 8, atk: 4, def: 0, spd: 18,
+                critChance: 0.15, critMultiplier: 1.5,
+                skills: [{ name: 'Raking Peck', base_damage: [3, 5] }]
+            },
             'shackled_ghoul_stronger': {
                 name: 'Ritual-Scarred Ghoul',
                 hp: 40, maxHp: 40, xp: 30, atk: 10, def: 3, spd: 12,
@@ -1278,6 +1293,31 @@
                         { skill: 'Shield Shove', shape: 'line', reach: 18, width: 16, windupMs: 350, activeMs: 120, recoveryMs: 600, cooldownMs: 3000, blockCost: 20, knockbackPx: 24, staggers: true, useWhen: 'playerGuarding_or_shieldHitTwice' }
                     ]
                 },
+                // The Broken Oath's heavy: walks straight at you, swings a two-hit flail, and charges when you keep away.
+                // Its acolytes hang back and hex (roles), so the pair is a tank-and-caster fight, not two of the same.
+                cult_zealot: {
+                    speed: 50, detect: 112, alertMs: 900, reach: 24, arcDeg: 120, windupMs: 620, activeMs: 110, recoveryMs: 600, radius: 7, poise: 4, leash: 200,
+                    keepDistance: [0, 22], group: 'direct',
+                    attacks: [
+                        {
+                            name: 'Oathbreaker Flail', skill: 'Oathbreaker Flail', shape: 'arc', reach: 24, arcDeg: 120, cooldownMs: 1800, useAt: [0, 26],
+                            combo: [
+                                { windupMs: 620, activeMs: 110, recoveryMs: 220, blockCost: 14 },
+                                { windupMs: 420, activeMs: 110, recoveryMs: 750, blockCost: 18, reverse: true }
+                            ]
+                        },
+                        { name: 'Zealous Charge', skill: 'Zealous Charge', shape: 'line', reach: 56, width: 12, lunge: 44, windupMs: 700, activeMs: 160, recoveryMs: 800, cooldownMs: 4500, blockCost: 20, knockbackPx: 18, staggers: true, useAt: [30, 70] }
+                    ]
+                },
+                // Small, fast and fragile: they circle out of reach, dive in a straight line, peck, and break off.
+                carrion_crow: {
+                    speed: 92, detect: 112, reach: 34, shape: 'line', width: 8, lunge: 34, windupMs: 420, activeMs: 160, recoveryMs: 520, radius: 4, poise: 1, leash: 200,
+                    giveUpMs: 2500, giveUpBeyond: 180, keepDistance: [30, 50], group: 'circle', retreatAfterHitPx: 28, wander: 12,
+                    attacks: [
+                        { name: 'Dive', skill: 'Raking Peck', shape: 'line', reach: 34, width: 8, lunge: 34, windupMs: 420, activeMs: 160, recoveryMs: 520, cooldownMs: 2200, blockCost: 8, useAt: [18, 50] },
+                        { name: 'Peck', skill: 'Raking Peck', shape: 'arc', reach: 12, arcDeg: 70, windupMs: 340, activeMs: 70, recoveryMs: 300, cooldownMs: 1000, blockCost: 5, useAt: [0, 16] }
+                    ]
+                },
                 shackled_ghoul_stronger: {
                     speed: 58, detect: 80, provokedOnly: true, reach: 20, arcDeg: 90, windupMs: 600, activeMs: 100, recoveryMs: 800, radius: 8, poise: 5, hyperArmor: true, leash: 120,
                     keepDistance: [0, 20], group: 'solo',
@@ -2118,6 +2158,16 @@
             "cult_acolyte": [
                 2,
                 "humanoid",
+                "common"
+            ],
+            "cult_zealot": [
+                2,
+                "humanoid",
+                "common"
+            ],
+            "carrion_crow": [
+                1,
+                "beast",
                 "common"
             ],
             "shackled_ghoul_stronger": [
