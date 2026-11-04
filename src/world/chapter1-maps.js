@@ -289,11 +289,11 @@
                 ',#:ZZZZZ,a+hhhi+ihhh+a:VVVVVVV#T',
                 'T#:ZZZZZ,a+hhh+++hhh+a:VVVVVVV#T',
                 'T#:ZZZZZ,a+++++++++++a:VVVVVVV#,',
-                'T#:,,,T,,aaaaaa+aaaaaa:bb,,,Cx#T',
+                'T#:,,,T,,aaaaa+++aaaaa:bb,,,Cx#T',
                 ',#:Y,,,,FFFFFF+++PPPPP:,,,,,,,#T',
                 'T#:,,Y,,FFFFFF+++PPPPP:bLLLL,,#T',
                 'T#:,,,,,FFFFFF+++PPPPP:xLLLLWW#T',
-                'T#:,,,n,,,,,,,+++:::::::::::::#T',
+                'T#:,,,n,,,,n,,+++:::::::::::::#T',
                 'TO###########HHHgHHH##########OT',
                 'Tfjjsjjjf,,C,,l:::l,,,T,,,,,T,,,',
                 ',fjjjjjjf,T,,T,,:,,,T,,,,T,,,,,T'
@@ -304,13 +304,13 @@
                 { x: 10, y: 18, radius: 1.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 19, y: 18, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 5, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.2)' }
             ],
-            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_inner: { x: 15, y: 17, facing: 'down' } },
+            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_church: { x: 15, y: 8, facing: 'down' } },
             exits: [
                 { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' },
-                // The door under the arcade into the Klausur, the enclosed house round the garth (Tokelo's interior
-                // reference, 2026-11-04): map kloster_inner.
-                { id: 'kloster_inner_door', x: 15, y: 16, trigger: 'step', toMap: 'kloster_inner', toSpawn: 'from_garth',
-                    text: 'Under the arcade a door stands open. Inside it is cool and quiet, and it smells of candle wax, old books and malt.' }
+                // The abbey church's great door, under the rose window (Tokelo, 2026-11-04: the interior reference is the
+                // inside of the church). E on the door goes in: map kloster_inner.
+                { id: 'kloster_church_door', x: 15, y: 7, trigger: 'interact', prompt: 'Enter the abbey church', toMap: 'kloster_inner', toSpawn: 'from_garth',
+                    text: 'The great door swings open under the rose window. Inside it is cool and quiet, and it smells of candle wax, old books and malt.' }
             ],
             interactables: [
                 { id: 'cloister_fenric', kind: 'npc', npc: 'fenric', x: 26, y: 16, name: 'Brother Fenric', sprite: 'monk' },
@@ -327,7 +327,7 @@
                     text: 'The bell rope hangs inside the door, worn smooth. It rings for dawn, for meals, and once, a year ago, for an hour without stopping.' },
                 { id: 'cloister_hops', kind: 'inspect', x: 29, y: 10, name: 'Hop poles',
                     text: 'Green cones hang in rows, sticky and bitter-smelling. A few leaves at the end have gone brown at the edges.' },
-                { id: 'kloster_church', kind: 'inspect', x: 15, y: 7, name: 'Abbey church',
+                { id: 'kloster_church', kind: 'inspect', x: 13, y: 7, name: 'Abbey church',
                     text: 'The great door stands under the rose window. Inside it is cool and dim, and smells of candle smoke and old stone. Someone has left a sprig of hops on the altar.' },
                 { id: 'kloster_cemetery', kind: 'inspect', x: 27, y: 3, name: 'Cemetery cross',
                     text: 'The brothers and sisters of Briarwell lie here under plain stones, and a good many villagers with them. Fresh candles burn on the newest graves.' },
@@ -347,8 +347,8 @@
         },
 
         // -----------------------------------------------------------------
-        // Inside the Kloster (Tokelo's reference, 2026-11-04: "Pixel-Art Monastery Cloister Map"). The enclosed house
-        // (Klausur) round the cloister court, entered from under the garth arcade. Painted whole by ui/scene-kloster-inner.js.
+        // Inside the abbey church (Tokelo's reference, 2026-11-04: "Pixel-Art Monastery Cloister Map"), entered by the
+        // church's great door from the garth outside; the outside Kloster stays as it is. Painted whole by ui/scene-kloster-inner.js.
         // North: the abbey chapel (stained glass, altar, pews, robed saints in niches). West: the library with its
         // armillary sphere, the study, the infirmary and a herb garden. East: the refectory, the brewery with its copper
         // vats, the cellar and the dormitory cells. Two corridors run down either side. In the middle the cloister
@@ -356,7 +356,7 @@
         // Fallen Seraph if you stare at it for two minutes (gazeRules in src/data.js). South: the entrance hall.
         kloster_inner: {
             zoneId: 'shamefield_vale',
-            name: 'Briarwell Kloster, inside',
+            name: 'Briarwell Kloster, abbey church',
             scene: 'kloster_inner',
             ambient: { darkness: 0.22, tint: 'rgba(80, 55, 30, 0.14)', particles: { kind: 'dust', count: 10 },
                 grade: { ambient: 0.74, exposure: 1.06, highlights: [0.1, 0.05, -0.04] } },
@@ -404,7 +404,7 @@
             ],
             spawns: { from_garth: { x: 19, y: 21, facing: 'up' } },
             exits: [
-                { id: 'kloster_inner_out', x: 19, y: 22, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_inner' }
+                { id: 'kloster_inner_out', x: 19, y: 22, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_church' }
             ],
             interactables: [
                 // The robed statue on the fountain: a station, so E always gets an answer; staring wakes it (gazeRules).

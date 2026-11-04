@@ -9,7 +9,7 @@ const { doubleWorld } = require('../src/world/scale16.js');
 const { ActionSim } = require('../src/action/sim.js');
 const ZONE1 = require('../src/world/zone1.js');
 const WORLD = doubleWorld(ZONE1);
-const { walkTo } = require('./world-helpers.js');
+const { walkTo, takeExit } = require('./world-helpers.js');
 
 const STATUE = 'kloster_seraph_statue';
 const rule = data.gazeRules[STATUE];
@@ -119,12 +119,13 @@ test('Fallen Seraphim: Grace of the Fallen hits the Undead and the Void 20% hard
     assert.strictEqual(g.traitDamageMult({}, {}), 1, 'enemies without traits are untouched');
 });
 
-test('Kloster inside: through the door under the garth arcade and back; the statue stands in the middle of the court', () => {
+test('Kloster inside: through the abbey church door and back; the statue stands in the middle of the court', () => {
     const g = new GameEngine({ seed: 96 }); g.start(); g.act({ type: 'choose_class', classId: 'rogue' }); g.act({ type: 'enter_world' });
     const s = new WorldSession(ZONE1, { engine: g });
     s.place('briarwell_cloister_court', 'from_village');
-    const door = s.map.exits.find((e) => e.id === 'kloster_inner_door');
-    assert.strictEqual(walkTo(s, door.x, door.y).to, 'kloster_inner');
+    // The outside Kloster is unchanged; the abbey church's great door leads in (Tokelo: the interior is the church's).
+    assert.strictEqual(s.map.scene, 'kloster');
+    assert.strictEqual(takeExit(s, 'kloster_church_door').to, 'kloster_inner');
     const statue = s.map.interactables.find((o) => o.id === STATUE);
     const cw = s.map.tiles[0].length;
     assert.strictEqual(statue.x + statue.w / 2, cw / 2, 'centred');
