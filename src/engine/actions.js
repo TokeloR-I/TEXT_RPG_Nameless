@@ -382,7 +382,7 @@
                 const reason = this.lootCreditBlock();
                 actions.push({ type: 'claim_loot', enabled: !reason, ...(reason ? { reason } : {}) });
             }
-            if (this.story) actions.push(...this.crowAvailability(), ...this.flightAvailability());   // Nahemoth (story.js)
+            if (this.story) actions.push(...this.crowAvailability(), ...this.flightAvailability(), ...this.trackAvailability());   // Nahemoth, journal tracker (story.js)
             return actions;
         }
 

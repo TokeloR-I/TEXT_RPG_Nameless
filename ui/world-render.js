@@ -906,8 +906,8 @@
             }
             T = cellOf(map);
             run('foreground', { map, time, ox, oy, view });
-            if (view.marker) {                                                       // the tracked objective, when it's on this map
-                const mx = view.marker.x * T + T / 2, my = view.marker.y * T - 6 + Math.sin(time / 260) * 3;
+            for (const mk of view.markers || (view.marker ? [view.marker] : [])) {   // every tracked objective on this map
+                const mx = mk.x * T + T / 2, my = mk.y * T - 6 + Math.sin(time / 260) * 3;
                 g.fillStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.moveTo(mx, my + 1); g.lineTo(mx + 6, my - 6); g.lineTo(mx, my - 13); g.lineTo(mx - 6, my - 6); g.fill();
                 g.fillStyle = '#e8c860'; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + 5, my - 6); g.lineTo(mx, my - 12); g.lineTo(mx - 5, my - 6); g.fill();
             }

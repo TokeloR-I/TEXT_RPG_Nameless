@@ -5,13 +5,17 @@
  * data (src/story/chapter1.js); this file only runs it.
  *
  * this.story (null in the text game; created by enter_world) is plain JSON:
- *   { chapter, flags: [], quests: { id: { state, step } }, seen: [], claimed: [], dialogue }
+ *   { chapter, flags: [], quests: { id: { state, step } }, seen: [], claimed: [], dialogue, tracked }
  *   quest state  unseen -> available -> active -> complete   ('failed' only if data says so)
  *   seen         every story event so far ('talk:elian', 'defeat:road_goblins'...). A quest
  *                objective whose event already happened completes the moment it becomes
  *                current, so doing things "out of order" can never soft-lock a quest.
  *   claimed      once-only rewards ('quest:Q01', 'item:...'): XP and items are never paid twice,
  *                whatever is re-entered, re-read or re-talked.
+ *   tracked      the active quests the player shows on the HUD tracker, at most TRACK_MAX (Tokelo,
+ *                2026-11-04). A quest that starts while there's room is tracked on its own; the journal
+ *                tracks and untracks with the track_quest action. Missing in older saves: then every
+ *                active quest counts as tracked (up to TRACK_MAX) until the player changes it.
  *
  * Story events come from the world (src/engine/world.js and the world intents
  * below): talk, inspect, enter (a map), pickup, defeat (a world encounter),
@@ -31,7 +35,8 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const ORDER = { unseen: 0, available: 1, active: 2, complete: 3, failed: 3 };
-    const STORY_ACTIONS = new Set(['talk', 'dialogue_choice', 'dialogue_leave', 'world_inspect', 'world_enter', 'set_identity', 'black_flight', 'talk_crow']);
+    const STORY_ACTIONS = new Set(['talk', 'dialogue_choice', 'dialogue_leave', 'world_inspect', 'world_enter', 'set_identity', 'black_flight', 'talk_crow', 'track_quest']);
+    const TRACK_MAX = 4;                              // quests on the HUD tracker at once (Tokelo, 2026-11-04)
     const UNREACHABLE = 'The crow cannot reach that perch yet.';
     const NAME_MAX = 24;
 
@@ -45,7 +50,7 @@
         storyBegin() {
             const data = this.storyContent();
             if (!data || this.story) return;
-            this.story = { chapter: data.id, flags: [], quests: {}, seen: [], claimed: [], dialogue: null };
+            this.story = { chapter: data.id, flags: [], quests: {}, seen: [], claimed: [], dialogue: null, tracked: [] };
             for (const id of Object.keys(data.quests)) this.story.quests[id] = { state: 'unseen', step: 0 };
             this.applyStoryEffects((data.start && data.start.effects) || [], { quiet: true });
         }
@@ -155,6 +160,7 @@
             if (!def || !q || ORDER[q.state] >= ORDER.active) return;
             q.state = 'active';
             q.step = 0;
+            this.autoTrack(id);
             if (!opts.quiet) this.say(`${def.kind === 'main' ? 'Quest' : 'Side quest'} started: ${def.title}`, { important: true, notice: 'quest' });
             this.announceObjective(id, opts);
             this.catchUpQuest(id);
@@ -203,6 +209,7 @@
             const def = this.storyContent().quests[id];
             const q = this.story.quests[id];
             q.state = 'complete';
+            if (this.story.tracked) this.story.tracked = this.story.tracked.filter((t) => t !== id);
             const key = `quest:${id}`;
             const pay = !this.story.claimed.includes(key);
             if (pay) this.story.claimed.push(key);
@@ -449,6 +456,7 @@
                 case 'world_enter': s.at = String(a.mapId || ''); s.withMerchant = null; this.storyEvent({ type: 'enter', id: s.at }); return true;
                 case 'black_flight': this.blackFlight(String(a.anchorId || '')); return true;
                 case 'talk_crow': this.startTalk('crow'); return true;
+                case 'track_quest': this.trackQuest(String(a.questId || ''), a.track); return true;
                 case 'dialogue_choice': case 'dialogue_leave': this.refuse('WRONG_MODE', "You aren't talking to anyone."); return true;
                 default: return false;
             }
@@ -497,6 +505,7 @@
             const data = this.storyContent();
             if (!this.story || !data) return null;
             const quests = [];
+            const tracked = this.trackedQuestIds();
             for (const [id, def] of Object.entries(data.quests)) {
                 const q = this.story.quests[id];
                 if (q.state === 'unseen') continue;
@@ -505,6 +514,7 @@
                 const cur = this.currentObjective(id);
                 quests.push({
                     id, title: def.title, kind: def.kind, state: q.state, summary: def.summary || '', xp: def.xp || 0,
+                    tracked: q.state === 'active' && tracked.includes(id),
                     objective: cur ? { text: cur.text + count(cur), marker: cur.marker || null } : null,
                     steps: steps.filter((st) => st.done || st.current)
                 });
@@ -514,11 +524,79 @@
             return { chapter: data.title, quests };
         }
 
-        /** The objective to show on the HUD: the first active main quest's, else the first active side quest's. */
-        trackedObjective() {
+        // =====================================================================
+        // Quest tracker (pure reads; trackQuest is the one write). Tokelo, 2026-11-04: up to TRACK_MAX
+        // active quests on the HUD at once, and the player picks which in the journal.
+        // =====================================================================
+        /** Active quests in journal order (main first). */
+        activeQuestIds() {
+            const data = this.storyContent();
+            if (!this.story || !data) return [];
+            const ids = Object.keys(data.quests).filter((id) => this.questState(id) === 'active');
+            return ids.filter((id) => data.quests[id].kind === 'main').concat(ids.filter((id) => data.quests[id].kind !== 'main'));
+        }
+        /** The tracked quest ids, active only. An older save without a list tracks the first TRACK_MAX active. */
+        trackedQuestIds() {
+            const active = this.activeQuestIds();
+            if (!this.story || !Array.isArray(this.story.tracked)) return active.slice(0, TRACK_MAX);
+            const set = new Set(this.story.tracked);
+            return active.filter((id) => set.has(id)).slice(0, TRACK_MAX);
+        }
+        /** Give an older save its own list before the first change. */
+        ensureTrackedList() {
+            if (!Array.isArray(this.story.tracked)) this.story.tracked = this.trackedQuestIds();
+            else this.story.tracked = this.trackedQuestIds();             // drop finished or unknown ids
+            return this.story.tracked;
+        }
+        /** A newly started quest goes on the tracker while there's room, so a new side quest is never invisible. */
+        autoTrack(id) {
+            const list = this.ensureTrackedList();
+            if (!list.includes(id) && list.length < TRACK_MAX) list.push(id);
+        }
+        /** Why the player can't track/untrack this quest, or null (pure). `track` true/false, or undefined to toggle. */
+        trackBlock(questId, track) {
+            const data = this.storyContent();
+            if (!this.story || !data) return { code: 'WRONG_MODE', message: 'You have no journal yet.' };
+            if (!data.quests[questId] || this.questState(questId) === 'unseen') return { code: 'UNKNOWN_QUEST', message: "That quest isn't in your journal." };
+            if (this.questState(questId) !== 'active') return { code: 'QUEST_NOT_ACTIVE', message: 'Only active quests can be tracked.' };
+            const tracked = this.trackedQuestIds();
+            const on = track === undefined || track === null ? !tracked.includes(questId) : !!track;
+            if (on && !tracked.includes(questId) && tracked.length >= TRACK_MAX) {
+                return { code: 'TRACK_FULL', message: `You can track up to ${TRACK_MAX} quests. Untrack one first.` };
+            }
+            return null;
+        }
+        trackQuest(questId, track) {
+            const block = this.trackBlock(questId, track);
+            if (block) { this.refuse(block.code, block.message); return; }
+            const list = this.ensureTrackedList();
+            const on = track === undefined || track === null ? !list.includes(questId) : !!track;
+            const title = this.storyContent().quests[questId].title;
+            if (on && !list.includes(questId)) list.push(questId);
+            if (!on) this.story.tracked = list.filter((t) => t !== questId);
+            this.say(on ? `Tracking: ${title}` : `No longer tracking: ${title}`);
+        }
+        /** Journal track toggles (pure): one per active quest, the same check as trackQuest(). */
+        trackAvailability() {
+            if (!this.story || !this.storyContent()) return [];
+            const tracked = this.trackedQuestIds();
+            return this.activeQuestIds().map((questId) => {
+                const on = tracked.includes(questId);
+                const block = this.trackBlock(questId, !on);
+                return { type: 'track_quest', questId, track: !on, tracked: on, enabled: !block, ...(block ? { reason: block } : {}) };
+            });
+        }
+
+        /** Every tracked quest's objective, for the HUD tracker (main quests first). */
+        trackedObjectives() {
             const j = this.getJournal();
-            const q = j && j.quests.find((x) => x.state === 'active' && x.objective);
-            return q ? { questId: q.id, title: q.title, kind: q.kind, text: q.objective.text, marker: q.objective.marker } : null;
+            if (!j) return [];
+            return j.quests.filter((x) => x.tracked && x.objective)
+                .map((q) => ({ questId: q.id, title: q.title, kind: q.kind, text: q.objective.text, marker: q.objective.marker }));
+        }
+        /** The first tracked objective (the map marker and older HUDs). */
+        trackedObjective() {
+            return this.trackedObjectives()[0] || null;
         }
 
         showJournal() {
@@ -589,11 +667,12 @@
         /** getState().story (only when a chapter is running, so text-game state is unchanged). */
         storyState() {
             if (!this.story) return undefined;
-            return { chapter: this.story.chapter, flags: [...this.story.flags], talking: this.story.dialogue ? this.story.dialogue.npcId : null, objective: this.trackedObjective() };
+            return { chapter: this.story.chapter, flags: [...this.story.flags], talking: this.story.dialogue ? this.story.dialogue.npcId : null, objective: this.trackedObjective(), tracked: this.trackedObjectives() };
         }
     }
 
     StoryMethods.NAME_MAX = NAME_MAX;
+    StoryMethods.TRACK_MAX = TRACK_MAX;
     (ENSO.engineModules || (ENSO.engineModules = {}))['story'] = StoryMethods;
     if (isNode) module.exports = StoryMethods;
 })(typeof window !== 'undefined' ? window : globalThis);

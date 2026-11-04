@@ -104,7 +104,7 @@
     const down = new Set();               // physical keys currently down
     const stale = new Set();              // keys held across a focus change: ignored until released
     const seen = new Set();               // inspected objects (presentation only: stops the glint)
-    const view = { mapId: WORLD.start.map, x: 0, y: 0, facing: 'down', moving: false, className: null, appearance: 0, marker: null, fade: 0 };
+    const view = { mapId: WORLD.start.map, x: 0, y: 0, facing: 'down', moving: false, className: null, appearance: 0, marker: null, markers: [], fade: 0 };
     const STORY = ENSO.story && ENSO.story.chapter1;
     let anim = null;                      // tile-step tween { fx, fy, tx, ty, t0, then }
     let fade = null;                      // { t0, phase: 'out'|'in', result }
@@ -471,15 +471,34 @@
             </div>
             ${objectiveHtml()}`;
         const face = els.hud.querySelector('canvas.face'); if (face && view.className) drawFace(face);
-        const obj = engine.story ? engine.trackedObjective() : null;
-        view.marker = obj && obj.marker && session && obj.marker.map === session.mapId ? { x: obj.marker.x * markerScale(obj.marker.map), y: obj.marker.y * markerScale(obj.marker.map) } : null;
+        // A marker for every tracked objective on this map (the first one is the main quest's when it's tracked).
+        const here = trackedQuests().filter((o) => o.marker && session && o.marker.map === session.mapId)
+            .map((o) => ({ x: o.marker.x * markerScale(o.marker.map), y: o.marker.y * markerScale(o.marker.map) }));
+        view.markers = here;
+        view.marker = here[0] || null;
+        placeNotices();
     }
-    /** The tracked objective (the engine's choice) and where it is. */
+    /** The quests the player tracks (engine.trackedObjectives(), chosen in the journal), with where each one is. */
+    function trackedQuests() {
+        if (!engine.story) return [];
+        const list = typeof engine.trackedObjectives === 'function' ? engine.trackedObjectives() : [engine.trackedObjective()].filter(Boolean);
+        return list.map((o) => ({ ...o, where: o.marker && session && o.marker.map !== session.mapId && WORLD.maps[o.marker.map] ? WORLD.maps[o.marker.map].name : null }));
+    }
+    /** The tracked objectives (top right) and where they are. */
     function objectiveHtml() {
-        const obj = engine.story ? engine.trackedObjective() : null;
-        if (!obj) return '';
-        const there = obj.marker && session && obj.marker.map !== session.mapId ? ` <span class="hud-where">→ ${esc(WORLD.maps[obj.marker.map].name)}</span>` : '';
-        return `<div class="hud-obj"><span class="hud-quest">${esc(obj.title)}</span>◆ ${esc(obj.text)}${there}</div>`;
+        const list = trackedQuests();
+        if (!list.length) return '';
+        return `<div class="hud-obj">${list.map((o) => `<div class="hud-obj-row${o.kind === 'main' ? '' : ' side'}"><span class="hud-quest">${esc(o.title)}</span>◆ ${esc(o.text)}${o.where ? ` <span class="hud-where">→ ${esc(o.where)}</span>` : ''}</div>`).join('')}</div>`;
+    }
+    /** Notifications sit under the quest tracker, however many quests it shows (world.css reads --tracker-bottom). */
+    let trackerBottom = null;
+    function placeNotices() {
+        const stage = els.notices && els.notices.offsetParent;
+        if (!stage) return;
+        const tracker = [hud && !hud.el.hidden ? hud.el.querySelector('.ahud-quest') : null, els.hud.hidden ? null : els.hud.querySelector('.hud-obj')]
+            .find((el) => el && !el.hidden && el.offsetParent);
+        const v = tracker ? `${Math.round(tracker.getBoundingClientRect().bottom - stage.getBoundingClientRect().top + 6)}px` : '0px';
+        if (v !== trackerBottom) { trackerBottom = v; stage.style.setProperty('--tracker-bottom', v); }
     }
 
     let bannerTimer = null;
@@ -806,6 +825,7 @@
                 action: () => { mm.note = actLines({ type: 'equip', item: c.item }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } }));
             if (row.item) items.push({ label: `Take off ${engine.itemName(row.item)}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
+        if (id === 'journal') items = journalItems();
         if (id === 'skillbar') items = skillBarItems();
         if (id === 'web') items = skillWebItems();
         if (id === 'settings') {
@@ -825,7 +845,7 @@
             if (v.talk) items.push({ label: 'Talk to the crow', sub: v.talk.enabled ? 'Ask about this place, your quest or where you have been.' : v.talk.reason, disabled: !v.talk.enabled, action: talkCrow });
             for (const f of v.flights) items.push({ label: `${f.here ? '◆ ' : ''}${f.name}`, sub: f.why, disabled: !f.enabled, action: () => { mm.fly = f; enterList('crow', 0); } });
         }
-        if (!items || !items.length) { renderMain(); return; }          // Status and Journal are pages, not lists
+        if (!items || !items.length) { renderMain(); return; }          // Status (and a journal with nothing active) are pages, not lists
         mm.focus = 'list';
         const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
@@ -1036,7 +1056,7 @@
             page = `<div class="mm-cols"><div><h3>${slotLabel ? esc(slotLabel) : 'Gear'}</h3>${inList ? list : `<ul class="mm-plain">${MM.slotsView(engine.getEquipment()).map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</li>`).join('')}</ul>`}</div>
                 <div><h3>${hl && hl.diff ? 'If you wear it' : 'Stats'}</h3>${statsHtml(p, hl && hl.diff)}</div></div>`;
         }
-        if (tab === 'journal') page = journalHtml() || '<p class="mm-dim">No journal in this game.</p>';
+        if (tab === 'journal') page = journalHtml(inList, list) || '<p class="mm-dim">No journal in this game.</p>';
         if (tab === 'web') page = skillWebPage(inList, list);
         if (tab === 'skillbar') {
             const { bar, bench } = skillBarInfo();
@@ -1058,7 +1078,7 @@
         }
         if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
         const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'journal', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
         els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
             <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
@@ -1080,16 +1100,36 @@
         if (dir === 'right' && mm.focus === 'tabs') { const t = mmTabs[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
         return false;
     }
-    /** The engine's journal: active quests with their current objective, then what's done. */
-    function journalHtml() {
+    /** The engine's journal: active quests with their current objective (◆ = on screen), then what's done.
+     *  In its list, Enter shows or hides a quest on the tracker (the engine's track_quest; it refuses a fifth). */
+    function journalHtml(inList, list) {
         const j = engine.story ? engine.getJournal() : null;
         if (!j) return '';
         const active = j.quests.filter((q) => q.state !== 'complete');
         const done = j.quests.filter((q) => q.state === 'complete');
         const kind = (q) => (q.kind === 'main' ? '' : q.kind === 'job' ? ' <span class="j-kind">job</span>' : ' <span class="j-kind">side</span>');
-        return `<section class="journal"><h3>Journal · ${esc(j.chapter)}</h3>
-            ${active.map((q) => `<p class="j-quest"><b>${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>'}
+        const max = (ENSO.engineModules && ENSO.engineModules.story && ENSO.engineModules.story.TRACK_MAX) || 4;
+        const shown = active.filter((q) => q.tracked).length;
+        const hl = inList && menu.items[menu.index] && j.quests.find((q) => q.id === menu.items[menu.index].questId);
+        const body = inList
+            ? `${list}${hl ? `<p class="j-quest"><b>${esc(hl.title)}</b>${kind(hl)}<br>${hl.objective ? `◆ ${esc(hl.objective.text)}` : ''}${hl.summary ? `<br><i>${esc(hl.summary)}</i>` : ''}</p>` : ''}`
+            : active.map((q) => `<p class="j-quest${q.tracked ? ' tracked' : ''}"><b>${q.tracked ? '◆ ' : ''}${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>';
+        const hint = active.some((q) => q.state === 'active') ? `<p class="mm-dim">On screen: ${shown} of ${max}. ${inList ? '<kbd>Enter</kbd> shows or hides a quest.' : 'Press <kbd>Enter</kbd> to choose which quests show on screen.'}</p>` : '';
+        return `<section class="journal"><h3>Journal · ${esc(j.chapter)}</h3>${hint}
+            ${body}
             ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
+    }
+    /** One row per active quest: ◆ tracked (on screen), ◇ not. The engine's track_quest options say what's allowed. */
+    function journalItems() {
+        const j = engine.story ? engine.getJournal() : null;
+        if (!j) return [];
+        const opts = engine.getAvailableActions().actions.filter((a) => a.type === 'track_quest');
+        return opts.map((o) => {
+            const q = j.quests.find((x) => x.id === o.questId) || { title: o.questId };
+            return { label: `${o.tracked ? '◆' : '◇'} ${q.title}`, questId: o.questId, disabled: !o.enabled,
+                sub: !o.enabled && o.reason ? o.reason.message : o.tracked ? 'On screen. Enter hides it.' : 'Hidden. Enter shows it on screen.',
+                action: () => { const i = menu.index; mm.note = actLines({ type: 'track_quest', questId: o.questId, track: o.track }); enterList('journal', i); } };
+        });
     }
     function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; syncActionHudVisibility(); menu = null; muteHeldKeys(); }
 
@@ -1772,6 +1812,7 @@
         if (hud) {
             syncActionHudVisibility();
             hud.update(ENSO.actionHud.viewModel(engine, hudView(now), now), now);
+            placeNotices();
         }
     }
 
@@ -1905,6 +1946,7 @@
             enemies,
             boss: boss ? { name: boss.name, hp: boss.hp, maxHp: boss.maxHp, phase: boss.phase, phases: boss.phases } : null,
             prompt: pr && pr.kind !== 'encounter' ? { key: 'E', verb: pr.verb, name: pr.name } : null,
+            quests: trackedQuests(),
             notices: []   // reward notices show in the shared feed (notify), so they stay visible over dialogue
         };
     }
@@ -2069,7 +2111,7 @@
             const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
             const look = creator && creator.step === 'look' && menu ? menu.index : (creator ? creator.look : 0);
             if (creator && ['hairStyle','hairColor','outfit'].includes(creator.step) && menu) creator[creator.step] = menu.index;
-            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: cls, appearance: look, cosmetics: creator ? cosmeticsFromCreator() : defaultCosmetics(), marker: null, fade: 0.35 }, [], now);
+            renderer.draw({ ...view, mapId: WORLD.start.map, x: sp.x, y: sp.y, className: cls, appearance: look, cosmetics: creator ? cosmeticsFromCreator() : defaultCosmetics(), marker: null, markers: [], fade: 0.35 }, [], now);
             requestAnimationFrame(frame);
             return;
         }
