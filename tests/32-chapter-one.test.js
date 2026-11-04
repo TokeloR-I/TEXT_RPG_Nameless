@@ -1,5 +1,6 @@
 // Chapter One end to end through the real world model + engine (CH1-01..03): the mainline route, the
-// 498-XP-before-the-Warden guarantee (290 until the road to the Warden got its extra fights, 2026-11-04) for every class with ALL optional content skipped, the Warden's
+// 663-XP-before-the-Warden guarantee (290 until the road to the Warden got its extra fights, 498 until the Captain
+// made the six Shamefield favours required, both 2026-11-04) for every class with ALL optional content skipped, the Warden's
 // tragedy beats, the key and memory, Orin, Shane's quest and his exact "Suffer!" goodbye, no duplicate
 // rewards. Fights are won by forcing enemy HP to 1: this checks story and XP accounting, not balance
 // (class survival per encounter is Tally's QA, docs/design/ENSO_CH1_ENCOUNTERS_XP_AND_BALANCE.md).
@@ -8,6 +9,7 @@ const { WorldSession, validateWorld } = require('../src/world/world.js');
 const ZONE1 = require('../src/world/zone1.js');
 const STORY = require('../src/story/chapter1.js');
 const { walkTo, takeExit, inspect, contact, travel } = require('./world-helpers.js');
+const { helpLocals } = require('../tools/lib/shamefield-locals-route.js');
 
 function run(cls = 'warrior', seed = 1) {
     const g = new GameEngine({ seed });
@@ -77,13 +79,17 @@ function mainline(ctx) {
     talk(s, 'village_captain'); say(g, /Here it is/); bye(g);
     assert.strictEqual(g.questState('Q05'), 'complete');
     assert.ok(!g.player.inventory.includes('Tollway Register'), 'handed over');
+    let chose = false;
+    const settle = () => { if (g.mode === 'branch_select') { g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] }); chose = true; } };
+    const onward = (id) => { settle(); fight(g, s, id); settle(); };
+    // The Captain keeps the gate shut until the six Shamefield favours are done (Tokelo 2026-11-04).
+    const still = walkTo(s, gate.x, gate.y + 1) && s.move('up');
+    assert.deepStrictEqual([still.type, s.mapId], ['locked', 'shamefield'], 'the register alone no longer opens the gate');
+    assert.strictEqual(g.questState('Q06'), 'unseen', 'the orchard quest waits for the locals');
+    helpLocals(g, s, { say: (re) => say(g, re), bye: () => { bye(g); settle(); }, fight: onward, settle });
+    assert.strictEqual(g.questState('Q06'), 'active', 'the open gate starts the orchard quest');
     // The road to the Warden (Tokelo 2026-11-04): the orchard lookouts (they spot you across the open rows in action
     // play), the causeway gate, then the climb's rearguard, crows and ghoul. Level 3 and the path choice arrive on the way.
-    let chose = false;
-    const onward = (id) => {
-        fight(g, s, id);
-        if (g.mode === 'branch_select') { g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] }); chose = true; }
-    };
     travel(s, 'orchard');
     for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) onward(id);
     takeExit(s, 'orchard_north');
@@ -97,13 +103,13 @@ function mainline(ctx) {
     return total(g);
 }
 
-test('Chapter One: every class reaches level 4 with exactly 498 XP before the Warden, skipping all optional content', () => {
+test('Chapter One: every class reaches level 4 with exactly 663 XP before the Warden, skipping all optional content', () => {
     for (const cls of Object.keys(data.basePlayerClasses)) {
         const ctx = run(cls, 3);
         const xp = mainline(ctx);
-        assert.strictEqual(xp, 498, `${cls}: 135 quest + 207 gate + 40 strongbox-looter + 116 orchard-lookout XP`);
+        assert.strictEqual(xp, 663, `${cls}: 135 quest + 207 gate + 40 strongbox-looter + 116 orchard-lookout XP, + 105 locals quest + 60 locals-fight XP`);
         assert.strictEqual(ctx.g.player.level, 4, `${cls}: level 4 at the Warden`);
-        assert.strictEqual(ctx.g.stats.fights, 9, `${cls}: only the nine fights on the way`);
+        assert.strictEqual(ctx.g.stats.fights, 11, `${cls}: the nine fights on the way, and the mill shades and granary rats for the locals`);
         assert.strictEqual(ctx.g.mode, 'explore', `${cls}: still talking to the Warden`);
         bye(ctx.g);
         assert.strictEqual(ctx.g.mode, 'explore', `${cls}: the path was chosen on the way, so the Warden's goodbye opens nothing`);

@@ -27,6 +27,7 @@
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
 
+    const LOCALS = ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6'];   // the households Get to Know the Locals counts
     const quests = {
         // ------------------------------------------------------------- Segment A: Ashes of Home
         Q01: {
@@ -80,7 +81,8 @@
                     effects: [{ item: 'Tollway Register', key: 'item:tollway_register' }] },
                 { id: 'return', text: 'Bring the register to the Watch Captain', on: { type: 'story', id: 'register_returned' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
-            onComplete: [{ gold: 8, key: 'orchard_register' }, { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
+            // Tokelo (2026-11-04): the Captain keeps the gate shut until you've helped the locals (L01 opens it).
+            onComplete: [{ gold: 8, key: 'orchard_register' }]
         },
         // ------------------------------------------------------------- Segment D: Featherwatch
         Q06: {
@@ -160,13 +162,16 @@
         // Shamefield nobody had a reason to visit: the Kloster herb garden, the mill falls, the rye field, the church,
         // the south houses. XP and Gold here are candidates for Gauge.
         L01: {
-            title: 'Get to Know the Locals', kind: 'side', xp: 20, candidate: true,
-            summary: "The Watch Captain says Shamefield won't trust a stranger who only passes through. Five households need a hand.",
+            // Main path since Tokelo 2026-11-04: the Captain won't open the orchard gate until his villagers stop
+            // bothering him. The six favours teach farming, brewing, baking, cooking and eating along the way.
+            title: 'Get to Know the Locals', kind: 'main', xp: 20, candidate: true,
+            summary: "The Watch Captain won't open the orchard gate until you've dealt with the villagers who keep bothering him. Six households need a hand.",
             objectives: [
-                { id: 'favours', text: 'Help five Shamefield households', on: { type: 'quests', ids: ['SF1', 'SF2', 'SF3', 'SF4', 'SF5'], count: 5 } },
+                { id: 'favours', text: 'Help six Shamefield households', on: { type: 'quests', ids: LOCALS, count: LOCALS.length } },
                 { id: 'report', text: 'Tell the Watch Captain you know the locals now', on: { type: 'story', id: 'locals_reported' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
-            onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }, { item: 'Cheese', key: 'item:l01_cheese' }, { item: 'Fresh Milk', key: 'item:l01_milk' }]
+            onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }, { item: 'Cheese', key: 'item:l01_cheese' }, { item: 'Fresh Milk', key: 'item:l01_milk' },
+                { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
         },
         // Bread and Beer: the first real use of planting and crafting (cropDefinitions / recipeDefinitions in src/data.js).
         SF1: {
@@ -187,6 +192,17 @@
             // The kitchen (2026-11-02): dairy is a gift or a purchase. Oda and Merrow send you home with some.
             onComplete: [{ flag: 'bread_and_beer' }, { say: 'Oda presses a jug of milk and a crock of butter on you. "For the next loaf. Make it yourself."' },
                 { item: 'Fresh Milk', key: 'item:sf1_milk' }, { item: 'Butter', key: 'item:sf1_butter' }]
+        },
+        // A Proper Meal (Tokelo 2026-11-04: buying bread and not knowing what to do with it). Teaches the hearth and eating.
+        SF6: {
+            title: 'A Proper Meal', kind: 'side', xp: 10, candidate: true,
+            summary: "Oda caught you eating a plain Brötchen in the street and took it personally. A roll is half a meal: she wants to see you cook the other half.",
+            objectives: [
+                { id: 'hearth', text: 'Cook a Leberkäsbrötchen at the hearth on your homestead (Pork and a Brötchen)', on: { type: 'craft', id: 'cook_leberkaese' }, marker: { map: 'grounds', x: 17, y: 6 } },
+                { id: 'eat', text: 'Eat it (Esc, then Items) and feel the buff', on: { type: 'eat', id: 'Leberkäsbrötchen' }, marker: { map: 'grounds', x: 17, y: 6 }, effects: [{ flag: 'sf6_ate' }] },
+                { id: 'oda', text: 'Tell Oda you ate properly', on: { type: 'story', id: 'oda_meal' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } }
+            ],
+            onComplete: [{ item: 'Brezel', key: 'item:sf6_brezel_1' }, { item: 'Brezel', key: 'item:sf6_brezel_2' }]
         },
         SF2: {
             title: 'The Brown Hops', kind: 'side', xp: 15, candidate: true,
@@ -493,7 +509,7 @@
                 { if: { quests: { Q05: 'active' } }, node: 'gate' },
                 // Get to know the locals (L01). A run that returned the register before this quest existed gets it here.
                 { if: { quests: { Q05: 'complete', L01: 'unseen' } }, node: 'locals_offer' },
-                { if: { quests: { L01: 'active', SF1: 'complete', SF2: 'complete', SF3: 'complete', SF4: 'complete', SF5: 'complete' } }, node: 'locals_done' },
+                { if: { quests: { L01: 'active', SF1: 'complete', SF2: 'complete', SF3: 'complete', SF4: 'complete', SF5: 'complete', SF6: 'complete' } }, node: 'locals_done' },
                 { if: { quests: { L01: 'active' } }, node: 'locals_hint' },
                 { if: { flags: ['shane_watch_resolved'] }, node: 'suspicious' },
                 { node: 'default' }
@@ -510,43 +526,66 @@
                     lines: [['npc', "Is that the register? Let me see it."]],
                     choices: [{ text: 'Here it is.', effects: [{ removeItem: 'Tollway Register' }, { unflag: 'register_carried' }, { event: { type: 'story', id: 'register_returned' } }], to: 'opened' }]
                 },
+                // Tokelo (2026-11-04): a lazy Captain who makes you do his job before he opens the gate.
                 opened: {
                     lines: [
-                        ['npc', "...Every name's here. Good. The gate's open. Keep to the path, and if the Warden tells you to turn back, turn back."],
-                        ['npc', "One more thing. You've done the watch a favour, but Shamefield doesn't know you, and folk here don't trust a stranger who only passes through."],
-                        ['npc', "Five households have troubles I can't spare a constable for. Help them. Get to know the locals. Then come and tell me about it."]
+                        [null, 'He flicks through the register without really reading it, and drops it on a pile of other papers.'],
+                        ['npc', "Oh. Thanks for the ledger. Great. ...Hang on. You're actually useful, aren't you?"],
+                        ['npc', "Here's the thing. I've got half the village on my back. Pigs, hops, singing, bread, something about a bell. Go fix all that for me, and I'll open the gate. Deal?"]
                     ],
-                    effects: [{ start: 'L01' }, { available: 'SF1' }, { available: 'SF2' }, { available: 'SF3' }, { available: 'SF4' }, { available: 'SF5' }],
-                    choices: [{ text: 'Who needs help?', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
+                    choices: [
+                        { text: "Fine. I'll help them.", to: 'locals_deal' },
+                        { text: 'Just open the gate.', to: 'locals_refuse' }
+                    ]
                 },
                 locals_offer: {
                     lines: [
-                        ['npc', "You again. You did the watch a favour with that register, but Shamefield still doesn't know you, and folk here don't trust a stranger who only passes through."],
-                        ['npc', "Five households have troubles I can't spare a constable for. Help them. Get to know the locals. Then come and tell me about it."]
+                        ['npc', "You again. You did the watch a favour with that register. Now do me one: I've got half the village on my back. Pigs, hops, singing, bread, a bell."],
+                        ['npc', "Go fix all that for me, and I'll open the gate. Deal?"]
                     ],
-                    effects: [{ start: 'L01' }, { available: 'SF1' }, { available: 'SF2' }, { available: 'SF3' }, { available: 'SF4' }, { available: 'SF5' }],
+                    choices: [
+                        { text: "Fine. I'll help them.", to: 'locals_deal' },
+                        { text: 'Just open the gate.', to: 'locals_refuse' }
+                    ]
+                },
+                locals_refuse: {
+                    lines: [['npc', "And have Greta Rusk shouting at me about pigs for another week? No. Help them, then we talk."]],
+                    choices: [
+                        { text: "Fine. I'll help them.", to: 'locals_deal' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                locals_deal: {
+                    lines: [
+                        ['npc', "Cool. Cool cool cool. Six households, I'm counting. Now, if you'll excuse me, this beer isn't going to drink itself. *hic*"],
+                        [null, 'He leans back until his chair creaks, and closes his eyes.']
+                    ],
+                    effects: [{ start: 'L01' }, ...LOCALS.map((q) => ({ available: q }))],
                     choices: [{ text: 'Who needs help?', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
                 },
                 locals_who: {
                     lines: [
                         ['npc', "Oda the baker and Brother Fenric up at the Kloster are fighting about bread and beer again. Fenric's hops are dying, too, and he's blaming everyone."],
-                        ['npc', "Greta Rusk has lost her pigs. Tamsin says there's singing at the old mill after dark. And your friend Elian keeps looking at the church steps and not climbing them."]
+                        ['npc', "Greta Rusk has lost her pigs. Tamsin says there's singing at the old mill after dark. And your friend Elian keeps looking at the church steps and not climbing them."],
+                        ['npc', "Oh, and Oda says strangers in this village eat like animals. That one's your problem. *hic*"]
                     ],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 locals_hint: {
-                    lines: [['npc', "Still settling in? Bread and beer, Fenric's hops, Greta's pigs, the singing at the mill, and Elian. Five households. I'm counting."]],
+                    // A run that took the deal before A Proper Meal existed gets it offered here.
+                    effects: LOCALS.map((q) => ({ available: q })),
+                    lines: [['npc', "Gate's shut till you're done. Bread and beer, Fenric's hops, Greta's pigs, the singing at the mill, Elian, and Oda wants to watch you eat. Six. I'm counting. Mostly. *hic*"]],
                     choices: [{ text: 'Remind me who needs help.', to: 'locals_who' }, { text: 'Goodbye.', end: true }]
                 },
                 locals_done: {
                     lines: [
                         ['npc', "Oda brought me bread. Fenric brought me beer, and stayed to complain about the bread. Greta sent a sausage, which I'm choosing to take as thanks."],
-                        ['npc', "The mill's grinding again, and Elian's names are on the church door. People are saying your name in the square, and not to shame you. That's rarer than you'd think, here."]
+                        ['npc', "The mill's grinding again, Elian's names are on the church door, and Oda says you finally eat like a person. Nobody's shouted at me all week. Wonderful."]
                     ],
                     choices: [{ text: 'I know the locals now.', effects: [{ event: { type: 'story', id: 'locals_reported' } }], to: 'locals_thanks' }]
                 },
                 locals_thanks: {
-                    lines: [['npc', "Then you're one of them, as far as the watch is concerned. Mind you don't make me regret it."]],
+                    lines: [['npc', "A deal's a deal. The gate's open. Keep to the path, and if the Warden tells you to turn back, turn back. Now let me sleep."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 suspicious: {
@@ -793,6 +832,8 @@
                     lines: [['npc', "Don't touch, it's hot. Everything here is hot. Oda. If you hear a loaf crack from the square, that's mine."]],
                     choices: [
                         { text: 'The Captain says you and Fenric are at it again.', if: { quests: { SF1: 'available' } }, to: 'sf1_start' },
+                        { text: 'The Captain says you think I eat like an animal.', if: { quests: { SF6: 'available' } }, to: 'sf6_start' },
+                        { text: 'I cooked, and I ate it. Properly.', if: { quests: { SF6: 'active' }, flags: ['sf6_ate'] }, effects: [{ event: { type: 'story', id: 'oda_meal' } }], to: 'sf6_done' },
                         { text: 'Bake a rye loaf (1 Rye Flour, 1 Sourdough Starter)', say: 'May I use your oven?', if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'bake_rye_loaf' }] },
                         { text: 'Fenric brewed you this.', if: { quests: { SF1: 'active' }, items: ['Briarwell Pale'] }, effects: [{ removeItem: 'Briarwell Pale' }, { event: { type: 'story', id: 'oda_ale' } }], to: 'sf1_ale' },
                         ...cook('oven'), recipeBook('oven'), shop('oda'),
@@ -807,6 +848,19 @@
                     ],
                     effects: [{ start: 'SF1' }, { item: 'Sourdough Starter', key: 'item:sourdough_starter' }],
                     choices: [{ text: "You're on.", end: true }]
+                },
+                sf6_start: {
+                    lines: [
+                        ['npc', "I saw you. Standing in the square, chewing a plain Brötchen like a goat. A roll on its own is half a meal. You eat the other half too, or you don't eat."],
+                        ['npc', "Here: a roll, and a slice of Greta's pork. Take them to that hearth on your homestead and cook a Leberkäsbrötchen. Then eat it, sit down, and notice that you feel stronger. Then come back and thank me."],
+                        ['npc', "Any hearth recipe works the same way: carry what it needs, stand at the fire, cook. Ask the fire what it can make if you forget."]
+                    ],
+                    effects: [{ start: 'SF6' }, { item: 'Brötchen', key: 'item:sf6_roll' }, { item: 'Pork', key: 'item:sf6_pork' }],
+                    choices: [{ text: 'Yes, Oda.', end: true }]
+                },
+                sf6_done: {
+                    lines: [['npc', "There. You're standing up straighter already. Take a pretzel for the road, and stop eating bread in the street like a stray."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 sf1_ale: {
                     lines: [[null, 'Oda sniffs the cask, pours a cup, and drinks it all without stopping.'], ['npc', "Hm. Tell him it was drinkable. No. Tell him it was good. No. Tell him nothing, I'll tell him myself. Thank you, stranger. Bread and beer. We were both right, which is unbearable."]],
