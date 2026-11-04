@@ -1066,7 +1066,7 @@
         }
         if (tab === 'settings') {
             page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>Esc</kbd> pause</li>' : ''}</ul>
+                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}</ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
         if (tab === 'crow') {
@@ -1383,6 +1383,7 @@
         if (ev.repeat) return false;
         if (ev.key === 'Escape') { rtPause(); return true; }
         if (ev.key === 'i' || ev.key === 'I') { rtPause('items'); return true; }
+        if (ev.key === 'h' || ev.key === 'H') { send({ type: 'quick_heal' }); return true; }
         return false;
     }
     function rtCycleTarget(dir) {
@@ -1550,7 +1551,7 @@
                 ${RT.skillSlots(avail, v).map(slotHtml).join('')}
             </div>
             <p class="rt-hint" role="status">${esc(battle.rt.hint || '')}</p>
-            <p class="keys"><kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> attack <kbd>Tab</kbd> target <kbd>I</kbd> items <kbd>Esc</kbd> pause <kbd>L</kbd> ${battle.logOpen ? 'close log' : 'log'} <span class="rt-res">◆ ${esc(p.resource.type)}</span></p>`;
+            <p class="keys"><kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> attack <kbd>Tab</kbd> target <kbd>I</kbd> items <kbd>H</kbd> heal <kbd>Esc</kbd> pause <kbd>L</kbd> ${battle.logOpen ? 'close log' : 'log'} <span class="rt-res">◆ ${esc(p.resource.type)}</span></p>`;
     }
     function commandHtml(m) {
         const items = m ? m.items : [];
@@ -1704,6 +1705,7 @@
             hud = ENSO.actionHud.create($('world-stage'));
             hud.onSlot((i) => { press.slot = i; });
             hud.onAttack(() => { press.attack = true; });
+            hud.onHeal(quickHeal);
         }
     }
 
@@ -1717,7 +1719,17 @@
         if (slot === 'basic') { press.attack = true; return true; }
         if (slot != null) { press.slot = slot; return true; }
         if ((ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') && !fade && !flash && !feathering) { press.interact = true; return true; }
+        if (ev.code === 'KeyH' || ev.key === 'h' || ev.key === 'H') { quickHeal(); return true; }
         return false;
+    }
+
+    /** H: the engine picks and uses the best healing item (quick_heal), in a fight or out of one. */
+    function quickHeal() {
+        if (screen !== 'explore' || modal) return;
+        const r = engine.act({ type: 'quick_heal' });
+        const line = (r.events || []).find((e) => e.type === 'text' && /\+\d+ HP/.test(e.text || ''));
+        toast(r.ok ? (line ? line.text : 'Healed.') : (r.error ? r.error.message : 'Nothing to heal with.'));
+        updateHud();
     }
 
     function cycleLock(dir) {
@@ -2145,11 +2157,18 @@
         rtFrame(now);   // before drawActor: a tick that re-renders the overlay gets its sprite drawn this same frame
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
-        const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id) }));   // action enemies are sim actors
+        const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id), crop: cropOn(o) }));   // action enemies are sim actors
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
+    }
+
+    /** What's growing on a field or garden bed (the engine's plotView), so the renderer can draw it. Pens draw their own animals. */
+    function cropOn(o) {
+        if (o.kind !== 'station' || typeof engine.plotView !== 'function') return null;
+        const v = engine.plotView(o.station);
+        return v && !v.livestock && v.produces ? v : null;
     }
 
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')

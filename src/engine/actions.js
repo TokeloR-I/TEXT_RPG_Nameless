@@ -89,6 +89,7 @@
                 case 'move': this.move(DIRECTION_NAMES[a.direction] || a.direction || ''); return;
                 case 'take': this.takeItem(String(a.item || '')); return;
                 case 'use_item': this.useItem(String(a.item || '')); return;
+                case 'quick_heal': this.quickHeal(); return;
                 case 'equip': this.equipItem(String(a.item || '')); return;
                 case 'unequip': this.unequipItem(String(a.slot || '')); return;
                 case 'claim_loot': this.claimLoot(); return;
@@ -165,6 +166,7 @@
                     if (!a.item || !p.inventory.includes(a.item)) { this.refuseCombat('NO_ITEM', a.item ? `You don't have a '${a.item}'.` : 'Use what? (e.g. use bandages)'); return; }
                     this.combatUseItem(a.item);
                     return;
+                case 'quick_heal': this.quickHeal(); return;
                 case 'flee': this.doFlee(); return;
                 case 'continue': this.refuseCombat('WRONG_MODE', 'There is nothing to continue; it is your turn.'); return;
                 case 'control': this.refuseCombat('WRONG_MODE', "You aren't controlling anyone right now."); return;
@@ -198,8 +200,8 @@
         combatUseItem(item) {
             const c = this.combat;
             const p = this.player;
-            if (this.rtActive()) {   // real-time: an item shares the global cooldown, and time goes on
-                const problem = this.rtActionProblem(item, false);
+            if (this.rtActive()) {   // real-time: items skip the global cooldown (Tokelo, 2026-11-04), and time goes on
+                const problem = this.rtItemProblem(item);
                 if (problem) { this.refuseCombat(problem.code, problem.message); return; }
                 if (this.applyItem(item)) { this.rtBeginPlayerAction(); this.rtEndPlayerAction(item, false, { item: true }); }
                 return;
@@ -377,7 +379,7 @@
                 for (const item of room.items) actions.push({ type: 'take', item, enabled: true });
                 if (room.enemies.length) actions.push({ type: 'engage', enabled: true });
             }
-            actions.push(...this.itemAvailability());
+            actions.push(...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean));
             if (this.pendingLoot().length) {
                 const reason = this.lootCreditBlock();
                 actions.push({ type: 'claim_loot', enabled: !reason, ...(reason ? { reason } : {}) });
@@ -392,7 +394,7 @@
             return items.map((item) => {
                 const def = this.itemDef(item);
                 const opt = { type: 'use_item', item, count: p.inventory.filter((i) => i === item).length, enabled: true };
-                const timing = this.rtActionProblem(item, false);   // real-time: same check, same order as combatUseItem()
+                const timing = this.rtItemProblem(item);   // real-time: same check, same order as combatUseItem()
                 if (timing) { opt.enabled = false; opt.reason = { code: timing.code, message: timing.message }; if (timing.remainingMs != null) opt.readyInMs = timing.remainingMs; }
                 else if (this.isFood(def)) { const b = this.foodBlock(item); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
@@ -401,13 +403,49 @@
             });
         }
 
+        /**
+         * Quick heal (Tokelo, 2026-11-04: "we are missing a button for quick heal"): one key uses the best healing
+         * item you carry. Pure. A potion or bandage first: the smallest one that heals all you've lost, else the
+         * biggest. With none of those, the dish that heals most and can be eaten now. Returns { item } or { reason }.
+         */
+        quickHealChoice() {
+            const p = this.player;
+            if (!p) return { reason: { code: 'NO_HEALING', message: 'Nothing to heal with.' } };
+            if (p.hp >= p.maxHp) return { reason: { code: 'FULL_HEALTH', message: "You're already at full health." } };
+            const timing = this.rtItemProblem ? this.rtItemProblem('quick heal') : null;   // a stun stops it, as it stops every item
+            if (timing) return { reason: { code: timing.code, message: timing.message } };
+            const lost = p.maxHp - p.hp;
+            const owned = [...new Set(p.inventory)].map((item) => ({ item, def: this.itemDef(item) })).filter((x) => x.def);
+            const heals = owned.filter((x) => x.def.use === 'heal' && x.def.value > 0).sort((a, b) => a.def.value - b.def.value);
+            if (heals.length) return { item: (heals.find((x) => x.def.value >= lost) || heals[heals.length - 1]).item };
+            const food = owned.filter((x) => this.isFood(x.def) && x.def.heal > 0 && !this.foodBlock(x.item)).sort((a, b) => b.def.heal - a.def.heal);
+            if (food.length) return { item: food[0].item };
+            return { reason: { code: 'NO_HEALING', message: 'You have nothing to heal with. Buy bandages or potions, or cook something.' } };
+        }
+
+        /** The quick-heal option, listed only while you carry something that heals (null otherwise). */
+        quickHealAvailability() {
+            const carries = this.player && this.player.inventory.some((i) => { const d = this.itemDef(i); return d && ((d.use === 'heal' && d.value > 0) || (this.isFood(d) && d.heal > 0)); });
+            if (!carries) return null;
+            const c = this.quickHealChoice();
+            return c.item ? { type: 'quick_heal', item: c.item, enabled: true } : { type: 'quick_heal', enabled: false, reason: c.reason };
+        }
+
+        /** Use whatever quickHealChoice() picks, through the normal item path. */
+        quickHeal() {
+            const c = this.quickHealChoice();
+            const refuse = this.mode === 'combat' ? this.refuseCombat.bind(this) : this.refuse.bind(this);
+            if (!c.item) { refuse(c.reason.code, c.reason.message); return; }
+            if (this.mode === 'combat') this.combatUseItem(c.item); else this.applyItem(c.item);
+        }
+
         combatAvailability() {
             const p = this.player;
             const basic = this.basicAttackName();
             const attack = this.skillAvailability(basic, true);
             attack.type = 'attack';
             const skills = p.skills.map((name) => this.skillAvailability(name, false));
-            return [attack, ...skills, ...this.itemAvailability(), { type: 'flee', enabled: true }];
+            return [attack, ...skills, ...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), { type: 'flee', enabled: true }];
         }
 
         /** One skill's option: same checks, same order and same messages as useSkill(). */

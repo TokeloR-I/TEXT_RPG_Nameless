@@ -272,16 +272,70 @@
                 this.refuse('CANNOT_PLANT', 'This seed or plot is unavailable.'); return false;
             }
             p.inventory.splice(p.inventory.indexOf(seed), 1);
+            const grow = this.cropGrowMs(rule);
+            if (grow != null) {   // the world: it ripens on the calm clock (farmingRules)
+                p.homestead.plots[plotId] = { seed, remaining: 1, plantedAt: this.actionCalm().now, readyAt: this.actionCalm().now + grow, growMs: grow, tends: 0 };
+                this.say(`${rule.plantVerb || 'Planted'} ${seed} in the ${this.plotName(plotId)}. Ready in ${Math.round(grow / 1000)} s; water and weed it to hurry it along.`);
+                this.storyEvent({ type: 'plant', id: seed });
+                return true;
+            }
             p.homestead.plots[plotId] = { seed, remaining: rule.actionsToGrow };
             this.say(`${rule.plantVerb || 'Planted'} ${seed} in the ${this.plotName(plotId)}.`);
             this.storyEvent({ type: 'plant', id: seed });   // quests that teach planting (no-op without a story)
             return true;
         }
 
-        /** An explicit tending action advances one plot, never wall-clock timers. */
+        // -----------------------------------------------------------------
+        // Crops in the world grow on the calm clock (Tokelo, 2026-11-04): farmingRules.growSeconds to ripen, and
+        // watering and weeding takes tendCutsSeconds off, tendsPerCrop times. The clock is the action sim's calm
+        // clock (src/engine/action.js), so the engine still never reads a timer. Without it (the text game, the
+        // turn-based world) and for livestock, a crop counts tendings (actionsToGrow) as before.
+        // -----------------------------------------------------------------
+        farmRules() { return this.data.farmingRules || {}; }
+
+        /** ms this crop takes to ripen on the calm clock, or null when it counts tendings instead (pure). */
+        cropGrowMs(rule) {
+            if (!rule || Array.isArray(rule.feed) || this.combatMode !== 'action' || !this.world || !this.actionCalm) return null;
+            const secs = Number(rule.growSeconds ?? this.farmRules().growSeconds);
+            return secs > 0 ? Math.round(secs * 1000) : null;
+        }
+
+        /** Pure. How a plot is doing: { seed, produces, timed, ready, progress 0..1, leftMs, canTend } or null if empty. */
+        plotView(plotId) {
+            const plot = this.player && this.player.homestead && this.player.homestead.plots && this.player.homestead.plots[plotId];
+            if (!plot) return null;
+            const rule = (this.data.cropDefinitions || {})[plot.seed] || {};
+            const base = { seed: plot.seed, produces: rule.produces || null, livestock: Array.isArray(rule.feed) };
+            if (plot.readyAt != null) {
+                const now = (this.actionCalm() || { now: 0 }).now;
+                const leftMs = Math.max(0, plot.readyAt - now);
+                const total = Math.max(1, plot.readyAt - plot.plantedAt);
+                const limit = this.farmRules().tendsPerCrop ?? 1;
+                return { ...base, timed: true, ready: leftMs === 0, leftMs, progress: Math.min(1, 1 - leftMs / total),
+                    canTend: leftMs > 0 && (plot.tends || 0) < limit, tended: (plot.tends || 0) > 0 };
+            }
+            const steps = Math.max(1, rule.actionsToGrow || 1);
+            return { ...base, timed: false, ready: plot.remaining <= 0, leftMs: null, progress: Math.min(1, 1 - plot.remaining / steps),
+                canTend: plot.remaining > 0, tended: false };
+        }
+
+        /** An explicit tending action. A timed crop ripens sooner (once); a counted one advances one step. */
         tendPlot(plotId) {
             const plot = this.player.homestead?.plots?.[plotId];
             if (!plot) { this.refuse('EMPTY_PLOT', 'Nothing to tend.'); return false; }
+            if (plot.readyAt != null) {
+                const v = this.plotView(plotId);
+                if (v.ready) { this.refuse('CROP_READY', `The ${this.plotName(plotId)} is ripe. Harvest it.`); return false; }
+                if (!v.canTend) { this.refuse('ALREADY_TENDED', `You've already watered and weeded the ${this.plotName(plotId)}. Now it just needs time (${Math.ceil(v.leftMs / 1000)} s).`); return false; }
+                const cut = Math.round((Number(this.farmRules().tendCutsSeconds) || 0) * 1000);
+                const now = this.actionCalm().now;
+                plot.readyAt = Math.max(now, plot.readyAt - cut);
+                plot.tends = (plot.tends || 0) + 1;
+                const left = Math.ceil((plot.readyAt - now) / 1000);
+                this.say(left > 0 ? `You water and weed the ${this.plotName(plotId)}. It will be ready in ${left} s.` : `You water and weed the ${this.plotName(plotId)}. It is ready to harvest.`);
+                this.storyEvent({ type: 'tend', id: plotId });
+                return true;
+            }
             // Livestock eats: a rule with `feed` takes one of those items per tending (the first one you carry).
             const rule = (this.data.cropDefinitions || {})[plot.seed] || {};
             if (Array.isArray(rule.feed) && plot.remaining > 0) {
@@ -299,8 +353,9 @@
         harvestPlot(plotId) {
             const plot = this.player.homestead?.plots?.[plotId];
             const rule = plot && (this.data.cropDefinitions || {})[plot.seed];
-            if (!rule || plot.remaining > 0) {
-                this.refuse('CROP_NOT_READY', 'The crop is not ready.'); return false;
+            const view = plot && this.plotView(plotId);
+            if (!rule || !view.ready) {
+                this.refuse('CROP_NOT_READY', view && view.timed ? `The crop is not ready (${Math.ceil(view.leftMs / 1000)} s to go).` : 'The crop is not ready.'); return false;
             }
             const n = Number.isSafeInteger(rule.yield) && rule.yield > 0 ? rule.yield : 1;
             for (let i = 0; i < n; i++) this.player.inventory.push(rule.produces);

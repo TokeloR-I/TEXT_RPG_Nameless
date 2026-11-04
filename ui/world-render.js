@@ -580,6 +580,93 @@
         constable(g, px, py, t) { person(g, px, py, t, { cloak: '#2e3e5a', helm: '#8a8a92', belt: '#c8a050' }); rect(g, px + 25, py + 11, 2, 12, '#6a5440'); },
         warden(g, px, py, t) { person(g, px, py, t, { cloak: '#2a2a32', helm: '#3a3a42', prop: 'halberd', crows: true }); rect(g, px + 13, py + 5, 2, 2, '#e03030'); rect(g, px + 17, py + 5, 2, 2, '#e03030'); }
     });
+    // ---------------------------------------------------------------------
+    // Crops on a garden bed or field (Tokelo, 2026-11-04: "some grown version of what was planted so the player
+    // will know it's ready"). Four stages from the engine's plotView(): seeded, sprout, young, ripe. All code-drawn,
+    // laid out on the garden_bed sprite's three furrows (32 px painter tile). A ripe crop glints.
+    // ---------------------------------------------------------------------
+    /** 0 seeded, 1 sprout, 2 young, 3 ripe (pure). */
+    function cropStage(crop) {
+        if (!crop) return -1;
+        if (crop.ready) return 3;
+        const p = crop.progress || 0;
+        return p < 0.15 ? 0 : p < 0.5 ? 1 : 2;
+    }
+    const CROP_SPOTS = [[8, 13], [16, 13], [24, 13], [8, 18], [16, 18], [24, 18], [8, 23], [16, 23], [24, 23]];
+    const LEAF = ['#3f7a34', '#5a9a42', '#7ab84e'];
+    const CROP_ART = {
+        // golden stalks with fat heads
+        Wheat(g, x, y, ripe, sway) {
+            const stalk = ripe ? '#b08a34' : LEAF[0], head = ripe ? '#e8c45a' : LEAF[1];
+            for (const dx of [-2, 0, 2]) {
+                const h = ripe ? 9 : 6, tip = Math.round(sway * (h / 9));
+                rect(g, x + dx, y - h, 1, h, stalk);
+                rect(g, x + dx - 1 + tip, y - h - (ripe ? 3 : 2), 2, ripe ? 3 : 2, head);
+                if (ripe) rect(g, x + dx + tip, y - h - 4, 1, 1, '#f8e08a');
+            }
+        },
+        // paler, with long awns bending over
+        Barley(g, x, y, ripe, sway) {
+            const stalk = ripe ? '#a89048' : LEAF[0], head = ripe ? '#d8c27a' : LEAF[1];
+            for (const dx of [-2, 0, 2]) {
+                const h = ripe ? 8 : 6, tip = Math.round(sway * 0.8);
+                rect(g, x + dx, y - h, 1, h, stalk);
+                rect(g, x + dx + tip, y - h - 2, 2, 3, head);
+                if (ripe) { rect(g, x + dx + tip + 2, y - h - 3, 1, 1, '#eedc9a'); rect(g, x + dx + tip + 3, y - h - 4, 1, 1, '#eedc9a'); }
+            }
+        },
+        // a leafy bush; ripe: white flowers and a potato showing at the soil
+        Potato(g, x, y, ripe) {
+            circle(g, x, y - 4, ripe ? 4 : 3, LEAF[0]); circle(g, x - 2, y - 5, ripe ? 2.5 : 2, LEAF[1]); circle(g, x + 2, y - 6, 2, LEAF[2]);
+            if (ripe) {
+                rect(g, x - 2, y - 9, 1, 1, '#f4f0e0'); rect(g, x + 2, y - 8, 1, 1, '#d8c8f0'); rect(g, x, y - 10, 1, 1, '#f4f0e0');
+                rect(g, x + 3, y - 1, 3, 2, '#a87a48'); rect(g, x + 3, y - 1, 3, 1, '#c89a60');
+            }
+        },
+        // a rosette that closes into a pale round head
+        Cabbage(g, x, y, ripe) {
+            if (!ripe) { circle(g, x - 2, y - 2, 2, LEAF[0]); circle(g, x + 2, y - 2, 2, LEAF[0]); circle(g, x, y - 3, 2, LEAF[1]); return; }
+            circle(g, x - 3, y - 2, 2.5, LEAF[0]); circle(g, x + 3, y - 2, 2.5, LEAF[0]);
+            circle(g, x, y - 3, 3.5, '#a8d482'); circle(g, x - 1, y - 4, 1.8, '#c8e8a2');
+            rect(g, x, y - 6, 1, 4, '#88b862');
+        },
+        // thin shoots; ripe: they flop over and the bulb shows
+        Onion(g, x, y, ripe) {
+            if (!ripe) { for (const dx of [-1, 1]) rect(g, x + dx, y - 7, 1, 7, LEAF[1]); return; }
+            rect(g, x - 2, y - 3, 4, 3, '#d8b070'); rect(g, x - 1, y - 4, 2, 1, '#e8c890'); rect(g, x - 2, y - 1, 4, 1, '#a88048');
+            rect(g, x - 1, y - 8, 1, 4, '#8aa84a'); rect(g, x, y - 6, 3, 1, '#a8b85a'); rect(g, x + 3, y - 5, 2, 1, '#a8b85a');
+        },
+        // serrated fan leaves; ripe: taller, darker, with amber buds
+        'Cannabis Leaf'(g, x, y, ripe) {
+            const h = ripe ? 10 : 6, c = ripe ? '#2f6a2a' : LEAF[1];
+            rect(g, x, y - h, 1, h, '#3a5a2a');
+            for (const [dx, dy] of [[-3, -1], [3, -1], [-2, -3], [2, -3], [0, -4]]) {
+                rect(g, x + Math.min(0, dx), y - Math.round(h / 2) + dy, Math.abs(dx) || 1, 1, c);
+                if (ripe) rect(g, x + dx, y - h + 2 + dy, 1, 1, c);
+            }
+            if (ripe) { rect(g, x - 1, y - h - 1, 3, 2, '#c89a4a'); rect(g, x - 3, y - h + 3, 2, 1, '#c89a4a'); rect(g, x + 2, y - h + 3, 2, 1, '#c89a4a'); }
+        }
+    };
+    /** Draw the crop growing on a plot whose sprite sits at (px, py). `crop` is the engine's plotView(). */
+    function drawCrop(g, px, py, crop, t) {
+        const stage = cropStage(crop);
+        if (stage < 0) return;
+        const art = CROP_ART[crop.produces];
+        CROP_SPOTS.forEach(([sx, sy], i) => {
+            const x = px + sx, y = py + sy;
+            if (stage === 0) { rect(g, x - 2, y - 1, 4, 1, '#3a281c'); rect(g, x - 1, y - 2, 2, 1, '#4a3424'); return; }   // seeded mounds
+            if (stage === 1) { rect(g, x, y - 3, 1, 3, LEAF[1]); rect(g, x - 1, y - 3, 1, 1, LEAF[2]); rect(g, x + 1, y - 4, 1, 1, LEAF[2]); return; }   // sprouts
+            const sway = Math.sin((t || 0) / 700 + i * 1.3) * 1.2;
+            if (art) art(g, x, y, stage === 3, sway);
+            else { rect(g, x, y - 5, 1, 5, LEAF[0]); circle(g, x, y - 6, 2, stage === 3 ? '#d8b04a' : LEAF[1]); }
+        });
+        if (stage === 3) {                                                     // ripe: a slow gold glint over the bed
+            const a = 0.45 + 0.4 * Math.sin((t || 0) / 300);
+            g.fillStyle = `rgba(255, 230, 140, ${a})`;
+            g.fillRect(px + 27, py + 3, 1, 5); g.fillRect(px + 25, py + 5, 5, 1);
+        }
+    }
+
     // Which creature to draw for an enemy key (battle cards) and for an encounter sprite (map).
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
@@ -615,7 +702,7 @@
         garden_bed(g, px, py) {
             rect(g, px + 3, py + 8, 26, 18, '#5a4030'); rect(g, px + 3, py + 8, 26, 2, '#7a5a40'); rect(g, px + 3, py + 24, 26, 2, '#3a281e');
             for (const y of [12, 17, 22]) rect(g, px + 5, py + y, 22, 1, '#3e2a1e');
-            for (const [x, y] of [[8, 11], [15, 16], [22, 11], [11, 21], [20, 21]]) { rect(g, px + x, py + y - 2, 1, 2, '#6a9a4a'); rect(g, px + x + 1, py + y - 3, 1, 1, '#8aba5a'); }
+            // No baked-in sprouts: what grows here is drawn from the plot itself (drawCrop), so an empty bed looks empty.
         },
         pig(g, px, py, T, t) {
             const b = Math.round(Math.sin((t || 0) / 300 + px) * 0.6);
@@ -890,6 +977,7 @@
                     enemyArt.draw(g, enemyKey, { facing: 'S', state: 'idle', now: time });
                     g.restore();
                 } else if (o.sprite && sprites[o.sprite]) sprites[o.sprite](g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, PT, time);
+                if (o.crop) drawCrop(g, Math.floor(o.x / k) * PT, Math.floor(o.y / k) * PT, o.crop, time);   // what's growing on a plot
                 if (!o.seen && o.kind !== 'encounter' && o.kind !== 'npc') {              // a faint glint marks things worth a look
                     const a = 0.35 + 0.35 * Math.sin(time / 350 + o.x * 3 + o.y);
                     g.fillStyle = `rgba(255, 244, 200, ${a})`;
@@ -1082,6 +1170,6 @@
         g.restore();
     }
 
-    ENSO.worldRender = { create, drawCreature, drawOrder, particlesAt, OVERHANGS, PARTICLES, TILE_LIGHTS };
+    ENSO.worldRender = { create, drawCreature, drawOrder, particlesAt, OVERHANGS, PARTICLES, TILE_LIGHTS, cropStage, drawCrop, CROP_ART };
     if (typeof module !== 'undefined' && module.exports) module.exports = ENSO.worldRender;
 })(typeof window !== 'undefined' ? window : globalThis);

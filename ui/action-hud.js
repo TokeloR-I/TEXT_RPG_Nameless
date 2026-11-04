@@ -17,7 +17,7 @@
  * Nothing here decides rules: castability and refusal reasons come from getAvailableActions(), every
  * timer from getRealtimeState(), positions and stamina from the sim.
  *
- * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5.
+ * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5, H = quick heal.
  * slotForKey(ev) gives the same mapping to the input code, so the HUD's key hints never disagree.
  * ========================================================================= */
 (function (global) {
@@ -107,6 +107,16 @@
      * getAvailableActions(), trackedObjective() are used when present. `simView` may be null.
      * `now` is the UI clock (ms), used only for notice timing.
      */
+    /** The quick-heal cell (H): the engine's quick_heal option, in and out of a fight. Hidden with nothing that heals. */
+    const HEAL_KEY = 'H';
+    function healCell(avail, p) {
+        const o = avail && (avail.actions || []).find((a) => a.type === 'quick_heal');
+        if (!o) return null;
+        const count = o.item ? (p.inventory || []).filter((i) => i === o.item).length : 0;
+        return { enabled: !!o.enabled, item: o.item || null, count,
+            title: o.enabled ? `${HEAL_KEY} · Quick heal: ${o.item}${count > 1 ? ` (${count})` : ''}` : `${HEAL_KEY} · Quick heal: ${(o.reason && o.reason.message) || 'not now'}` };
+    }
+
     function viewModel(engine, simView, now = 0) {
         const st = engine.getState();
         const p = st.player || {};
@@ -193,6 +203,7 @@
             },
             stamina,
             dodgeReadyInMs: num(sim.dodgeReadyInMs) ? sim.dodgeReadyInMs : 0,
+            heal: healCell(avail, p),
             guarding: !!sim.guarding,
             statuses: statusChips(p.statusEffects, defs, fightNow),
             basic,
@@ -324,6 +335,12 @@
         dodge.setAttribute('title', 'Space · Dodge');
         h('span', 'glyph', dodge, '»'); const dodgeSh = h('span', 'shutter', dodge); h('span', 'key', dodge, 'SPC');
         let dodgeTotal = 0;
+        // Quick heal (Tokelo, 2026-11-04): H or a click uses the best healing item you carry.
+        const healEl = h('div', 'ahud-slot dodge heal', barEl);
+        healEl.setAttribute('role', 'button');
+        h('span', 'glyph', healEl, '✚'); const healN = h('span', 'secs', healEl); h('span', 'key', healEl, HEAL_KEY);
+        const healFns = [];
+        healEl.addEventListener('pointerdown', (e) => { stop(e); healFns.forEach((f) => f()); });
 
         root.appendChild(box);
         if (opts.className) box.classList.add(opts.className);
@@ -447,6 +464,12 @@
             height(dodgeSh, dodgeTotal ? qpct(m.dodgeReadyInMs / dodgeTotal, 14) : '0%');
             cls(dodge, 'is-cooldown', m.dodgeReadyInMs > 0); cls(dodge, 'is-ready', !(m.dodgeReadyInMs > 0));
             cls(dodge, 'is-nores', !!(m.stamina && m.stamina.cur < m.stamina.max * 0.2));
+            show(healEl, !!m.heal);
+            if (m.heal) {
+                cls(healEl, 'is-ready', m.heal.enabled); cls(healEl, 'is-disabled', !m.heal.enabled);
+                attr(healEl, 'title', m.heal.title); attr(healEl, 'aria-label', m.heal.title);
+                text(healN, m.heal.count > 1 ? `×${m.heal.count}` : '');
+            }
             // a refusal that blocks the whole bar (stunned, silenced…) is said once, above it
             show(note, !!m.barNote); text(note, m.barNote ? `✖ ${m.barNote}` : '');
             // prompt
@@ -488,11 +511,12 @@
             update,
             onSlot(fn) { if (typeof fn === 'function') slotFns.push(fn); },
             onAttack(fn) { if (typeof fn === 'function') attackFns.push(fn); },
-            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; chipEls.clear(); noticeEls.clear(); }
+            onHeal(fn) { if (typeof fn === 'function') healFns.push(fn); },
+            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; healFns.length = 0; chipEls.clear(); noticeEls.clear(); }
         };
     }
 
-    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, SLOT_KEYS, BASIC_KEY, NOTICE_MS };
+    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, healCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, NOTICE_MS };
     ENSO.actionHud = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

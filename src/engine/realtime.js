@@ -417,6 +417,7 @@
                     if (!a.item || !this.player.inventory.includes(a.item)) { this.refuseCombat('NO_ITEM', a.item ? `You don't have a '${a.item}'.` : 'Use what? (e.g. use bandages)'); return; }
                     this.combatUseItem(a.item);
                     return;
+                case 'quick_heal': this.quickHeal(); return;
                 case 'flee':
                     if (c.action) { this.refuseCombat('WRONG_MODE', 'Run! Out of their reach, they give up the chase.'); return; }   // combat v3: you flee by moving
                     this.doFlee(); return;
@@ -450,6 +451,16 @@
             return null;
         }
 
+        /**
+         * Why this item can't be used in a real-time fight right now, or null. Items skip the 1 s global cooldown and
+         * don't start it (Tokelo, 2026-11-04: "which live action game forces you to wait for healing?"), so dishes
+         * stack one after another and a potion is there when you need it. A stun still stops everything.
+         */
+        rtItemProblem(item) {
+            const problem = this.rtActionProblem(item, false);
+            return problem && problem.code === 'GLOBAL_COOLDOWN' ? null : problem;
+        }
+
         /** The player's action is one opportunity (T-0 hooks), like an enemy's. useSkill() / combatUseItem() call these. */
         rtBeginPlayerAction() {
             this.combat.rt.actorId = this.player.id;
@@ -459,7 +470,7 @@
         rtEndPlayerAction(name, isBasic, { item = false } = {}) {
             if (!this.rtActive()) return;   // that blow ended the fight
             this.endOpportunity(this.player);
-            if (item) this.rtStartGcd(); else this.rtStartCooldowns(name, isBasic);
+            if (!item) this.rtStartCooldowns(name, isBasic);   // items neither wait on nor start the global cooldown
             this.checkBattleEnd();
         }
 

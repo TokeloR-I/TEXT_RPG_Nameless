@@ -199,7 +199,7 @@ test('Homestead: dig a field, grow Shane\'s cannabis on your own lot only, and b
     g.player.homestead.built.briarwell_bed = true;
     assert.strictEqual(g.act({ type: 'plant', plotId: 'briarwell_bed', seed: 'Cannabis Seed' }).ok, false, 'not in the cloister garden');
     assert.ok(g.act({ type: 'plant', plotId: 'homestead_field_west', seed: 'Cannabis Seed' }).ok);
-    for (let i = 0; i < 3; i++) g.act({ type: 'tend', plotId: 'homestead_field_west' });
+    calm(g, data.farmingRules.growSeconds * 1000);
     assert.ok(g.act({ type: 'harvest', plotId: 'homestead_field_west' }).ok);
     assert.strictEqual(count(g, 'Cannabis Leaf'), 3);
     give(g, 'Flour'); give(g, 'Egg'); give(g, 'Butter');
@@ -253,7 +253,9 @@ test('Homestead in the world: hearth and field stations run the same rules throu
     give(g, 'Seed Potato');
     inspect(s, 'grounds_field_east');
     say(g, /Plant the Seed Potato/);
-    say(g, /Water and weed/); say(g, /Water and weed/);
+    say(g, /Water and weed/);
+    assert.ok(!has(g, /Water and weed/) && has(g, /Check on it/), 'watered and weeded once is all it takes');
+    calm(g, (data.farmingRules.growSeconds - data.farmingRules.tendCutsSeconds) * 1000);
     say(g, /Harvest/);
     assert.strictEqual(count(g, 'Potato'), 3);
     g.act({ type: 'dialogue_leave' });
@@ -263,6 +265,113 @@ test('Homestead in the world: hearth and field stations run the same rules throu
     say(g, /Cook 2 Kartoffelsalat/);
     assert.strictEqual(count(g, 'Kartoffelsalat'), 2);
     say(g, /What can I make here/);
+});
+
+test('Eating and healing in a fight (Tokelo, 2026-11-04): no waiting; items skip the 1 s recovery and never start it', () => {
+    const g = new GameEngine({ seed: 4, combatMode: 'realtime' });
+    g.start(); g.input('warrior'); g.input('engage');
+    g.player.hp = g.player.maxHp = 99999;
+    assert.ok(g.combat && g.combat.rt, 'a real-time fight');
+    give(g, 'Schnitzel'); give(g, 'Bratwurst'); give(g, 'Brezel'); give(g, 'Bandages', 2);
+    g.player.hp -= 500;
+    assert.ok(g.act({ type: 'skill', skillId: 'Guard' }).ok, 'a skill starts the global cooldown');
+    const opt = (item) => g.getAvailableActions().actions.find((o) => o.type === 'use_item' && o.item === item);
+    assert.ok(opt('Schnitzel').enabled && opt('Bandages').enabled, 'items are not held up by it');
+    for (const dish of ['Schnitzel', 'Bratwurst', 'Brezel']) assert.ok(eat(g, dish).ok, `${dish} straight after the last`);
+    assert.strictEqual(['Schnitzel', 'Bratwurst', 'Brezel'].filter((d) => g.findStatus(g.player, d)).length, 3, 'three meal buffs up at once');
+    assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok);
+    assert.ok(g.act({ type: 'use_item', item: 'Bandages' }).ok, 'bandage after bandage');
+});
+
+test('Quick heal (Tokelo, 2026-11-04): one key uses the best healing item; availability and act() agree', () => {
+    const g = new GameEngine({ seed: 5, combatMode: 'realtime' });
+    g.start(); g.input('warrior'); g.input('engage');
+    const qh = () => g.getAvailableActions().actions.find((o) => o.type === 'quick_heal');
+    assert.strictEqual(qh(), undefined, 'not listed while you carry nothing that heals');
+    const potions = Object.entries(items).filter(([, d]) => d.use === 'heal' && d.value > 0).sort((a, b) => a[1].value - b[1].value);
+    const [small, big] = [potions[0], potions[potions.length - 1]];
+    assert.ok(small[1].value < big[1].value, 'two sizes of healing item to choose between');
+    give(g, small[0]); give(g, big[0]); give(g, 'Schnitzel');
+    g.player.hp = g.player.maxHp;
+    assert.strictEqual(qh().reason.code, 'FULL_HEALTH');
+    assert.strictEqual(g.act({ type: 'quick_heal' }).error.code, 'FULL_HEALTH');
+    g.player.hp = g.player.maxHp - small[1].value;
+    assert.strictEqual(qh().item, small[0], 'the smallest that heals all you lost');
+    assert.ok(g.act({ type: 'quick_heal' }).ok);
+    assert.strictEqual(g.player.hp, g.player.maxHp);
+    assert.ok(!g.player.inventory.includes(small[0]));
+    g.player.hp = 1;
+    assert.strictEqual(qh().item, big[0], 'else the biggest');
+    g.act({ type: 'quick_heal' });
+    g.player.hp = 1;
+    assert.strictEqual(qh().item, 'Schnitzel', 'no potions left: the dish that heals most');
+    assert.ok(g.act({ type: 'quick_heal' }).ok);
+    assert.ok(g.findStatus(g.player, 'Schnitzel'), 'eaten, buff and all');
+    // Out of a fight, and in the text game, too.
+    const t = new GameEngine({ seed: 5 }); t.start(); t.input('warrior');
+    give(t, 'Bandages'); t.player.hp -= 5;
+    t.input('qh');
+    assert.ok(!t.player.inventory.includes('Bandages'), 'qh in the text game');
+});
+
+test('Farming (Tokelo, 2026-11-04): a crop takes 120 s to ripen; watering and weeding takes 60 s off, once', () => {
+    const { g } = world();
+    assert.strictEqual(data.farmingRules.growSeconds, 120);
+    assert.strictEqual(data.farmingRules.tendCutsSeconds, 60);
+    g.act({ type: 'build', upgradeId: 'homestead_field_west' });
+    g.act({ type: 'build', upgradeId: 'homestead_field_east' });
+    give(g, 'Wheat Seed', 2);
+    // Left alone: 120 s, and not a moment sooner.
+    assert.ok(g.act({ type: 'plant', plotId: 'homestead_field_west', seed: 'Wheat Seed' }).ok);
+    assert.strictEqual(g.plotState('homestead_field_west'), 'growing');
+    calm(g, 119000);
+    const early = g.act({ type: 'harvest', plotId: 'homestead_field_west' });
+    assert.strictEqual(early.error.code, 'CROP_NOT_READY');
+    assert.match(early.error.message, /1 s to go/);
+    calm(g, 1000);
+    assert.strictEqual(g.plotState('homestead_field_west'), 'ready');
+    assert.ok(g.act({ type: 'harvest', plotId: 'homestead_field_west' }).ok);
+    assert.strictEqual(count(g, 'Wheat'), 2);
+    // Watered and weeded: 60 s. A second watering changes nothing and says how long is left.
+    g.act({ type: 'plant', plotId: 'homestead_field_east', seed: 'Wheat Seed' });
+    calm(g, 10000);
+    assert.ok(g.act({ type: 'tend', plotId: 'homestead_field_east' }).ok);
+    assert.strictEqual(g.plotView('homestead_field_east').leftMs, 50000);
+    assert.strictEqual(g.plotState('homestead_field_east'), 'tended');
+    const again = g.act({ type: 'tend', plotId: 'homestead_field_east' });
+    assert.strictEqual(again.error.code, 'ALREADY_TENDED');
+    assert.match(again.error.message, /50 s/);
+    assert.strictEqual(g.plotView('homestead_field_east').leftMs, 50000, 'only once');
+    calm(g, 50000);
+    assert.ok(g.plotView('homestead_field_east').ready);
+    assert.ok(g.act({ type: 'harvest', plotId: 'homestead_field_east' }).ok);
+});
+
+test('Farming: growth stages for the field art, saved with the run; livestock and the text game still count feedings', () => {
+    const { g } = world();
+    g.act({ type: 'build', upgradeId: 'homestead_field_west' });
+    give(g, 'Cabbage Seed');
+    g.act({ type: 'plant', plotId: 'homestead_field_west', seed: 'Cabbage Seed' });
+    calm(g, 60000);
+    const v = g.plotView('homestead_field_west');
+    assert.strictEqual(v.produces, 'Cabbage');
+    assert.ok(Math.abs(v.progress - 0.5) < 0.01 && !v.ready);
+    const back = GameEngine.fromSave(g.serialize(), { combatMode: 'action' });
+    assert.strictEqual(back.plotView('homestead_field_west').leftMs, 60000, 'the clock and the plot come back from a save');
+    // A hen is fed, not timed.
+    g.player.homestead.built.homestead_coop = true;
+    give(g, 'Hen'); give(g, 'Wheat', 2);
+    g.act({ type: 'plant', plotId: 'homestead_coop', seed: 'Hen' });
+    assert.strictEqual(g.plotView('homestead_coop').timed, false);
+    // The text game (no world clock) counts tendings as before.
+    const t = new GameEngine({ seed: 3 });
+    t.start(); t.input('warrior');
+    t.player.homestead = { built: { homestead_field_west: true }, plots: {} };
+    t.player.inventory.push('Onion Set');
+    t.act({ type: 'plant', plotId: 'homestead_field_west', seed: 'Onion Set' });
+    assert.strictEqual(t.plotView('homestead_field_west').timed, false);
+    t.act({ type: 'tend', plotId: 'homestead_field_west' }); t.act({ type: 'tend', plotId: 'homestead_field_west' });
+    assert.ok(t.act({ type: 'harvest', plotId: 'homestead_field_west' }).ok);
 });
 
 test('Foraging: mushrooms come off the map and grow back on the calm clock', () => {

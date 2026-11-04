@@ -178,7 +178,7 @@
                 { id: 'hops', text: 'Pick wild hops by the mill falls', on: { type: 'pickup', id: 'village_wild_hops' }, marker: { map: 'shamefield', x: 3, y: 11 } },
                 { id: 'brew', text: 'Brew a cask of Briarwell Pale with Brother Fenric', on: { type: 'craft', id: 'brew_briarwell_pale' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
                 { id: 'rye', text: 'Cut a sheaf of rye from the field behind the square', on: { type: 'pickup', id: 'village_rye' }, marker: { map: 'shamefield', x: 22, y: 17 } },
-                { id: 'mill', text: 'Grind the rye at the old watermill', on: { type: 'craft', id: 'mill_rye_flour' }, marker: { map: 'shamefield', x: 4, y: 10 } },
+                { id: 'mill', text: 'Grind the rye at the old watermill', on: { type: 'craft', id: 'mill_rye_flour' }, marker: { map: 'shamefield', x: 6, y: 13 } },
                 { id: 'bake', text: "Bake a rye loaf in Oda's oven", on: { type: 'craft', id: 'bake_rye_loaf' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } },
                 { id: 'loaf', text: 'Give Brother Fenric the loaf', on: { type: 'story', id: 'fenric_loaf' }, marker: { map: 'briarwell_cloister_court', x: 26, y: 16 } },
                 { id: 'ale', text: 'Give Oda the ale', on: { type: 'story', id: 'oda_ale' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } }
@@ -270,6 +270,11 @@
         text: 'What can I make here?', ...(when ? { if: when } : {}), stay: true,
         effects: [{ say: recipesAt(station).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
     });
+    // Crops ripen on the clock in the world (farmingRules, Tokelo 2026-11-04): watering and weeding hurries them once.
+    const FARM = DATA.farmingRules || {};
+    const growText = (c) => `${c.growSeconds ?? FARM.growSeconds} s (water and weed it once: ${FARM.tendCutsSeconds} s sooner)`;
+    /** Once it's been watered and weeded: how long is left (the engine's own refusal says it). */
+    const checkOn = (plotId) => ({ text: 'Check on it', if: { plots: { [plotId]: 'tended' } }, stay: true, effects: [{ tend: plotId }] });
     /** A homestead plot or pen: dig or build it, then plant, tend (feed) and harvest whatever its data allows. */
     function plotStation(plotId, name, look, unbuilt, nouns) {
         const crops = Object.entries(DATA.cropDefinitions).filter(([, c]) => (c.plantIn || []).includes(plotId));
@@ -289,9 +294,10 @@
                     choices: [
                         ...crops.map(([seed]) => ({ text: `${nouns.plant} the ${seed}`, if: { items: [seed], plots: { [plotId]: 'empty' } }, stay: true, effects: [{ plant: { plot: plotId, seed } }] })),
                         { text: tendText, if: { plots: { [plotId]: 'growing' }, ...(feed.length ? { any: feed.map((f) => ({ items: [f] })) } : {}) }, stay: true, effects: [{ tend: plotId }] },
+                        ...(feed.length ? [] : [checkOn(plotId)]),
                         ...(feed.length ? [{ text: 'You have nothing to feed them.', if: { plots: { [plotId]: 'growing' }, notAny: feed }, stay: true, effects: [{ say: `They eat ${feed.join(', ')}. Grow some, or buy some.` }] }] : []),
                         { text: nouns.harvest, if: { plots: { [plotId]: 'ready' } }, stay: true, effects: [{ harvest: plotId }] },
-                        { text: 'What grows here?', stay: true, effects: [{ say: crops.map(([seed, c]) => `${seed}: ${c.yield || 1} ${c.produces} after ${c.actionsToGrow} ${feed.length ? 'feedings' : 'tendings'}${c.keeps ? ', again and again' : ''}`).join('\n') }] },
+                        { text: 'What grows here?', stay: true, effects: [{ say: crops.map(([seed, c]) => `${seed}: ${c.yield || 1} ${c.produces} after ${feed.length ? `${c.actionsToGrow} feedings` : growText(c)}${c.keeps ? ', again and again' : ''}`).join('\n') }] },
                         { text: 'Leave it.', end: true }
                     ]
                 }
@@ -904,6 +910,7 @@
                     choices: [
                         { text: 'Plant the Barley Seed', if: { items: ['Barley Seed'], plots: { briarwell_bed: 'empty' } }, stay: true, effects: [{ plant: { plot: 'briarwell_bed', seed: 'Barley Seed' } }] },
                         { text: 'Water and weed the barley', if: { plots: { briarwell_bed: 'growing' } }, stay: true, effects: [{ tend: 'briarwell_bed' }] },
+                        checkOn('briarwell_bed'),
                         { text: 'Harvest the barley', if: { plots: { briarwell_bed: 'ready' } }, stay: true, effects: [{ harvest: 'briarwell_bed' }] },
                         { text: 'Leave it.', end: true }
                     ]
@@ -938,9 +945,11 @@
             talk: [{ node: 'mill' }],
             nodes: {
                 mill: {
-                    lines: [[null, 'The wheel still turns in the race, and the millstones grind whatever is poured into the hopper. Nobody has swept the floor since Old Hob.']],
+                    lines: [[null, 'You push the door open. Inside, the wheel still turns the millstones, and they grind whatever is poured into the hopper. Nobody has swept the floor since Old Hob.']],
                     choices: [
                         { text: 'Grind the rye into flour (1 Rye Sheaf)', if: { items: ['Rye Sheaf'] }, stay: true, effects: [{ craft: 'mill_rye_flour' }] },
+                        { text: 'I have no rye to grind.', if: { quests: { SF1: 'active' }, notAny: ['Rye Sheaf', 'Rye Flour', 'Shamefield Rye Loaf'] }, stay: true,
+                            effects: [{ say: 'The hopper is empty. Cut rye leans in sheaves against the field fence behind the square, east of the fountain. Bring a sheaf back here.' }] },
                         ...cook('mill'),
                         { text: 'Leave it.', end: true }
                     ]
