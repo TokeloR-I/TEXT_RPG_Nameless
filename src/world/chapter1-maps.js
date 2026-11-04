@@ -407,6 +407,12 @@
             exits: [
                 { id: 'kloster_inner_out', x: 19, y: 22, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_church' }
             ],
+            // The Trial of the Cold Door (quest QS1, Fallen Seraphim): heaven's doorkeeper waits before the fountain.
+            encounters: [
+                { id: 'kloster_trial', x: 19, y: 15, name: 'Aurevain, Warden of the Shut Door', enemies: ['heaven_doorwarden'], trigger: 'contact', sprite: 'warden',
+                    when: { quests: { QS1: 'active' } },
+                    text: 'The courtyard goes white. Something in gilded plate stands between you and the fountain, four wings folded, a spear of light across its knees. "Give it back," it says. "It was never yours to carry."' }
+            ],
             interactables: [
                 // The robed statue on the fountain: a station, so E always gets an answer; staring wakes it (gazeRules).
                 { id: 'kloster_seraph_statue', kind: 'station', station: 'seraph_statue', x: 18, y: 11, w: 3, h: 2, name: 'Robed statue', verb: 'Look at' },

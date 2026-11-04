@@ -1995,7 +1995,10 @@
         view.actors = v.actors.map((a) => ({
             y: (a.y - T / 2 + 2) / T,
             draw: (g, time) => {
+                const angel = a.key === 'heaven_doorwarden' && ENSO.gazeFx && a.state !== 'dead';   // Aurevain: wings behind, halo over the helm
+                if (angel) ENSO.gazeFx.playerWings(g, Math.round(a.x), Math.round(a.y + (a.r || 5)) - 6, 'down', time);
                 const visible = AFX.drawEnemy(g, a.key, Math.round(a.x), Math.round(a.y + (a.r || 5)), { facing: a.facing, angle: a.angle, attack: a.attack, progress: a.telegraph ? a.telegraph.progress : a.attack ? a.attack.progress : a.progress, state: a.state === 'chase' || a.state === 'return' ? 'move' : a.state === 'active' ? 'attack' : a.state === 'stunned' ? 'stagger' : a.state, t: a.t, now: time });
+                if (angel) ENSO.gazeFx.playerHalo(g, Math.round(a.x), Math.round(a.y + (a.r || 5)) - 10, time);
                 const barY = visible ? visible.y - 4 : a.y - 18;
                 if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(barY), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
                 if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);

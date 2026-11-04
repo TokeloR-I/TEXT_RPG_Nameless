@@ -72,20 +72,30 @@
             return this.flush();
         }
 
-        /** The `legend` story effect: the legendary web opens to you, its heart paid by the awakening itself. */
+        /** The `legend` story effect: the legendary web opens to you, its heart paid by the awakening itself, and its
+         *  `gifts` (one skill from each pair of wings) owned free on top. Safe to run again: an older save that woke the
+         *  statue before the gifts existed gets them through the story's catch-up. */
         awakenLegend(legId) {
             const web = this.skillWeb();
             const heart = web.nodes.get(`heart.${legId}`);
             if (!heart || !heart.legendary || !this.webState()) return;
             const key = `legend:${legId}`;
-            if (this.webOwns(heart.id) || this.story.claimed.includes(key)) return;
-            const s = this.webState();
-            s.bonusPoints = (s.bonusPoints || 0) + heart.cost;   // the gift: the heart costs you nothing
-            this.story.claimed.push(key);
-            const problem = this.webLearnProblem(heart.id, { ignoreMode: true });
-            if (problem) { this.say(`(${problem.message})`); return; }
-            this.webGain(heart);
-            this.say(`Open the Skill Web (Esc) to learn the ${heart.label} skills.`, { notice: 'quest' });
+            if (!this.webOwns(heart.id) && !this.story.claimed.includes(key)) {
+                const s = this.webState();
+                s.bonusPoints = (s.bonusPoints || 0) + heart.cost;   // the gift: the heart costs you nothing
+                this.story.claimed.push(key);
+                const problem = this.webLearnProblem(heart.id, { ignoreMode: true });
+                if (problem) { this.say(`(${problem.message})`); return; }
+                this.webGain(heart);
+            }
+            if (!this.webOwns(heart.id)) return;
+            const gifts = (heart.gifts || []).map((id) => web.nodes.get(id)).filter((n) => n && !this.webOwns(n.id));
+            for (const n of gifts) this.webGain(n);   // free (webNodeFixed): no point, no level gate
+            if (gifts.length) {
+                const bar = this.ensureSkillBar ? this.ensureSkillBar() : null;   // onto the bar where there is room
+                if (bar) for (const n of gifts) if (n.skill && !bar.includes(n.skill) && bar.indexOf(null) !== -1) bar[bar.indexOf(null)] = n.skill;
+                this.say(`Open the Skill Web (Esc) to see the ${heart.label} web. Its first gifts are already yours.`, { notice: 'quest' });
+            }
         }
     }
 

@@ -106,8 +106,8 @@
         for (const [legId, leg] of Object.entries(cfg.legendaryWebs || {})) {
             const lore = (data.legendaryAndSecretClasses || {})[legId] || {};
             legendary.push(legId);
-            add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), ranks: clone(leg.ranks || []), traits: [] });
-            for (const x of leg.nodes || []) { const { links, ...rest } = x; add({ label: x.skill || (x.trait && x.trait.name) || x.id, ...rest, region: legId, stage: null }); }
+            add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), ranks: clone(leg.ranks || []), traits: clone(leg.heartTraits || []), gifts: [...(leg.gifts || [])], ...(leg.trial ? { sealedBy: clone(leg.trial) } : {}) });
+            for (const x of leg.nodes || []) { const { links, ...rest } = x; add({ label: x.skill || (x.trait && x.trait.name) || x.id, ...rest, region: legId, stage: null, ...((leg.gifts || []).includes(x.id) ? { gift: true } : {}) }); }
             for (const x of leg.nodes || []) for (const to of x.links || []) link(x.id, to);
         }
         const webs = Object.keys(data.basePlayerClasses || {});
@@ -171,6 +171,8 @@
                 else if (t.region !== n.region) problems.push(`${n.id}: needs '${x}' from another web`);
             }
             for (const r of n.ranks || []) if (r.node && !web.nodes.get(r.node)) problems.push(`${n.id}: rank '${r.name}' waits on a missing node '${r.node}'`);
+            if (n.trial === true && !(web.nodes.get(`heart.${n.region}`) || {}).sealedBy) problems.push(`${n.id}: a trial node in a web with no trial`);
+            for (const x of n.gifts || []) if (!web.nodes.get(x) || web.nodes.get(x).region !== n.region) problems.push(`${n.id}: gift '${x}' is not a node of this web`);
             for (const req of (n.requires && n.requires.stages) || []) {
                 const [b, st] = String(req).split('.');
                 if (!web.branches[b] || !(Number(st) >= 1 && Number(st) <= web.branches[b].stages.length)) problems.push(`${n.id}: requires an unknown stage '${req}'`);
@@ -231,7 +233,7 @@
 
         webOwns(id) { const s = this.webState(); return !!s && s.nodes.includes(id); }
         /** Own heart and own starting skills: free, and never unlearned. */
-        webNodeFixed(node) { return !!(node.base && this.player && node.region === this.player.className); }
+        webNodeFixed(node) { return !!(node.gift && this.webOwns(`heart.${node.region}`)) || !!(node.base && this.player && node.region === this.player.className); }   // `gift`: a legendary web's free nodes (awakenLegend)
 
         /** What a legendary web still needs, as stage and event names ([] = it can open). `owned`: a node-id Set to test instead. */
         legendaryMissing(heart, owned = null) {
@@ -301,6 +303,8 @@
             }
             const touching = n.legendary || (n.kind === 'gateway' ? this.webOwns(n.from) : n.links.some((to) => this.webOwns(to)));   // a gateway opens from its own side only
             if (!touching) return { code: 'NOT_CONNECTED', message: `${n.label} isn't connected to anything you know yet.` };
+            const trial = n.trial === true && (web.nodes.get(`heart.${n.region}`) || {}).sealedBy;   // a legendary web's second half, sealed by its trial
+            if (trial && !(this.hasStoryFlag && this.hasStoryFlag(trial.flag)) && !this.flags.eventsUnlocked) return { code: 'TRIAL_LOCKED', message: `${n.label} opens after ${trial.name}.` };
             const needed = (n.needs || []).filter((x) => !this.webOwns(x));
             if (needed.length) return { code: 'NEEDS_NODES', message: `${n.label} needs ${needed.map((x) => web.nodes.get(x).label).join(', ')} first.` };
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };

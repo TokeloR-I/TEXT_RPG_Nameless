@@ -170,6 +170,21 @@
                     { name: 'Summon Crows', base_damage: [5, 8] },
                     { name: 'Chain Lock', base_damage: [10, 12] }
                 ]
+            },
+            // The Trial of the Cold Door (Fallen Seraphim, Tokelo 2026-11-04: "a quest with a ridiculously strong boss ... so
+            // that going forward is earned"). Heaven's own doorkeeper comes for the light Caelith gave you. Built to beat a
+            // level 10 character only with the Fallen gifts and a good build (Gauge: docs/design/FALLEN_SERAPHIM.md).
+            'heaven_doorwarden': {
+                name: 'Aurevain, Warden of the Shut Door',
+                id: 'heaven_doorwarden',
+                hp: 3200, maxHp: 3200, xp: 600, atk: 34, def: 10, spd: 12,
+                critChance: 0.15, critMultiplier: 1.8,
+                specialFlags: ['boss'],
+                skills: [
+                    { name: 'Spear of the Shut Door', base_damage: [28, 36] },
+                    { name: 'Wingbeat', base_damage: [20, 26] },
+                    { name: 'Sentence of Light', base_damage: [16, 22] }
+                ]
             }
         };
 		
@@ -388,8 +403,8 @@
 
             // Fallen Seraphim Legendary (Tokelo 2026-11-04): heavenly light that fell. Like the other legendary skills,
             // these are paid from whatever pool your class runs on. Gauge's first numbers; tune in data.
-            'Halo of Ash': { description: 'A halo of ash and light: take 30% less damage for 3 turns.', liveDescription: 'A halo of ash and light: take 30% less damage for 9 s. 20 s cooldown.', cost: 2, cooldown: 20, resource: 'any', effects: [{ type: 'damage_reduction', value: 0.3, duration: 3 }], target: 'self' },
-            'Fallen Judgement': { description: 'A spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void).', liveDescription: 'Hurl a spear of fallen light: 14–20 radiant dmg (+6 vs Undead/Void). 6 s cooldown.', cost: 2, cooldown: 6, resource: 'any', base_damage: [14, 20], effects: [{ type: 'bonus_damage_vs_flag', flag: 'undead', value: 6 }, { type: 'bonus_damage_vs_flag', flag: 'void', value: 6 }], target: 'enemy_single', damage_type: 'radiant' },
+            'Halo of Ash': { description: 'A halo of ash and light: take 30% less damage for 3 turns.', liveDescription: 'A halo of ash and light: take 30% less damage for 9 s. 20 s cooldown. Free: the statue’s gift.', cost: 0, cooldown: 20, resource: 'any', effects: [{ type: 'damage_reduction', value: 0.3, duration: 3 }], target: 'self' },
+            'Fallen Judgement': { description: 'A spear of fallen light: 26–34 radiant dmg that half ignores armour (+6 vs Undead/Void).', liveDescription: 'Hurl a spear of fallen light: 26–34 radiant dmg, half of armour ignored (+6 vs Undead/Void). 3 s cooldown. Free: the statue’s gift.', cost: 0, cooldown: 3, resource: 'any', base_damage: [26, 34], effects: [{ type: 'ignore_armor_percent', value: 0.5 }, { type: 'bonus_damage_vs_flag', flag: 'undead', value: 6 }, { type: 'bonus_damage_vs_flag', flag: 'void', value: 6 }], target: 'enemy_single', damage_type: 'radiant' },
             'Wings of Sorrow': { description: 'Six wings beat once: 8–12 radiant dmg to every enemy, and the glare blinds them (50% to miss) for 1 turn.', liveDescription: 'Six wings beat once around you (160 px): 8–12 radiant dmg to every enemy, blinded for 4 s (50% of their attacks miss). 18 s cooldown.', cost: 3, cooldown: 18, resource: 'any', base_damage: [8, 12], effects: [{ type: 'blind', value: 0.5, duration: 1, seconds: 4 }], target: 'all_enemies', damage_type: 'radiant' },
             'Six-Winged Descent': { description: 'Fall on your enemies like judgement: 20–28 true dmg to every enemy and stun them for 1 turn.', liveDescription: 'Fall on everything around you (160 px): 20–28 true dmg to every enemy, stunned for 3 s. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [20, 28], effects: [{ type: 'true_damage' }, { type: 'stun', duration: 1 }], target: 'all_enemies', damage_type: 'radiant' },
             // The full Fallen Seraphim kit (Thorne, Gauge; Tokelo 2026-11-04 "design the lore, attacks and skill tree"):
@@ -404,7 +419,7 @@
             'Ashen Communion': { description: 'Ash falls on every enemy: 8–12 radiant dmg each, and you heal for half of it.', liveDescription: 'Ash falls around you (160 px): 8–12 radiant dmg to every enemy, and you heal for half the damage dealt. 16 s cooldown.', cost: 3, cooldown: 16, resource: 'any', base_damage: [8, 12], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'all_enemies', damage_type: 'radiant' },
             'The Door Held Open': { description: 'Hold the door, as it once did: take 50% less damage for 3 turns, heal 40% of your max HP, and shed every DoT and debuff.', liveDescription: 'Hold the door: take 50% less damage for 10 s, heal 40% of your max HP, and shed every DoT and debuff. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'damage_reduction', value: 0.5, duration: 3 }, { type: 'heal_percent', value: 0.4 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
             // The Wide Wings (flight)
-            'Wingstep': { description: 'Lift off the ground: for 2 turns, every attack on you has a 40% chance to miss.', liveDescription: 'Lift off the ground: for 6 s, every attack on you has a 40% chance to miss. 14 s cooldown.', cost: 1, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.4, duration: 2, persistent: true }], target: 'self' },
+            'Wingstep': { description: 'Lift off the ground: for 2 turns, every attack on you has a 40% chance to miss.', liveDescription: 'Lift off the ground: for 6 s, every attack on you has a 40% chance to miss. 14 s cooldown. Free: the statue’s gift.', cost: 0, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.4, duration: 2, persistent: true }], target: 'self' },
             'Gale of Pinions': { description: 'One beat of the wide wings: 6–9 radiant dmg to every enemy and slow them by 50% for 2 turns.', liveDescription: 'One beat of the wide wings (160 px): 6–9 radiant dmg to every enemy, slowed by 50% for 6 s. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
             'Judgement from Above': { description: 'Rise and strike down: 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Rise and strike down (160 px): 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown.', cost: 3, cooldown: 20, resource: 'any', base_damage: [12, 16], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
             
@@ -772,6 +787,14 @@
                     ],
                     // How it shows on your character (ui/gaze-fx.js, drawn by code): 'heart' = once the web opens, 'all' = every node owned.
                     look: { halo: 'heart', wings: 'all', redEyes: 'all' },
+                    // Tokelo (2026-11-04): "it's legendary ... at unlock at least 60 to 70% of a peak-level evolved class". The
+                    // statue's gift: the heart's trait and one skill from each pair of wings, owned free (no point, no level gate,
+                    // never unlearned), so the class pays off the moment it wakes. Gauge measured it: qa/scripts/legendary_power.js.
+                    heartTraits: [{ name: 'Fallen Grace', effect: 'The statue\'s light in you: +35% damage, take 35% less damage.', mods: { damageDealt: 0.35, damageTaken: -0.35 } }],
+                    gifts: ['fallen_seraphim.judgement', 'fallen_seraphim.halo_of_ash', 'fallen_seraphim.wingstep'],
+                    // Tokelo (2026-11-04): the second half is earned. Nodes marked `trial` (level 10 and up: the late passives, the
+                    // capstones, Seraph Unbound, so the wings too) stay sealed until you win the Trial of the Cold Door (quest QS1).
+                    trial: { flag: 'seraph_trial_won', name: 'the Trial of the Cold Door' },
                     nodes: [
                         // The Veiled Face: judgement. Two wings over the eyes, so as not to see what it judged.
                         { id: 'fallen_seraphim.judgement', kind: 'active', skill: 'Fallen Judgement', minLevel: 3, links: ['heart.fallen_seraphim'] },
@@ -779,27 +802,27 @@
                             trait: { name: 'Grace of the Fallen', effect: '+20% damage against Undead and Void.', mods: { damageVsFlags: { undead: 0.2, void: 0.2 } } } },
                         { id: 'fallen_seraphim.brand', kind: 'active', skill: 'Brand of the Watcher', minLevel: 6, links: ['fallen_seraphim.judgement'] },
                         { id: 'fallen_seraphim.rain_of_feathers', kind: 'active', skill: 'Rain of Feathers', minLevel: 9, links: ['fallen_seraphim.brand'] },
-                        { id: 'fallen_seraphim.burning_grace', kind: 'passive', minLevel: 11, links: ['fallen_seraphim.rain_of_feathers', 'fallen_seraphim.grace'],
+                        { id: 'fallen_seraphim.burning_grace', trial: true, kind: 'passive', minLevel: 11, links: ['fallen_seraphim.rain_of_feathers', 'fallen_seraphim.grace'],
                             trait: { name: 'Burning Grace', effect: 'The further you fall, the brighter you burn: +25% damage while under half HP.', mods: { lowHpDamage: { below: 0.5, value: 0.25 } } } },
-                        { id: 'fallen_seraphim.verdict', kind: 'active', skill: 'Verdict of Ash', minLevel: 14, links: ['fallen_seraphim.burning_grace'] },
+                        { id: 'fallen_seraphim.verdict', trial: true, kind: 'active', skill: 'Verdict of Ash', minLevel: 14, links: ['fallen_seraphim.burning_grace'] },
                         // The Covered Feet: mercy. Two wings over the feet, over the ground it would not give up.
                         { id: 'fallen_seraphim.halo_of_ash', kind: 'active', skill: 'Halo of Ash', links: ['heart.fallen_seraphim'] },
                         { id: 'fallen_seraphim.feather_ward', kind: 'active', skill: 'Feather Ward', minLevel: 4, links: ['fallen_seraphim.halo_of_ash'] },
                         { id: 'fallen_seraphim.mercy', kind: 'active', skill: 'Mercy of the Fallen', minLevel: 7, links: ['fallen_seraphim.feather_ward'] },
-                        { id: 'fallen_seraphim.what_is_evil', kind: 'passive', minLevel: 10, links: ['fallen_seraphim.mercy', 'fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
+                        { id: 'fallen_seraphim.what_is_evil', trial: true, kind: 'passive', minLevel: 10, links: ['fallen_seraphim.mercy', 'fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
                             trait: { name: 'What Is Evil?', effect: 'Neither saint nor sinner: take 10% less damage from everything.', mods: { damageTaken: -0.1 } } },
-                        { id: 'fallen_seraphim.communion', kind: 'active', skill: 'Ashen Communion', minLevel: 12, links: ['fallen_seraphim.what_is_evil'] },
-                        { id: 'fallen_seraphim.door', kind: 'active', skill: 'The Door Held Open', minLevel: 14, links: ['fallen_seraphim.communion'] },
+                        { id: 'fallen_seraphim.communion', trial: true, kind: 'active', skill: 'Ashen Communion', minLevel: 12, links: ['fallen_seraphim.what_is_evil'] },
+                        { id: 'fallen_seraphim.door', trial: true, kind: 'active', skill: 'The Door Held Open', minLevel: 14, links: ['fallen_seraphim.communion'] },
                         // The Wide Wings: flight. The two it flew with, and fell with.
                         { id: 'fallen_seraphim.wingstep', kind: 'active', skill: 'Wingstep', minLevel: 2, links: ['heart.fallen_seraphim'] },
                         { id: 'fallen_seraphim.gale', kind: 'active', skill: 'Gale of Pinions', minLevel: 5, links: ['fallen_seraphim.wingstep'] },
                         { id: 'fallen_seraphim.wings_of_sorrow', kind: 'active', skill: 'Wings of Sorrow', minLevel: 8, links: ['fallen_seraphim.gale', 'fallen_seraphim.halo_of_ash'] },
-                        { id: 'fallen_seraphim.weightless', kind: 'passive', minLevel: 11, links: ['fallen_seraphim.wings_of_sorrow'],
+                        { id: 'fallen_seraphim.weightless', trial: true, kind: 'passive', minLevel: 11, links: ['fallen_seraphim.wings_of_sorrow'],
                             trait: { name: 'Weightless', effect: 'Nothing holds you down any more: +10% damage with everything.', mods: { damageDealt: 0.1 } } },
-                        { id: 'fallen_seraphim.from_above', kind: 'active', skill: 'Judgement from Above', minLevel: 12, links: ['fallen_seraphim.weightless'] },
-                        { id: 'fallen_seraphim.descent', kind: 'active', skill: 'Six-Winged Descent', minLevel: 14, links: ['fallen_seraphim.from_above'] },
+                        { id: 'fallen_seraphim.from_above', trial: true, kind: 'active', skill: 'Judgement from Above', minLevel: 12, links: ['fallen_seraphim.weightless'] },
+                        { id: 'fallen_seraphim.descent', trial: true, kind: 'active', skill: 'Six-Winged Descent', minLevel: 14, links: ['fallen_seraphim.from_above'] },
                         // All six wings.
-                        { id: 'fallen_seraphim.unbound', kind: 'passive', minLevel: 18, needs: ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent'],
+                        { id: 'fallen_seraphim.unbound', trial: true, kind: 'passive', minLevel: 18, needs: ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent'],
                             links: ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent'],
                             trait: { name: 'Seraph Unbound', effect: 'All six wings open: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
@@ -1269,7 +1292,25 @@
                         { name: 'Chain Whip', skill: 'Frenzied Bite', shape: 'arc', reach: 32, arcDeg: 160, windupMs: 800, activeMs: 150, recoveryMs: 700, cooldownMs: 4000, blockCost: 22, useAt: [20, 40] }
                     ]
                 },
-                crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' }
+                crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' },
+                // The Trial of the Cold Door: four wings, a spear, and every tell readable (first-pass numbers, Gauge).
+                heaven_doorwarden: {
+                    boss: true, speed: 54, detect: 170, reach: 32, arcDeg: 150, windupMs: 600, activeMs: 140, recoveryMs: 700, radius: 10, poise: 12, hyperArmor: true, leash: 420,
+                    giveUpMs: null, keepDistance: [24, 60], group: 'solo',
+                    attacks: [
+                        { name: 'Spear Sweep', skill: 'Spear of the Shut Door', shape: 'arc', reach: 32, arcDeg: 160, cooldownMs: 2600, useAt: [0, 34],
+                            combo: [
+                                { windupMs: 600, activeMs: 140, recoveryMs: 200, blockCost: 26 },
+                                { windupMs: 420, activeMs: 140, recoveryMs: 900, blockCost: 30, reverse: true }
+                            ] },
+                        { name: 'Spear Thrust', skill: 'Spear of the Shut Door', shape: 'line', reach: 60, width: 12, lunge: 28, windupMs: 620, activeMs: 120, recoveryMs: 800, cooldownMs: 2400, blockCost: 28, useAt: [28, 70] },
+                        // Four wings beat once around it: walk out of 60 px or dodge through it (1.2 s to read).
+                        { name: 'Wingbeat', skill: 'Wingbeat', shape: 'circle', radius: 60, windupMs: 1200, activeMs: 150, recoveryMs: 1300, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.6, useAt: [0, 56] },
+                        // Light falls where you stand: three marked circles, 1 s to step out.
+                        { name: 'Sentence of Light', skill: 'Sentence of Light', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.7, useAt: [40, 170] },
+                        { name: 'Judgement Bolt', skill: 'Sentence of Light', shape: 'projectile', reach: 160, projSpeed: 230, radius: 6, projectile: 'arcane', windupMs: 650, activeMs: 0, recoveryMs: 700, cooldownMs: 3500, blockCost: 18, parryable: false, useAt: [60, 160] }
+                    ]
+                }
             },
             bosses: {
                 crow_touched_warden: {

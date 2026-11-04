@@ -31,13 +31,15 @@ const PATHS = {   // docs/design/FALLEN_SERAPHIM.md: one path per pair of wings,
     wings: ['wingstep', 'gale', 'wings_of_sorrow', 'weightless', 'from_above', 'descent']
 };
 const trait = (id) => FS.nodes.find((n) => n.id === `fallen_seraphim.${id}`).trait;
-/** Wake the statue, level to `level`, and learn these nodes (short ids) in order. */
+const GIFTS = ['judgement', 'halo_of_ash', 'wingstep'];   // the statue's gift: owned free the moment it wakes
+const won = (g) => { g.applyStoryEffects([{ flag: 'seraph_trial_won' }]); return g; };   // as if the Trial of the Cold Door were won
+/** Wake the statue, level to `level`, and learn these nodes (short ids) in order (the gifts are already owned). */
 function seraph(level, ids = [], cls = 'mage', seed = 96) {
     const g = world(cls, seed);
     gaze(g, 120); g.act({ type: 'dialogue_leave' });
     levelTo(g, level);
     if (g.pendingBranchChoice) { g.maybePromptBranch(); g.act({ type: 'choose_branch', branchId: 'free' }); }   // walk freely: no guide spends the points
-    for (const id of ids) { g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
+    for (const id of ids) { if (!g.webOwns(`fallen_seraphim.${id}`)) g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
     return g;
 }
 
@@ -66,9 +68,9 @@ test('Fallen Seraphim: a legendary web of three wing paths (six nodes each) and 
 
 test('Fallen Seraphim: Seraph Unbound needs all three capstones, and holds them in place', () => {
     // The cheapest way there: every capstone's path, without Grace (5 + 6 + 4 through What Is Evil?) and Seraph Unbound.
-    const g = seraph(18);
+    const g = won(seraph(18));
     g.webState().bonusPoints += 10;   // spare points; this test is about the rule, not the budget
-    for (const id of ['judgement', 'brand', 'rain_of_feathers', 'burning_grace', 'verdict', ...PATHS.feet.slice(0, 5), 'wings_of_sorrow', 'weightless', 'from_above', 'descent'])
+    for (const id of ['brand', 'rain_of_feathers', 'burning_grace', 'verdict', ...PATHS.feet.slice(1, 5), 'wings_of_sorrow', 'weightless', 'from_above', 'descent'])
         { g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
     const unbound = () => g.getSkillWeb().nodes.find((n) => n.id === 'fallen_seraphim.unbound');
     assert.strictEqual(unbound().reason.code, 'NEEDS_NODES');
@@ -86,31 +88,32 @@ test('Fallen Seraphim: five ranks (Fallen, Watcher, Ashen Seraph, Seraph Unbound
     g.webState().bonusPoints += 10;
     assert.strictEqual(legend(g).rank, 'Fallen');
     const out = [];
-    const learn = (id) => { const r = g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(r.ok, `${id}: ${r.error && r.error.message}`); out.push(...r.events); };
-    for (const id of ['halo_of_ash', 'feather_ward', 'mercy', 'wingstep', 'gale']) learn(id);
+    const learn = (id) => { if (g.webOwns(`fallen_seraphim.${id}`)) return; const r = g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(r.ok, `${id}: ${r.error && r.error.message}`); out.push(...r.events); };
+    for (const id of ['feather_ward', 'mercy']) learn(id);   // heart + 3 gifts + 2
     assert.strictEqual(legend(g).rank, 'Fallen');
     const before = g.webPoints();
-    learn('judgement');   // heart + 6 nodes
+    learn('gale');   // heart + 6 nodes
     assert.strictEqual(legend(g).rank, 'Watcher');
     assert.strictEqual(g.webPoints(), before, 'the rank gives back the point the node cost');
     // Unlearn and learn again: the title is lost and won back, the gift is not paid twice.
-    g.act({ type: 'unlearn_node', nodeId: 'fallen_seraphim.judgement' });
+    g.act({ type: 'unlearn_node', nodeId: 'fallen_seraphim.gale' });
     assert.strictEqual(legend(g).rank, 'Fallen');
-    learn('judgement');
+    learn('gale');
     assert.strictEqual(g.webPoints(), before, 'paid for again, no second gift (the refund covered it)');
     assert.ok(out.some((e) => e.type === 'text' && /You rise: Watcher/.test(e.text)));
     assert.ok(g.hasStoryFlag('seraph_rank_watcher'));
-    // The statue has something new to say, once: its name.
+    // The statue has something new to say, once: its name. Then it offers the trial.
     g.act({ type: 'talk', npcId: 'seraph_statue' });
     assert.strictEqual(g.story.dialogue.node, 'watcher');
     g.act({ type: 'dialogue_leave' });
     assert.ok(g.hasStoryFlag('seraph_heard_watcher'));
     g.act({ type: 'talk', npcId: 'seraph_statue' });
-    assert.strictEqual(g.story.dialogue.node, 'again');
+    assert.strictEqual(g.story.dialogue.node, 'trial');
     g.act({ type: 'dialogue_leave' });
     const view = legend(g).ranks;
     assert.deepStrictEqual(view.map((r) => r.reached), [true, true, false, false, false]);
-    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings]) if (!g.webOwns(`fallen_seraphim.${id}`)) learn(id);
+    won(g);
+    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings]) learn(id);
     assert.strictEqual(legend(g).rank, 'Ashen Seraph');
     learn('unbound');   // the last node: Seraph Unbound and The Six-Winged at once
     assert.strictEqual(legend(g).rank, 'The Six-Winged');
@@ -119,14 +122,80 @@ test('Fallen Seraphim: five ranks (Fallen, Watcher, Ashen Seraph, Seraph Unbound
     assert.strictEqual(g.story.dialogue.node, 'six', 'the last rank is heard first; the others wait for the next visits');
 });
 
+test('Fallen Seraphim at unlock: the statue gives one skill from each pair of wings and Fallen Grace, free and for good', () => {
+    const g = world();
+    const points = g.webPoints();
+    const wake = gaze(g, 120);
+    g.act({ type: 'dialogue_leave' });
+    for (const id of GIFTS) assert.ok(g.webOwns(`fallen_seraphim.${id}`), id);
+    for (const sk of ['Fallen Judgement', 'Halo of Ash', 'Wingstep']) assert.ok(g.player.skills.includes(sk), sk);
+    assert.ok(g.player.traits.some((t) => t.name === 'Fallen Grace'));
+    assert.strictEqual(g.webPoints(), points, 'no point spent, at level 1');
+    assert.strictEqual(g.player.level, 1, 'no level gate on a gift');
+    assert.ok(wake.some((e) => e.type === 'text' && /first gifts are already yours/.test(e.text)));
+    assert.strictEqual(g.webUnlearnProblem('fallen_seraphim.judgement').code, 'NODE_FIXED');
+    for (const sk of ['Fallen Judgement', 'Halo of Ash', 'Wingstep']) assert.strictEqual(data.skillDefinitions[sk].cost, 0, `${sk} runs on its cooldown, not your class resource`);
+    const fg = g.player.traits.find((t) => t.name === 'Fallen Grace');
+    assert.ok(Math.abs(g.traitDamageMult(g.player, {}) - (1 + fg.mods.damageDealt)) < 1e-9);
+    // An older save that woke the statue before the gifts existed gets them on load (story catch-up).
+    const old = world('warrior', 97);
+    gaze(old, 120); old.act({ type: 'dialogue_leave' });
+    const s = old.webState();
+    s.nodes = s.nodes.filter((id) => !GIFTS.map((x) => `fallen_seraphim.${x}`).includes(id));
+    old.player.skills = old.player.skills.filter((x) => !['Fallen Judgement', 'Halo of Ash', 'Wingstep'].includes(x));
+    old.story.claimed = old.story.claimed.filter((k) => k !== 'catchup:seraph_gifts');
+    old.runStoryCatchUp();
+    for (const id of GIFTS) assert.ok(old.webOwns(`fallen_seraphim.${id}`), `${id} after catch-up`);
+});
+
+test('Fallen Seraphim: the second half is sealed until the Trial of the Cold Door is won (Caelith calls Aurevain)', () => {
+    const g = seraph(18, ['feather_ward', 'mercy', 'gale']);
+    g.webState().bonusPoints += 10;
+    const node = (id) => g.getSkillWeb().nodes.find((n) => n.id === `fallen_seraphim.${id}`);
+    for (const n of FS.nodes.filter((x) => x.trial)) assert.ok(n.minLevel >= 10, `${n.id} is the second half`);
+    assert.strictEqual(node('what_is_evil').reason.code, 'TRIAL_LOCKED');
+    assert.match(node('what_is_evil').reason.message, /Trial of the Cold Door/);
+    assert.notStrictEqual((node('wings_of_sorrow').reason || {}).code, 'TRIAL_LOCKED', 'the first half stays open');
+    // Caelith offers the trial after its name.
+    g.act({ type: 'talk', npcId: 'seraph_statue' }); g.act({ type: 'dialogue_leave' });
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'trial');
+    const accept = g.getAvailableActions().actions.find((x) => x.type === 'dialogue_choice' && /Let it come/.test(x.text));
+    g.act({ type: 'dialogue_choice', choiceId: accept.choiceId });
+    g.act({ type: 'dialogue_leave' });
+    assert.strictEqual(g.questState('QS1'), 'active');
+    // Aurevain waits by the fountain while the quest is open.
+    const s = new WorldSession(WORLD, { engine: g });
+    s.place('kloster_inner', 'from_garth');
+    const enc = s.map.encounters.find((e) => e.id === 'kloster_trial');
+    assert.ok(enc && s.present(enc), 'the boss is in the courtyard');
+    assert.deepStrictEqual(enc.enemies, ['heaven_doorwarden']);
+    const boss = data.enemies.heaven_doorwarden;
+    assert.ok(boss.maxHp >= 10 * data.enemies.crow_touched_warden.maxHp && boss.specialFlags.includes('boss'), 'ridiculously strong');
+    assert.ok(data.actionRules.enemies.heaven_doorwarden.attacks.length >= 4);
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'trial_wait');
+    g.act({ type: 'dialogue_leave' });
+    // Beat it: the quest completes, the seal lifts.
+    g.storyEvent({ type: 'defeat', id: 'kloster_trial' });
+    assert.strictEqual(g.questState('QS1'), 'complete');
+    assert.ok(g.hasStoryFlag('seraph_trial_won'));
+    assert.ok(!s.present(enc), 'it does not come back');
+    assert.notStrictEqual((node('what_is_evil').reason || {}).code, 'TRIAL_LOCKED');
+    g.act({ type: 'learn_node', nodeId: 'fallen_seraphim.what_is_evil' });
+    assert.ok(g.webOwns('fallen_seraphim.what_is_evil'));
+    g.act({ type: 'talk', npcId: 'seraph_statue' });
+    assert.strictEqual(g.story.dialogue.node, 'trial_won');
+});
+
 test('Fallen Seraphim on you: a halo once the web opens; six wings and red eyes once every skill is learned', () => {
     const g = world();
     assert.deepStrictEqual(g.legendaryLook(), {}, 'nothing before the statue wakes');
-    const s = seraph(18);
+    const s = won(seraph(18));
     assert.deepStrictEqual(s.legendaryLook(), { halo: true });
     s.webState().bonusPoints += 10;
     const all = [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound'];
-    for (const id of all.slice(0, -1)) s.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
+    for (const id of all.slice(0, -1)) if (!s.webOwns(`fallen_seraphim.${id}`)) s.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
     assert.deepStrictEqual(s.legendaryLook(), { halo: true }, 'one skill short');
     s.act({ type: 'learn_node', nodeId: 'fallen_seraphim.unbound' });
     assert.deepStrictEqual(s.legendaryLook(), { halo: true, wings: true, redEyes: true });
@@ -136,7 +205,8 @@ test('Fallen Seraphim on you: a halo once the web opens; six wings and red eyes 
 test('Fallen Seraphim mastered: Caelith offers five holy weapons; you take the one you choose, once', () => {
     const g = seraph(18);
     g.webState().bonusPoints += 10;
-    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound']) g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
+    won(g);
+    for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound']) if (!g.webOwns(`fallen_seraphim.${id}`)) g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
     g.act({ type: 'talk', npcId: 'seraph_statue' });
     assert.strictEqual(g.story.dialogue.node, 'six');
     const HOLY = ['Doorward', 'Spear of the Cold Door', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];

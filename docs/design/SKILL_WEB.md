@@ -135,7 +135,9 @@ lore stay in `legendaryAndSecretClasses`.
 
 A legendary web may also have **`ranks`** (titles reached by nodes owned, each with a story flag and an optional
 free point, paid once) and nodes with **`needs`** (every listed node owned first; those can't be unlearned while it
-is held). The Fallen Seraphim uses both.
+is held). The Fallen Seraphim uses both, plus **`heartTraits`** (traits on the heart), **`gifts`** (nodes owned
+free with the heart) and a **`trial`** (nodes marked `trial: true` wait on a story flag, here a boss quest). See
+[FALLEN_SERAPHIM.md](FALLEN_SERAPHIM.md).
 
 While you hold a legendary web, the stages it rests on can't be unlearned. `getSkillWeb().legendaryWebs`
 lists each with what is still `missing`.

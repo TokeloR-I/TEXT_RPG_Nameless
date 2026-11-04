@@ -18,6 +18,52 @@ point). Then the web opens like any other: one point per node, a level gate on e
 character**: your class, your class web and your resource stay. Every Fallen skill is paid from the resource your
 class already uses (`resource: 'any'`).
 
+## What it pays at unlock, and the trial (Gauge, Tokelo 2026-11-04)
+
+> "I expect it to be at least comparable to like 60 to 70% peak level classes ... At base (meaning at unlock) ...
+> another quest with a ridiculously strong boss can be in the middle so that going forward is earned." (Tokelo)
+
+The unlock is hidden (you have to know, or stare at a statue for two minutes), so it pays at once:
+
+- **Fallen Grace**, a trait on the heart: +35% damage dealt, 35% less damage taken (`heartTraits` on the web).
+- **Three gifts**, owned the moment the statue wakes and put on empty bar slots: Fallen Judgement, Halo of Ash and
+  Wingstep (`gifts`). They cost no point and no resource, only their cooldown, and can't be unlearned while you
+  hold the web. Saves that woke the statue before this get them on load (a story `catchUp`).
+
+**The trial.** Every node at level 10 and up is sealed (`trial: true` on the node, `trial` on the web) until you win
+**the Trial of the Cold Door** (quest QS1). After the Watcher rank the statue asks you to let its door's warden
+come; say yes and **Aurevain, Warden of the Shut Door** waits in the courtyard: 3200 HP (about 21 Crow Wardens),
+ATK 34, DEF 10, a two-hit spear sweep, a lunging thrust, a 1.2 s wingbeat you can't guard (×1.6), three pillars of
+light (×1.7) and a bolt at range. Winning sets `seraph_trial_won` and opens the rest of the web, and with it the
+wings, the red eyes and the holy weapon.
+
+**Measured** (`qa/scripts/legendary_power.js`: a ×60 HP Crow Warden for 60 s, player kept alive, 6 seeds;
+power = sqrt(dps × seconds you'd last, capped at 300). Peak = level 14 with an evolution; average of peaks 100):
+
+| Setup | Power | % of the peak average |
+|---|---|---|
+| Warrior peaks (Vanguard, Berserker L14) | 68–75 | 68–75% |
+| Rogue peaks (Assassin, Duelist L14) | 103–104 | 102–103% |
+| Necromancer peaks (Bone Warden, Plaguecaller L14) | 117–136 | 116–136% |
+| Warrior Vanguard L5, no legend | 40 | 40% |
+| Rogue Assassin L5, no legend | 38 | 38% |
+| **Warrior Vanguard L5 + Fallen at unlock** | **76** | **76%** |
+| **Rogue Assassin L5 + Fallen at unlock** | **61** | **61%** |
+
+The necromancer reads high at every level because the dummy can't kill its minions; its numbers aren't a guide.
+
+The trial (`qa/scripts/trial_benchmark.js`: Aurevain, level 10, the player can die, dodges 60% of tells, 300 s cap,
+healing items, 10 seeds). Fallen = the gifts and the first half of the web:
+
+| Build | Wins plain | Wins + Fallen |
+|---|---|---|
+| Warrior Vanguard / Berserker | 0% / 0% | 60% / 60% |
+| Rogue Assassin / Duelist | 0% / 40% | 70% / 70% |
+| Necromancer Bone Warden / Plaguecaller | 0% / 30% | 60% / 60% |
+
+Fallen runs never died; every loss was the 300 s cap, partly the bot catching on the courtyard's fountain and
+benches. A plain level 10 build dies. Mage is left out: the bot sticks behind the fountain.
+
 ## Lore (Ashby, Wick)
 
 **Caelith, Keeper of the Cold Door.** Long before the Kloster, the hill at Briarwell was a gate. Behind it lay the
@@ -112,8 +158,8 @@ level 18, which needs **all three capstones**. The six first-pass nodes keep the
 Grace of the Fallen hangs from Fallen Judgement and Burning Grace links back to it. What Is Evil? is the
 crossroads: it links the Feet path to Grace (Face) and to Wings of Sorrow (Wings), so a hybrid can cross over.
 
-**Cost.** The whole web is 19 points; the cheapest road to Seraph Unbound is 16 (skip Grace, cross through What
-Is Evil?), less the 2 rank points. At one point a level that is an endgame choice against your class web, which is
+**Cost.** The whole web is 16 points (19 nodes, 3 of them free gifts); the cheapest road to Seraph Unbound is 13
+(skip Grace, cross through What Is Evil?), less the 2 rank points. Everything from level 10 waits on the trial. At one point a level that is an endgame choice against your class web, which is
 the point: a legend costs you something.
 
 ### New engine rules (Thorne; data, no names in code)
@@ -125,6 +171,10 @@ the point: a legend costs you something.
   flag (the statue's talk reads it) and pays `points` once. `getSkillWeb().legendaryWebs[].rank` and `.ranks`.
 - **Trait `mods`** (passives that work through data): `damageVsFlags`, `damageTaken` (PR #226), and now
   `damageDealt` (0.1 = +10%) and `lowHpDamage` (`{ below: 0.5, value: 0.25 }`: +25% while under half HP).
+- **`heartTraits`** on a legendary web: traits the heart grants while owned.
+- **`gifts`** on a legendary web: nodes owned free once the heart is (`gift: true`, fixed like a base node).
+- **`trial`** on a legendary web (`{ flag, name }`) and `trial: true` on a node: the node can't be learned until
+  the story flag is set (refusal `TRIAL_LOCKED`).
 - **`heal_percent`** effect: heal the caster `value` of max HP. A self skill with only calm effects can be cast
   out of a fight, as before.
 
@@ -140,7 +190,7 @@ they cost a point each and arrive late; Verdict of Ash pays for its size in HP.
 
 | Node | Level | Cost / cd | What it does |
 |---|---|---|---|
-| Fallen Judgement ◆ | 3 | 2 / 6 s | 14–20 radiant to one enemy, +6 vs Undead and Void |
+| Fallen Judgement ◆ (gift) | 3 | 0 / 3 s | 26–34 radiant to one enemy, half of armour ignored, +6 vs Undead and Void |
 | Grace of the Fallen ○ | 5 | | +20% damage against Undead and Void |
 | Brand of the Watcher ◆ | 6 | 1 / 10 s | 6–9 radiant and [Expose] (+25% damage taken) for 2 turns (6 s) |
 | Rain of Feathers ◆ | 9 | 2 / 10 s | 4 hits of 5–7 radiant to one enemy |
@@ -154,7 +204,7 @@ the Feet path can afford.
 
 | Node | Level | Cost / cd | What it does |
 |---|---|---|---|
-| Halo of Ash ◆ | 1 | 2 / 20 s | take 30% less damage for 3 turns (9 s live) |
+| Halo of Ash ◆ (gift) | 1 | 0 / 20 s | take 30% less damage for 3 turns (9 s live) |
 | Feather Ward ◆ | 4 | 1 / 14 s | absorb the next hit; live 12 s, stacks to 2 |
 | Mercy of the Fallen ◆ | 7 | 2 / 24 s | heal 25% of max HP and burn away every damage over time |
 | What Is Evil? ○ | 10 | | take 10% less damage from everything |
@@ -168,7 +218,7 @@ HP a second.
 
 | Node | Level | Cost / cd | What it does |
 |---|---|---|---|
-| Wingstep ◆ | 2 | 1 / 14 s | 40% to dodge every attack for 2 turns (6 s) |
+| Wingstep ◆ (gift) | 2 | 0 / 14 s | 40% to dodge every attack for 2 turns (6 s) |
 | Gale of Pinions ◆ | 5 | 2 / 12 s | 6–9 radiant to every enemy, slowed 50% for 2 turns |
 | Wings of Sorrow ◆ | 8 | 3 / 18 s | 8–12 radiant to every enemy, blinded (50% to miss) for 1 turn (4 s live) |
 | Weightless ○ | 11 | | +10% damage with everything |
@@ -186,6 +236,9 @@ With every passive the Fallen character deals about +27% (Weightless x Unbound),
 once Chapter 2 enemies exist.
 
 ## Open for later
+
+- Aurevain is code-drawn as a tall knight in white and gold with the seraph's wings and halo; a sprite of its own
+  is Saffron's and Quill's call.
 
 - Art: the holy weapons use your current weapon sprite for now; a drawn look for each is Saffron's and Quill's
   call (code-drawn, like everything else).
