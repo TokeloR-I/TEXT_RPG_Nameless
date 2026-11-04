@@ -216,6 +216,12 @@
             if (p.resource) p.resource.current = p.resource.max;
             p.statusEffects = [];
             this.say(`You bar the gate and sleep under your own roof. You wake rested. (${p.hp}/${p.maxHp} HP${p.resource ? `, ${p.resource.current}/${p.resource.max} ${p.resource.type}` : ''})`, { important: true });
+            // Hunting grounds: the beaten encounters listed in gameRules.restRespawns come back overnight.
+            const w = this.world, back = new Set(this.data.gameRules.restRespawns || []);
+            if (w && w.defeated.some((id) => back.has(id))) {
+                w.defeated = w.defeated.filter((id) => !back.has(id));
+                this.say('In the night you hear the wild creep back: rats in the grass, wolves on the road.');
+            }
             return true;
         }
 

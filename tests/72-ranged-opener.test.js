@@ -27,7 +27,8 @@ function standOff(r, gap) {
     }
     return false;
 }
-const wolfHp = (r) => { const e = r.g.combat && r.g.combat.enemies.find((x) => x.key === 'hungry_wolf'); return e ? e.hp / e.maxHp : 1; };
+// The road wolf leads a pack (2026-11-04): the bolt lands on whichever wolf of the pack it meets first.
+const wolfHp = (r) => Math.min(1, ...((r.g.combat && r.g.combat.enemies) || []).filter((x) => x.encounterId === 'road_wolf').map((e) => e.hp / e.maxHp));
 function shoot(r, input) {
     let engagedAt = null, hitAt = null;
     for (let i = 0; i < 90; i++) {

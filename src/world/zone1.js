@@ -201,8 +201,9 @@
                 { id: 'grounds_road', x: 20, y: 21, trigger: 'step', toMap: 'road', toSpawn: 'from_grounds' }
             ],
             encounters: [
-                { id: 'grounds_weed_rats', x: 5, y: 15, name: 'Rust Rats', enemies: ['rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
-                    text: 'Something rustles in the weeds: rats, two of them, with rust-coloured fur. They haven\'t seen you. Walk into them to fight.' }
+                // Tokelo 2026-11-04: by the gaps in the wall on the way to the footbridge, the only way to the road.
+                { id: 'grounds_weed_rats', x: 19, y: 18, name: 'Rust Rats', enemies: ['rust_rat', 'rust_rat'], trigger: 'contact', sprite: 'rats',
+                    text: 'Something rustles in the long grass by the footbridge: rats, two of them, with rust-coloured fur. They are between you and the road.' }
             ],
             interactables: [
                 { id: 'grounds_scarecrow', kind: 'inspect', x: 16, y: 15, name: 'Scarecrow',
@@ -332,8 +333,10 @@
                 { id: 'road_back', x: 16, y: 0, trigger: 'step', toMap: 'grounds', toSpawn: 'from_road' }
             ],
             encounters: [
-                { id: 'road_wolf', x: 25, y: 13, name: 'Hungry Wolf', enemies: ['hungry_wolf'], trigger: 'contact', sprite: 'wolf',
-                    text: 'A gaunt wolf, nosing round the abandoned wagon. It hasn\'t seen you. You could walk on by, or walk into it.' }
+                // Tokelo 2026-11-04: a pack at the crossroads, beside the road itself, so walking on means meeting it.
+                // The Hungry Wolf leads it (the mini boss); its three Pack Wolves are smaller and lighter.
+                { id: 'road_wolf', x: 17, y: 14, name: 'Hungry Wolf Pack', enemies: ['hungry_wolf', 'pack_wolf', 'pack_wolf', 'pack_wolf'], trigger: 'contact', sprite: 'wolf',
+                    text: 'A gaunt grey wolf stands at the crossroads, three leaner wolves at its flanks. The big one lifts its head and tests the air. They have your scent.' }
             ],
             interactables: [
                 { id: 'road_signpost', kind: 'inspect', x: 17, y: 12, name: 'Signpost',

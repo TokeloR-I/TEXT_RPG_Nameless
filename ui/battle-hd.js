@@ -223,7 +223,7 @@
         }
     };
     const CREATURE_FOR = {
-        rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf',
+        rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
         watch_constable: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade',
         skeleton: 'skeleton', skeleton_champion: 'skeleton', ghoul: 'ghoul'   // the necromancer's summons (minionDefinitions keys)

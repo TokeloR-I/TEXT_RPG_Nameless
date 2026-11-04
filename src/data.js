@@ -86,11 +86,18 @@
                 critChance: 0.1, critMultiplier: 1.5,
                 skills: [{ name: 'Goblin Slash', base_damage: [5, 8] }]
             },
+            // Tokelo 2026-11-04: the road wolf leads a pack now and is its mini boss (more HP than the rest).
             'hungry_wolf': {
                 name: 'Hungry Wolf',
-                hp: 40, maxHp: 40, xp: 15, atk: 7, def: 3, spd: 12,
+                hp: 70, maxHp: 70, xp: 50, atk: 7, def: 3, spd: 12, tier: 'elite',
                 critChance: 0.2, critMultiplier: 1.7,
                 skills: [{ name: 'Bite', base_damage: [7, 10] }]
+            },
+            'pack_wolf': {
+                name: 'Pack Wolf',
+                hp: 24, maxHp: 24, xp: 15, atk: 5, def: 2, spd: 13,
+                critChance: 0.1, critMultiplier: 1.5,
+                skills: [{ name: 'Bite', base_damage: [4, 7] }]
             },
             'shackled_ghoul': {
                 name: 'Shackled Ghoul',
@@ -1102,13 +1109,22 @@
                         { skill: 'Corroding Bite', shape: 'arc', reach: 12, arcDeg: 60, windupMs: 380, activeMs: 80, recoveryMs: 400, cooldownMs: 900, blockCost: 6 }
                     ]
                 },
+                // The pack leader (Tokelo 2026-11-04): a heavier body than its pack. The pack waits by the road itself (src/world/zone1.js), so it can't be walked past.
                 hungry_wolf: {
-                    speed: 82, detect: 112, smellRadius: 40, reach: 40, shape: 'line', width: 10, lunge: 40, windupMs: 480, activeMs: 200, recoveryMs: 650, radius: 6, poise: 2, leash: 220,
+                    speed: 82, detect: 112, smellRadius: 40, reach: 40, shape: 'line', width: 10, lunge: 40, windupMs: 480, activeMs: 200, recoveryMs: 650, radius: 7, poise: 4, leash: 220,
                     giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [40, 56], group: 'circle',
                     attacks: [
                         { name: 'Lunge Bite', skill: 'Bite', shape: 'line', reach: 40, width: 10, lunge: 40, windupMs: 480, activeMs: 200, recoveryMs: 650, cooldownMs: 2200, blockCost: 12, useAt: [24, 56] },
                         // Gauge: windup 300 -> 380. 7-10 dmg (the wolf's whole bite) needs a tell a 250 ms reaction can answer.
                         { name: 'Snap', skill: 'Bite', shape: 'arc', reach: 16, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 900, blockCost: 8, useAt: [0, 20] }
+                    ]
+                },
+                pack_wolf: {
+                    speed: 84, detect: 112, smellRadius: 40, reach: 36, shape: 'line', width: 9, lunge: 36, windupMs: 480, activeMs: 200, recoveryMs: 650, radius: 5, poise: 1, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [36, 52], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Bite', shape: 'line', reach: 36, width: 9, lunge: 36, windupMs: 480, activeMs: 200, recoveryMs: 650, cooldownMs: 2600, blockCost: 10, useAt: [22, 52] },
+                        { name: 'Snap', skill: 'Bite', shape: 'arc', reach: 14, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1100, blockCost: 6, useAt: [0, 18] }
                     ]
                 },
                 weak_goblin: {
@@ -1326,6 +1342,9 @@
             baseMinionCap: 3,          // Black Pharaoh adds +3
             defaultEnemyXp: 15,
             critChanceCap: 0.5,        // level-up crit growth stops here
+            // Hunting grounds (Tokelo 2026-11-04: a way to reach level 4 to 5 before the Crow Warden). A night in the
+            // homestead bed brings these beaten encounters back for their XP again. Loot claims and quest credit stay once-only.
+            restRespawns: ['grounds_weed_rats', 'road_wolf'],
             // Fallback growth for a class without its own `levelGrowth` (the old flat increase).
             defaultLevelGrowth: { hp: 10, strength: 1, intelligence: 1, agility: 1, def: 1, critChance: 0.01, resource: 2 }
         };
@@ -1908,6 +1927,11 @@
             "hungry_wolf": [
                 1,
                 "beast",
+                "elite"
+            ],
+            "pack_wolf": [
+                1,
+                "beast",
                 "common"
             ],
             "shackled_ghoul": [
@@ -1966,7 +1990,7 @@
         enemies.crow_touched_warden.materialDrops = false;
         // Meat for the pot (the kitchen, Tokelo 2026-11-02): rats and wolves always leave some. Goulash, not glory.
         for (const id of ['rust_rat', 'cellar_vermin']) enemies[id].foodDrops = [{ item: 'Rat Meat' }];
-        enemies.hungry_wolf.foodDrops = [{ item: 'Wolf Meat' }];
+        for (const id of ['hungry_wolf', 'pack_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
             if (d.use !== 'meal' && d.use !== 'drink') continue;

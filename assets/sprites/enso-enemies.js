@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -28,6 +28,7 @@
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
         weak_goblin: {kind:'goblin', body:'skin', coat:'leather', tall:29, wide:7},
         hungry_wolf: {kind:'wolf', body:'wolf'},
+        pack_wolf: {kind:'wolf', body:'fur', small:true},
         shackled_ghoul: {kind:'ghoul', body:'ghoul', coat:'leather', tall:34, wide:7},
         rust_rat: {kind:'rat', body:'fur'}, cellar_vermin: {kind:'rat', body:'wolf', large:true},
         drunken_shade: {kind:'shade', body:'shade', tall:37, wide:9},
@@ -105,10 +106,10 @@
         const beast = ['rat','wolf','gnawer','mire'].includes(c.kind);
         if(beast){
             const wolf=c.kind==='wolf', bone=c.kind==='gnawer', mire=c.kind==='mire';
-            const length=wolf?13:mire?10:9, width=wolf?7:mire?12:c.large?8:6;
-            const height=wolf?14:mire?12:8;
+            const length=wolf?(c.small?11:13):mire?10:9, width=wolf?(c.small?6:7):mire?12:c.large?8:6;
+            const height=wolf?(c.small?12:14):mire?12:8;
             // Tail is segmented, trails opposite travel and curls with the gait.
-            if(!mire){let last=[0,-length+2,height-2];for(let i=1;i<=7;i++){const next=[Math.sin(i*.6+phase)*2,-length-i*2,height-2-i*.45];limb(last,next,wolf?2.1:0.9,wolf?'wolf':bone?'bone':'rust');last=next;}}
+            if(!mire){let last=[0,-length+2,height-2];for(let i=1;i<=7;i++){const next=[Math.sin(i*.6+phase)*2,-length-i*2,height-2-i*.45];limb(last,next,wolf?2.1:0.9,wolf?c.body:bone?'bone':'rust');last=next;}}
             for(const f of [-length*.65,length*.60])for(const side of [-1,1]){
                 const s=stride*side*(f>0?1:-1),l=side*width*.8, lift=walk?Math.max(0,Math.cos(phase+(side*(f>0?1:-1)>0?0:Math.PI)))*3:0;
                 limb([l,f,height],[l,f+s*3,4+lift],mire?3:2,c.body);
