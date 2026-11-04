@@ -236,7 +236,7 @@
         J01: {
             title: 'Wolf on the Road', kind: 'job', xp: 10, candidate: true,
             summary: 'The notice board asks someone to deal with the wolf on the homestead road.',
-            objectives: [{ id: 'wolf', text: 'Deal with the wolf on the homestead road', on: { type: 'defeat', id: 'road_wolf' }, marker: { map: 'road', x: 25, y: 13 } }],
+            objectives: [{ id: 'wolf', text: 'Deal with the wolf on the homestead road', on: { type: 'defeat', id: 'road_wolf' }, marker: { map: 'road', x: 17, y: 14 } }],
             onComplete: []
         },
         J02: {

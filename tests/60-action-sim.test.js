@@ -22,8 +22,8 @@ function at(r, mapId, tx, ty) {
     return r;
 }
 const T = 16;
-/** Two tiles beside the rats on the 16 px Grounds (their encounter covers 10-11, 30-31). */
-const near = (r) => { at(r, 'grounds', 0, 0); const [x, y] = freeNear(r.s, 13, 31); return at(r, 'grounds', x, y); };
+/** Two tiles beside the rats on the 16 px Grounds (their encounter covers 38-39, 36-37). */
+const near = (r) => { at(r, 'grounds', 0, 0); const [x, y] = freeNear(r.s, 41, 37); return at(r, 'grounds', x, y); };
 const frames = (sim, n, input = {}) => { const out = []; for (let i = 0; i < n; i++) out.push(sim.update(1000 / 60, typeof input === 'function' ? input(i) : input)); return out; };
 const ratsOf = (sim) => sim.actors.filter((a) => a.encounterId === 'grounds_weed_rats');
 const freeNear = (s, x, y) => { for (let r = 0; r < 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (!s.solidForAction(x + dx, y + dy) && !s.exitAt(x + dx, y + dy)) return [x + dx, y + dy]; throw new Error('no free cell'); };

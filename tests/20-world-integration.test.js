@@ -72,8 +72,9 @@ test('Integration: fight lifecycle flee -> come back -> win credits kills and XP
     assert.strictEqual(g.combat.enemies[0].hp, g.combat.enemies[0].maxHp, 'a fresh fight: the wolf is back at full health (no carry-over)');
     win(g);
     s.fightOver('road_wolf', g.world.lastResult);
-    assert.strictEqual(g.stats.kills, kills0 + 1);
-    assert.strictEqual(g.player.xp - xp0, data.enemies.hungry_wolf.xp);
+    const pack = ZONE1.maps.road.encounters.find((e) => e.id === 'road_wolf').enemies;
+    assert.strictEqual(g.stats.kills, kills0 + pack.length, 'the whole pack');
+    assert.strictEqual(g.player.xp - xp0, pack.reduce((n, k) => n + data.enemies[k].xp, 0));
     assert.strictEqual(g.stats.fights, 1, 'a fled fight is not a fight won');
     assert.strictEqual(s.prompt(), null, 'nothing left to face');
 });
@@ -88,8 +89,8 @@ test('Integration: the on-screen hint says what E would do', () => {
     assert.strictEqual(s.prompt(), null, 'once taken, nothing is left to do there');
     travel(s, 'grounds'); walkTo(s, 23, 8); s.move('up');
     assert.deepStrictEqual(s.prompt(), { verb: 'Climb down the well', name: null, kind: 'exit' });
-    travel(s, 'road'); walkTo(s, 25, 14); s.move('up');
-    assert.deepStrictEqual(s.prompt(), { verb: 'Walk into it to fight', name: 'Hungry Wolf', kind: 'encounter' });
+    travel(s, 'road'); walkTo(s, 17, 13); s.move('down');
+    assert.deepStrictEqual(s.prompt(), { verb: 'Walk into it to fight', name: 'Hungry Wolf Pack', kind: 'encounter' });
 });
 
 test('Integration: identical inputs give identical runs (seeded and deterministic end to end)', () => {

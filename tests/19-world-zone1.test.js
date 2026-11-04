@@ -70,10 +70,10 @@ test('Zone 1: walking into a visible enemy starts a normal fight; victory remove
     assert.deepStrictEqual([s.mapId, s.x, s.y], where, 'back on the map where you were');
     assert.doesNotMatch(log, /STARTING ROOM|Exits/, 'no text-game room description after a world fight');
     s.fightOver('grounds_weed_rats', 'victory');
-    assert.strictEqual(s.objectAt(5, 15), null, 'the rats are gone');
+    assert.strictEqual(s.objectAt(19, 18), null, 'the rats are gone');
     assert.strictEqual(s.move(s.facing).type, 'moved', 'their tile is walkable now');
     travel(s, 'house'); travel(s, 'grounds');
-    assert.strictEqual(s.objectAt(5, 15), null, 'and stay gone for the run');
+    assert.strictEqual(s.objectAt(19, 18), null, 'and stay gone for the run');
     assert.ok(g.data.rooms.hallway_of_chains.enemies.length, 'legacy rooms untouched');
 });
 
@@ -85,13 +85,13 @@ test('Zone 1: fleeing keeps the enemy, and it ignores you until you step away (n
     assert.strictEqual(g.mode, 'explore');
     assert.strictEqual(g.world.lastResult, 'fled');
     s.fightOver('road_wolf', 'fled');
-    assert.ok(s.objectAt(25, 13), 'the wolf is still there');
+    assert.ok(s.objectAt(17, 14), 'the wolf pack is still there');
     const again = s.move(s.facing);
     assert.deepStrictEqual([again.type, again.cooling], ['blocked', 'road_wolf'], 'holding the key into it does nothing');
     assert.strictEqual(g.mode, 'explore');
-    assert.deepStrictEqual([s.x, s.y, s.facing], [25, 14, 'up'], 'standing just below the wolf');
+    assert.deepStrictEqual([s.x, s.y, s.facing], [17, 13, 'down'], 'standing just above the pack');
     s.move('left'); assert.strictEqual(s.cooldown, 'road_wolf', 'still next to it (diagonally): still ignored');
-    s.move('down'); assert.strictEqual(s.cooldown, null, 'out of reach: it notices you again');
+    s.move('up'); assert.strictEqual(s.cooldown, null, 'out of reach: it notices you again');
     assert.strictEqual(contact(s, 'road_wolf').type, 'encounter', 'and you can choose to fight it');
 });
 

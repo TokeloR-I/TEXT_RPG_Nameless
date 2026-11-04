@@ -16,7 +16,7 @@ function make(cls, { skills = [], seed = 71 } = {}) {
     for (const k of skills) if (!bar.includes(k)) bar[bar.indexOf(null)] = k;
     const s = new WorldSession(WORLD, { engine: g });
     s.place('grounds', Object.keys(WORLD.maps.grounds.spawns)[0]);
-    s.x = 13; s.y = 31;
+    s.x = 41; s.y = 37;
     const sim = new ActionSim({ engine: g, session: s, rules: g.data.actionRules, seed });
     return { g, s, sim, slot: (name) => g.ensureSkillBar().indexOf(name) };
 }

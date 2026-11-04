@@ -13,7 +13,7 @@ function fight(cls) {
     g.player.hp = g.player.maxHp = 9999;
     const s = new WorldSession(WORLD, { engine: g });
     s.place('grounds', Object.keys(WORLD.maps.grounds.spawns)[0]);
-    s.x = 13; s.y = 31;
+    s.x = 41; s.y = 37;
     const sim = new ActionSim({ engine: g, session: s, rules: g.data.actionRules, seed: 69 });
     sim.engageGroup(sim.groups.grounds_weed_rats);
     const rat = sim.actors.find((a) => a.encounterId === 'grounds_weed_rats' && a.engineId);
