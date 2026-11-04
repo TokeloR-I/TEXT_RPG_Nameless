@@ -2103,11 +2103,18 @@
         rtFrame(now);   // before drawActor: a tick that re-renders the overlay gets its sprite drawn this same frame
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
-        const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id) }));   // action enemies are sim actors
+        const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id), crop: cropOn(o) }));   // action enemies are sim actors
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
+    }
+
+    /** What's growing on a field or garden bed (the engine's plotView), so the renderer can draw it. Pens draw their own animals. */
+    function cropOn(o) {
+        if (o.kind !== 'station' || typeof engine.plotView !== 'function') return null;
+        const v = engine.plotView(o.station);
+        return v && !v.livestock && v.produces ? v : null;
     }
 
     // Console helpers for testing and QA (not part of play): ensoDebug.goto('grounds', 'from_house')

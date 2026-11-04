@@ -33,6 +33,8 @@
         };
         const place = (o) => {
             const bx = o.x * 2, by = o.y * 2;
+            // An object that names its own size (a building you use from any side) keeps all of it.
+            if (o.w > 1 || o.h > 1) return { ...o, x: bx, y: by, w: (o.w || 1) * 2, h: (o.h || 1) * 2 };
             // An object on open ground takes its whole block, so it blocks, talks and fights from all of it (QA-33/34).
             if (!solid(bx, by) || !Object.keys(tileset).length) return { ...o, x: bx, y: by, w: 2, h: 2 };
             for (const [dx, dy] of BLOCK) {

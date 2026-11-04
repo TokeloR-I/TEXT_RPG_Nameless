@@ -2020,7 +2020,8 @@
                 homestead_sty: { name: 'pigsty', verb: 'Build', goldCost: 12, materials: {} },
                 homestead_coop: { name: 'hen coop', verb: 'Build', goldCost: 8, materials: {} }
             }, cropDefinitions: {
-                // Tended by hand, never by the clock: each 'tend' is one step (exploration.js). plantIn: the plots it may go in.
+                // plantIn: the plots it may go in. In the world (action mode) crops grow on the calm clock, farmingRules
+                // below (Tokelo, 2026-11-04); the text game, and livestock (`feed`), still count tendings (actionsToGrow).
                 'Barley Seed':   { produces: 'Barley', yield: 2, actionsToGrow: 2, plantIn: ['briarwell_bed', 'homestead_field_west', 'homestead_field_east'] },
                 'Wheat Seed':    { produces: 'Wheat', yield: 2, actionsToGrow: 2, plantIn: ['briarwell_bed', 'homestead_field_west', 'homestead_field_east'] },
                 'Seed Potato':   { produces: 'Potato', yield: 3, actionsToGrow: 2, plantIn: ['homestead_field_west', 'homestead_field_east'] },
@@ -2031,6 +2032,13 @@
                 // Livestock (Tokelo: meat needs farmed animals somewhere). Each tending feeds them one of `feed`.
                 'Piglet':        { produces: 'Pork', yield: 3, actionsToGrow: 3, plantIn: ['homestead_sty'], feed: ['Potato', 'Cabbage', 'Apple', 'Barley', 'Wheat'], plantVerb: 'Settled', harvestVerb: 'Butchered' },
                 'Hen':           { produces: 'Egg', yield: 2, actionsToGrow: 2, plantIn: ['homestead_coop'], feed: ['Wheat', 'Barley', 'Cabbage'], keeps: true, plantVerb: 'Settled', harvestVerb: 'Collected' }
+            }, farmingRules: {
+                // Tokelo (2026-11-04): "which plant grows that fast". A crop takes growSeconds of calm time (out of a
+                // fight) to ripen. Watering and weeding it once takes tendCutsSeconds off; a second time does nothing.
+                // A crop entry can set its own growSeconds. Livestock is fed instead and doesn't use these.
+                growSeconds: 120,
+                tendCutsSeconds: 60,
+                tendsPerCrop: 1
             }, recipeDefinitions: {
                 // Station recipes: offered by the place that makes them (Fenric's casks, the watermill, Oda's oven).
                 brew_briarwell_pale: { verb: 'Brewed', ingredients: { 'Barley': 2, 'Wild Hops': 1 }, output: 'Briarwell Pale' },

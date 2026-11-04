@@ -78,10 +78,11 @@
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
             return true;
         }
-        /** 'empty' | 'growing' | 'ready' for a homestead plot (pure). */
+        /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock
+         *  that has had all the watering and weeding it can use (src/engine/exploration.js). */
         plotState(id) {
-            const plot = this.player && this.player.homestead && this.player.homestead.plots && this.player.homestead.plots[id];
-            return !plot ? 'empty' : plot.remaining > 0 ? 'growing' : 'ready';
+            const v = this.plotView(id);
+            return !v ? 'empty' : v.ready ? 'ready' : v.canTend ? 'growing' : 'tended';
         }
         hasStoryFlag(flag) { return !!this.story && this.story.flags.includes(flag); }
         questState(id) { return this.story && this.story.quests[id] ? this.story.quests[id].state : 'unseen'; }

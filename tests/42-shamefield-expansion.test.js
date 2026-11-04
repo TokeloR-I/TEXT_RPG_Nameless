@@ -59,7 +59,8 @@ test('Shamefield rebuild: every quest marker in the square stands on the village
     for (const q of Object.values(story.quests)) for (const o of q.objectives || []) {
         if (!o.marker || o.marker.map !== 'shamefield') continue;
         n++;
-        assert.ok([...map.interactables, ...(map.encounters || [])].some((i) => i.x === o.marker.x && i.y === o.marker.y), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
+        const on = (i) => o.marker.x >= i.x && o.marker.y >= i.y && o.marker.x < i.x + (i.w || 1) && o.marker.y < i.y + (i.h || 1);   // the watermill is 4×4
+        assert.ok([...map.interactables, ...(map.encounters || [])].some(on), `${o.id}: marker ${o.marker.x},${o.marker.y}`);
     }
     assert.ok(n >= 6);
 });
@@ -93,4 +94,46 @@ test("Baker's Lane rebuild: Oda and Greta's quest markers stand on them, and eve
         assert.ok(inspect(s, o.id).type !== 'none', `${o.id} can be reached and responds`);
         if (o.kind === 'npc') s.engine.act({ type: 'dialogue_leave' });
     }
+});
+
+test('Watermill (Tokelo, 2026-11-04): the whole lower mill answers E, at the front door too, in the 32 px and 16 px worlds', () => {
+    const { doubleWorld } = require('../src/world/scale16.js');
+    const story = require('../src/story/chapter1.js');
+    for (const [world, k] of [[ZONE1, 1], [doubleWorld(ZONE1), 2]]) {
+        const g = new GameEngine({ seed: 4 });
+        g.start(); g.act({ type: 'choose_class', classId: 'mage' }); g.act({ type: 'enter_world' });
+        const s = new WorldSession(world, { engine: g });
+        s.place('shamefield', 'from_tollway');
+        // In front of the door (32 px: 6,14), facing up; and by the east wall (8,11), facing left.
+        for (const [x, y, facing] of [[6, 14, 'up'], [7, 14, 'up'], [8, 11, 'left'], [3, 10, 'right']]) {
+            s.x = x * k + (facing === 'right' ? k - 1 : 0); s.y = y * k; s.facing = facing;   // the cell of the block nearest the mill
+            assert.ok(!s.isBlocked(s.x, s.y), `${x},${y} is open ground`);
+            const p = s.prompt();
+            assert.ok(p && p.kind === 'station' && p.name === 'Old watermill', `${k === 2 ? '16' : '32'} px, ${x},${y} ${facing}: ${JSON.stringify(p)}`);
+        }
+        s.x = 6 * k; s.y = 14 * k; s.facing = 'up';
+        assert.strictEqual(s.interact().type, 'talk');
+        assert.ok(g.getAvailableActions().actions.some((a) => a.type === 'dialogue_choice'), 'the mill opens its choices');
+    }
+    // The quest marker stands on the mill's front.
+    const mark = story.quests.SF1.objectives.find((o) => o.id === 'mill').marker;
+    assert.deepStrictEqual([mark.x, mark.y], [6, 13]);
+});
+
+test('Watermill: without rye during Bread and Beer it says where the rye is; with a sheaf it grinds flour', () => {
+    const { g, s } = village();
+    g.act({ type: 'unlock_events' });
+    g.story.quests.SF1 = { state: 'active', done: [] };
+    s.x = 6; s.y = 14; s.facing = 'up';
+    s.interact();
+    const no = g.getAvailableActions().actions.find((a) => a.type === 'dialogue_choice' && /no rye/.test(a.text));
+    assert.ok(no, 'a hint choice');
+    const r = g.act({ type: 'dialogue_choice', choiceId: no.choiceId });
+    assert.ok(r.events.some((e) => /field fence behind the square/.test(e.text || '')));
+    g.act({ type: 'dialogue_leave' });
+    g.player.inventory.push('Rye Sheaf');
+    s.interact();
+    const grind = g.getAvailableActions().actions.find((a) => a.type === 'dialogue_choice' && /Grind the rye/.test(a.text));
+    g.act({ type: 'dialogue_choice', choiceId: grind.choiceId });
+    assert.ok(g.player.inventory.includes('Rye Flour'));
 });

@@ -199,9 +199,10 @@
             const c = this.combat;
             const p = this.player;
             if (this.rtActive()) {   // real-time: an item shares the global cooldown, and time goes on
-                const problem = this.rtActionProblem(item, false);
+                const problem = this.rtItemProblem(item);
                 if (problem) { this.refuseCombat(problem.code, problem.message); return; }
-                if (this.applyItem(item)) { this.rtBeginPlayerAction(); this.rtEndPlayerAction(item, false, { item: true }); }
+                const food = this.isFood(this.itemDef(item));
+                if (this.applyItem(item)) { this.rtBeginPlayerAction(); this.rtEndPlayerAction(item, false, { item: food ? 'food' : true }); }
                 return;
             }
             c.awaitingPlayer = false;
@@ -392,7 +393,7 @@
             return items.map((item) => {
                 const def = this.itemDef(item);
                 const opt = { type: 'use_item', item, count: p.inventory.filter((i) => i === item).length, enabled: true };
-                const timing = this.rtActionProblem(item, false);   // real-time: same check, same order as combatUseItem()
+                const timing = this.rtItemProblem(item);   // real-time: same check, same order as combatUseItem()
                 if (timing) { opt.enabled = false; opt.reason = { code: timing.code, message: timing.message }; if (timing.remainingMs != null) opt.readyInMs = timing.remainingMs; }
                 else if (this.isFood(def)) { const b = this.foodBlock(item); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }

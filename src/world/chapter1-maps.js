@@ -215,7 +215,9 @@
                 // The mill falls (west bank, reached by the lane behind the slate house):
                 { id: 'village_mill_bottles', kind: 'inspect', x: 2, y: 4, name: 'Empty bottles', sprite: 'bottle',
                     text: 'A heap of empty bottles in the spray of the falls, every one stamped BRIARWELL PALE. Somebody drank here, often, and alone.' },
-                { id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, name: 'Watermill', verb: 'Use' },
+                // The whole lower mill answers E (Tokelo, 2026-11-04: "I dont see any interactable thing"): before, one
+                // cell on the back wall over the river did. Face the front door, either side, and you go in.
+                { id: 'village_watermill', kind: 'station', station: 'watermill', x: 4, y: 10, w: 4, h: 4, name: 'Old watermill', verb: 'Go into' },
                 { id: 'village_wild_hops', kind: 'pickup', x: 3, y: 11, item: 'Wild Hops', name: 'Wild hops', sprite: 'bundle', when: { quests: { SF1: 'active' } },
                     text: 'Wild hops climb the old mill-race fence, green and sticky and nothing like Fenric\'s brown ones.' },
                 // After Bread and Beer the hops keep growing on the falls bank (the kitchen: Fenric brews with you).

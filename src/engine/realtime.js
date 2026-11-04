@@ -450,6 +450,17 @@
             return null;
         }
 
+        /**
+         * Why this item can't be used in a real-time fight right now, or null. Meals and beer (src/engine/kitchen.js)
+         * skip the 1 s global cooldown, so dishes can be stacked one after another (Tokelo, 2026-11-04: "I can only
+         * eat one at a time"); potions and bandages still share it. A stun still stops everything.
+         */
+        rtItemProblem(item) {
+            const problem = this.rtActionProblem(item, false);
+            if (problem && problem.code === 'GLOBAL_COOLDOWN' && this.isFood(this.itemDef(item))) return null;
+            return problem;
+        }
+
         /** The player's action is one opportunity (T-0 hooks), like an enemy's. useSkill() / combatUseItem() call these. */
         rtBeginPlayerAction() {
             this.combat.rt.actorId = this.player.id;
@@ -459,7 +470,8 @@
         rtEndPlayerAction(name, isBasic, { item = false } = {}) {
             if (!this.rtActive()) return;   // that blow ended the fight
             this.endOpportunity(this.player);
-            if (item) this.rtStartGcd(); else this.rtStartCooldowns(name, isBasic);
+            if (item === 'food') { /* meals and beer neither wait on nor start the global cooldown */ }
+            else if (item) this.rtStartGcd(); else this.rtStartCooldowns(name, isBasic);
             this.checkBattleEnd();
         }
 
