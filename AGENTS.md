@@ -84,6 +84,11 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
   In a real-time fight every status is timed (turns × `secondsPerTurn`) and every action is still one opportunity
   (the T-0 hooks), so both modes share one rules path. Don't add a third timing rule; extend `realtimeRules`.
 - Randomness only through `engine.rng()` / `engine.randInt()` so runs are reproducible from a seed.
+- **Saves must survive game updates** (playtesters keep one save while chapters ship; `src/engine/save.js`). A change
+  to the save layout bumps `FORMAT_VERSION` and adds a step to `MIGRATIONS`; never edit an old step. New content
+  (quests, rooms, player fields, gear slots) is filled in on load by `reconcileSave()`. New story reached by a
+  one-shot effect an old save already passed (e.g. Chapter 1's last `onComplete`) also needs a `catchUp` entry in
+  the story data. Never rename the browser save key `enso.world.save.v1`, or players lose their save.
 
 ## 4. Design authority
 - **Approved design lives in `docs/design/`.** Implement what it says. If code and design disagree, the design wins.

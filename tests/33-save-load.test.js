@@ -14,7 +14,8 @@ test('Save: a SaveGame v1 is plain JSON with the spec header, and the engine ver
     const save = g.serialize({ label: 'Hallway', createdAt: '2026-10-23T20:00:00Z', attachments: { note: 'x' } });
     assert.deepStrictEqual(roundTrip(save), save, 'JSON-safe');
     assert.strictEqual(save.format, 'enso-save');
-    assert.strictEqual(save.formatVersion, 1);
+    assert.strictEqual(save.formatVersion, 2);
+    assert.deepStrictEqual(save.game, { version: save.engine.version, chapter: null });
     assert.strictEqual(save.engine.version, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version);
     assert.deepStrictEqual(save.meta, { label: 'Hallway', createdAt: '2026-10-23T20:00:00Z' });
     assert.strictEqual(save.rng.seed, 42);
@@ -49,7 +50,7 @@ test('Save: bad saves are refused with the spec codes and leave the current game
     const good = g.serialize();
     const cases = [
         [null, 'FORMAT_UNKNOWN'], [{ format: 'other' }, 'FORMAT_UNKNOWN'],
-        [{ ...good, formatVersion: 2 }, 'VERSION_UNSUPPORTED'],
+        [{ ...good, formatVersion: 3 }, 'VERSION_UNSUPPORTED'],
         [{ ...good, state: undefined }, 'CORRUPT'],
         [{ ...good, state: { ...good.state, mode: 'flying' } }, 'CORRUPT'],
         [{ ...good, state: { ...good.state, combat: null } }, 'CORRUPT'],
@@ -116,4 +117,107 @@ test('Save: load never runs code from a save (JSON in, plain assignment out)', (
     assert.strictEqual(globalThis.__pwned, undefined);
     assert.strictEqual({}.polluted, undefined);
     assert.strictEqual(g.player.name, '"); globalThis.__pwned = true; ("');
+});
+
+// ---------------------------------------------------------------------------------------------
+// Saves outlive game updates: a playtester keeps one save while chapters and areas ship.
+// ---------------------------------------------------------------------------------------------
+const CHAPTER1 = require('../src/story/chapter1.js');
+const storyWith = (fn) => { const s = JSON.parse(JSON.stringify(CHAPTER1)); fn(s); return s; };
+const NEW_QUEST = { title: 'The Road North', kind: 'main', xp: 5, summary: 'Chapter 2 begins.', objectives: [{ id: 'go', text: 'Walk north', on: { type: 'enter', id: 'nowhere_yet' } }], onComplete: [] };
+function worldGame(seed = 11, options = {}) {
+    const g = new GameEngine({ seed, ...options });
+    g.start(); g.act({ type: 'choose_class', classId: 'warrior' }); g.act({ type: 'set_identity', name: 'Tester', appearance: 1 }); g.act({ type: 'enter_world' });
+    g.act({ type: 'world_inspect', objectId: 'cellar_inscription' });
+    g.act({ type: 'world_enter', mapId: 'house' });
+    return g;
+}
+
+test('Save updates: a save from this version loads unchanged (no reconciling, no warnings)', () => {
+    const g = worldGame();
+    const copy = GameEngine.fromSave(roundTrip(g.serialize()));
+    assert.strictEqual(copy.snapshot().json, g.snapshot().json);
+    assert.deepStrictEqual(copy.lastLoad.warnings, []);
+    assert.deepStrictEqual(copy.lastLoad.game, { version: SaveMethods.ENGINE_VERSION, chapter: CHAPTER1.id });
+});
+
+test('Save updates: a format 1 save is migrated (input untouched) and loads with an UPGRADED note', () => {
+    const v1 = roundTrip(worldGame().serialize());
+    v1.formatVersion = 1; delete v1.game;
+    const before = JSON.stringify(v1);
+    const m = SaveMethods.migrateSave(v1);
+    assert.strictEqual(JSON.stringify(v1), before, 'migrateSave never edits the save it was given');
+    assert.strictEqual(m.save.formatVersion, SaveMethods.FORMAT_VERSION);
+    assert.deepStrictEqual(m.save.game, { version: v1.engine.version, chapter: CHAPTER1.id });
+    const copy = GameEngine.fromSave(v1);
+    assert.ok(copy.lastLoad.warnings.some((w) => w.code === 'UPGRADED'));
+    assert.strictEqual(copy.questState('Q01'), 'complete');
+    for (let v = 1; v < SaveMethods.FORMAT_VERSION; v++) assert.strictEqual(typeof SaveMethods.MIGRATIONS[v], 'function', `a migration from format ${v}`);
+});
+
+test('Save updates: quests added after the save start unseen, and effects that name them do not break', () => {
+    const save = roundTrip(worldGame().serialize());
+    const story = storyWith((s) => {
+        s.quests.C2Q01 = NEW_QUEST;
+        s.triggers.push({ id: 'c2_rumour', on: { type: 'inspect', id: 'cellar_old_purse' }, effects: [{ available: 'C2Q01' }] });
+    });
+    const copy = GameEngine.fromSave(save, { storyData: story });
+    assert.strictEqual(copy.questState('C2Q01'), 'unseen');
+    assert.ok(copy.lastLoad.warnings.some((w) => w.code === 'CONTENT_UPDATED' && /1 new quest/.test(w.message)));
+    copy.act({ type: 'world_enter', mapId: 'cellar' });
+    copy.act({ type: 'world_inspect', objectId: 'cellar_old_purse' });
+    assert.strictEqual(copy.questState('C2Q01'), 'available');
+    copy.getJournal();
+});
+
+test('Save updates: a quest removed from the game is set aside, never crashes the journal or events', () => {
+    const g = worldGame();
+    const active = Object.keys(g.story.quests).find((id) => g.questState(id) === 'active');
+    assert.ok(active, 'some quest is active');
+    const story = storyWith((s) => { delete s.quests[active]; });
+    const copy = GameEngine.fromSave(roundTrip(g.serialize()), { storyData: story });
+    assert.strictEqual(copy.story.quests[active], undefined);
+    assert.strictEqual(copy.story.retiredQuests[active].state, 'active');
+    assert.ok(!copy.trackedQuestIds().includes(active));
+    copy.getJournal(); copy.getAvailableActions();
+    copy.act({ type: 'world_enter', mapId: 'cellar' });
+    assert.strictEqual(copy.errors.length, 0, copy.errors.map((e) => e.message).join('; '));
+});
+
+test('Save updates: character fields and gear slots added later get a new character\'s defaults', () => {
+    const save = roundTrip(worldGame().serialize());
+    delete save.state.player.gold; delete save.state.player.equipment.accessory; delete save.state.player.resource.regen;
+    const copy = GameEngine.fromSave(save);
+    assert.strictEqual(copy.player.gold, 0);
+    assert.ok('accessory' in copy.player.equipment);
+    assert.ok('regen' in copy.player.resource);
+    assert.ok(copy.lastLoad.warnings.some((w) => w.code === 'CONTENT_UPDATED'));
+});
+
+test('Save updates: a conversation that no longer exists is closed on load', () => {
+    const save = roundTrip(worldGame().serialize());
+    save.state.story.dialogue = { npcId: 'npc_cut_from_the_game', node: 'hello' };
+    const copy = GameEngine.fromSave(save);
+    assert.strictEqual(copy.story.dialogue, null);
+    assert.notStrictEqual(copy.getAvailableActions().awaiting, 'dialogue');
+});
+
+test('Save updates: story catch-up runs once for older saves that already passed its point, never for new games', () => {
+    const catchUp = [{ id: 'chapter2_open', if: { quests: { Q01: 'complete' } }, effects: [{ start: 'C2Q01' }] }];
+    const story = storyWith((s) => { s.quests.C2Q01 = NEW_QUEST; s.catchUp = catchUp; });
+    // A playtester's save from before Chapter 2 shipped: Q01 is done, so Chapter 2 opens on load.
+    const old = GameEngine.fromSave(roundTrip(worldGame().serialize()), { storyData: story });
+    assert.strictEqual(old.questState('C2Q01'), 'active');
+    assert.ok(old.story.claimed.includes('catchup:chapter2_open'));
+    const again = GameEngine.fromSave(roundTrip(old.serialize()), { storyData: story });
+    assert.strictEqual(again.snapshot().json, old.snapshot().json, 'runs once');
+    // A new game on the new version never runs it: it reaches Chapter 2 through the story itself.
+    const fresh = worldGame(11, { storyData: story });
+    assert.ok(fresh.story.claimed.includes('catchup:chapter2_open'));
+    assert.strictEqual(fresh.questState('C2Q01'), 'unseen');
+    // A condition not met yet is spent too: the normal story path gets there later.
+    const early = new GameEngine({ seed: 3 });
+    early.start(); early.act({ type: 'choose_class', classId: 'mage' }); early.act({ type: 'set_identity', name: 'E', appearance: 0 }); early.act({ type: 'enter_world' });
+    const e2 = GameEngine.fromSave(roundTrip(early.serialize()), { storyData: story });
+    assert.strictEqual(e2.questState('C2Q01'), 'unseen');
 });

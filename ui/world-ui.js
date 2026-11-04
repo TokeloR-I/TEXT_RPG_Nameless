@@ -187,7 +187,7 @@
         for (const el of [els.hud, els.dialog, els.pause, els.combat, els.prompt]) el.hidden = true;
         els.title.hidden = false;
         creator = { step: 'name', name: creator ? creator.name : '', cls: classes[0], look: 0, ...defaultCosmetics() };
-        creatorStep(readSave() ? 'start' : 'name');
+        creatorStep(readSave() || readBackup() ? 'start' : 'name');
     }
     const CREATOR_FLOW = ['name', 'class', 'look', 'hairStyle', 'hairColor', 'outfit', 'outfitColor', 'hat', 'weapon', 'shield'];
     const LAST_STEP = CREATOR_FLOW[CREATOR_FLOW.length - 1];
@@ -217,10 +217,16 @@
         menu = null;
         if (step === 'start') {
             const save = readSave();
-            const when = save && save.meta && save.meta.createdAt ? new Date(save.meta.createdAt).toLocaleString() : '';
+            const backup = readBackup();
+            const about = (sv) => {
+                const when = sv && sv.meta && sv.meta.createdAt ? new Date(sv.meta.createdAt).toLocaleString() : '';
+                return `${(sv && sv.meta && sv.meta.label) || 'Saved game'}${when ? ` · ${when}` : ''} · v${saveVersion(sv)}`;
+            };
             menu = makeMenu([
-                { label: 'Continue', sub: `${(save && save.meta && save.meta.label) || 'Saved game'}${when ? ` · ${when}` : ''}`, action: () => continueGame(save) },
-                { label: 'New game', sub: 'The saved game stays until you save over it.', action: () => creatorStep('name') }
+                ...(save ? [{ label: 'Continue', sub: about(save), action: () => continueGame(save) }] : []),
+                { label: 'New game', sub: save ? 'Your save is kept as the backup once the new game saves.' : 'Wake in the cellar.', action: () => creatorStep('name') },
+                { label: 'Load save file', sub: 'A save file you exported (or drop it on this screen). Older versions load too.', action: pickSaveFile },
+                ...(backup ? [{ label: 'Load backup', sub: about(backup), action: () => continueGame(backup) }] : [])
             ], { render: renderTitle });
         }
         const options = step === 'class' ? classes.map(key => DATA.basePlayerClasses[key].name)
@@ -254,7 +260,7 @@
                 <p class="subtitle">${sub}</p>
                 <p class="prompt">Who wakes in the cellar?</p>
                 <label class="name-field">Name<input id="hero-name" maxlength="${NAME_MAX}" autocomplete="off" spellcheck="false" placeholder="${esc(fallback)}" value="${esc(creator.name)}"></label>
-                <div class="creator-nav"><button type="button" data-creator-next>Next →</button></div><p class="keys">Type a name (or leave it blank) · Enter continue</p>`;
+                <div class="creator-nav"><button type="button" data-load-save>Load save file</button><button type="button" data-creator-next>Next →</button></div><p class="keys">Type a name (or leave it blank) · Enter continue · or drop a save file here</p>`;
             const input = els.title.querySelector('#hero-name');
             input.addEventListener('input', () => { creator.name = input.value; });
             input.addEventListener('keydown', (ev) => {
@@ -262,6 +268,7 @@
                 if (ev.key === 'Enter') { ev.preventDefault(); creatorNext(); }
             });
             els.title.querySelector('[data-creator-next]').addEventListener('click', creatorNext);
+            els.title.querySelector('[data-load-save]').addEventListener('click', pickSaveFile);
             setTimeout(() => input.focus(), 0);
             return;
         }
@@ -394,30 +401,119 @@
         return m ? parseInt(m[1], 10) : undefined;
     }
 
-    // Save / continue: the engine makes and checks the save (Phase 1 spec §5); this page keeps one slot in the
-    // browser. Your place on the map travels in the save's attachments (the world owns space).
-    const SAVE_KEY = 'enso.world.save.v1';
-    function readSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } }
-    function saveGame() {
+    // Save / continue: the engine makes and checks the save (Phase 1 spec §5, src/engine/save.js); this page keeps
+    // one slot in the browser plus one backup. Your place on the map travels in the save's attachments (the world
+    // owns space). Saves outlive game updates: the engine migrates older formats and fills in new content on load.
+    // A save file (export/import) carries a run between browsers, folders and new builds of the game, which
+    // browser storage alone can't promise for a double-clicked file.
+    const SAVE_KEY = 'enso.world.save.v1';            // the key never changes, so every older build's save is found
+    const BACKUP_KEY = 'enso.world.save.v1.backup';   // the previous run, or this run as it was before a game update
+    const AUTOSAVE_MS = 60000;
+    let runId = null;                                 // one per new game, so the backup only takes another run's save
+    let autosave = { at: 0, map: null, pending: false };
+    const readKey = (key) => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } };
+    function readSave() { return readKey(SAVE_KEY); }
+    function readBackup() { return readKey(BACKUP_KEY); }
+    const newRunId = () => `run-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+    const saveVersion = (save) => (save && ((save.game && save.game.version) || (save.engine && save.engine.version))) || '?';
+    function makeSave() {
         const p = engine.getState().player;
-        const save = engine.serialize({ label: `${p.name} · Lv ${p.level} · ${WORLD.maps[session.mapId].name}`, createdAt: new Date().toISOString(),
-            attachments: { world: session.getState(), seen: [...seen], cosmetics: view.cosmetics || defaultCosmetics() } });
-        try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); return 'Saved. Continue from the title screen next time.'; } catch (e) { return `Couldn't save in this browser (${e.message}).`; }
+        return engine.serialize({ label: `${p.name} · Lv ${p.level} · ${WORLD.maps[session.mapId].name}`, createdAt: new Date().toISOString(),
+            attachments: { world: session.getState(), seen: [...seen], cosmetics: view.cosmetics || defaultCosmetics(), runId } });
     }
+    function saveGame({ auto = false } = {}) {
+        const save = makeSave();
+        try {
+            // Keep the slot's old save as the backup when it is another run, or was made by another build of the game.
+            const old = localStorage.getItem(SAVE_KEY);
+            const prev = old && (() => { try { return JSON.parse(old); } catch (e) { return null; } })();
+            if (prev && ((prev.attachments || {}).runId !== runId || (prev.data || {}).hash !== save.data.hash)) localStorage.setItem(BACKUP_KEY, old);
+            localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+            return auto ? null : 'Saved. Continue from the title screen next time.';
+        } catch (e) { return auto ? null : `Couldn't save in this browser (${e.message}). Export a save file instead.`; }
+    }
+    /** A quiet save whenever you're free to move: a new area, and every minute (never mid-fight or mid-talk). */
+    function canAutosave() {
+        if (!engine || screen !== 'explore' || modal || fade || anim || battle || engine.mode !== 'explore') return false;
+        if (engine.story && engine.story.dialogue) return false;
+        return !engine.canSave || engine.canSave().ok;
+    }
+    function autosaveTick(now) {
+        if (!engine || !session || screen !== 'explore') return;
+        if (session.mapId !== autosave.map) { if (autosave.map !== null) autosave.pending = true; autosave.map = session.mapId; }
+        if (!autosave.pending && now - autosave.at < AUTOSAVE_MS) return;
+        if (!canAutosave()) return;
+        autosave = { at: now, map: session.mapId, pending: false };
+        saveGame({ auto: true });
+    }
+    const resetAutosave = () => { autosave = { at: performance.now(), map: session ? session.mapId : null, pending: false }; };
+    window.addEventListener('pagehide', () => { if (canAutosave()) saveGame({ auto: true }); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && canAutosave()) saveGame({ auto: true }); });
+
+    /** Download the run as a file the player keeps (works from a double-clicked file too). */
+    function exportSave() {
+        const ok = engine.canSave ? engine.canSave() : { ok: true };
+        let save;
+        if (ok.ok) { save = makeSave(); saveGame({ auto: true }); } else save = readSave();
+        if (!save) return ok.error ? ok.error.message : 'Nothing to export yet.';
+        downloadSave(save);
+        return ok.ok ? 'Save file downloaded. Load it from the title screen of this or any newer version of the game.' : `${ok.error.message} Your last save was exported instead.`;
+    }
+    function downloadSave(save) {
+        const who = String((save.state && save.state.player && save.state.player.name) || 'save').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'save';
+        const day = String((save.meta && save.meta.createdAt) || new Date().toISOString()).slice(0, 10);
+        const url = URL.createObjectURL(new Blob([JSON.stringify(save, null, 1)], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = `ensos-last-stand-${who}-${day}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    /** Read a save file the player picked (or dropped on the title screen), then continue it. */
+    function importSaveFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onerror = () => toast("That file couldn't be read.");
+        reader.onload = () => {
+            let save;
+            try { save = JSON.parse(String(reader.result)); } catch (e) { toast("That file isn't a save file."); return; }
+            if (continueGame(save)) saveGame({ auto: true });   // keep it in this browser too
+        };
+        reader.readAsText(file);
+    }
+    function pickSaveFile() {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.json,application/json';
+        input.addEventListener('change', () => importSaveFile(input.files && input.files[0]));
+        input.click();
+    }
+    window.addEventListener('dragover', (ev) => { if (screen === 'title') ev.preventDefault(); });
+    window.addEventListener('drop', (ev) => {
+        if (screen !== 'title') return;
+        ev.preventDefault();
+        importSaveFile(ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0]);
+    });
+
     function continueGame(save) {
         let loaded;
-        try { loaded = ENSO.GameEngine.fromSave(save, { combatMode: COMBAT_MODE }); } catch (e) { toast("That save couldn't be loaded."); creatorStep('name'); return; }
+        try { loaded = ENSO.GameEngine.fromSave(save, { combatMode: COMBAT_MODE }); } catch (e) {
+            toast(`That save couldn't be loaded. ${String(e.message).replace(/^Can't load save: [A-Z_]+: /, '')}`);
+            return false;
+        }
         engine = loaded;
         window.enso = engine;
         session = new WorldSession(WORLD, { engine });
         session.restorePosition(((engine.lastLoad.attachments || {}).world) || null);
         window.ensoWorld = session;
+        runId = (engine.lastLoad.attachments || {}).runId || newRunId();
         actionStart();
         seen.clear();
         for (const id of ((engine.lastLoad.attachments || {}).seen) || []) seen.add(id);
         enterExplore(engine.player.className, engine.player.appearance || 0, (engine.lastLoad.attachments || {}).cosmetics || defaultCosmetics());
-        const warn = engine.lastLoad.warnings.length ? ['(The game has been updated since this save. It loaded anyway.)'] : [];
+        resetAutosave();
+        const updated = engine.lastLoad.warnings.some((w) => w.code === 'DATA_CHANGED' || w.code === 'UPGRADED' || w.code === 'CONTENT_UPDATED');
+        const warn = updated ? [`(This save is from version ${saveVersion(save)}. The game has been updated since, and your progress carried over.)`] : [];
         openDialog([`Welcome back, ${engine.player.name}.`, ...warn], null, afterStory);
+        return true;
     }
     function enterExplore(cls, look, cosmetics = defaultCosmetics()) {
         battle = null;
@@ -437,6 +533,7 @@
     function startGame(cls, name, look, cosmetics = defaultCosmetics()) {
         engine = new ENSO.GameEngine({ seed: seedFromUrl(), combatMode: COMBAT_MODE });
         window.enso = engine;                 // handy from the browser console
+        runId = newRunId();
         engine.start();
         engine.act({ type: 'choose_class', classId: cls });
         if (STORY) engine.act({ type: 'set_identity', name: name || '', appearance: look || 0 });
@@ -446,6 +543,7 @@
         actionStart();
         seen.clear();
         enterExplore(cls, look || 0, cosmetics);
+        resetAutosave();
         openDialog(WORLD.intro, null);
     }
 
@@ -774,8 +872,8 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
-        { id: 'settings', label: 'Settings', sub: 'Display, controls and this run.' },
-        { id: 'save', label: 'Save game', sub: 'Keeps your place in this browser (one save slot).' },
+        { id: 'settings', label: 'Settings', sub: 'Display, controls, save files and this run.' },
+        { id: 'save', label: 'Save game', sub: 'Keeps your place in this browser. It also saves itself every minute and in each new area. Settings can export a save file.' },
         { id: 'quit', label: 'Quit to title', sub: 'Anything since your last save is lost.' }
     ];
     let mmTabs = MM_TABS_ALL;
@@ -833,6 +931,7 @@
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
             if (ENSO.gfx && ENSO.gfx.setQuality) items.push({ label: `Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}`, sub: 'High: lighting, bloom and grading. Low: plain canvas for weak devices. Applies on next load.',
                 action: again(() => { const q = gfxQuality() === 'low' ? 'high' : 'low'; ENSO.gfx.setQuality(q); mm.note = `Graphics: ${q === 'low' ? 'Low' : 'High'}. Reload the page to apply.`; }) });
+            items.push({ label: 'Export save file', sub: 'Download your save. Load it from the title screen of a newer version of the game, or on another computer.', action: again(() => { mm.note = exportSave(); }) });
         }
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
@@ -2141,6 +2240,7 @@
             requestAnimationFrame(frame);
             return;
         }
+        autosaveTick(now);
         if (anim) {
             const k = Math.min(1, (now - anim.t0) / (STEP_MS * ((WORLD.maps[view.mapId].tileSize || 32) / 32)));
             view.x = anim.fx + (anim.tx - anim.fx) * k;

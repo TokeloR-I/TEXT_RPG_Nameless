@@ -52,6 +52,8 @@
             if (!data || this.story) return;
             this.story = { chapter: data.id, flags: [], quests: {}, seen: [], claimed: [], dialogue: null, tracked: [] };
             for (const id of Object.keys(data.quests)) this.story.quests[id] = { state: 'unseen', step: 0 };
+            // A new game meets later chapters the normal way; catch-up steps are only for older saves (src/engine/save.js).
+            for (const c of data.catchUp || []) this.story.claimed.push(`catchup:${c.id}`);
             this.applyStoryEffects((data.start && data.start.effects) || [], { quiet: true });
         }
 
@@ -106,7 +108,7 @@
             for (const e of effects || []) {
                 if (e.flag && !this.story.flags.includes(e.flag)) this.story.flags.push(e.flag);
                 if (e.unflag) this.story.flags = this.story.flags.filter((f) => f !== e.unflag);
-                if (e.available && this.questState(e.available) === 'unseen') this.story.quests[e.available].state = 'available';
+                if (e.available && this.questState(e.available) === 'unseen' && this.story.quests[e.available]) this.story.quests[e.available].state = 'available';
                 if (e.say) this.say(e.say, { important: !!e.important });
                 if (e.item) this.storyGiveItem(e.item, e.key || `item:${e.item}`);
                 if (e.removeItem) { const i = this.player.inventory.indexOf(e.removeItem); if (i !== -1) this.player.inventory.splice(i, 1); }
@@ -172,7 +174,7 @@
         currentObjective(id) {
             const def = this.storyContent().quests[id];
             const q = this.story.quests[id];
-            return q && q.state === 'active' ? def.objectives[q.step] || null : null;
+            return q && def && q.state === 'active' ? def.objectives[q.step] || null : null;
         }
 
         announceObjective(id, opts = {}) {
