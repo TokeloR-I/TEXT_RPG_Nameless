@@ -670,7 +670,7 @@
     // Which creature to draw for an enemy key (battle cards) and for an encounter sprite (map).
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
-        weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', shackled_ghoul_stronger: 'ghoul',
+        weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
         watch_constable: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
     };
 
@@ -690,6 +690,15 @@
         gnawer(g, px, py, T, t) { creatures.rat(g, px + 7, py + 3, t + 200, true); creatures.gnawer(g, px - 4, py - 2, t); },
         cultists(g, px, py, T, t) { creatures.cultist(g, px - 6, py, t); creatures.cultist(g, px + 6, py - 3, t + 500); },
         ghoul(g, px, py, T, t) { creatures.ghoul(g, px, py, t); },
+        // Hex-eyed crows (fallback when the enemy art isn't loaded): three dark birds on the ledge, red eyes, wings twitching.
+        crows(g, px, py, T, t) {
+            for (const [dx, dy, ph] of [[6, 18, 0], [16, 12, 400], [24, 19, 800]]) {
+                const w = Math.round(Math.sin(((t || 0) + ph) / 220) * 1.5);
+                rect(g, px + dx - 3, py + dy, 7, 4, '#262738'); rect(g, px + dx + 3, py + dy - 2, 3, 3, '#262738');
+                rect(g, px + dx - 5, py + dy - 1 + w, 3, 2, '#3f4054'); rect(g, px + dx + 2, py + dy - 1 - w, 3, 2, '#3f4054');
+                rect(g, px + dx + 6, py + dy - 1, 2, 1, '#d0c5a1'); rect(g, px + dx + 4, py + dy - 2, 1, 1, '#e0484a');
+            }
+        },
         constables(g, px, py, T, t) { creatures.constable(g, px - 6, py, t); creatures.constable(g, px + 6, py - 3, t + 400); },
         warden(g, px, py, T, t) { creatures.warden(g, px, py, t); },
         strongbox(g, px, py, T) {

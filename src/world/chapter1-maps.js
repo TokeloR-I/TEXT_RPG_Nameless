@@ -596,6 +596,13 @@
                     text: 'Beyond the causeway the ground climbs. Crows watch you from every branch.' }
             ],
             encounters: [
+                // Tokelo 2026-11-04 ("add more enemy NPCs leading up to the Warden"): two Broken Oath lookouts across the
+                // orchard's open middle rows. Each spots you from `detect` px, and between them they cover every column of
+                // rows 10-11, so the way north always meets one of them.
+                { id: 'orchard_east_lookouts', x: 19, y: 10, detect: 200, name: 'Broken Oath Lookouts', enemies: ['cult_zealot', 'cult_acolyte', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    text: 'Three grey robes among the apple trees, one of them twice the size of the others and dragging a chain flail. "The orchard is closed," the big one says. "By oath."' },
+                { id: 'orchard_west_lookouts', x: 7, y: 11, detect: 200, name: 'Broken Oath Watch', enemies: ['cult_zealot', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    text: 'A zealot and an acolyte keep watch from the west rows, a bowl of ash between them. The acolyte points at you. The zealot is already walking.' },
                 { id: 'orchard_cultists', gate: true, x: 13, y: 3, name: 'Broken Oath Cultists', enemies: ['cult_acolyte', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
                     text: 'Two figures in grey robes chant in the old causeway, scraping a circle into the stones. One looks up at you, and for a moment seems almost hopeful. Then afraid.' }
             ],
@@ -657,6 +664,11 @@
                 { id: 'featherwatch_north', x: 12, y: 0, trigger: 'step', toMap: 'sanctuary', toSpawn: 'from_featherwatch' }
             ],
             encounters: [
+                // Tokelo 2026-11-04: more on the climb. Both hold a one-tile pass (row 14 and the row 9 ledge), so they are fought.
+                { id: 'featherwatch_rearguard', gate: true, x: 5, y: 14, name: 'Oathbound Rearguard', enemies: ['cult_zealot', 'cult_acolyte', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    text: 'The last of the Broken Oath hold the foot of the climb. They have scraped their circle into the rock here too, and they will not let you step over it.' },
+                { id: 'featherwatch_crows', gate: true, x: 8, y: 9, name: 'Hex-Eyed Crows', enemies: ['carrion_crow', 'carrion_crow', 'carrion_crow'], trigger: 'contact', sprite: 'crows',
+                    text: 'Three crows on the ledge, picking at something the cult left behind. Their eyes are the wrong red. They are not the Warden\'s birds any more.' },
                 { id: 'featherwatch_ghoul', gate: true, x: 12, y: 7, name: 'Ritual-Scarred Ghoul', enemies: ['shackled_ghoul_stronger'], trigger: 'contact', sprite: 'ghoul',
                     text: 'A ghoul, scarred with ritual cuts, strains at a snapped chain in the narrow path. It got loose from somewhere above.' }
             ],

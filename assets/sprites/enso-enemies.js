@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -23,6 +23,8 @@
         slime: ['#1b2a2a','#2b4740','#426c53','#73a46a','#b9cd8d'],
         shade: ['#201b31','#342a4a','#514366','#76688c','#aaa0bd'],
         leather: ['#251e27','#44302e','#74503e','#a47a53','#c9a876'],
+        ash: ['#1d1416','#3e2224','#663432','#8d4f45','#b8806a'],       // the zealot's ash-red robe
+        hex: ['#2a0d12','#6a1420','#b0242e','#e0484a','#ff9a8a'],       // hex-eyed crows' wrong red
         holy: ['#2a2418','#6b5a32','#b0954e','#e0c878','#fff4c8'],     // Aurevain's gilded plate (Fallen Seraphim trial)
         vestment: ['#1c1c2a','#3c4060','#7a84a8','#b8c0d8','#eef0f8']
     };
@@ -36,6 +38,9 @@
         drunken_shade: {kind:'shade', body:'shade', tall:37, wide:9},
         bone_gnawer: {kind:'gnawer', body:'bone'}, mire_lurker: {kind:'mire', body:'slime'},
         cult_acolyte: {kind:'cult', body:'bone', coat:'cloth', tall:36, wide:8},
+        // The road to the Warden (2026-11-04): the Broken Oath's heavy in ash-red robes with a chain flail, and the crows that fed on the cult.
+        cult_zealot: {kind:'cult', body:'bone', coat:'ash', tall:40, wide:10, flail:true},
+        carrion_crow: {kind:'crow', body:'feather'},
         shackled_ghoul_stronger: {kind:'ghoul', body:'ghoul', coat:'cloth', tall:38, wide:9, scar:true},
         watch_constable: {kind:'watch', body:'metal', coat:'watch', tall:37, wide:8},
         crow_touched_warden: {kind:'warden', body:'metal', coat:'feather', tall:41, wide:11},
@@ -104,10 +109,23 @@
             for(let y=ymin;y<=ymax;y++){const xs=[];for(let i=0,j=q.length-1;i<q.length;j=i++)if((q[i][1]>y)!==(q[j][1]>y))xs.push(q[i][0]+(y-q[i][1])*(q[j][0]-q[i][0])/(q[j][1]-q[i][1]));xs.sort((a,b)=>a-b);for(let i=0;i+1<xs.length;i+=2)for(let x=Math.ceil(xs[i]);x<=xs[i+1];x++)dot(x,y,r[x<xs[i]+1||x>xs[i+1]-1?0:x<(xs[i]+xs[i+1])/2?3:2]);}
             for(let i=0;i<q.length;i++)line2(q[i],q[(i+1)%q.length],0.65,mat);
         }
+        function order0(v){return v>0?[-1,1]:[1,-1];}
         function eye(l,f,z){const q=pt(l,f,z);dot(q[0],q[1],'#161723');dot(q[0]+1,q[1],'#c6ce8a');}
         function claws(l,f,z){for(let j=-1;j<=1;j++)limb([l+j*1.4,f,z],[l+j*1.7,f+3,z-1],0.65,'bone');}
         const beast = ['rat','wolf','gnawer','mire'].includes(c.kind);
-        if(beast){
+        if(c.kind==='crow'){
+            // A hopping crow: legs and tail on the ground, wings that beat as it moves (sin and cos of the gait key, so all
+            // eight frames differ), a beak that stabs on the strike and the cult's red in its eyes.
+            const hop=walk?Math.abs(Math.sin(phase))*4:0, z0=10+hop, flap=walk?Math.sin(phase)*7:wind?5:strike?-4:Math.sin(p.n*Math.PI/2)*.8;
+            const sweep=walk?Math.cos(phase)*3.5:0, peck=power*5, dip=strike?-3:0;
+            for(const side of order0(sx)){limb([side*3,0,z0-1],[side*3,1,1+(walk?Math.max(0,Math.cos(phase+(side>0?0:Math.PI)))*3:0)],1,'bone');claws(side*3,2,1);}
+            poly([[-4,-7,z0+3],[4,-7,z0+3],[3,-18,z0+1],[-3,-18,z0+1]],c.body);
+            for(const side of order0(sx))poly([[side*4,2,z0+7],[side*(14+sweep),-4+sweep,z0+8+flap],[side*(11+sweep*.5),-11,z0+3+flap*.6],[side*4,-7,z0+3]],c.body);
+            ell(0,0,z0+4,7,9,c.body,1);
+            ell(0,7+peck*.4,z0+11+dip,5,4.8,c.body,2);
+            limb([0,10+peck*.5,z0+11+dip],[0,15+peck,z0+8+dip*1.4],1.3,'bone');
+            if(front||Math.abs(fx)>.5){for(const side of [-1,1]){const q=pt(side*2.4,10+peck*.4,z0+12+dip);dot(q[0],q[1],M.hex[3]);dot(q[0],q[1]-1,M.hex[2]);}}
+        } else if(beast){
             const wolf=c.kind==='wolf', bone=c.kind==='gnawer', mire=c.kind==='mire';
             const length=wolf?(c.small?11:13):mire?10:9, width=wolf?(c.small?6:7):mire?12:c.large?8:6;
             const height=wolf?(c.small?12:14):mire?12:8;
@@ -173,7 +191,12 @@
                         const long=c.kind==='knight'?17:goblin?10:c.kind==='watch'?10:12;
                         const tip=[w+1+(strike?-3:wind?4:0),f+(strike?long*.8:wind?-4:2),z+(strike?2:long)];
                         limb(hand,tip,c.kind==='watch'?2:1.1,c.kind==='watch'?'leather':'metal');
-                        if(c.kind!=='watch'){limb([w-2,f,z+2],[w+4,f,z+2],.9,'rust');ell(...tip,1,1,'bone');}
+                        if(c.flail){
+                            // a chain flail: links swing from the haft and a spiked iron ball leads the swing
+                            const ball=[tip[0]+(strike?2:wind?-3:1),tip[1]+(strike?6:wind?-6:1+Math.sin(phase)*1.5),tip[2]-(strike?2:5)];
+                            for(let i=1;i<=4;i++)ell(tip[0]+(ball[0]-tip[0])*i/5,tip[1]+(ball[1]-tip[1])*i/5,tip[2]+(ball[2]-tip[2])*i/5,.8,.8,'metal');
+                            ell(...ball,2.6,2.6,'metal');for(const s2 of [-1,1])ell(ball[0]+s2*2.6,ball[1],ball[2],.8,.8,'bone');
+                        }else if(c.kind!=='watch'){limb([w-2,f,z+2],[w+4,f,z+2],.9,'rust');ell(...tip,1,1,'bone');}
                     }
                 }
                 if(warden && side===-1 && /chain/i.test(attack||'')){for(let i=0;i<9;i++)ell(-w-1+Math.sin(i*1.2)*1.6,f+i*(strike?1.3:0.5),z-i*(strike?1:2),1.2,1.5,'metal');}

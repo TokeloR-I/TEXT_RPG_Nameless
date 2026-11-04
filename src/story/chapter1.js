@@ -19,8 +19,9 @@
  * TRIGGER { id, on: { type, id }, if?, effects }: fires once, the first time the event happens.
  *
  * Mainline XP before the Warden (design table): quests 15+20+25+25+20+30 = 135, required gate fights
- * 20+25+40+30 = 115, plus the strongbox looters on Q05 (40, Tokelo 2026-11-02): total 290 = level 3
- * (tests/32-chapter-one.test.js traces it for every class).
+ * 20+25+40+30 = 115, plus the strongbox looters on Q05 (40, Tokelo 2026-11-02): total 290 = level 3.
+ * The road to the Warden (Tokelo 2026-11-04) adds the climb's gates (68+24) and the orchard lookouts (116):
+ * total 498 = level 4 (tests/32-chapter-one.test.js traces it for every class).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;

@@ -99,6 +99,8 @@ People, story gates and required fights (Chapter One, `src/world/chapter1-maps.j
   requires: { flags: ['north_gate_open'] }, lockedText: 'The orchard gate is chained shut...' }
 // a required fight that holds the only way on: mark it `gate: true` (the validator then lets it block)
 { id: 'tollway_ragpickers', gate: true, x: 9, y: 9, enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', ... }
+// lookouts on open ground (action combat): `detect` (px) overrides how far its enemies spot you, so a wide field can't be skirted
+{ id: 'orchard_west_lookouts', x: 7, y: 11, detect: 200, enemies: ['cult_zealot', 'cult_acolyte'], trigger: 'contact', ... }
 // something its enemies sit on: until the encounter is beaten, E only shows guardedText (no story event, no pickup)
 { id: 'tollway_register', kind: 'inspect', ..., guardedBy: 'tollway_strongbox_looters', guardedText: 'The looters are crowded round...' }
 // a place you use, not a person: E opens its choices like a talk (the story data has a faceless "npc" for it)

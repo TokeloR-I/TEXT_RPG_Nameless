@@ -164,7 +164,7 @@
         addGroup(enc) {
             const T = this.T;
             const cx = (enc.x + (enc.w || 1) / 2) * T, cy = (enc.y + (enc.h || 1) / 2) * T;
-            const g = { encounterId: enc.id, keys: [...enc.enemies], loot: enc.loot || null, home: { x: cx, y: cy }, engaged: false, gate: !!enc.gate, cells: [], name: enc.name };
+            const g = { encounterId: enc.id, keys: [...enc.enemies], loot: enc.loot || null, home: { x: cx, y: cy }, engaged: false, gate: !!enc.gate, cells: [], name: enc.name, detect: enc.detect || null };
             for (let y = enc.y; y < enc.y + (enc.h || 1); y++) for (let x = enc.x; x < enc.x + (enc.w || 1); x++) g.cells.push(y * this.w + x);
             this.groups[enc.id] = g;
             const n = enc.enemies.length;
@@ -788,7 +788,8 @@
                 if (a.wanderTo && this.walkTo(a, a.wanderTo, dt, 0.4)) a.wanderTo = null;
                 const ready = !g.reengageAt || this.now >= g.reengageAt;
                 if (ready && (this.engine.mode === 'explore' || this.engaged)) {
-                    if (d <= (pr.detect || 90) && (!pr.sight || this.lineOfSight(a, p))) this.engageGroup(g);
+                    // An encounter's own `detect` (px) overrides its enemies': lookouts watching an open field.
+                    if (d <= (g.detect || pr.detect || 90) && (!pr.sight || this.lineOfSight(a, p))) this.engageGroup(g);
                 }
                 return;
             }
