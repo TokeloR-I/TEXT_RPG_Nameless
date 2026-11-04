@@ -970,6 +970,54 @@
             }
         },
 
+        // ------------------------------------------------------------- The Fallen Seraph (Tokelo, 2026-11-04)
+        // The robed statue on the fountain in the Kloster's inner courtyard. Stare at it for 2 minutes (gazeRules in
+        // src/data.js): a halo at 60 s, six wings at 120 s, and it speaks. Waking it opens the Fallen Seraphim web.
+        // "Fallen" because the story calls you evil; the statue answers that with a question, not a verdict.
+        seraph_statue: {
+            name: 'The Fallen Seraph', title: 'The statue in the courtyard',
+            talk: [{ if: { flags: ['seraph_met'] }, node: 'again' }, { if: { flags: ['seraph_awakened'] }, node: 'wake' }, { node: 'still' }],
+            nodes: {
+                still: {
+                    lines: [[null, 'A robed figure in grey stone stands on the fountain, hood drawn low, hands folded over its heart. Water runs from the basin at its feet.'],
+                        [null, 'The face under the hood is worn almost smooth. For a moment you are sure it is looking back at you, and waiting.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                wake: {
+                    lines: [[null, 'The halo over the statue burns white. Stone cracks along its back, and six wings unfold from it: two over its face, two over its feet, two spread wide over the courtyard.'],
+                        [null, 'Grey feathers, edged in gold, edged in ash. The fountain stops running.'],
+                        ['npc', 'You looked. Nobody looks any more. They pray past me on their way to supper.'],
+                        ['npc', 'They will tell you what you are. The crow has a word for it, and the Warden has another. I was given a word too, once: fallen.'],
+                        ['npc', 'Here is what I learned on the way down. Evil is only a good that someone else did not choose.'],
+                        ['npc', 'Take my light, little shell. It is heavier than it looks, and it burns whoever carries it.']],
+                    effects: [{ flag: 'seraph_met' }, { legend: 'fallen_seraphim' }],
+                    choices: [
+                        { text: 'Why did you fall?', to: 'why' },
+                        { text: 'Am I evil?', to: 'evil' },
+                        { text: 'I will carry it.', to: 'carry' }
+                    ]
+                },
+                why: {
+                    lines: [['npc', 'I was asked to guard a door and I opened it, because the ones outside were cold. Heaven called that a sin. The ones outside called it spring.']],
+                    choices: [{ text: 'Am I evil?', to: 'evil' }, { text: 'I will carry it.', to: 'carry' }]
+                },
+                evil: {
+                    lines: [['npc', 'You are what you do next. The names come afterwards, and they are written by whoever is left standing.']],
+                    choices: [{ text: 'Why did you fall?', to: 'why' }, { text: 'I will carry it.', to: 'carry' }]
+                },
+                carry: {
+                    lines: [[null, 'The wings fold around you, and then they are gone. Between your shoulder blades you feel six places where something should be, and is not yet.'],
+                        ['npc', 'Come back when you are heavier. I will still be here. I am very good at standing still.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                again: {
+                    lines: [[null, 'Six stone wings stand folded over the fountain, and a ring of pale light hangs above the hood.'],
+                        ['npc', 'Still carrying it? Good. It gets lighter the more of it you give away.']],
+                    choices: [{ text: 'Why did you fall?', to: 'why' }, { text: 'Am I evil?', to: 'evil' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+
         // ------------------------------------------------------------- The crow: Nahemoth's first aspect
         // Talked to from a menu (talk_crow), not a map sprite. Lines are Vaelis's DRAFT; spoiler-safe.
         crow: {

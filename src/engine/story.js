@@ -99,6 +99,7 @@
         //   { shop: merchantId } { construction: upgradeId }: show Rook's CH1-04/05 data (no rules here)
         //   { plant: { plot, seed } } { tend: plot } { harvest: plot } { craft: recipeId }: run the homestead
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
+        //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
@@ -120,6 +121,7 @@
                 if (e.rest) this.restAtHome();
                 if (e.stash && this.story.dialogue) this.story.dialogue.stash = true;
                 if (e.start) this.startQuest(e.start, opts);
+                if (e.legend) this.awakenLegend(String(e.legend));
                 if (e.event) this.storyEvent(e.event);
             }
         }

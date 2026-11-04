@@ -220,6 +220,7 @@
             else if (e.actionCalmTick) this.collect(e.actionCalmTick(STEP));   // pre-buffs and cooldowns run out of a fight too
             this.syncFromEngine();
             this.stepPlayer();
+            if (!this.engaged && e.gazeTick) this.collect(e.gazeTick(this.gazeTarget(), STEP));   // the Kloster statue (src/engine/gaze.js)
             for (const a of this.actors) this.stepActor(a);
             for (const m of this.minions) this.stepMinion(m);
             this.stepFollowerTimer();
@@ -230,6 +231,24 @@
             this.checkDrops();
             if (this.input.interact) { this.input.interact = false; this.interact(); }
             if (++this.steps % 15 === 0) this.syncEncounters();
+        }
+
+        /** Out of a fight: the world object with a gaze rule (data gazeRules) you stand still in front of, close and
+         *  facing it, or null. Space only; the engine counts the time and decides what it wakes (src/engine/gaze.js). */
+        gazeTarget() {
+            const rules = this.engine.data.gazeRules;
+            const p = this.player;
+            if (!rules || p.moving) return null;
+            const cell = this.T * (this.session.map.source32 ? 2 : 1);   // gaze ranges are in 32 px map tiles
+            for (const o of this.session.map.interactables || []) {
+                const r = rules[o.id];
+                if (!r || !this.session.present(o)) continue;
+                const c = { x: (o.x + (o.w || 1) / 2) * this.T, y: (o.y + (o.h || 1) / 2) * this.T };
+                if (dist(p, c) > (r.range || 3) * cell) continue;
+                if (angleDiff(p.angle, angleTo(p, c)) > (r.coneDeg || 50) * DEG) continue;
+                return o.id;
+            }
+            return null;
         }
 
         /** A story flag can show or hide an encounter mid-map (the Warden after "Stand aside"), or open a locked way on

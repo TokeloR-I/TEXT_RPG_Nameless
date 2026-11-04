@@ -15,7 +15,7 @@ for (const region of regions) {
     const list = web.list.filter((n) => n.region === region);
     const legend = web.nodes.get(`heart.${region}`).legendary;
     console.log(`\n== ${legend ? `${web.nodes.get(`heart.${region}`).label} (legendary)` : data.basePlayerClasses[region].name} web (${list.length} nodes)`);
-    if (legend) { const r = web.nodes.get(`heart.${region}`).requires; console.log(`  opens after: ${(r.stages || []).join(' + ')}${r.event ? ` + ${r.event}` : ''}`); }
+    if (legend) { const r = web.nodes.get(`heart.${region}`).requires; console.log(`  opens after: ${[...(r.stages || []), ...(r.event ? [r.event] : [])].join(' + ')}`); }
     const groups = [null, ...new Set(list.filter((n) => n.branch).map((n) => n.branch))];
     for (const b of groups) {
         const nodes = list.filter((n) => n.branch === b);
