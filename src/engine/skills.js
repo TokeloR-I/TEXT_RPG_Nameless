@@ -52,13 +52,19 @@
             return value ? Math.floor(value / r.statDamagePer) : 0;
         }
 
-        /** Passive traits whose data carries `mods`: `damageVsFlags` ({ undead: 0.2 }) on the attacker's side and
-         *  `damageTaken` (-0.1 = 10% less) on the target's. Data, so a new passive never needs its name in the engine. */
+        /** Passive traits whose data carries `mods`: on the attacker's side `damageVsFlags` ({ undead: 0.2 }),
+         *  `damageDealt` (0.1 = 10% more) and `lowHpDamage` ({ below, value }); on the target's `damageTaken` (-0.1 = 10% less). Data, so a new passive never needs its name in the engine. */
         traitDamageMult(attacker, target) {
             let m = 1;
             for (const t of attacker.traits || []) {
                 const v = t.mods && t.mods.damageVsFlags;
                 if (v) for (const f of target.specialFlags || []) if (v[f]) m *= 1 + v[f];
+            }
+            for (const t of attacker.traits || []) {
+                const mods = t.mods || {};
+                if (mods.damageDealt) m *= 1 + mods.damageDealt;
+                const low = mods.lowHpDamage;   // { below: 0.5, value: 0.2 }: hit harder while your HP is under `below`
+                if (low && attacker.maxHp && attacker.hp / attacker.maxHp < low.below) m *= 1 + low.value;
             }
             for (const t of target.traits || []) if (t.mods && t.mods.damageTaken) m *= 1 + t.mods.damageTaken;
             return m;

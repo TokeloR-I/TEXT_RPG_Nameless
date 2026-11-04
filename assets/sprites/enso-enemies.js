@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -22,7 +22,9 @@
         rust: ['#30212a','#624033','#9b6342','#c49159','#e2bb7c'],
         slime: ['#1b2a2a','#2b4740','#426c53','#73a46a','#b9cd8d'],
         shade: ['#201b31','#342a4a','#514366','#76688c','#aaa0bd'],
-        leather: ['#251e27','#44302e','#74503e','#a47a53','#c9a876']
+        leather: ['#251e27','#44302e','#74503e','#a47a53','#c9a876'],
+        holy: ['#2a2418','#6b5a32','#b0954e','#e0c878','#fff4c8'],     // Aurevain's gilded plate (Fallen Seraphim trial)
+        vestment: ['#1c1c2a','#3c4060','#7a84a8','#b8c0d8','#eef0f8']
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -36,7 +38,8 @@
         cult_acolyte: {kind:'cult', body:'bone', coat:'cloth', tall:36, wide:8},
         shackled_ghoul_stronger: {kind:'ghoul', body:'ghoul', coat:'cloth', tall:38, wide:9, scar:true},
         watch_constable: {kind:'watch', body:'metal', coat:'watch', tall:37, wide:8},
-        crow_touched_warden: {kind:'warden', body:'metal', coat:'feather', tall:41, wide:11}
+        crow_touched_warden: {kind:'warden', body:'metal', coat:'feather', tall:41, wide:11},
+        heaven_doorwarden: {kind:'knight', body:'holy', coat:'vestment', tall:40, wide:10}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

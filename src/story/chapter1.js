@@ -200,6 +200,21 @@
             ],
             onComplete: []
         },
+        // The Trial of the Cold Door (Fallen Seraphim, Tokelo 2026-11-04): the second half of the legendary web is earned.
+        // Caelith offers it once you are a Watcher; heaven's doorkeeper waits in the courtyard. Winning opens the sealed
+        // nodes (skillWeb.legendaryWebs.fallen_seraphim.trial) and with them the capstones and the six wings.
+        QS1: {
+            title: 'The Trial of the Cold Door', kind: 'side', xp: 300,
+            summary: 'Caelith says heaven has noticed the light it gave you. Its doorkeeper is coming to take it back. Beat it, and the rest of your wings are yours.',
+            objectives: [
+                { id: 'face', text: 'Defeat Aurevain, Warden of the Shut Door, in the Kloster courtyard', on: { type: 'defeat', id: 'kloster_trial' }, marker: { map: 'kloster_inner', x: 19, y: 15 } }
+            ],
+            onComplete: [
+                { flag: 'seraph_trial_won' },
+                { say: 'Aurevain falls to one knee, and the light goes out of its spear. "Then carry it," it says, "and see how heavy it gets." It is gone. On the stones, four grey feathers.', important: true },
+                { say: 'The rest of the Fallen Seraphim web is open to you.', notice: 'quest' }
+            ]
+        },
         SF3: {
             title: 'Pigs at Large', kind: 'side', xp: 10, candidate: true,
             summary: "Three of Greta Rusk's pigs went over the fence in the night. Greta has crusts. The pigs have opinions.",
@@ -976,7 +991,17 @@
         // "Fallen" because the story calls you evil; the statue answers that with a question, not a verdict.
         seraph_statue: {
             name: 'The Fallen Seraph', title: 'The statue in the courtyard',
-            talk: [{ if: { flags: ['seraph_met'] }, node: 'again' }, { if: { flags: ['seraph_awakened'] }, node: 'wake' }, { node: 'still' }],
+            // Each rank of the web (skillWeb.legendaryWebs.fallen_seraphim.ranks sets the flag) has one new talk, heard once;
+            // the lore comes out a rank at a time (docs/design/FALLEN_SERAPHIM.md). Spoiler-safe: it never names what you were.
+            talk: [
+                { if: { flags: ['seraph_rank_six'], notFlags: ['seraph_heard_six'] }, node: 'six' },
+                { if: { flags: ['seraph_rank_unbound'], notFlags: ['seraph_heard_unbound'] }, node: 'unbound' },
+                { if: { flags: ['seraph_rank_ashen'], notFlags: ['seraph_heard_ashen'] }, node: 'ashen' },
+                { if: { flags: ['seraph_rank_watcher'], notFlags: ['seraph_heard_watcher'] }, node: 'watcher' },
+                { if: { flags: ['seraph_trial_won'], notFlags: ['seraph_heard_trial'] }, node: 'trial_won' },
+                { if: { flags: ['seraph_heard_watcher'], notFlags: ['seraph_trial_called'] }, node: 'trial' },
+                { if: { flags: ['seraph_trial_called'], notFlags: ['seraph_trial_won'] }, node: 'trial_wait' },
+                { if: { flags: ['seraph_met'] }, node: 'again' }, { if: { flags: ['seraph_awakened'] }, node: 'wake' }, { node: 'still' }],
             nodes: {
                 still: {
                     lines: [[null, 'A robed figure in grey stone stands on the fountain, hood drawn low, hands folded over its heart. Water runs from the basin at its feet.'],
@@ -1009,6 +1034,79 @@
                     lines: [[null, 'The wings fold around you, and then they are gone. Between your shoulder blades you feel six places where something should be, and is not yet.'],
                         ['npc', 'Come back when you are heavier. I will still be here. I am very good at standing still.']],
                     choices: [{ text: 'Goodbye.', end: true }]
+                },
+                watcher: {   // rank 2: its name, and the door
+                    lines: [[null, 'The halo brightens as you come close. The stone face turns, very slowly, to follow you.'],
+                        ['npc', 'You are heavier. Good. Then you can carry my name as well: Caelith. I kept the Cold Door.'],
+                        ['npc', 'This hill was a gate once. Behind it, the warm country. In front of it, a winter that did not end.'],
+                        ['npc', 'My orders were to keep the warmth in and the world out. The ones outside knocked for a hundred years.']],
+                    effects: [{ flag: 'seraph_heard_watcher' }],
+                    choices: [{ text: 'And you opened it.', to: 'opened' }, { text: 'Goodbye.', end: true }]
+                },
+                opened: {
+                    lines: [['npc', 'I opened it. Spring ran down this hill for the first time. The water at my feet is the last of it.'],
+                        ['npc', 'Then the door was shut behind me, and I fell, and the hill closed over me. Stone is patient. So am I.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                trial: {   // after Watcher: the Trial of the Cold Door (QS1), which opens the second half of the web
+                    lines: [[null, 'The halo over the statue flickers, like a candle when a door opens somewhere.'],
+                        ['npc', 'They have noticed you. Heaven does not like its light walking about in someone else\'s shoes.'],
+                        ['npc', 'It will send the one who keeps the door now: Aurevain. It will come here, to my courtyard, and ask for the light back.'],
+                        ['npc', 'Half of my wings I can give you without asking anyone. The other half you will have to keep from it.']],
+                    choices: [
+                        { text: 'Let it come.', effects: [{ flag: 'seraph_trial_called' }, { start: 'QS1' }], to: 'trial_go' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                trial_go: {
+                    lines: [['npc', 'It will be waiting by the fountain. It is stronger than anything you have fought. Come ready, and do not come alone in your head.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                trial_wait: {
+                    lines: [['npc', 'Aurevain is waiting by the fountain. It is patient too. We were made by the same hands.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                trial_won: {
+                    lines: [[null, 'Four grey feathers lie on the fountain\'s rim. The statue\'s halo burns steady.'],
+                        ['npc', 'You kept it. Then it is yours, all of it, and nobody can ask for it back. Not even me.']],
+                    effects: [{ flag: 'seraph_heard_trial' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                ashen: {   // rank 3: the monks, the carving, and the question turned on you
+                    lines: [[null, 'Ash drifts off your shoulders and settles on the water. The fountain runs warm.'],
+                        ['npc', 'The monks found me in the hill and built their walls around me. They do not know what I am. One of them guessed.'],
+                        ['npc', 'He carved it on the altar step: he fell for us. Heaven wrote sin. A boy with a knife wrote that. Both are true.'],
+                        ['npc', 'Someone is writing your name down too, little shell. Make sure there is a second hand on the page.']],
+                    effects: [{ flag: 'seraph_heard_ashen' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                unbound: {   // rank 4: all six wings
+                    lines: [[null, 'The statue does not move. You do: six wings open behind you, and the courtyard goes quiet.'],
+                        ['npc', 'There. Now you are what I was, before the door. Six wings, and nobody left to tell you where to point them.'],
+                        ['npc', 'I will not ask what you will do with them. I was asked that once, and the answer took a thousand years.'],
+                        ['npc', 'Go on. Open something.']],
+                    effects: [{ flag: 'seraph_heard_unbound' }],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
+                },
+                six: {   // every skill of the web (Tokelo 2026-11-04): six wings, red eyes, and a holy weapon of your choosing
+                    lines: [[null, 'Your shadow on the courtyard stones has six wings. The statue\'s halo turns towards you, the way a flower turns to the sun.'],
+                        ['npc', 'All of it. Every feather. Even I never held all of it at once.'],
+                        ['npc', 'Your eyes have gone red. Mine did too, on the way down. It is only the light, burning from the inside.'],
+                        [null, 'Five shapes rise out of the fountain, dripping and bright: a greatsword, a spear, two feather blades, a censer staff, a scythe.'],
+                        ['npc', 'They were mine, when I had hands for them. Take the one that fits yours. The others go back to the water.']],
+                    choices: [
+                        { text: 'Doorward: The greatsword. I held the door shut with it, once.', effects: [{ item: 'Doorward', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Spear of the Cold Door: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Cold Door', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Twin Pinions: The two feather blades. Quick, like falling.', effects: [{ item: 'Twin Pinions', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Censer of Ash: The censer staff. Light, given away as smoke.', effects: [{ item: 'Censer of Ash', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Grey Feather Scythe: The scythe. Even the holy have harvests.', effects: [{ item: 'Grey Feather Scythe', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                armed: {
+                    lines: [[null, 'The other four sink back into the fountain. The one you chose is warm, and lighter than it looks.'],
+                        ['npc', 'Holy, they will call it. Or cursed. It will be both, depending on who you point it at.']],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
                 },
                 again: {
                     lines: [[null, 'Six stone wings stand folded over the fountain, and a ring of pale light hangs above the hood.'],
@@ -1118,7 +1216,9 @@
         start: { effects: [{ start: 'Q01' }] },
         // Merchant ids for Rook's shopDefinitions (CH1-04): mara, bragg, iona, shane. Construction: homestead_gate (CH1-05).
         merchants: { mara: 'Mara', bragg: 'Bragg', iona: 'Iona', shane: 'Shane', oda: 'Oda', greta: 'Greta', fenric: 'Fenric' },
-        quests, npcs, triggers, anchors
+        quests, npcs, triggers, anchors,
+        // Older saves (save.js runStoryCatchUp): a statue woken before the Fallen gifts existed hands them over on load.
+        catchUp: [{ id: 'seraph_gifts', if: { flags: ['seraph_awakened'] }, effects: [{ legend: 'fallen_seraphim' }] }]
     };
 
     (ENSO.story || (ENSO.story = {})).chapter1 = chapter1;

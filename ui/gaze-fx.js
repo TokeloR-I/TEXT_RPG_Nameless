@@ -9,6 +9,11 @@
  *     over the feet, grey stone feathers edged in gold, breathing slowly; the halo stays.
  * Pixels are plotted as 1 px rects so it stays crisp with the rest of the pixel art. No image goes in.
  *   ENSO.gazeFx.draw(g, { x, y, view, id }, now)   x, y: the top of the statue's hood in map pixels
+ * And the same light on you (Tokelo, 2026-11-04), from engine.legendaryLook() (data: legendaryWebs.<id>.look):
+ *   - a halo over your head from the moment the Fallen Seraphim web opens;
+ *   - six wings at your back (and red eyes, recoloured in the sprite) once every skill of the web is learned.
+ *   ENSO.gazeFx.playerWings(g, cx, base, facing, now)   before the body (after it when you face away)
+ *   ENSO.gazeFx.playerHalo(g, cx, base, now)            after the body.  cx, base: the sprite's feet
  * ========================================================================= */
 (function (global) {
     const ENSO = global.ENSO || (global.ENSO = {});
@@ -30,7 +35,7 @@
     }
 
     /** One wing: a fan of five feathers from (rx, ry), pointing at `ang` (radians), `len` long, `u` unfolded (0..1). */
-    function wing(g, rx, ry, ang, len, u, side, glow) {
+    function wing(g, rx, ry, ang, len, u, side, glow, wk = 1) {
         const spread = 0.17 * u;
         for (let f = 0; f < 5; f++) {
             const fa = ang + (f - 2) * spread * side, fl = len * u * (1 - Math.abs(f - 2) * 0.13);
@@ -38,7 +43,7 @@
                 const t = s / Math.max(1, fl);
                 const bend = Math.sin(t * Math.PI) * 2.2 * side;                       // a slight curve back
                 const cx = rx + Math.cos(fa) * s - Math.sin(fa) * bend, cy = ry + Math.sin(fa) * s + Math.cos(fa) * bend;
-                const w = (1 - t * 0.75) * 2.6 + 0.4;
+                const w = ((1 - t * 0.75) * 2.6 + 0.4) * wk;
                 for (let o = -w; o <= w; o += 1) {
                     const px = Math.round(cx - Math.sin(fa) * o), py = Math.round(cy + Math.cos(fa) * o);
                     const edge = Math.abs(o) > w - 1;
@@ -54,14 +59,35 @@
         }
     }
 
-    function wings(g, x, y, u, now) {
+    function wings(g, x, y, u, now, k = 1) {
         const breathe = Math.sin(now / 900) * 0.05;
         const glow = 0.5 + 0.5 * Math.sin(now / 520);
         // [root offset x, root offset y, angle (right side), length]: up over the face, wide, down over the feet.
         const pairs = [[4, 16, -1.2 - breathe, 26], [6, 22, -0.3 + breathe, 40], [5, 34, 0.55 - breathe, 24]];
         for (const [ox, oy, ang, len] of pairs) {
-            wing(g, x + ox, y + oy, ang, len, u, 1, glow);
-            wing(g, x - ox, y + oy, Math.PI - ang, len, u, -1, glow);
+            wing(g, x + ox * k, y + oy * k, ang, len * k, u, 1, glow, k < 1 ? 0.7 : 1);
+            wing(g, x - ox * k, y + oy * k, Math.PI - ang, len * k, u, -1, glow, k < 1 ? 0.7 : 1);
+        }
+    }
+
+    // The player sprite (assets/sprites/enso-player.js): a 64 px frame, feet at y 43, head centre at y 17.6 (radius
+    // about 7), neck at 24. So the head is ~25 px over the feet and its top ~33.
+    const HEAD_TOP = 33, SHOULDERS = 20;
+    /** Six wings at your back, at about half the statue's size (it is twice your height). */
+    function playerWings(g, cx, base, facing, now) {
+        wings(g, cx, base - SHOULDERS - 16 * 0.6, 1, now, facing === 'up' ? 0.5 : 0.6);
+    }
+    /** Your halo: a small gold ring over your head that bobs and pulses. */
+    function playerHalo(g, cx, base, now) {
+        const y = base - HEAD_TOP - 3 + Math.round(Math.sin(now / 650) * 0.6);
+        const pulse = 0.75 + 0.25 * Math.sin(now / 420);
+        for (let k = 0; k < 40; k++) {
+            const t = (k / 40) * Math.PI * 2, px = Math.round(cx + Math.cos(t) * 5.5), py = Math.round(y + Math.sin(t) * 1.8);
+            g.fillStyle = `rgba(255, 236, 170, ${(0.95 * pulse).toFixed(3)})`; g.fillRect(px, py, 1, 1);
+        }
+        for (let k = 0; k < 24; k++) {   // a fainter ring just above, for the glow
+            const t = (k / 24) * Math.PI * 2;
+            g.fillStyle = `rgba(255, 250, 225, ${(0.35 * pulse).toFixed(3)})`; g.fillRect(Math.round(cx + Math.cos(t) * 5), Math.round(y - 1 + Math.sin(t) * 1.4), 1, 1);
         }
     }
 
@@ -88,5 +114,5 @@
         }
     }
 
-    ENSO.gazeFx = { draw };
+    ENSO.gazeFx = { draw, playerWings, playerHalo };
 })(typeof window !== 'undefined' ? window : globalThis);

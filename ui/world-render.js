@@ -898,11 +898,18 @@
         function drawPlayer(px, py, view, time) {
             const cx = px + T / 2, base = py + T - 2;
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
+            // The Fallen Seraphim on you (engine.legendaryLook(), ui/gaze-fx.js): wings behind you (in front when you face
+            // away), red eyes in the sprite's own palette, the halo over your head.
+            const look = (ENSO.gazeFx && view.look) || {};
+            const away = String(view.facing8 || view.facing).startsWith('up');
+            if (look.wings && !away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
             ENSO.sprites.drawCharacter(g, cx, base, {
-                appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
+                appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, ...(view.look && view.look.redEyes ? { palette: { eye: '#d8141a' } } : {}),
                 facing: view.facing8 || view.facing, anim: view.anim || (view.moving ? 'walk' : 'idle'),
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
             }, view.anim && view.animT != null ? view.animT : time);   // combat v3: swing / dodge / guard / hurt
+            if (look.wings && away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
+            if (look.halo) ENSO.gazeFx.playerHalo(g, cx, base, time);
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
             const facing = view.facing8 || view.facing;
             const hands = facing === 'left' || facing === 'right' ? [cx + (facing === 'left' ? -1 : 1)] : facing.includes('-') ? [cx - 3, cx + 3].map((x) => x + (facing.endsWith('left') ? -1 : 1)) : [cx - 5, cx + 5];
