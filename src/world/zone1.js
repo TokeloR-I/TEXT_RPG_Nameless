@@ -74,6 +74,7 @@
         cellar: {
             zoneId: 'forgotten_homestead',
             name: 'The Cellar',
+            scene: 'cellar',                                   // painted whole: ui/scene-homestead-rooms.js
             ambient: { darkness: 0.72, lantern: 4.5, particles: { kind: 'dust', count: 18 } },
             legend: { 'R': { name: 'bedroll' } },
             tiles: [
@@ -111,6 +112,7 @@
         house: {
             zoneId: 'forgotten_homestead',
             name: 'The House',
+            scene: 'farmhouse',                                   // painted whole: ui/scene-homestead-rooms.js
             ambient: { darkness: 0.5, lantern: 5.5, particles: { kind: 'dust', count: 14 } },
             tiles: [
                 'WWWWWWWWWWWWWWWWWWWW',
@@ -223,6 +225,7 @@
         shed: {
             zoneId: 'forgotten_homestead',
             name: 'The Old Shed',
+            scene: 'old_shed',                                   // painted whole: ui/scene-homestead-rooms.js
             ambient: { darkness: 0.55, lantern: 4.5 },
             legend: { 't': { name: 'workbench', solid: true } },
             tiles: [
@@ -253,6 +256,7 @@
         well: {
             zoneId: 'forgotten_homestead',
             name: 'Bottom of the Well',
+            scene: 'well_bottom',                                   // painted whole: ui/scene-homestead-rooms.js
             ambient: { darkness: 0.78, lantern: 3.5, particles: { kind: 'dust', count: 10 } },
             tiles: [
                 '#########',

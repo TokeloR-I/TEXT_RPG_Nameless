@@ -53,6 +53,7 @@
         tollway: {
             zoneId: 'broken_tollway',
             name: 'The Broken Tollway',
+            scene: 'tollway',                 // painted whole: ui/scene-ch1-wilds.js
             ambient: { darkness: 0.18, tint: 'rgba(70, 72, 90, 0.25)' },
             tiles: [
                 'TTTTTTTTTT:TTTTTTTTTTT',
@@ -513,6 +514,7 @@
         allotment: {
             zoneId: 'shamefield_vale',
             name: "Shane's Allotment",
+            scene: 'allotment',               // painted whole: ui/scene-ch1-wilds.js
             ambient: { tint: 'rgba(60, 80, 50, 0.15)' },
             tiles: [
                 'TTTTTTTTTTTTTTTTTTTT',
@@ -554,6 +556,7 @@
         orchard: {
             zoneId: 'shamefield_vale',
             name: 'The North Orchard',
+            scene: 'orchard',                 // painted whole: ui/scene-ch1-wilds.js
             ambient: { tint: 'rgba(80, 60, 40, 0.18)', particles: { kind: 'fireflies', count: 12 } },
             tiles: [
                 'TTTTTTTTTTTTT.TTTTTTTTTTTT',
@@ -613,6 +616,7 @@
         featherwatch: {
             zoneId: 'featherwatch_heights',
             name: 'Featherwatch Path',
+            scene: 'featherwatch',            // painted whole: ui/scene-ch1-wilds.js
             ambient: { darkness: 0.25, tint: 'rgba(40, 40, 70, 0.25)', particles: { kind: 'feathers', count: 10 } },
             tiles: [
                 'TTTTTTTTTTTT:TTTTT',
@@ -669,6 +673,7 @@
         sanctuary: {
             zoneId: 'featherwatch_heights',
             name: "The Warden's Sanctuary",
+            scene: 'warden_sanctuary',        // painted whole: ui/scene-featherwatch-roost.js
             ambient: { darkness: 0.45, lantern: 5.5, particles: { kind: 'feathers', count: 8 } },
             tiles: [
                 '######################',
@@ -723,6 +728,7 @@
         seal_chamber: {
             zoneId: 'featherwatch_heights',
             name: 'The Seal Chamber',
+            scene: 'seal_chamber',            // painted whole: ui/scene-featherwatch-roost.js
             ambient: { darkness: 0.7, lantern: 4, particles: { kind: 'embers', count: 16 } },
             tiles: [
                 '###########',

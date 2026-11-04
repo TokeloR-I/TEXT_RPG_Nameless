@@ -184,3 +184,43 @@ test("Scene art: Baker's Lane paints whole after the reference, the same every t
         'tree', 'dead_tree', 'bush', 'rose_bed', 'stump', 'barrel', 'crate']);
     for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(painted.has(nameAt(map, x, y)), `${x},${y}: ${nameAt(map, x, y)}`);
 });
+
+// Tokelo (2026-11-04): every area still on tile art brought up to the painted scenes. The maps keep their tiles,
+// so exits, NPCs, quests and fights stand where they did; each scene paints every tile its map names.
+test('Scene art: the last tile-art areas (homestead rooms, the wilds, the Warden\'s roost) paint whole, the same every time', () => {
+    require('../ui/scene-homestead-rooms.js');
+    require('../ui/scene-ch1-wilds.js');
+    require('../ui/scene-featherwatch-roost.js');
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    const expect = { cellar: 'cellar', house: 'farmhouse', shed: 'old_shed', well: 'well_bottom', tollway: 'tollway', allotment: 'allotment',
+        orchard: 'orchard', featherwatch: 'featherwatch', sanctuary: 'warden_sanctuary', seal_chamber: 'seal_chamber' };
+    const painted = {
+        cellar: ['stone_wall', 'stone_floor', 'barrel', 'crate', 'rubble', 'shelf', 'stairs_up', 'bedroll'],
+        farmhouse: ['wood_wall', 'wood_floor', 'doorway', 'counter', 'shelf', 'table', 'chair', 'armchair', 'bed', 'fireplace', 'rug', 'crate', 'stairs_down'],
+        old_shed: ['wood_wall', 'wood_floor', 'doorway', 'shelf', 'crate', 'workbench', 'barrel'],
+        well_bottom: ['stone_wall', 'stone_floor', 'rubble', 'rope', 'water', 'rock'],
+        tollway: ['tree', 'grass', 'dirt_path', 'shed_roof', 'shed_wall', 'shed_door_shut', 'rock', 'signpost', 'crate', 'dead_tree', 'water', 'bridge', 'cart'],
+        allotment: ['tree', 'grass', 'tall_weeds', 'shed_roof', 'shed_wall', 'shed_door_shut', 'rock', 'dirt_path', 'wagon', 'scarecrow'],
+        orchard: ['tree', 'stone_floor', 'stone_wall', 'rubble', 'grass', 'dirt_path', 'fruit_tree', 'rock', 'dead_tree'],
+        featherwatch: ['tree', 'dirt_path', 'grass', 'cage', 'rock', 'dead_tree'],
+        warden_sanctuary: ['stone_wall', 'seal_door', 'stone_floor', 'cage', 'table', 'barrel', 'shelf', 'rug'],
+        seal_chamber: ['stone_wall', 'stone_floor', 'rubble', 'seal_door']
+    };
+    for (const [mapId, scene] of Object.entries(expect)) {
+        const map = ZONE1.maps[mapId];
+        assert.strictEqual(map.scene, scene, `${mapId} opts in with scene: ${scene}`);
+        assert.ok(SCENE.has(map), `${mapId}: the '${scene}' scene is registered`);
+        const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+        assert.strictEqual(a.w, map.tiles[0].length * 32); assert.strictEqual(a.h, map.tiles.length * 32);
+        assert.strictEqual(sha(a.base), sha(b.base), `${mapId}: deterministic`);
+        assert.strictEqual(sha(a.over), sha(b.over), `${mapId}: deterministic over layer`);
+        for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`${mapId}: base pixel ${(i - 3) / 4} is not opaque`);
+        const known = new Set(painted[scene]);
+        for (let y = 0; y < map.tiles.length; y++) for (let x = 0; x < map.tiles[0].length; x++) assert.ok(known.has(nameAt(map, x, y)), `${mapId} ${x},${y}: ${nameAt(map, x, y)}`);
+        // Nothing solid hangs over a spawn point (a faint shaft of light may), so the player is never hidden where they arrive.
+        for (const [id, s] of Object.entries(map.spawns)) assert.ok(a.over[((s.y * 32 + 16) * a.w + s.x * 32 + 16) * 4 + 3] < 60, `${mapId}: open over spawn ${id}`);
+    }
+    // No map on the way through Chapter One is left on tile art.
+    for (const f of ['shamefield', 'road', 'bakers-lane', 'kloster', 'kloster-inner']) require(`../ui/scene-${f}.js`);
+    for (const [id, map] of Object.entries(ZONE1.maps)) assert.ok(SCENE.has(map), `${id} has a painted scene`);
+});

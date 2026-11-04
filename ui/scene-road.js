@@ -696,5 +696,7 @@
     }
 
     SA.scenes.overgrown_road = overgrownRoad;
+    // The road's painters, for the other Chapter One outdoor scenes (ui/scene-ch1-wilds.js) to share its look.
+    SA.roadKit = { RP, tall, planks, boulder, bush, flowers, crow, banner, lanternAt, signpost, blocks, brokenWall, wheel };
     if (isNode) module.exports = overgrownRoad;
 })(typeof window !== 'undefined' ? window : globalThis);
