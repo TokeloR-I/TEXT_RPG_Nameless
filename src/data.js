@@ -1489,7 +1489,7 @@
             'Chanterelles':   { type: 'material', sellable: true, sellPrice: 1, description: 'Golden Pfifferlinge from the woods. Soup, or a Jäger sauce.' },
             'Apple':          { type: 'material', sellable: true, sellPrice: 1, description: 'A tart orchard apple.' },
             // German dishes (at least ten, Tokelo): crafted at a hearth or oven, some sold in Shamefield
-            'Brötchen':         { type: 'consumable', use: 'meal', heal: 6, sellable: true, sellPrice: 1, description: 'A crusty white bread roll. Half the recipes here start with one.' },
+            'Brötchen':         { type: 'consumable', use: 'meal', heal: 6, sellable: true, sellPrice: 1, description: 'A crusty white bread roll. Fine on its own, better cooked: take it to your homestead hearth with Pork for a Leberkäsbrötchen, add Onion for Mettbrötchen, or Milk and an Egg for Semmelknödel.' },
             'Brezel':           { type: 'consumable', use: 'meal', heal: 10, seconds: 90, mods: { speed: 0.05 }, sellable: true, sellPrice: 1, description: 'A salted pretzel, eaten walking.' },
             'Bratwurst':        { type: 'consumable', use: 'meal', heal: 18, seconds: 150, mods: { damage: 0.06 }, sellable: true, sellPrice: 2, description: 'A grilled pork sausage.' },
             'Leberkäsbrötchen': { type: 'consumable', use: 'meal', heal: 22, seconds: 150, mods: { defence: 0.06 }, sellable: true, sellPrice: 3, description: 'A thick hot slice of Leberkäse in a roll, with mustard.' },

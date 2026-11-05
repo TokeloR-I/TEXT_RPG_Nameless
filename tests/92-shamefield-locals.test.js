@@ -1,5 +1,5 @@
-// Get to know the locals (Tokelo, 2026-11-02): the Watch Captain's quest after the register (L01), and the five
-// Shamefield side quests it counts (SF1-SF5), played through the real world model + engine. SF1, Bread and Beer,
+// Get to know the locals (Tokelo, 2026-11-02): the Watch Captain's quest after the register (L01), and the six
+// Shamefield side quests it counts (SF1-SF6; since 2026-11-04 it gates the orchard and SF6 teaches cooking), played through the real world model + engine. SF1, Bread and Beer,
 // is the first real use of the homestead planting and crafting rules (src/engine/exploration.js).
 const { test, assert, GameEngine, data } = require('./helpers.js');
 const { WorldSession, validateWorld } = require('../src/world/world.js');
@@ -61,30 +61,75 @@ test('Locals: the world still validates, and every new station names a story sta
     assert.ok(validateWorld(bad, data, STORY).some((e) => /unknown story station 'nowhere'/.test(e)));
 });
 
-test('Locals: returning the register starts "Get to Know the Locals" and offers the five favours', () => {
-    const { g } = afterRegister();
+test('Locals: returning the register gets a lazy Captain who keeps the gate shut until you take his deal', () => {
+    const { g, s, r } = afterRegister();
     assert.strictEqual(g.questState('Q05'), 'complete');
-    assert.strictEqual(g.questState('Q06'), 'active', 'the main road goes on as before');
+    assert.strictEqual(g.questState('Q06'), 'unseen', 'no orchard yet');
+    assert.ok(!g.hasStoryFlag('north_gate_open'), 'the register alone opens nothing');
+    assert.strictEqual(g.questState('L01'), 'unseen', 'nothing starts until you agree');
+    const said = g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' ');
+    assert.match(said, /Thanks for the ledger[\s\S]*actually useful/);
+    say(g, /Just open the gate/);
+    assert.strictEqual(g.questState('L01'), 'unseen', 'refusing changes nothing');
+    say(g, /I'll help them/);
+    assert.match(g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' '), /beer isn't going to drink itself\. \*hic\*/);
     assert.strictEqual(g.questState('L01'), 'active');
-    for (const id of ['SF1', 'SF2', 'SF3', 'SF4', 'SF5']) assert.strictEqual(g.questState(id), 'available', id);
+    assert.strictEqual(g.getJournal().quests.find((q) => q.id === 'L01').kind, 'main');
+    for (const id of ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6']) assert.strictEqual(g.questState(id), 'available', id);
     const j = g.getJournal().quests.find((q) => q.id === 'L01');
-    assert.strictEqual(j.objective.text, 'Help five Shamefield households (0/5)');
+    assert.strictEqual(j.objective.text, 'Help six Shamefield households (0/6)');
     say(g, /Who needs help/);
-    assert.match(g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' '), /Greta Rusk has lost her pigs/);
+    assert.match(g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' '), /Greta Rusk has lost her pigs[\s\S]*eat like animals/);
+    bye(g);
+    // Walking off without the deal is fine too: the Captain asks again next time.
+    const later = afterRegister('rogue', 9);
+    bye(later.g);
+    assert.strictEqual(later.g.questState('L01'), 'unseen');
+    talk(later.s, 'village_captain'); say(later.g, /I'll help them/);
+    assert.strictEqual(later.g.questState('L01'), 'active');
+    assert.ok(r && s);
 });
 
 test('Locals: a run that returned the register before this quest existed is offered it by the Captain', () => {
     const { g, s } = afterRegister();
     bye(g);
-    for (const id of ['L01', 'SF1', 'SF2', 'SF3', 'SF4', 'SF5']) g.story.quests[id] = { state: 'unseen', step: 0 };
-    talk(s, 'village_captain');
+    for (const id of ['L01', 'SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6']) g.story.quests[id] = { state: 'unseen', step: 0 };
+    talk(s, 'village_captain'); say(g, /I'll help them/);
     assert.strictEqual(g.questState('L01'), 'active');
     assert.strictEqual(g.questState('SF3'), 'available');
 });
 
-test('Locals: all five favours, in the corners of Shamefield, count toward the Captain, who pays once', () => {
-    const { g, s } = afterRegister('mage', 11);
+test('Locals: a run that took the deal before A Proper Meal existed is offered it when it asks the Captain', () => {
+    const { g, s } = afterRegister();
+    say(g, /I'll help them/); bye(g);
+    g.story.quests.SF6 = { state: 'unseen', step: 0 };
+    talk(s, 'village_captain'); bye(g);
+    assert.strictEqual(g.questState('SF6'), 'available');
+});
+
+test('Locals: A Proper Meal teaches the hearth and eating, with what Oda hands you', () => {
+    const { g, s } = afterRegister();
+    say(g, /I'll help them/); bye(g);
+    travel(s, 'village_residential_lane');
+    talk(s, 'lane_oda'); say(g, /eat like an animal/); bye(g);
+    assert.strictEqual(g.questState('SF6'), 'active');
+    assert.ok(g.player.inventory.includes('Brötchen') && g.player.inventory.includes('Pork'));
+    talk(s, 'lane_oda');
+    assert.ok(!has(g, /I cooked/), 'nothing to report before you eat');
     bye(g);
+    travel(s, 'grounds'); talk(s, 'grounds_hearth'); say(g, /Cook Leberkäsbrötchen/); bye(g);
+    assert.strictEqual(g.currentObjective('SF6').id, 'eat');
+    assert.ok(g.act({ type: 'use_item', item: 'Leberkäsbrötchen' }).ok);
+    assert.strictEqual(g.currentObjective('SF6').id, 'oda');
+    travel(s, 'village_residential_lane'); talk(s, 'lane_oda'); say(g, /I cooked/); bye(g);
+    assert.strictEqual(g.questState('SF6'), 'complete');
+    assert.strictEqual(count(g, 'Brezel'), 2);
+    assert.match(data.itemDefinitions['Brötchen'].description, /Leberkäsbrötchen/, 'the roll says what to make of it');
+});
+
+test('Locals: all six favours, in the corners of Shamefield, count toward the Captain, who pays once and opens the gate', () => {
+    const { g, s } = afterRegister('mage', 11);
+    say(g, /I'll help them/); bye(g);
     const progress = () => g.getJournal().quests.find((q) => q.id === 'L01').objective.text;
 
     // SF4 Singing at the Mill: the falls on the west bank were walled off before; the lane behind the slate house opens them.
@@ -95,7 +140,7 @@ test('Locals: all five favours, in the corners of Shamefield, count toward the C
     fight(g, s, 'mill_shade');
     talk(s, 'village_tamsin'); say(g, /mill is quiet/); bye(g);
     assert.strictEqual(g.questState('SF4'), 'complete');
-    assert.strictEqual(progress(), 'Help five Shamefield households (1/5)');
+    assert.strictEqual(progress(), 'Help six Shamefield households (1/6)');
 
     // SF3 Pigs at Large: three pigs in three corners, then Greta.
     travel(s, 'village_residential_lane'); talk(s, 'lane_greta'); say(g, /lost some pigs/); bye(g);
@@ -127,7 +172,7 @@ test('Locals: all five favours, in the corners of Shamefield, count toward the C
     fight(g, s, 'cloister_rat_nest');
     talk(s, 'cloister_fenric'); say(g, /It was rats/); bye(g);
     assert.strictEqual(g.questState('SF2'), 'complete');
-    assert.strictEqual(progress(), 'Help five Shamefield households (4/5)');
+    assert.strictEqual(progress(), 'Help six Shamefield households (4/6)');
 
     // SF1 Bread and Beer: plant, tend, harvest, gather, brew, mill, bake, share.
     travel(s, 'village_residential_lane'); talk(s, 'lane_oda'); say(g, /at it again/); bye(g);
@@ -168,8 +213,16 @@ test('Locals: all five favours, in the corners of Shamefield, count toward the C
     travel(s, 'briarwell_cloister_court'); talk(s, 'cloister_fenric'); say(g, /Oda baked you this/); bye(g);
     travel(s, 'village_residential_lane'); talk(s, 'lane_oda'); say(g, /Fenric brewed you this/); bye(g);
     assert.strictEqual(g.questState('SF1'), 'complete');
+    assert.strictEqual(g.currentObjective('L01').id, 'favours', 'five of six is not enough');
 
-    // Five of five: report to the Captain.
+    // SF6 A Proper Meal: cook at the homestead hearth, eat, tell Oda.
+    talk(s, 'lane_oda'); say(g, /eat like an animal/); bye(g);
+    travel(s, 'grounds'); talk(s, 'grounds_hearth'); say(g, /Cook Leberkäsbrötchen/); bye(g);
+    assert.ok(g.act({ type: 'use_item', item: 'Leberkäsbrötchen' }).ok);
+    travel(s, 'village_residential_lane'); talk(s, 'lane_oda'); say(g, /I cooked/); bye(g);
+    assert.strictEqual(g.questState('SF6'), 'complete');
+
+    // Six of six: report to the Captain, who opens the gate.
     assert.strictEqual(g.currentObjective('L01').id, 'report');
     travel(s, 'shamefield');
     const gold = g.player.gold;
@@ -177,6 +230,8 @@ test('Locals: all five favours, in the corners of Shamefield, count toward the C
     assert.strictEqual(g.questState('L01'), 'complete');
     assert.strictEqual(g.player.gold, gold + 15);
     assert.ok(g.hasStoryFlag('shamefield_friend'));
+    assert.ok(g.hasStoryFlag('north_gate_open'), 'the gate opens');
+    assert.strictEqual(g.questState('Q06'), 'active', 'and the main road goes on');
     talk(s, 'village_captain'); bye(g);
     assert.strictEqual(g.player.gold, gold + 15, 'paid once');
     assert.deepStrictEqual(g.player.inventory.filter((i) => ['Barley', 'Wild Hops', 'Rye Sheaf', 'Rye Flour', 'Sourdough Starter', 'Briarwell Pale', 'Shamefield Rye Loaf', 'Barley Seed'].includes(i)), [], 'every ingredient went into something');

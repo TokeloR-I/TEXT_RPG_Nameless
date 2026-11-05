@@ -30,10 +30,14 @@ Cellar → House → Grounds → Overgrown Road → Broken Tollway → Shamefiel
 | Q07 The Mason Who Waited | home, Orin Vale, the Builder's Ledger, repair the gate | | |
 | Q08 Ten Seals | the hook for Chapter Two | | |
 
-Optional: S01 *Shame on Shane!*, J01 *Wolf on the Road*, J02 *Herbs for Iona* (from the notice board), the old rats and wolf,
-and, from the Watch Captain once the register is back, L01 *Get to Know the Locals*: five Shamefield favours (SF1 *Bread and
-Beer*, the planting and crafting tutorial; SF2 *The Brown Hops*; SF3 *Pigs at Large*; SF4 *Singing at the Mill*; SF5 *Names
-for the Bell*), then report back. None of them count toward the mandatory 290. `tests/32-chapter-one.test.js` traces the mainline for each base class with all optional content skipped. **This is a progression/integration test, not a fair-combat balance test:** its player has effectively unlimited HP and enemies are reduced to 1 HP before attacks. It proves XP, routing and quest triggers can complete; it does **not** prove ordinary characters can survive the required encounters, beat the Warden, or afford supplies.
+Required since Tokelo 2026-11-04: once the register is back, the Watch Captain (lazy, and usually drinking) keeps the
+orchard gate shut until you take his deal, L01 *Get to Know the Locals*: six Shamefield favours (SF1 *Bread and Beer*, the
+planting and crafting tutorial; SF2 *The Brown Hops*; SF3 *Pigs at Large*; SF4 *Singing at the Mill*; SF5 *Names for the
+Bell*; SF6 *A Proper Meal*, the hearth cooking and eating tutorial), then report back. L01 opens the gate and starts Q06.
+They add 105 quest XP and 60 fight XP, so the mainline reaches the Warden with 663 XP (still level 4).
+
+Optional: S01 *Shame on Shane!*, J01 *Wolf on the Road*, J02 *Herbs for Iona* (from the notice board), and the old rats and
+wolf. `tests/32-chapter-one.test.js` traces the mainline for each base class with all optional content skipped. **This is a progression/integration test, not a fair-combat balance test:** its player has effectively unlimited HP and enemies are reduced to 1 HP before attacks. It proves XP, routing and quest triggers can complete; it does **not** prove ordinary characters can survive the required encounters, beat the Warden, or afford supplies.
 
 ## Where things live
 

@@ -19,6 +19,10 @@
 | Milk and cheese bought, or given for quests | Mara sells milk, cheese, butter and eggs. Bread and Beer, Singing at the Mill and Get to Know the Locals give dairy. Dairy is never farmed. |
 | Shane sells cannabis seeds; they grow on the player's lot; brownies give extra buffs | Shane sells Cannabis Seed and gives some when he explains farming. It only grows in the homestead fields. Shane's Brownie has four buffs at once. |
 
+**First meal (Tokelo, 2026-11-04):** SF6 *A Proper Meal*, one of the six favours the Captain asks for before he opens
+the orchard gate. Oda hands you a Brötchen and Pork, you cook a Leberkäsbrötchen at the homestead hearth, eat it from
+Esc → Items, and tell her. The Brötchen's own description now names what to cook with it.
+
 ## Rules (Thorne)
 
 1. **Eating** uses an item with `use: 'meal'` or `use: 'drink'`. It heals `heal` at once, then applies a status named
@@ -89,7 +93,7 @@ Caps on the totals: damage +75%, damage taken −50%, crit +35%, speed +40%, reg
 - **Dropped:** Rat Meat (rust rats, cellar vermin), Wolf Meat (hungry wolves), every time.
 - **Bought:** Mara (milk, cheese, butter, eggs, flour, onions), Greta (pork, piglets, hens), Oda (flour), Shane (seeds).
 - **Quest gifts:** Bread and Beer (milk, butter), Pigs at Large (2 Bratwurst, a hen), Singing at the Mill (cheese),
-  Get to Know the Locals (cheese, milk).
+  Get to Know the Locals (cheese, milk), A Proper Meal (a Brötchen and Pork to cook, two Brezel after).
 
 ## Open for Gauge and Tally
 
