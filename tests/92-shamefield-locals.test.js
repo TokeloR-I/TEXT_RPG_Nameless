@@ -107,6 +107,23 @@ test('Locals: a run that took the deal before A Proper Meal existed is offered i
     assert.strictEqual(g.questState('SF6'), 'available');
 });
 
+test('Locals: a run that finished the locals on five favours, before A Proper Meal existed, is offered it by Oda on load (bug hunt 2026-11-07)', () => {
+    const { g } = afterRegister();
+    bye(g);
+    // As an older save had it: L01 done, SF6 never heard of, and this catch-up not yet run.
+    g.story.quests.L01 = { state: 'complete', step: 2 };
+    g.story.quests.SF6 = { state: 'unseen', step: 0 };
+    g.story.claimed = g.story.claimed.filter((k) => k !== 'catchup:sf6_offer');
+    const c = GameEngine.fromSave(JSON.parse(JSON.stringify(g.serialize())));
+    assert.strictEqual(c.questState('SF6'), 'available');
+    const s2 = new WorldSession(ZONE1, { engine: c, map: 'village_residential_lane', spawn: Object.keys(ZONE1.maps.village_residential_lane.spawns)[0] });
+    talk(s2, 'lane_oda');
+    assert.ok(has(c, /eat like an animal/), 'Oda offers A Proper Meal');
+    // A new game never runs it (the deal offers SF6 itself).
+    const fresh = new GameEngine({ seed: 1 }); fresh.start();
+    assert.ok(fresh.story ? fresh.story.claimed.includes('catchup:sf6_offer') : true);
+});
+
 test('Locals: A Proper Meal teaches the hearth and eating, with what Oda hands you', () => {
     const { g, s } = afterRegister();
     say(g, /I'll help them/); bye(g);

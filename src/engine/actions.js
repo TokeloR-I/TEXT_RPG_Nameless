@@ -418,14 +418,16 @@
             const owned = [...new Set(p.inventory)].map((item) => ({ item, def: this.itemDef(item) })).filter((x) => x.def);
             const heals = owned.filter((x) => x.def.use === 'heal' && x.def.value > 0).sort((a, b) => a.def.value - b.def.value);
             if (heals.length) return { item: (heals.find((x) => x.def.value >= lost) || heals[heals.length - 1]).item };
-            const food = owned.filter((x) => this.isFood(x.def) && x.def.heal > 0 && !this.foodBlock(x.item)).sort((a, b) => b.def.heal - a.def.heal);
+            // Meals only: a beer heals a little but makes you Tipsy, and the fifth one Drunk (inverted controls), so
+            // mashing the heal key must never pour one down you. Beer is still drunk on purpose from the Items tab.
+            const food = owned.filter((x) => this.isFood(x.def) && x.def.use !== 'drink' && x.def.heal > 0 && !this.foodBlock(x.item)).sort((a, b) => b.def.heal - a.def.heal);
             if (food.length) return { item: food[0].item };
             return { reason: { code: 'NO_HEALING', message: 'You have nothing to heal with. Buy bandages or potions, or cook something.' } };
         }
 
         /** The quick-heal option, listed only while you carry something that heals (null otherwise). */
         quickHealAvailability() {
-            const carries = this.player && this.player.inventory.some((i) => { const d = this.itemDef(i); return d && ((d.use === 'heal' && d.value > 0) || (this.isFood(d) && d.heal > 0)); });
+            const carries = this.player && this.player.inventory.some((i) => { const d = this.itemDef(i); return d && ((d.use === 'heal' && d.value > 0) || (this.isFood(d) && d.use !== 'drink' && d.heal > 0)); });
             if (!carries) return null;
             const c = this.quickHealChoice();
             return c.item ? { type: 'quick_heal', item: c.item, enabled: true } : { type: 'quick_heal', enabled: false, reason: c.reason };
