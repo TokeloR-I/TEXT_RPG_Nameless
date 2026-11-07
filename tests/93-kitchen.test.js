@@ -314,6 +314,21 @@ test('Quick heal (Tokelo, 2026-11-04): one key uses the best healing item; avail
     assert.ok(!t.player.inventory.includes('Bandages'), 'qh in the text game');
 });
 
+test('Quick heal never pours a beer (bug hunt 2026-11-07: mashing H with only beer left made you Drunk)', () => {
+    const { g } = world();
+    g.player.inventory = [];
+    give(g, 'Helles', 6);
+    g.player.hp = 10;
+    assert.strictEqual(g.getAvailableActions().actions.find((o) => o.type === 'quick_heal'), undefined, 'beer alone is not a heal');
+    for (let i = 0; i < 6; i++) g.act({ type: 'quick_heal' });
+    assert.strictEqual(count(g, 'Helles'), 6, 'no beer drunk');
+    assert.ok(!g.controlsInverted(), 'not drunk');
+    give(g, 'Brezel');
+    const qh = g.getAvailableActions().actions.find((o) => o.type === 'quick_heal');
+    assert.strictEqual(qh.item, 'Brezel', 'a meal next to the beer is picked');
+    assert.ok(eat(g, 'Helles').ok, 'beer still drinks on purpose');
+});
+
 test('Farming (Tokelo, 2026-11-04): a crop takes 120 s to ripen; watering and weeding takes 60 s off, once', () => {
     const { g } = world();
     assert.strictEqual(data.farmingRules.growSeconds, 120);

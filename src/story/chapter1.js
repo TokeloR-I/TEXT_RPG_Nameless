@@ -1273,7 +1273,12 @@
         merchants: { mara: 'Mara', bragg: 'Bragg', iona: 'Iona', shane: 'Shane', oda: 'Oda', greta: 'Greta', fenric: 'Fenric' },
         quests, npcs, triggers, anchors,
         // Older saves (save.js runStoryCatchUp): a statue woken before the Fallen gifts existed hands them over on load.
-        catchUp: [{ id: 'seraph_gifts', if: { flags: ['seraph_awakened'] }, effects: [{ legend: 'fallen_seraphim' }] }]
+        catchUp: [
+            { id: 'seraph_gifts', if: { flags: ['seraph_awakened'] }, effects: [{ legend: 'fallen_seraphim' }] },
+            // A run that finished Get to Know the Locals on five favours, before A Proper Meal existed, never hears of it
+            // (only the Captain's deal and his reminder offer it, and both need L01 still open): Oda offers it instead.
+            { id: 'sf6_offer', if: { quests: { L01: 'complete', SF6: 'unseen' } }, effects: [{ available: 'SF6' }] }
+        ]
     };
 
     (ENSO.story || (ENSO.story = {})).chapter1 = chapter1;

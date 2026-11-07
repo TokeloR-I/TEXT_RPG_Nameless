@@ -1131,7 +1131,7 @@
     }
     /** The stat block; with a candidate's diff it becomes the comparison (▲ better, ▼ worse, never colour alone). */
     function statsHtml(p, diff) {
-        return `<dl class="mm-stats">${MM.statPreview(p, diff).map((r) => `<div class="${r.delta > 0 ? 'up' : r.delta < 0 ? 'down' : ''}"><dt>${r.label}</dt><dd>${r.value}${r.delta ? ` <span class="arrow">${r.delta > 0 ? '▲' : '▼'}</span> ${r.after}` : ''}</dd></div>`).join('')}</dl>`;
+        return `<dl class="mm-stats">${MM.statPreview(p, diff).map((r) => `<div class="${r.delta > 0 ? 'up' : r.delta < 0 ? 'down' : ''}"><dt>${r.label}</dt><dd>${esc(r.valueText)}${r.delta ? ` <span class="arrow">${r.delta > 0 ? '▲' : '▼'}</span> ${esc(r.afterText)}` : ''}</dd></div>`).join('')}</dl>`;
     }
     function renderMain() {
         const s = engine.getState(), p = s.player;

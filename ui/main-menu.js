@@ -23,13 +23,21 @@
         { stat: 'physicalDamage', label: 'Physical dmg', optional: true },
         { stat: 'magicDamage', label: 'Magic dmg', optional: true },
         { stat: 'maxHp', label: 'Max HP', optional: true },
-        { stat: 'critChance', label: 'Crit chance', optional: true }
+        { stat: 'critChance', label: 'Crit chance', optional: true, percent: true }
     ];
     const statLabel = (stat) => (STATS.find((s) => s.stat === stat) || { label: stat.toUpperCase() }).label;
+    /** A stat as the player reads it: crit chance is a share (0.15 -> "15%"), everything else a whole number.
+     *  Rounding also hides float noise from adding shares (0.1 + 0.05 = 0.15000000000000002). */
+    function formatStat(stat, value) {
+        if (typeof value !== 'number' || !Number.isFinite(value)) return value == null ? '—' : String(value);
+        const row = STATS.find((s) => s.stat === stat);
+        if (row && row.percent) return `${Math.round(value * 1000) / 10}%`;
+        return String(Math.round(value * 100) / 100);
+    }
 
     /** "+1 STR · −2 DEF", or "no stat change". Zero changes are left out. */
     function diffText(diff) {
-        const parts = Object.entries(diff || {}).filter(([, d]) => d).map(([stat, d]) => `${d > 0 ? '+' : '−'}${Math.abs(d)} ${statLabel(stat)}`);
+        const parts = Object.entries(diff || {}).filter(([, d]) => d).map(([stat, d]) => `${d > 0 ? '+' : '−'}${formatStat(stat, Math.abs(d))} ${statLabel(stat)}`);
         return parts.length ? parts.join(' · ') : 'no stat change';
     }
 
@@ -69,11 +77,12 @@
     function statPreview(player, diff) {
         return STATS.filter(s => !s.optional || s.stat in player || s.stat in (diff || {})).map(({ stat, label }) => {
             const delta = (diff && diff[stat]) || 0;
-            return { stat, label, value: player[stat], delta, after: player[stat] + delta };
+            const after = player[stat] + delta;
+            return { stat, label, value: player[stat], delta, after, valueText: formatStat(stat, player[stat]), afterText: formatStat(stat, after) };
         });
     }
 
-    const api = { SLOTS, STATS, diffText, itemsView, slotsView, statPreview };
+    const api = { SLOTS, STATS, formatStat, diffText, itemsView, slotsView, statPreview };
     ENSO.mainMenu = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

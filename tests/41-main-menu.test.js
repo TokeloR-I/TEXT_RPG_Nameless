@@ -41,3 +41,13 @@ test('Main menu: diff text and the comparison preview', () => {
     assert.deepStrictEqual(rows.map((r) => [r.label, r.value, r.delta, r.after]), [['STR', 10, 0, 10], ['INT', 5, 0, 5], ['AGI', 7, 0, 7], ['DEF', 3, 2, 5]]);
     assert.ok(MM.statPreview(p, null).every((r) => r.delta === 0));
 });
+
+test('Main menu: crit chance reads as a percentage, and float noise never shows (bug hunt 2026-11-07)', () => {
+    assert.strictEqual(MM.formatStat('critChance', 0.15000000000000002), '15%');
+    assert.strictEqual(MM.formatStat('critChance', 0.05), '5%');
+    assert.strictEqual(MM.formatStat('strength', 10), '10');
+    assert.strictEqual(MM.diffText({ critChance: 0.05 }), '+5% Crit chance');
+    const row = MM.statPreview({ strength: 1, intelligence: 1, agility: 1, def: 1, critChance: 0.1 }, { critChance: 0.05 }).find((r) => r.stat === 'critChance');
+    assert.strictEqual(row.valueText, '10%');
+    assert.strictEqual(row.afterText, '15%');
+});
