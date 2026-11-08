@@ -50,7 +50,7 @@ test('Black Flight: an anchor is attuned by visiting it; travel moves the player
     assert.ok(!flights(g).some((x) => x.anchorId === 'shamefield'));
     g.act({ type: 'world_inspect', objectId: 'village_well' });
     const sh = flights(g).find((x) => x.anchorId === 'shamefield');
-    assert.ok(sh && sh.enabled && sh.region === 'Shamefield Vale');
+    assert.ok(sh && sh.enabled && sh.region === 'Blackbriar Vale');
     const r = s.blackFlight('shamefield');
     assert.strictEqual(r.type, 'transition');
     assert.strictEqual(s.mapId, 'shamefield');
