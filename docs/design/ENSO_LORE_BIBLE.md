@@ -84,69 +84,80 @@ Everything in this part is **proposed canon**. It is built only from what part 1
 without overwriting a shipped line. Spoiler level is marked **[Ch1]** (fine to hint at now), **[mid]** (not before
 the midgame reveal, boss 5 or 6) or **[late]**.
 
-### 4.1 The Ensō and the Last Stand (keystone; Tokelo 2026-11-08)
+### 4.1 The core: the Keeping (rewritten 2026-11-08 after research; supersedes "the Unwritten")
 
-> "Keep ENSO as a place holder ... can it not be something like what the elder scrolls mean? ... If the game is about
-> a damn door with no clear answer either it's genius or lazy." (Tokelo)
+> "But the door just a cold wind??? ... do research on gaming, RPG and anime lore and come back to me with actual
+> good lore." (Tokelo)
 
-So, like *The Elder Scrolls*, the title names a thing **inside** the world that everyone has heard of and nobody
-understands. And the doors get a real answer. **ENSO stays a placeholder word**: if Tokelo renames the game later,
-only the word changes, not the idea.
+The first answer ("behind the door is a cold blank") failed because it was **impersonal**: nothing behind the door
+mattered to anyone in the game. The research (part 7) points at one rule shared by the lore people remember:
+**what is behind the door has to be about people the player already met, and it has to cost the player something.**
+Fullmetal Alchemist's Gate takes the thing you love, Hollow Knight's seal is a living child, Planescape: Torment's
+amnesiac hero finds that the price of his power was paid by others, and Berserk's power comes from sacrificing the
+people closest to you. So:
 
-**The Ensō is the world.** The Kloster teaches that the Maker drew the world in one stroke, as a circle, and lifted
-the brush before the circle closed. Everything is inside the circle. At the top there is a gap, the place where the
-brush last stood: **Enso's Last Stand**. It is the oldest and only real door. Every other door in the game is a
-copy of it.
+**Behind every door are the missing.**
 
-**What is behind the doors (the answer).** On the far side of the gap is **the Unwritten**: everything the Maker
-never drew. It isn't a hell and has no monsters in it. It is blank, and blank is cold: whatever touches it loses its
-warmth first, then its shape, then its **name**, and at last anyone's memory that it ever was. Everything that matters
-in ENSO is a door because the world is a circle with a hole in it, and the whole history of the world is people
-arguing about that hole.
+**The old lord could open people.** He would draw the open circle (the ensō, the brushstroke) on a person, and the
+circle became a door. Through it he could take what was inside: their life, their memories, their name. He did not
+kill them. He **kept** them, inside himself. Every person he took became part of his power: their strength in his
+arm, their memories in his head, their skills in his hands. His soldiers called them **the Kept**.
 
-| Door | What it keeps shut | What is behind it | Spoiler |
-|---|---|---|---|
-| **The Last Stand** (the gap in the Ensō) | the Unwritten | blank: cold, shapelessness, forgetting | [Ch1] the Kloster's creation story; [late] that it is a real place |
-| **The Cold Door** (under the Kloster hill) | Heaven's warmth, kept in | *Heaven's side*: the warm country, the Maker's garden. *Our side*: a winter breathing in through the gap | [Ch1] Caelith says it |
-| **The ten seals** | the pieces of the old lord | each one holds a **husk** of him (a power), and the **memory** that went with it | [Ch1] that there are ten; [mid] what they hold |
+**Why he did it (his reason must make sense).** It started with one person. The one he loved fell ill, and he would
+not let them die, so he learned how to open a door in them and keep them. The table in the old house is set for
+two because **that was their house**. Once he knew how, he could not stop: nobody he loved would ever be lost again,
+then nobody he ruled. His law was **"Under the crown, nobody is lost."** He believed he was ending death. To everyone
+else, whole streets simply emptied.
 
-**The old lord's dream: close the circle.** The old lord was the one person who learned to open any door, and who
-went looking for the oldest one. His goal, the thing he did all his evil *for*, was to **finish the Maker's stroke
-and close the Ensō**. A closed circle means no more cold coming in and nothing lost to the Unwritten ever again: no
-winter, no forgetting, and in the end no death. But nothing new can come in either. The world would stop where it
-is, perfect and finished, and he would hold it.
+**What this explains in shipped text (nothing has to be rewritten):**
 
-A stroke needs ink, and the ink is lives. When "whole streets emptied when he gave the word", the people were not
-killed. They were **written into the line**, and the Unwritten took their names: that is why the memorial carries no
-names, and why no one can remember them, not just why the list was too long. [Ch1] the empty memorial; [mid] the
-reason.
+| Chapter One line | What it really means | Spoiler |
+|---|---|---|
+| "Whole streets emptied when he gave the word." | He took them, alive, into himself. | [mid] |
+| Memorial: "No names: the list was too long to carve." | Nobody can *remember* the names. Taking a person takes their name out of other people's memories too. The villagers think they forgot; they were robbed. | [mid] |
+| Elian's letter of people "who never arrived anywhere" | Elian wrote names down on the road before the Night of Lanterns, which is why he still has some. His letter is the only list of the Kept in the world. | [Ch1] the letter; [mid] why it matters |
+| First memory: the lanterns go out one by one | Each lantern is a person being taken. | [Ch1] the image; [mid] the meaning |
+| Glowing hands; "...WHO SLEEPS HERE IS NOT TO BE..." | His hands are where the circle is drawn. The inscription ends "...WOKEN". | [Ch1] |
+| The table set for two | The beloved, the first of the Kept. | [late] |
+| The crows are afraid of him | Animals can hear the Kept. | [mid] |
+| The Warden "was given the key and told never to use it" | His seal holds a tenth of the Kept. Opening it lets them back into the player, and the player gets stronger. | [mid] |
 
-**Why the open circle is everywhere.** It is the oldest holy sign there is: the Kloster carves it, it is on old
-milestones, and the seals are drawn in it. The Broken Oath scrape it as his sign, the circle *he* meant to close.
-Same mark, two meanings, and a player who has finished the game should never see it the same way again.
+**What the heroes did.** At the gates, the Sworn Band could not kill him without killing everyone inside him. So
+the Sealwright cut him into ten pieces, each piece a **husk** holding part of his power and part of the Kept, and
+locked each behind a seal drawn in his own circle. He lost his memory because **his memories were the Kept**: their
+lives had filled the place where his own should be. Each seal the player opens gives back power and a fragment of
+memory because it gives back a crowd of people.
 
-**The question at the end.** The Sunbearer says the gap must stay open, because a closed world is a dead one.
-Caelith opened a door and called the result spring. The old lord would close the last one and call it peace. That
-is the "what is evil?" the game asks, and it gives the player a real thing to decide at the Last Stand. The endings
-themselves stay Tokelo's call.
+**Why the Qliphoth fit.** In Kabbalah (Lurianic tradition), the *qlippot* are **shells that trap sparks of light**,
+born when the vessels holding that light shattered; the work of repair is to free the sparks. ENSO borrows that
+shape, not the religion: each husk is a shell holding the Kept. The player can **free the sparks or swallow them**,
+and that is the moral question of the whole game, put in mechanical terms.
 
-- Folk speech says **"the old lord"** or **"the old crown"**. Scholars and the Sworn Band call him **"the
-  Encloser"**. His own name is still unknown and is not "Enso" (Decision D1 is closed).
-- **[mid]** The reveal (boss 5, Thagirion, "The Face") is also where the player learns what he was trying to close.
+**The choice the game is built toward.** Every seal opened makes the player stronger because the Kept flow back in.
+Late in the game the player learns they can also **let them go** through the open circle, and each person let go
+is gone from the player's power for good. The beloved is the last one inside. **Enso's Last Stand** (placeholder
+title) is that final door: keep everyone and rule as the old lord did, or open the circle and lose them all,
+including the one he did it for. The Sunbearer's whole quest is to free the Kept; that is what makes the hero right
+without making the player a cartoon. Endings stay Tokelo's call.
+
+**What the open circle means now.** It is his brushstroke: one stroke, never closed, because there was always one
+more person. Ensō in Zen is the circle of a single breath; his is the circle of a single appetite. The Broken Oath
+scrape it to call him home; the Kloster carves the *closed* circle on its graves, the sign of a life that ended and
+was let go.
 
 ### 4.2 A short history of the world
 
 | When (from now) | What happened | Spoiler |
 |---|---|---|
-| the beginning | **The stroke.** The Maker draws the world as a circle and lifts the brush before it closes. The gap is the Last Stand; through it the Unwritten breathes in as cold. | [Ch1] as the Kloster's creation story |
-| ~1000 years | **The Cold Door.** Heaven has walled its warm country off from a world freezing at the gap. Caelith, its keeper, opens it for the people freezing outside; spring runs down the hill. Caelith falls and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
-| ~700 years | **Sankt Alban**, a hermit, digs a spring on the hill and finds a hooded stone figure in it. He builds a chapel round it; the brothers who follow him become **the Order of Briarwell**. They take the statue for a nameless saint and copy its folded hands on every saint they carve. Their rule: "for the living, and against the winter", a phrase none of them can explain. | [Ch1] hints |
-| ~60 years | **The rise of the old crown.** A ruler from nowhere unites the valley lands and those beyond, by law first and by fear after. Roads, tollways, watchposts and checkpoints: the ruins on the Overgrown Road are his. He builds a seat on the ridge above Blackbriar Vale. The Kloster's charter, older than him, is the one thing in the Vale he never tears down. | [Ch1] ruins; [mid] the seat is the homestead |
-| ~25 years | **The Night of Lanterns.** In the old crown's capital, a street festival is emptied by a single order: the first stretch of the line he means to close the circle with. This is the first memory fragment. | [Ch1] the image only; [mid] who gave it and why |
-| ~25 to 2 years | **The long fear.** Requisitions, missing households, the memorial with no names. Some prosper: roads are safe, tolls are fair, bread is cheap. Some remember the order fondly; most don't. | [Ch1] |
-| ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones* from the Kloster library. | [mid] |
-| 1 year | **The Breaking of the Crown.** The Sworn Band catches the old lord one stroke short of the Last Stand and breaks him. They cannot kill what he is, so they split it into ten **husks**, seal each behind a door in his own sign, and give each door a keeper. The Kloster bell rings for an hour. The body is never shown. | [Ch1] the bell, the festival; [mid] the husks |
-| now | The Festival of the Sun. A year of fewer funerals. Someone wakes in the old house. | [Ch1] |
+| ~1000 years | **The Cold Door.** Heaven keeps its warm country shut behind a door; outside, a winter that does not end. Caelith, its keeper, opens it for the freezing; spring runs down the hill. Caelith falls and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
+| ~700 years | **Sankt Alban**, a hermit, digs a spring on the hill and finds a hooded stone figure in it. He builds a chapel round it; the brothers who follow him become **the Order of Briarwell**. They take the statue for a nameless saint and copy its folded hands on every saint they carve. Their rule: "for the living, and against the winter". | [Ch1] hints |
+| ~60 years | **The house on the ridge.** Two people live in a small house above Blackbriar Vale. One falls ill. The other finds, in the hill's old doors, a way to keep them. | [late] |
+| ~50 years | **The rise of the old crown.** The one who kept his beloved learns to keep soldiers' strength, then scholars' knowledge, and conquers with it. Roads, tollways, prison-towers: his. A mason named Orin lays the foundations of a great seat around the little house, and is later kept himself. | [Ch1] ruins; [mid] the seat; [late] Orin |
+| ~25 years | **The Night of Lanterns.** In the capital, a festival street is taken in one night: the first time thousands are kept at once. The first memory fragment. | [Ch1] the image; [mid] the truth |
+| ~25 to 2 years | **"Nobody is lost."** No funerals under the crown, and no one can say where the missing went. Some loved the safety: roads safe, tolls fair, bread cheap. | [Ch1] |
+| ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones*: the seraphim's way to make a door that stays shut. | [mid] |
+| 1 year | **The Breaking of the Crown.** The Band cuts the old lord into ten husks at the gates, seals each in his own circle, and gives each seal a keeper. What is left, empty, is laid in the cellar of the house on the ridge, and someone carves a warning and tries to scratch it out. The Kloster bell rings for an hour. | [Ch1] bell, festival; [mid] the husks |
+| now | The Festival of the Sun. Someone wakes in the old house. | [Ch1] |
 
 ### 4.3 Factions and people
 
@@ -183,30 +194,26 @@ about the stolen pages.
 **Shamefield, the Watch and the Vale Hunters.** As in the regional bible. The Watch Captain is lazy and drunk, but
 he closes the orchard road because he has buried people who walked it.
 
-### 4.4 The cosmology: the circle, Heaven and the husks
+### 4.4 The cosmology: Heaven, the husks and the Kept
 
-The rule under all of it is 4.1: **the world is a circle with a hole in it.**
+- **Heaven** (the Kloster's One Light) keeps order by keeping doors. Its doorkeepers are the six-winged **seraphim**.
+  Heaven is not evil and not kind: it is *orderly*, and it believes the dead belong behind a door.
+- **Caelith and the old lord are mirror images.** Both learned to open doors. Caelith opened one to **give** (spring
+  to the freezing) and fell for it. The old lord opened people to **keep** them. A player who wakes the Fallen
+  Seraph and breaks the seals carries both kinds of opening, and the web's question "what is evil?" lands on them.
+- **The husks** (the Qliphoth) are the ten pieces the heroes cut him into: shells, each holding a crowd of the Kept
+  and one of his powers. Each boss guards one. Nahemoth is the crowd of everyone who was **taken on the road**:
+  travellers, carters, tollkeepers. That is why the crow knows every route, and why it took the shape of a road bird.
+- **The seals** are door-craft learned from Heaven's stolen pages, drawn in the old lord's own circle. That is why
+  Aurevain watches the player.
+- **Orin** was a real mason, kept by the old lord after building his seat. When the first seal opened, he came out
+  of it, wearing what is left of himself. He recognises the foundations because **his own hands laid them**. He does
+  not know that yet.
+- **The Broken Oath** know what the circle does. They believe the Kept are alive and happy inside him, and that the
+  heroes murdered them all by sealing him. They are wrong about the happy part.
 
-- **Heaven** (the Kloster calls it the One Light) is the Maker's garden, the warmest place inside the circle. It
-  keeps order by keeping doors, so nothing leaks to the gap. Its doorkeepers are the **six-winged ones**, the
-  seraphim. Caelith kept the Cold Door; Aurevain keeps it now. Heaven is not evil and not kind: it is *orderly*.
-  It wants the gap left alone and every lesser door kept shut.
-- **The Husks** (the Qliphoth) are pieces of the world that leaned too close to the gap and came back hollow: still a
-  shape, missing what was inside. They are not demons from a hell. Nahemoth, the shadow of every path ever walked,
-  took the shape of a crow, the bird of roads. Each of the old lord's ten powers became a husk when the heroes cut it
-  off him.
-- **The old lord** could open any door, and wanted to close the last one (4.1).
-- **The seals** are door-craft learned from Heaven: the cut pages of *On the Six-Winged Ones* teach how the seraphim
-  shut a door so it stays shut. The heroes used Heaven's own method, and drew each seal in the circle sign. This is
-  why Aurevain takes such an interest in the player, and why the Fallen Seraphim web can be found by the same person
-  who is breaking the seals.
-- **Orin** is a Husk too: something old that heard a door open and walked through it wearing a mason's apron.
-- **The player's lost memory** went into the seals with his powers. Every seal opened is a door opened back onto
-  himself.
-
-**Lore rule:** a door, gate or seal that matters must have an answer on paper: what it keeps in, what it keeps out,
-who was asked to keep it shut. The player can be kept from the answer for a while, but the team never is.
-
+**Lore rule:** a door, gate or seal that matters must have a written answer: who is behind it, and what it costs to
+open. The player can wait for the answer; the team never does.
 
 ### 4.5 People who need a past
 
@@ -215,16 +222,14 @@ who was asked to keep it shut. The player can be kept from the answer for a whil
   stayed behind to feed the crows that had always roosted on the walls. The Sealwright chose him for that. His cages
   are the old cells' bars. His name should appear for the first time **on his grave or in Tamsin's mourning line**,
   never before the fight: the player kills "the Warden" and buries Bran.
-- **The table set for two.** [late] Someone lived in the old house with the sleeper, and set the table the last
-  evening. Two options for Tokelo (Decision D4): **(a)** the old lord's steward, alive somewhere and still loyal,
-  later a recruitable or rival; **(b)** the person who put him to sleep in the cellar and carved the inscription,
-  then tried to scratch it out. Recommendation: **(b)**: it explains the inscription, the scratching, and why the
-  crows saw him wake.
+- **The table set for two.** [late] Answered in 4.1: the beloved, the first of the Kept, who is still inside the
+  player at the end. Working name **Maren**. Whoever laid the empty sleeper in the cellar (most likely the Sunbearer
+  or the Sealwright) carved the warning, then tried to scratch it out so nobody would come looking.
 - **The crow.** It refuses a name until the second seal opens, then picks one it likes ([mid]; suggested: **Mourn**).
 - **Shane the Shamed.** He ran the old crown's field hospital in the Vale, which is why his medicines work and why the
   watch has a file on him. He has never told anyone. His farewell stays exactly **"Suffer!"**.
-- **Elian.** Lost his sister on the Night of Lanterns. His letter of names (SF5) is the only list of the missing
-  anyone has written.
+- **Elian.** Lost his sister on the Night of Lanterns. His letter of names (SF5) is the only list of the Kept anyone
+  has. Later, a name on it can answer from inside the player.
 
 ### 4.6 Places to come
 
@@ -241,10 +246,11 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | Term | Meaning | Who says it |
 |---|---|---|
 | the old lord, the old crown | the ruler and his realm | everyone |
-| the Ensō | the world, a circle drawn in one stroke | the Kloster |
-| Enso's Last Stand, the Last Stand | the gap at the top of the circle, where the brush last stood; the first door | the Kloster, old books |
-| the Unwritten | what lies beyond the gap: blank, cold, forgetting | the Kloster, the crow |
-| the Encloser | scholars' name for the old lord | scholars, the Sworn Band |
+| the open circle, the ensō | the old lord's brushstroke; drawn on a person, it opens them | the Broken Oath, scholars |
+| the Kept | the people he took, alive, into himself | his soldiers, the Broken Oath |
+| "Nobody is lost" | the old crown's law | old officials |
+| Enso's Last Stand | placeholder title: the final door, the choice to keep the Kept or let them go | nobody, until [late] |
+| the Keeper | scholars' name for the old lord | scholars, the Sworn Band |
 | the Breaking of the Crown | the victory, one year ago | heroes, festival |
 | the Sworn Band | the five heroes | everyone |
 | the Sunbearer | the champion | everyone |
@@ -274,10 +280,38 @@ These are named so Moss and Cairn can plan around them; none is promised content
 
 | # | Question | Recommendation |
 |---|---|---|
-| D1 | What is "Enso"? | **Answered 2026-11-08:** ENSO stays a placeholder, used like *The Elder Scrolls*: the Ensō is the world-circle and the Last Stand is the gap in it (4.1). |
-| D2 | Adopt what is behind the doors (4.1, 4.4): the Unwritten beyond the gap, and the old lord's goal of closing the circle? | Yes. It fits every shipped line and gives the ending a real choice. |
+| D1 | What is "Enso"? | ENSO stays a placeholder title (Tokelo, 2026-11-08). In-world, the open circle is the old lord's brushstroke and *Enso's Last Stand* is the final door (4.1). |
+| D2 | Adopt **the Keeping** (4.1): behind every door are the missing, kept alive inside the old lord, and the player's power is made of them? | **Approved as the direction** (Tokelo, 2026-11-08: "Yes this is a good start"). It replaces "the Unwritten". The team builds on it and deepens it. |
 | D3 | The Sworn Band's five roles and working names (4.3) | Keep the roles; the names are easy to swap. |
-| D4 | Who set the table for two? | (b) the one who put the sleeper there. |
+| D4 | The beloved at the table (Maren) is the last of the Kept, and the final choice | Yes; the endings themselves stay open. |
 
 Until these are answered, the team builds on the recommendations and keeps them out of shipped text where they are
 marked [mid] or [late].
+
+## 7. Research: what the lore people remember has in common (Ashby, Wick, Cairn, 2026-11-08)
+
+| Work | What is behind its "door" | What ENSO takes from it |
+|---|---|---|
+| *Fullmetal Alchemist* — the Gate of Truth | Knowledge, paid for with a toll of what you value; each person's Gate looks different | A door must **cost** something personal |
+| *Hollow Knight* — the Pale King's seal | A forgotten god, sealed inside a living child; the seal fails because the child loved its father | The seal can be a **person**; love breaks seals (the Warden) |
+| *Planescape: Torment* — the Nameless One | An amnesiac immortal whose earlier selves did terrible things; his lost mortality became his enemy | The amnesia is **caused by the crime**, not by accident |
+| *Berserk* — the Sacrificial Ceremony | Power bought by giving up the people dearest to you; they bear the Brand | The power has to be **made of people** |
+| *Dark Souls* — the First Flame | An age kept alive past its time; the last choice is whether to keep it burning | The ending is a choice between **holding on and letting go** |
+| *Elden Ring* — the Shattering | A broken order whose shards (Great Runes) are held by demigods the player hunts down | Ten shards, ten holders, one player putting it back together |
+| *The Elder Scrolls* | The title names an in-world artifact nobody fully understands, and reading one costs your sight | The title can name a thing in the world (D1) |
+| *Frieren* | The story starts after the heroes have won; the hero's statues stand while his memory fades | A post-victory world where remembering is the theme |
+| Kabbalah (Lurianic), *qlippot* | Shells that trap sparks of light after the vessels shattered; repair means freeing the sparks | The husks hold the Kept; free them or swallow them |
+
+**Rules for good reveals** (Jane Friedman, "When and why reveals don't work"): the audience must care about the
+characters first; the reveal needs stakes; it must be grounded in clues laid earlier; and it should change what
+those earlier clues meant. The Keeping is built to do the last one: it gives a second meaning to the memorial, Elian's
+letter, the lanterns, the table, the crows and the Warden's key without changing a word of them.
+
+Sources: [FMA Wiki: The Gate](https://fma.fandom.com/wiki/The_Gate) ·
+[Wikipedia: Nameless One](https://en.wikipedia.org/wiki/Nameless_One) ·
+[Hollow Knight lore explained](https://rogueranker.com/hollow-knight-lore/) ·
+[Berserk Wiki: Sacrificial Ceremony](https://berserk.fandom.com/wiki/Sacrificial_Ceremony) ·
+[Dark Souls Wiki: The First Flame](https://darksouls.fandom.com/wiki/The_First_Flame) ·
+[Elden Ring Wiki: Lore](https://eldenring.fandom.com/wiki/Lore) ·
+[UESP: Elder Scrolls](https://app.uesp.net/wiki/Lore:Elder_Scrolls) ·
+[Jane Friedman: when and why reveals don't work](https://janefriedman.com/when-and-why-reveals-dont-work/)
