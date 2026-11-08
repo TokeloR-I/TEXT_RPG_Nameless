@@ -66,7 +66,7 @@ and the game.
 
 ## 3. Gaps the team kept hitting
 
-1. **What "Enso" is.** It is the game's name and nothing in the game or the docs says what it means. *(Decision D1.)*
+1. **What "Enso" is.** It is the game's name and nothing in the game or the docs says what it means. *(Answered in 4.1.)*
 2. **The old lord** has no history beyond "streets emptied". His realm has no name.
 3. **The heroes** are "a sworn band" with a sun banner. None has a name, a role or a reason; yet boss 10 and the
    late game hinge on them.
@@ -84,33 +84,68 @@ Everything in this part is **proposed canon**. It is built only from what part 1
 without overwriting a shipped line. Spoiler level is marked **[Ch1]** (fine to hint at now), **[mid]** (not before
 the midgame reveal, boss 5 or 6) or **[late]**.
 
-### 4.1 Enso and the open circle (keystone; Decision D1)
+### 4.1 The Ensō and the Last Stand (keystone; Tokelo 2026-11-08)
 
-An *ensō* is a circle drawn in one brushstroke, often left open. The game already uses that exact image four
-times: the cult's mark, the cellar, the dead tree, the well, and the seal itself.
+> "Keep ENSO as a place holder ... can it not be something like what the elder scrolls mean? ... If the game is about
+> a damn door with no clear answer either it's genius or lazy." (Tokelo)
 
-**Proposal:** *Enso* is the old lord's true name, the name nobody says. The open circle was his mark: a crown that
-is never closed, a rule that is never finished. Every seal the heroes made is that mark turned against him, a door
-drawn in his own sign. *Enso's Last Stand* is not the heroes' victory: it is the player's story, the stand he makes
-after he has already lost.
+So, like *The Elder Scrolls*, the title names a thing **inside** the world that everyone has heard of and nobody
+understands. And the doors get a real answer. **ENSO stays a placeholder word**: if Tokelo renames the game later,
+only the word changes, not the idea.
 
-- **[Ch1]** The circle may appear anywhere old. Nobody in Chapter One may connect it to a name.
-- **[mid]** The reveal (boss 5, Thagirion, "The Face") is where the player first hears the name spoken, and it is
-  their own.
-- Folk speech always says **"the old lord"** or **"the old crown"**, never the name. Educated speech (scholars,
-  the Sworn Band) says **"the Unclosed"**, the polite way to point at the circle without saying the word.
+**The Ensō is the world.** The Kloster teaches that the Maker drew the world in one stroke, as a circle, and lifted
+the brush before the circle closed. Everything is inside the circle. At the top there is a gap, the place where the
+brush last stood: **Enso's Last Stand**. It is the oldest and only real door. Every other door in the game is a
+copy of it.
+
+**What is behind the doors (the answer).** On the far side of the gap is **the Unwritten**: everything the Maker
+never drew. It isn't a hell and has no monsters in it. It is blank, and blank is cold: whatever touches it loses its
+warmth first, then its shape, then its **name**, and at last anyone's memory that it ever was. Everything that matters
+in ENSO is a door because the world is a circle with a hole in it, and the whole history of the world is people
+arguing about that hole.
+
+| Door | What it keeps shut | What is behind it | Spoiler |
+|---|---|---|---|
+| **The Last Stand** (the gap in the Ensō) | the Unwritten | blank: cold, shapelessness, forgetting | [Ch1] the Kloster's creation story; [late] that it is a real place |
+| **The Cold Door** (under the Kloster hill) | Heaven's warmth, kept in | *Heaven's side*: the warm country, the Maker's garden. *Our side*: a winter breathing in through the gap | [Ch1] Caelith says it |
+| **The ten seals** | the pieces of the old lord | each one holds a **husk** of him (a power), and the **memory** that went with it | [Ch1] that there are ten; [mid] what they hold |
+
+**The old lord's dream: close the circle.** The old lord was the one person who learned to open any door, and who
+went looking for the oldest one. His goal, the thing he did all his evil *for*, was to **finish the Maker's stroke
+and close the Ensō**. A closed circle means no more cold coming in and nothing lost to the Unwritten ever again: no
+winter, no forgetting, and in the end no death. But nothing new can come in either. The world would stop where it
+is, perfect and finished, and he would hold it.
+
+A stroke needs ink, and the ink is lives. When "whole streets emptied when he gave the word", the people were not
+killed. They were **written into the line**, and the Unwritten took their names: that is why the memorial carries no
+names, and why no one can remember them, not just why the list was too long. [Ch1] the empty memorial; [mid] the
+reason.
+
+**Why the open circle is everywhere.** It is the oldest holy sign there is: the Kloster carves it, it is on old
+milestones, and the seals are drawn in it. The Broken Oath scrape it as his sign, the circle *he* meant to close.
+Same mark, two meanings, and a player who has finished the game should never see it the same way again.
+
+**The question at the end.** The Sunbearer says the gap must stay open, because a closed world is a dead one.
+Caelith opened a door and called the result spring. The old lord would close the last one and call it peace. That
+is the "what is evil?" the game asks, and it gives the player a real thing to decide at the Last Stand. The endings
+themselves stay Tokelo's call.
+
+- Folk speech says **"the old lord"** or **"the old crown"**. Scholars and the Sworn Band call him **"the
+  Encloser"**. His own name is still unknown and is not "Enso" (Decision D1 is closed).
+- **[mid]** The reveal (boss 5, Thagirion, "The Face") is also where the player learns what he was trying to close.
 
 ### 4.2 A short history of the world
 
 | When (from now) | What happened | Spoiler |
 |---|---|---|
-| ~1000 years | **The Cold Door.** Blackbriar Vale lies behind a door Heaven built against an endless winter. Caelith, its keeper, opens it for the people freezing outside; spring runs down the hill. Caelith falls and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
+| the beginning | **The stroke.** The Maker draws the world as a circle and lifts the brush before it closes. The gap is the Last Stand; through it the Unwritten breathes in as cold. | [Ch1] as the Kloster's creation story |
+| ~1000 years | **The Cold Door.** Heaven has walled its warm country off from a world freezing at the gap. Caelith, its keeper, opens it for the people freezing outside; spring runs down the hill. Caelith falls and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
 | ~700 years | **Sankt Alban**, a hermit, digs a spring on the hill and finds a hooded stone figure in it. He builds a chapel round it; the brothers who follow him become **the Order of Briarwell**. They take the statue for a nameless saint and copy its folded hands on every saint they carve. Their rule: "for the living, and against the winter", a phrase none of them can explain. | [Ch1] hints |
 | ~60 years | **The rise of the old crown.** A ruler from nowhere unites the valley lands and those beyond, by law first and by fear after. Roads, tollways, watchposts and checkpoints: the ruins on the Overgrown Road are his. He builds a seat on the ridge above Blackbriar Vale. The Kloster's charter, older than him, is the one thing in the Vale he never tears down. | [Ch1] ruins; [mid] the seat is the homestead |
-| ~25 years | **The Night of Lanterns.** In the old crown's capital, a street festival is emptied by a single order. Nobody agrees why. This is the first memory fragment. | [Ch1] the image only; [mid] who gave it |
+| ~25 years | **The Night of Lanterns.** In the old crown's capital, a street festival is emptied by a single order: the first stretch of the line he means to close the circle with. This is the first memory fragment. | [Ch1] the image only; [mid] who gave it and why |
 | ~25 to 2 years | **The long fear.** Requisitions, missing households, the memorial with no names. Some prosper: roads are safe, tolls are fair, bread is cheap. Some remember the order fondly; most don't. | [Ch1] |
 | ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones* from the Kloster library. | [mid] |
-| 1 year | **The Breaking of the Crown.** The Sworn Band breaks the guard at the gates and breaks the old lord. They cannot kill what he is, so they split it into ten **husks**, seal each behind a door in his own sign, and give each door a keeper. The Kloster bell rings for an hour. The body is never shown. | [Ch1] the bell, the festival; [mid] the husks |
+| 1 year | **The Breaking of the Crown.** The Sworn Band catches the old lord one stroke short of the Last Stand and breaks him. They cannot kill what he is, so they split it into ten **husks**, seal each behind a door in his own sign, and give each door a keeper. The Kloster bell rings for an hour. The body is never shown. | [Ch1] the bell, the festival; [mid] the husks |
 | now | The Festival of the Sun. A year of fewer funerals. Someone wakes in the old house. | [Ch1] |
 
 ### 4.3 Factions and people
@@ -148,25 +183,30 @@ about the stolen pages.
 **Shamefield, the Watch and the Vale Hunters.** As in the regional bible. The Watch Captain is lazy and drunk, but
 he closes the orchard road because he has buried people who walked it.
 
-### 4.4 The cosmology: doors, light and husks
+### 4.4 The cosmology: the circle, Heaven and the husks
 
-One rule ties the Kloster, the seraph and the Qliphoth together: **everything that matters in ENSO is a door.**
+The rule under all of it is 4.1: **the world is a circle with a hole in it.**
 
-- **Heaven** (the Kloster calls it the One Light) keeps order by keeping doors: between seasons, between the living
-  and the dead, between what is and what was. Its doorkeepers are the **six-winged ones**, the seraphim. Caelith
-  kept the Cold Door; Aurevain keeps it now. Heaven is not evil and not kind: it is *orderly*.
-- **The Husks** (the Qliphoth) are what lies on the other side of a closed door: shells, shadows, the underside of
-  the real. They are not demons in a hell; they are what a thing becomes when it is shut away. Nahemoth is the shadow
-  of every path ever walked, so it took the shape of a crow, the bird of roads.
-- **The old lord** was, before anything else, someone who could **open any door**. That is what the open circle
-  means, and it is why a sworn band could not simply kill him: they had to shut ten doors on him instead.
+- **Heaven** (the Kloster calls it the One Light) is the Maker's garden, the warmest place inside the circle. It
+  keeps order by keeping doors, so nothing leaks to the gap. Its doorkeepers are the **six-winged ones**, the
+  seraphim. Caelith kept the Cold Door; Aurevain keeps it now. Heaven is not evil and not kind: it is *orderly*.
+  It wants the gap left alone and every lesser door kept shut.
+- **The Husks** (the Qliphoth) are pieces of the world that leaned too close to the gap and came back hollow: still a
+  shape, missing what was inside. They are not demons from a hell. Nahemoth, the shadow of every path ever walked,
+  took the shape of a crow, the bird of roads. Each of the old lord's ten powers became a husk when the heroes cut it
+  off him.
+- **The old lord** could open any door, and wanted to close the last one (4.1).
 - **The seals** are door-craft learned from Heaven: the cut pages of *On the Six-Winged Ones* teach how the seraphim
-  shut a door so it stays shut. The heroes used Heaven's own method. This is why Aurevain takes such an interest in
-  the player, and why the Fallen Seraphim web can be found by the same person who is breaking the seals.
+  shut a door so it stays shut. The heroes used Heaven's own method, and drew each seal in the circle sign. This is
+  why Aurevain takes such an interest in the player, and why the Fallen Seraphim web can be found by the same person
+  who is breaking the seals.
 - **Orin** is a Husk too: something old that heard a door open and walked through it wearing a mason's apron.
+- **The player's lost memory** went into the seals with his powers. Every seal opened is a door opened back onto
+  himself.
 
-**Lore rule:** a closed door in ENSO is never just scenery. If a writer adds a door, gate or seal that matters, it
-should be because someone was asked to keep it shut.
+**Lore rule:** a door, gate or seal that matters must have an answer on paper: what it keeps in, what it keeps out,
+who was asked to keep it shut. The player can be kept from the answer for a while, but the team never is.
+
 
 ### 4.5 People who need a past
 
@@ -201,8 +241,10 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | Term | Meaning | Who says it |
 |---|---|---|
 | the old lord, the old crown | the ruler and his realm | everyone |
-| the Unclosed | polite name for the ruler | scholars, the Sworn Band |
-| Enso | his true name | nobody, until [mid] |
+| the Ensō | the world, a circle drawn in one stroke | the Kloster |
+| Enso's Last Stand, the Last Stand | the gap at the top of the circle, where the brush last stood; the first door | the Kloster, old books |
+| the Unwritten | what lies beyond the gap: blank, cold, forgetting | the Kloster, the crow |
+| the Encloser | scholars' name for the old lord | scholars, the Sworn Band |
 | the Breaking of the Crown | the victory, one year ago | heroes, festival |
 | the Sworn Band | the five heroes | everyone |
 | the Sunbearer | the champion | everyone |
@@ -232,8 +274,8 @@ These are named so Moss and Cairn can plan around them; none is promised content
 
 | # | Question | Recommendation |
 |---|---|---|
-| D1 | What is "Enso"? | **The old lord's forbidden name, which is the player's own** (4.1). Alternatives: the world's name; the realm's name; leave it unexplained. |
-| D2 | Adopt the cosmology "everything is a door" (4.4) linking Heaven, the seals and the Husks? | Yes. It costs nothing in shipped text and connects the Fallen Seraphim to the main plot. |
+| D1 | What is "Enso"? | **Answered 2026-11-08:** ENSO stays a placeholder, used like *The Elder Scrolls*: the Ensō is the world-circle and the Last Stand is the gap in it (4.1). |
+| D2 | Adopt what is behind the doors (4.1, 4.4): the Unwritten beyond the gap, and the old lord's goal of closing the circle? | Yes. It fits every shipped line and gives the ending a real choice. |
 | D3 | The Sworn Band's five roles and working names (4.3) | Keep the roles; the names are easy to swap. |
 | D4 | Who set the table for two? | (b) the one who put the sleeper there. |
 
