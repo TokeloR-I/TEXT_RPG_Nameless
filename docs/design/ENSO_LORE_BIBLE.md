@@ -281,7 +281,7 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | # | Question | Recommendation |
 |---|---|---|
 | D1 | What is "Enso"? | ENSO stays a placeholder title (Tokelo, 2026-11-08). In-world, the open circle is the old lord's brushstroke and *Enso's Last Stand* is the final door (4.1). |
-| D2 | Adopt **the Keeping** (4.1): behind every door are the missing, kept alive inside the old lord, and the player's power is made of them? | Yes. It replaces "the Unwritten" and fits every shipped line. |
+| D2 | Adopt **the Keeping** (4.1): behind every door are the missing, kept alive inside the old lord, and the player's power is made of them? | **Approved as the direction** (Tokelo, 2026-11-08: "Yes this is a good start"). It replaces "the Unwritten". The team builds on it and deepens it. |
 | D3 | The Sworn Band's five roles and working names (4.3) | Keep the roles; the names are easy to swap. |
 | D4 | The beloved at the table (Maren) is the last of the Kept, and the final choice | Yes; the endings themselves stay open. |
 
