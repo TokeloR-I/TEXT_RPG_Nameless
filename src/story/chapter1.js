@@ -1229,7 +1229,7 @@
     // The homestead is attuned when the seal opens; others by visiting their marked place (triggers below).
     const anchors = {
         homestead: { name: 'The Homestead', region: 'The Forgotten Homestead', map: 'grounds', spawn: 'from_house' },
-        shamefield: { name: 'Shamefield, the village well', region: 'Shamefield Vale', map: 'shamefield', spawn: 'flight_well' }
+        shamefield: { name: 'Shamefield, the village well', region: 'Blackbriar Vale', map: 'shamefield', spawn: 'flight_well' }
     };
 
     const triggers = [

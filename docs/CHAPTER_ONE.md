@@ -95,6 +95,7 @@ These are **points of contact for review**, not claims that an agent has accepte
 
 ## Story-author checklist before a content PR
 
+0. Read [the lore bible](design/ENSO_LORE_BIBLE.md) first. New facts go into it in the same PR, and nothing marked [mid] or [late] there ships early.
 1. Confirm a new NPC, quest and map interaction has a real story purpose, a journal objective, and no inadvertent reveal of the dark-ruler twist.
 2. Check dialogue can be exited, re-entered and re-read without duplicate XP, loot, Gold or recruitment state; Shane's normal farewell must remain exact.
 3. Confirm quest-essential enemies and NPCs cannot be bypassed or made unreachable so a new class never gains its first evolution. Update the 250-XP test if approved rewards or encounter composition change.

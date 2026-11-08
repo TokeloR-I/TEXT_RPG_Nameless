@@ -51,10 +51,10 @@ Tokelo — Creative Director (owner, merges main)
 | `studio-systems-designer` | Gauge | balance specs, values in `src/data.js` |
 | `studio-economy-designer` | Ledger | gold, shops, loot tables |
 | `studio-level-designer` | Moss | map layouts, encounter placement, pacing |
-| `studio-world-builder` | Cairn | regions, landmarks, world consistency |
+| `studio-world-builder` | Cairn | regions, landmarks, factions, world consistency with the lore bible |
 | `studio-prototyper` | Pip | throwaway prototypes on `claude/proto-*` |
-| `studio-narrative-director` | Ashby | story, quests, lore canon |
-| `studio-writer` | Wick | dialogue, item and quest text |
+| `studio-narrative-director` | Ashby | story, quests, lore canon; owns `docs/design/ENSO_LORE_BIBLE.md` (lore is a standing priority, Tokelo 2026-11-08) |
+| `studio-writer` | Wick | dialogue, item, quest and lore text (checked against the lore bible) |
 | `studio-art-director` | Saffron | visual direction; original ENSO art replacing Mana Seed (2026-10-26, `docs/art/ORIGINAL_ART_PLAN.md`) |
 | `studio-technical-artist` | Quill | VFX, sprite/tile pipeline, rendering polish |
 | `studio-ui-programmer`, `studio-ux-designer` | Pixie | `ui/`, CSS, HUD and menus |
