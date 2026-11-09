@@ -88,7 +88,9 @@ test('LOOT-02: physical and magical flat bonuses apply only to compatible direct
     store(h,'Wooden Staff',10,'epic','staff',['keen','focused','arcanist']);
     assert.ok(h.act({type:'equip',item:'staff'}).ok);
     assert.strictEqual(h.equipmentDamageBonus('magic'),7);
-    assert.strictEqual(h.equipmentDamageBonus('physical'),0);
+    // Since 2026-11-09 a staff's magic also powers the bolts it fires (the mage's free attack is physical, INT-scaled).
+    assert.strictEqual(h.equipmentDamageBonus('physical'),7);
+    assert.strictEqual(h.equipmentDamageBonus('true'),0);
 });
 test('LOOT-02: equip/unequip/save cycles preserve distinct instances and never heal or stack modifiers', () => {
     const g = game('warrior'); g.player.level=10;

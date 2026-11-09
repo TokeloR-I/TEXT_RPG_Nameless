@@ -28,6 +28,8 @@
     const chain = p('M5 19V13L12 6H18L21 9V15L14 22H8ZM8 18H12L18 12V10L17 9H13L8 14Z M12 23V17L19 10H25L28 13V19L21 26H15ZM15 22H19L25 16V14L24 13H20L15 18Z', violet);
     const burst = p('M14 2H18V9L24 5L27 8L23 14H30V18H23L27 24L24 27L18 23V30H14V23L8 27L5 24L9 18H2V14H9L5 8L8 5L14 9Z', violet) + p('M12 12H20V20H12Z', bone);
     const art = {
+        // A staff (wood, a gem on top) loosing a bolt: the casters' free attack (2026-11-09)
+        staffbolt: p('M5 29L17 13L19 15L7 31Z', bone) + p('M17 7H23V13H17Z', violet) + p('M25 3H29V7H25ZM24 10H30V12H24ZM20 2H22V5H20Z', gold),
         attack: blade, guard: shield, magic: gem, summon: skull + p('M3 27H29V30H3ZM3 21H6V25H3ZM26 21H29V25H26Z', green),
         gravebolt: bolt, necrobasicattack: p('M6 25L24 7L27 10L9 28Z', bone) + p('M18 5H25L28 8V15H24V10H18ZM4 21H9V26H4Z', green),
         soulleech: p('M4 8H10V14H4ZM22 21H28V27H22ZM8 14H12V18H8ZM12 18H20V22H12ZM19 12H23V18H19ZM15 6H20V11H15Z', violet) + p('M20 20H25V25H20ZM5 9H8V12H5Z', bone),

@@ -66,6 +66,8 @@
             if (!s) return false;
             if (cond.flag && !s.flags.includes(cond.flag)) return false;
             if (cond.notFlag && s.flags.includes(cond.notFlag)) return false;
+            // className: 'warrior' | ['mage', 'necromancer']: the player's base class (class-specific gifts)
+            if (cond.className && !(this.player && [].concat(cond.className).includes(this.player.className))) return false;
             for (const f of cond.flags || []) if (!s.flags.includes(f)) return false;
             for (const f of cond.notFlags || []) if (s.flags.includes(f)) return false;
             for (const it of cond.items || []) if (!this.player || !this.player.inventory.includes(it)) return false;
@@ -106,8 +108,11 @@
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
             for (const e of effects || []) {
+                // A flag can wake a dormant weapon you are wearing (itemDef `kindle`): its new stats are applied here.
+                const worn = (e.flag || e.unflag) && this.player && this.player.equipment && this.equipmentModifiers ? this.equipmentModifiers() : null;
                 if (e.flag && !this.story.flags.includes(e.flag)) this.story.flags.push(e.flag);
                 if (e.unflag) this.story.flags = this.story.flags.filter((f) => f !== e.unflag);
+                if (worn) this.reapplyEquipment(worn);
                 if (e.available && this.questState(e.available) === 'unseen' && this.story.quests[e.available]) this.story.quests[e.available].state = 'available';
                 if (e.say) this.say(e.say, { important: !!e.important });
                 if (e.item) this.storyGiveItem(e.item, e.key || `item:${e.item}`);
@@ -131,7 +136,7 @@
         /** What a merchant sells (Rook's shopDefinitions; buying is his `buy <shop> <item>` rule). */
         storyShop(id) {
             const stock = (((this.data.shopDefinitions || {})[id] || {}).stock) || {};
-            const items = Object.entries(stock).filter(([, e]) => e && Number.isSafeInteger(e.buyPrice));
+            const items = Object.entries(stock).filter(([, e]) => e && Number.isSafeInteger(e.buyPrice) && this.stockForPlayer(e));
             if (!items.length) { this.say('(Nothing is for sale here yet.)'); return; }
             if (this.story && this.story.dialogue) this.story.dialogue.shopId = id;
             this.say(`For sale: ${items.map(([name, e]) => `${name} (${e.buyPrice} Gold)`).join(', ')}.`);
@@ -476,12 +481,13 @@
             actions.push({ type: 'dialogue_leave', enabled: true, farewell: npc.farewell || null });
             const shopId = d.shopId;
             const shop = shopId && (this.data.shopDefinitions || {})[shopId];
-            const goods = shop ? Object.entries(shop.stock || {}).map(([item, entry]) => {
+            const goods = shop ? Object.entries(shop.stock || {}).filter(([, entry]) => this.stockForPlayer(entry)).map(([item, entry]) => {
                 const block = this.purchaseBlock(shopId, item);
                 return { type: 'buy', shopId, item, price: entry.buyPrice,
                     remaining: (this.player.shopStock || {})[`${shopId}:${item}`] ?? entry.quantity,
                     owned: this.player.inventory.filter((name) => name === item).length + Object.values(this.player.equipment || {}).filter((name) => name === item).length,
-                    description: (this.data.itemDefinitions[item] || {}).description || '',
+                    // Equipment shows its stats (what it does for you), everything else its flavour line.
+                    description: (this.data.itemDefinitions[item] || {}).slot ? this.itemDetails(item) : (this.data.itemDefinitions[item] || {}).description || '',
                     enabled: !block, ...(block ? { reason: block } : {}) };
             }) : [];
             const selling = shop ? [...new Set(this.player.inventory)].map(item => {

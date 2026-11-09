@@ -115,14 +115,20 @@ you give away"). Unlearning and relearning pays nothing twice.
 | The web opens (the statue wakes) | **a halo**: a small gold ring over your head that pulses | drawn by code over the sprite (`ui/gaze-fx.js` `playerHalo`) |
 | Every skill of the web learned (The Six-Winged) | **six wings** at your back, the statue's grey-and-gold feathers at about half its size, breathing; in front of you when you face away | `playerWings`, the same painter as the statue's |
 | the same | **red eyes** | the sprite's own iris colour, recoloured (`palette.eye`), so they follow every pose |
-| the same | **a holy weapon of your choosing** | Caelith's `six` talk: five come up out of the fountain, you take one, the rest sink (story key `seraph_holy_weapon`, once) |
+| the statue wakes (since 2026-11-09) | **a holy weapon of your choosing, dormant** | Caelith's `gift` talk (ask him after "I will carry it", or any later visit): five come up out of the fountain, you take one, the rest sink (story key `seraph_holy_weapon`, once). It works at about half strength (`kindle.dormant`) |
+| Every skill of the web learned | **the weapon wakes** to the full stats below | the rank flag `seraph_rank_six`; Caelith's `six_kindle` talk. A save that never took one is offered all five in `six`, as before |
 
 Data: `look: { halo: 'heart', wings: 'all', redEyes: 'all' }` on the web; the engine reports it as
 `engine.legendaryLook()` (also `getSkillWeb().look`), and the front end only draws it. Unlearn a node and the
 wings and red eyes go until you learn it back; the weapon stays yours.
 
 **The holy weapons (Gauge).** Legendary, bound, unsellable, main hand, any class.
-Each sits well above Chapter One gear (a common weapon there gives +1 damage), because it costs the whole web.
+Tokelo, 2026-11-09: "the only weapon I know off is the holy sword and that also we have yet to see a player use it
+cause of the level lock". So the weapon now comes when the statue wakes (no level needed) at the dormant stats, and
+full mastery wakes it to the stats below. Dormant: Doorward +3 physical, +1 STR; Spear +3 physical, +1 AGI, +3% crit;
+Twin Pinions +2 physical, +2 AGI, +4% crit; Censer +3 magic, +1 INT, +5 Max HP; Scythe +3 magic, +1 physical, +8 Max HP
+(about Shamefield's Thanks, see [WEAPONS_BEFORE_THE_WARDEN.md](WEAPONS_BEFORE_THE_WARDEN.md)). Awake, each sits well
+above Chapter One gear, because it costs the whole web.
 
 | Weapon | Hands | Stats | For |
 |---|---|---|---|

@@ -171,6 +171,8 @@
         const swing = inCombat && rt ? timer(rt.basic) : null;
         const basic = {
             key: BASIC_KEY, skillId: basicName, definition: iconDefinition(basicName), abbr: abbrev(basicName), glyph: '⚔', swing,
+            // A caster's free attack is a bolt from the staff or wand (2026-11-09), so its key shows that, not a sword.
+            ...(basicName === 'Basic Attack' && ['mage', 'necromancer'].includes(p.className) ? { icon: 'Staff Bolt' } : {}),
             enabled: !basicReason, reason: basicReason,
             state: basicReason ? (swing ? 'cooldown' : 'disabled') : 'ready',
             title: `LMB / ${BASIC_KEY} · ${basicName} · free${basicReason ? ` — ${basicReason.message}` : ''}`
@@ -364,7 +366,7 @@
             const changedDefinition = put(el.icon, 'definition', s.definition);
             const changedProvider = put(el.icon, 'provider', icons);
             if (changedId || changedDefinition || changedProvider) {
-                const markup = !s.empty && icons ? icons.svg(s.skillId, s.definition) : '';
+                const markup = !s.empty && icons ? icons.svg(s.icon || s.skillId, s.definition) : '';
                 if (put(el.icon, 'svg', markup)) el.icon.innerHTML = markup;
             }
             el.label = s.title;

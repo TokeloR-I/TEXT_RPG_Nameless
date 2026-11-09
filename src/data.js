@@ -1428,24 +1428,72 @@
         };
 
         // Items you can `use`. Anything not listed is a keepsake (for now).
+        const KINDLE = (dormant) => ({ flag: 'seraph_rank_six', dormant,
+            dormantText: 'Dormant: it wakes to full strength when every Fallen Seraphim skill is learned.' });
         const itemDefinitions = {
             'Moldy Bread':           { use: 'heal', value: 8,  description: 'Better than nothing. Probably.' },
             'Half-full Wine Bottle': { use: 'heal', value: 12, description: 'Sour, but it takes the edge off.' },
             'Bandages':              { use: 'heal', value: 25, description: 'Clean enough.' },
             'Healing Herb Bundle':   { use: 'heal', value: 40, description: 'Bitter leaves that knit flesh.' },
-            // The Fallen Seraphim's holy weapons (Tokelo 2026-11-04: "a holy weapon of their choosing"). Caelith offers all
-            // five when the whole web is learned; you take one (story key seraph_holy_weapon). Any class can wield them.
+            // The Fallen Seraphim's holy weapons (Tokelo 2026-11-04: "a holy weapon of their choosing"). Any class can wield
+            // them; you take one (story key seraph_holy_weapon). Since 2026-11-09 (Tokelo: "we have yet to see a player use
+            // it cause of the level lock") Caelith offers them the moment the statue wakes, dormant at about half strength
+            // (`kindle.dormant`); every web skill learned (rank The Six-Winged) wakes the weapon to its full statModifiers.
             'Doorward': { type: 'weapon', slot: 'mainHand', weaponType: 'two-hand', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                kindle: KINDLE({ physicalDamage: 3, strength: 1 }),
                 statModifiers: { physicalDamage: 6, strength: 2, def: 1 }, description: 'A holy greatsword, as long as a door is tall. Caelith held the Cold Door shut with it, once, and then did not.' },
             'Spear of the Cold Door': { type: 'weapon', slot: 'mainHand', weaponType: 'spear', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                kindle: KINDLE({ physicalDamage: 3, agility: 1, critChance: 0.03 }),
                 statModifiers: { physicalDamage: 5, agility: 2, critChance: 0.05 }, description: 'A white-ash spear with a frost-blue head. It is warm to hold.' },
             'Twin Pinions': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                kindle: KINDLE({ physicalDamage: 2, agility: 2, critChance: 0.04 }),
                 statModifiers: { physicalDamage: 4, agility: 3, critChance: 0.08 }, description: 'Two curved blades, each forged from a single gold-edged feather.' },
             'Censer of Ash': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                kindle: KINDLE({ magicDamage: 3, intelligence: 1, maxHp: 5 }),
                 statModifiers: { magicDamage: 6, intelligence: 2, maxHp: 10 }, description: 'A holy staff hung with a censer. The smoke it gives off is grey, and smells of spring.' },
             'Grey Feather Scythe': { type: 'weapon', slot: 'mainHand', weaponType: 'scythe', hands: 2, damageType: 'magic', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                kindle: KINDLE({ magicDamage: 3, physicalDamage: 1, maxHp: 8 }),
                 statModifiers: { magicDamage: 5, physicalDamage: 2, maxHp: 15 }, description: 'A reaper\'s blade of pale stone on a black haft. Even the holy have harvests.' },
             'Roadworn Blade': { type: 'weapon', slot: 'mainHand', rarity: 'common', statModifiers: { strength: 1 }, sellable: true, sellPrice: 3, description: 'A nicked but serviceable blade.' },
+            // ----- Weapons before the Warden (Tokelo, 2026-11-09: "they go from the basic weapon to defeating the warden with
+            // literally broken or starter weapons"). docs/design/WEAPONS_BEFORE_THE_WARDEN.md. A three-step ladder per class:
+            // starter (+1 damage) -> Bragg's forge in Shamefield (bought, level 2) -> Shamefield's Thanks (Bragg, once the
+            // Captain opens the orchard gate, level 3). First-pass numbers for Gauge.
+            // Step 2: Bragg's forge. His stock lists only your own class's weapon (shopDefinitions.bragg, `classes`).
+            'Tollgate Arming Sword': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['warrior'],
+                itemBaseId: 'Tollgate Arming Sword', itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
+                statModifiers: { physicalDamage: 2, strength: 1, def: 1 },
+                description: 'Bragg forged it from the bars of the old crown\'s tollgate. The iron spent twenty years as a door, and still swings like one.' },
+            "Poacher's Hook-Knife": { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['rogue'],
+                itemBaseId: "Poacher's Hook-Knife", itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
+                statModifiers: { physicalDamage: 1, agility: 1, critChance: 0.03 },
+                description: 'A Vale hunter\'s knife with a gut-hook on the spine. Bragg swears he never asks whose deer.' },
+            'Iron-Shod Ashwood Staff': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', legalClasses: ['mage'],
+                itemBaseId: 'Iron-Shod Ashwood Staff', itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
+                statModifiers: { magicDamage: 2, intelligence: 1, maxHp: 5 },
+                description: 'Kloster ash, cut on the hill, with an iron shoe so it does not split when you lean on it. Or hit something with it.' },
+            "Sexton's Bone Rod": { type: 'weapon', slot: 'mainHand', weaponType: 'wand', hands: 1, damageType: 'magic', legalClasses: ['necromancer'],
+                itemBaseId: "Sexton's Bone Rod", itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
+                statModifiers: { magicDamage: 1, intelligence: 1, maxHp: 8 },
+                description: 'A wand of grave-yew from the Kloster\'s burial ground, capped in iron. Bragg does not ask what you want it for, and charges extra for not asking.' },
+            // Step 3: Shamefield's Thanks. The village pays Bragg to forge one weapon for whoever helped all six households
+            // (L01 done). Bound: a gift isn't for selling. Each one carries a piece of Chapter One canon (ENSO_LORE_BIBLE.md).
+            'Sunbreak': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['warrior'],
+                itemBaseId: 'Sunbreak', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
+                statModifiers: { physicalDamage: 3, strength: 2, def: 1 },
+                description: 'Shamefield\'s thanks. Bragg stamped the festival mark on the blade: a sun breaking a crown. He says it suits you. You find you cannot look at it for long.' },
+            'Millrace Tanto': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['rogue'],
+                itemBaseId: 'Millrace Tanto', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
+                statModifiers: { physicalDamage: 2, agility: 1, critChance: 0.05 },
+                description: 'Shamefield\'s thanks. Ground down from the millwheel\'s broken pin, which Tamsin fished out of the falls once the singing stopped. Single-edged, quick, and always a little wet.' },
+            'Bell-Bronze Staff': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', legalClasses: ['mage'],
+                itemBaseId: 'Bell-Bronze Staff', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
+                statModifiers: { magicDamage: 3, intelligence: 2, maxHp: 10 },
+                description: 'Shamefield\'s thanks. Capped with a shard of the old Kloster bell, the one that rang for an hour a year ago and cracked doing it. It still hums.' },
+            'Nameless Stone': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', legalClasses: ['necromancer'],
+                itemBaseId: 'Nameless Stone', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
+                statModifiers: { magicDamage: 2, intelligence: 2, maxHp: 15 },
+                description: 'Shamefield\'s thanks. A blackthorn staff set with a chip of the memorial stone, the one with no names on it. Something under the chip hums when you hold it, like a crowd behind a door.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
@@ -2220,7 +2268,10 @@
                 mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 },
                     'Fresh Milk': { buyPrice: 3, quantity: 10 }, 'Cheese': { buyPrice: 5, quantity: 8 }, 'Butter': { buyPrice: 3, quantity: 8 }, 'Egg': { buyPrice: 2, quantity: 12 },
                     'Flour': { buyPrice: 3, quantity: 10 }, 'Onion': { buyPrice: 2, quantity: 10 } } },
-                bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
+                // Bragg's forge (2026-11-09, WEAPONS_BEFORE_THE_WARDEN.md): one weapon per class; `classes` lists it only for them.
+                bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 },
+                    'Tollgate Arming Sword': { buyPrice: 24, quantity: 1, classes: ['warrior'] }, "Poacher's Hook-Knife": { buyPrice: 24, quantity: 1, classes: ['rogue'] },
+                    'Iron-Shod Ashwood Staff': { buyPrice: 24, quantity: 1, classes: ['mage'] }, "Sexton's Bone Rod": { buyPrice: 24, quantity: 1, classes: ['necromancer'] } } },
                 iona: { stock: { 'Healing Herb Bundle': { buyPrice: 12, quantity: 5 }, 'Bandages': { buyPrice: 8, quantity: 3 }, 'Wild Herbs': { buyPrice: 3, quantity: 6 } } },
                 shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 },
                     // Shane grows what he sells (Tokelo): seed for your field, and his own cannabis.
