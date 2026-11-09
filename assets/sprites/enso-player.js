@@ -87,11 +87,27 @@
         { name: 'Iron Helm', swatch: '#8a8c94' }, { name: 'Circlet', swatch: '#c9a54a' }, { name: 'Straw Hat', swatch: '#c8a85e' }
     ];
     const WEAPON_TYPES = ['Sword', 'Axe', 'Mace', 'Spear'];
+    // Caster weapons (Tokelo, 2026-11-09: "for mage and necromancer we dont even have wand or staff"). Their shapes are
+    // types 4 and 5; they come after the first twenty choices in WEAPONS, so a saved weapon index keeps its look.
+    const CASTER_TYPES = ['Staff', 'Wand'];
+    const TYPE_INDEX = { sword: 0, axe: 1, mace: 2, spear: 3, staff: 4, wand: 5 };
     const METALS = [
         { name: 'Iron', swatch: '#9a9ca4' }, { name: 'Bronze', swatch: '#b07a3e' }, { name: 'Frost', swatch: '#8ec4d8' },
         { name: 'Gold', swatch: '#d6ae48' }, { name: 'Obsidian', swatch: '#4a4458' }
     ];
-    const WEAPONS = METALS.flatMap((m) => WEAPON_TYPES.map((t) => `${m.name} ${t}`));
+    const WEAPON_DEFS = [...METALS.flatMap((m, mi) => WEAPON_TYPES.map((t, ti) => ({ name: `${m.name} ${t}`, type: ti, metal: mi }))),
+        ...METALS.flatMap((m, mi) => CASTER_TYPES.map((t, ti) => ({ name: `${m.name} ${t}`, type: WEAPON_TYPES.length + ti, metal: mi })))];
+    const WEAPONS = WEAPON_DEFS.map((w) => w.name);
+    /** The shape drawn in the hand: the chosen look, unless the weapon actually held (cosmetics.held, set by the
+     *  front end from the equipped main hand) is a different kind: a staff or wand is drawn as one, and a blade in a
+     *  hand that chose a staff look is drawn as a sword. The chosen metal colour always stays. */
+    function heldType(c = {}) {
+        const chosen = WEAPON_DEFS[wrap(c.weapon, WEAPONS.length)].type;
+        const held = c.held && TYPE_INDEX[c.held];
+        if (held != null) return held;
+        if (c.held === 'blade' && chosen >= TYPE_INDEX.spear) return TYPE_INDEX.sword;
+        return chosen;
+    }
     const SHIELD_TYPES = ['Round', 'Kite', 'Buckler'];
     const SHIELD_COLOURS = [{ name: 'Oak', swatch: '#7a5634' }, { name: 'Crimson', swatch: '#8a2e2a' }, { name: 'Azure', swatch: '#34507e' }, { name: 'Ash', swatch: '#6a6a6e' }];
     const SHIELDS = ['None', ...SHIELD_COLOURS.flatMap((c) => SHIELD_TYPES.map((t) => `${c.name} ${t}`))];
@@ -99,10 +115,10 @@
     const wrap = (i, n) => ((Number.isInteger(i) ? i : 0) % n + n) % n;
     /** The shape choices behind a cosmetics object (all wrapped into range). */
     function shapeOf(c = {}) {
-        const weapon = wrap(c.weapon, WEAPONS.length), shield = wrap(c.shield, SHIELDS.length);
+        const shield = wrap(c.shield, SHIELDS.length);
         return {
             hair: wrap(c.hairStyle, HAIR_STYLES.length), outfit: wrap(c.outfit, OUTFIT_STYLES.length), hat: wrap(c.hat, HATS.length),
-            weapon: c.weapon < 0 ? -1 : weapon % WEAPON_TYPES.length, shield: shield === 0 ? -1 : (shield - 1) % SHIELD_TYPES.length
+            weapon: c.weapon < 0 ? -1 : heldType(c), shield: shield === 0 ? -1 : (shield - 1) % SHIELD_TYPES.length
         };
     }
 
@@ -151,7 +167,7 @@
             hair: HAIR_COLOURS[wrap(cosmetics.hairColor, HAIR_COLOURS.length)].swatch,
             cloth: OUTFIT_COLOURS[wrap(cosmetics.outfitColor, OUTFIT_COLOURS.length)].swatch,
             cloth2: style.cloth2, accent: style.accent, leather: '#5e4330',
-            metal: METALS[Math.floor(weapon / WEAPON_TYPES.length)].swatch, wood: '#7a5a3a',
+            metal: METALS[WEAPON_DEFS[weapon].metal].swatch, wood: '#7a5a3a',
             hat: hatDef.swatch || '#4a4038',
             shieldFace: shield ? SHIELD_COLOURS[Math.floor((shield - 1) / SHIELD_TYPES.length)].swatch : '#7a5634',
             ...palette
@@ -759,6 +775,27 @@
             paint(grid, ground(head), 'metal');
             for (const o of [-1, 1]) { const [sx, sy] = at(9.6, o * 3.2); dot(grid, sx, sy, MAT.metal[2]); }
             const [tx, ty] = at(12.6); dot(grid, tx, ty, MAT.metal[2]);
+        } else if (type === 4) {                                         // staff: taller than its bearer, a caged stone on top
+            // At rest (the pose points the weapon down) a staff is held upright like a walking stick, its foot on the
+            // ground and its stone beside the head; swung or raised, it follows the arm like any weapon.
+            const rest = uy > 0.25, ra = (-96 * Math.PI) / 180;
+            const vx = rest ? Math.cos(ra) : ux, vy = rest ? Math.sin(ra) : uy, wx = -vy, wy = vx;
+            const st = (t, o = 0) => [hx + vx * t + wx * o, hy + vy * t + wy * o];
+            const T = rest ? 15 : 21, foot = rest ? -13 : -6;
+            capsule(grip, ...st(foot), ...st(T - 2), 0.8);
+            paint(grid, ground(grip), 'wood');
+            const cage = part();
+            for (const o of [-1, 1]) line(cage, ...st(T - 3, o * 0.9), ...st(T + 0.6, o * 2.4), 0.7);
+            paint(grid, ground(cage), 'leather', { edge: false });
+            const stone = part(); ellipse(stone, ...st(T + 0.4), 2.1, 2.1);
+            paint(grid, ground(stone), 'metal', { levels: [0.7, 0, -0.6] });
+            const [gx, gy] = st(T - 0.2, -0.7); if (gy <= 44) dot(grid, gx, gy, MAT.metal[0]);
+        } else if (type === 5) {                                         // wand: short, tapered, a bright tip
+            capsule(grip, ...at(-1.6), ...at(1), 0.8);
+            capsule(blade, ...at(1), ...at(8.4), 0.75, 0.35);
+            paint(grid, ground(grip), 'leather'); paint(grid, ground(blade), 'wood');
+            const tip = part(); ellipse(tip, ...at(9.2), 1.2, 1.2);
+            paint(grid, ground(tip), 'metal', { levels: [0.7, 0, -0.6] });
         } else {                                                         // spear
             capsule(grip, ...at(-7), ...at(13), 0.75);
             paint(grid, ground(grip), 'wood');

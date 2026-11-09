@@ -28,6 +28,12 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const LOCALS = ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6'];   // the households Get to Know the Locals counts
+    // Caelith's five holy weapons and how he names them (Fallen Seraphim; offered at waking since 2026-11-09).
+    const HOLY = [['Doorward', 'The greatsword. I held the door shut with it, once.'], ['Spear of the Cold Door', 'The spear. It reaches further than you think.'],
+        ['Twin Pinions', 'The two feather blades. Quick, like falling.'], ['Censer of Ash', 'The censer staff. Light, given away as smoke.'],
+        ['Grey Feather Scythe', 'The scythe. Even the holy have harvests.']];
+    // Asked for at the statue until you have one (never after the full-mastery offer has been heard).
+    const GIFT_CHOICE = { text: 'You said the light was heavy. Is there anything to carry it in?', if: { notFlags: ['seraph_weapon_chosen', 'seraph_heard_six'] }, to: 'gift' };
     const quests = {
         // ------------------------------------------------------------- Segment A: Ashes of Home
         Q01: {
@@ -171,7 +177,8 @@
                 { id: 'report', text: 'Tell the Watch Captain you know the locals now', on: { type: 'story', id: 'locals_reported' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
             onComplete: [{ gold: 15, key: 'locals_reward' }, { flag: 'shamefield_friend' }, { item: 'Cheese', key: 'item:l01_cheese' }, { item: 'Fresh Milk', key: 'item:l01_milk' },
-                { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'Q06' }]
+                { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' },
+                { say: 'Word goes round the village. Bragg the smith wants a word with you: Shamefield has paid him for something.' }, { start: 'Q06' }]
         },
         // Bread and Beer: the first real use of planting and crafting (cropDefinitions / recipeDefinitions in src/data.js).
         SF1: {
@@ -472,6 +479,25 @@
                 default: {
                     lines: [['npc', "Don't know you. Don't need to. Coin's coin. If you want an edge put on something, I'm your man."]],
                     effects: [met],
+                    choices: [
+                        // Shamefield's Thanks (2026-11-09, WEAPONS_BEFORE_THE_WARDEN.md): once all six households are helped.
+                        { text: 'The Captain says the village left something with you.', if: { quests: { L01: 'complete' }, notFlag: 'shamefield_thanks_taken' }, to: 'thanks' },
+                        shop('bragg'), { text: 'Goodbye.', end: true }]
+                },
+                thanks: {
+                    lines: [
+                        ['npc', "Huh. So you're the one. Oda paid in bread, Fenric in beer, Greta in a ham I'm still eating. Tamsin paid in coin, which I liked best."],
+                        ['npc', "Elian paid nothing. He just stood in the door and read me names until I agreed. Here. Made for your hand, nobody else's."]
+                    ],
+                    choices: [
+                        { text: 'Take the sword.', if: { className: 'warrior' }, effects: [{ item: 'Sunbreak', key: 'item:shamefield_thanks' }, { flag: 'shamefield_thanks_taken' }], to: 'thanks_given' },
+                        { text: 'Take the knife.', if: { className: 'rogue' }, effects: [{ item: 'Millrace Tanto', key: 'item:shamefield_thanks' }, { flag: 'shamefield_thanks_taken' }], to: 'thanks_given' },
+                        { text: 'Take the staff.', if: { className: 'mage' }, effects: [{ item: 'Bell-Bronze Staff', key: 'item:shamefield_thanks' }, { flag: 'shamefield_thanks_taken' }], to: 'thanks_given' },
+                        { text: 'Take the staff.', if: { className: 'necromancer' }, effects: [{ item: 'Nameless Stone', key: 'item:shamefield_thanks' }, { flag: 'shamefield_thanks_taken' }], to: 'thanks_given' }
+                    ]
+                },
+                thanks_given: {
+                    lines: [['npc', "Don't thank me. Thank the village. Then go north and use it, so they stop asking me whether you've used it."]],
                     choices: [shop('bragg'), { text: 'Goodbye.', end: true }]
                 }
             }
@@ -1049,6 +1075,8 @@
             // Each rank of the web (skillWeb.legendaryWebs.fallen_seraphim.ranks sets the flag) has one new talk, heard once;
             // the lore comes out a rank at a time (docs/design/FALLEN_SERAPHIM.md). Spoiler-safe: it never names what you were.
             talk: [
+                // You already chose your weapon when it woke (2026-11-09): the Six-Winged talk wakes the weapon instead.
+                { if: { flags: ['seraph_rank_six', 'seraph_weapon_chosen'], notFlags: ['seraph_heard_six'] }, node: 'six_kindle' },
                 { if: { flags: ['seraph_rank_six'], notFlags: ['seraph_heard_six'] }, node: 'six' },
                 { if: { flags: ['seraph_rank_unbound'], notFlags: ['seraph_heard_unbound'] }, node: 'unbound' },
                 { if: { flags: ['seraph_rank_ashen'], notFlags: ['seraph_heard_ashen'] }, node: 'ashen' },
@@ -1088,7 +1116,27 @@
                 carry: {
                     lines: [[null, 'The wings fold around you, and then they are gone. Between your shoulder blades you feel six places where something should be, and is not yet.'],
                         ['npc', 'Come back when you are heavier. I will still be here. I am very good at standing still.']],
-                    choices: [{ text: 'Goodbye.', end: true }]
+                    choices: [GIFT_CHOICE, { text: 'Goodbye.', end: true }]
+                },
+                // The holy weapon at waking (Tokelo 2026-11-09: nobody ever saw it at full mastery). Dormant until The Six-Winged.
+                gift: {
+                    lines: [[null, 'Five shapes rise out of the fountain, dripping, their light banked low like coals: a greatsword, a spear, two feather blades, a censer staff, a scythe.'],
+                        ['npc', 'They were mine, when I had hands for them. They are asleep, as I was. Take the one that fits yours; it wakes when the last of my light is yours.']],
+                    choices: [...HOLY.map(([item, text]) => ({ text: `${item}: ${text}`, effects: [{ item, key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }], to: 'gift_taken' })),
+                        { text: 'Not yet.', end: true }]
+                },
+                gift_taken: {
+                    lines: [[null, 'The other four sink back into the fountain. The one you chose is cold, and heavier than it looks.'],
+                        ['npc', 'Carry it a while. It will warm to you, the way I did.']],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
+                },
+                six_kindle: {   // The Six-Winged, for those who already carry a weapon from the fountain
+                    lines: [[null, 'Your shadow on the courtyard stones has six wings. The statue\'s halo turns towards you, the way a flower turns to the sun.'],
+                        ['npc', 'All of it. Every feather. Even I never held all of it at once.'],
+                        ['npc', 'Your eyes have gone red. Mine did too, on the way down. It is only the light, burning from the inside.'],
+                        [null, 'The weapon at your side wakes. It is warm now, and lighter than it looks.']],
+                    effects: [{ flag: 'seraph_heard_six' }],
+                    choices: [{ text: 'Goodbye, Caelith.', end: true }]
                 },
                 watcher: {   // rank 2: its name, and the door
                     lines: [[null, 'The halo brightens as you come close. The stone face turns, very slowly, to follow you.'],
@@ -1150,11 +1198,11 @@
                         [null, 'Five shapes rise out of the fountain, dripping and bright: a greatsword, a spear, two feather blades, a censer staff, a scythe.'],
                         ['npc', 'They were mine, when I had hands for them. Take the one that fits yours. The others go back to the water.']],
                     choices: [
-                        { text: 'Doorward: The greatsword. I held the door shut with it, once.', effects: [{ item: 'Doorward', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
-                        { text: 'Spear of the Cold Door: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Cold Door', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
-                        { text: 'Twin Pinions: The two feather blades. Quick, like falling.', effects: [{ item: 'Twin Pinions', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
-                        { text: 'Censer of Ash: The censer staff. Light, given away as smoke.', effects: [{ item: 'Censer of Ash', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
-                        { text: 'Grey Feather Scythe: The scythe. Even the holy have harvests.', effects: [{ item: 'Grey Feather Scythe', key: 'seraph_holy_weapon' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Doorward: The greatsword. I held the door shut with it, once.', effects: [{ item: 'Doorward', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Spear of the Cold Door: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Cold Door', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Twin Pinions: The two feather blades. Quick, like falling.', effects: [{ item: 'Twin Pinions', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Censer of Ash: The censer staff. Light, given away as smoke.', effects: [{ item: 'Censer of Ash', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Grey Feather Scythe: The scythe. Even the holy have harvests.', effects: [{ item: 'Grey Feather Scythe', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
                         { text: 'Not yet.', end: true }
                     ]
                 },
@@ -1166,7 +1214,7 @@
                 again: {
                     lines: [[null, 'Six stone wings stand folded over the fountain, and a ring of pale light hangs above the hood.'],
                         ['npc', 'Still carrying it? Good. It gets lighter the more of it you give away.']],
-                    choices: [{ text: 'Why did you fall?', to: 'why' }, { text: 'Am I evil?', to: 'evil' }, { text: 'Goodbye.', end: true }]
+                    choices: [GIFT_CHOICE, { text: 'Why did you fall?', to: 'why' }, { text: 'Am I evil?', to: 'evil' }, { text: 'Goodbye.', end: true }]
                 }
             }
         },

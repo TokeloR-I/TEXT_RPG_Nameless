@@ -118,6 +118,10 @@
             const stock = this.data.shopDefinitions[shopId]?.stock || {};
             return stock[item] ? item : Object.keys(stock).find(id => id.toLowerCase() === String(item).toLowerCase()) || item;
         }
+        /** A stock entry with `classes` is only offered to those classes (Bragg's class weapons). */
+        stockForPlayer(entry) {
+            return !entry || !entry.classes || (!!this.player && entry.classes.includes(this.player.className));
+        }
         /** Shared, pure purchase validation for actions and merchant menus. */
         purchaseBlock(shopId, item) {
             const access = this.merchantBlock(shopId);
@@ -126,7 +130,7 @@
             item = this.stockName(shopId, item);
             const entry = shop && shop.stock && shop.stock[item];
             const def = this.itemDef(item);
-            if (!entry || !def || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1)
+            if (!entry || !def || !this.stockForPlayer(entry) || !Number.isSafeInteger(entry.buyPrice) || entry.buyPrice < 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity < 1)
                 return { code: 'NOT_FOR_SALE', message: 'This merchant cannot sell that item.' };
             if (this.player.gold < entry.buyPrice) return { code: 'NOT_ENOUGH_GOLD', message: 'Not enough Gold.' };
             const remaining = (this.player.shopStock || {})[`${shopId}:${item}`] ?? entry.quantity;

@@ -5,7 +5,14 @@
     const SLOTS = ['mainHand', 'offHand', 'bodyArmor', 'accessory'];
     const APPLIED = ['def', 'strength', 'intelligence', 'agility', 'maxHp'];
     class EquipmentMethods {
-        itemDef(id) { return (this.player && this.player.itemInstances || {})[id] || this.data.itemDefinitions[id]; }
+        itemDef(id) {
+            const d = (this.player && this.player.itemInstances || {})[id] || this.data.itemDefinitions[id];
+            // A dormant weapon (`kindle`: the Fallen Seraphim's holy weapons) has its `dormant` stats until the story flag
+            // is set, then its full ones. applyStoryEffects re-applies worn gear when that flag lands.
+            if (d && d.kindle && !(this.hasStoryFlag && this.hasStoryFlag(d.kindle.flag)))
+                return { ...d, statModifiers: d.kindle.dormant, effectText: d.kindle.dormantText || 'Dormant: it wakes to full strength later.' };
+            return d;
+        }
         itemDefinitions() { return { ...this.data.itemDefinitions, ...((this.player && this.player.itemInstances) || {}) }; }
         itemName(id) { return (this.itemDef(id) || {}).name || id; }
         itemDetails(id) {
@@ -103,6 +110,12 @@
             p.hp = Math.min(p.hp, p.maxHp); // increasing Max HP does not provide repeatable healing
             p.equipment = next;
         }
+        /** Worn gear's stats can change in place (a dormant weapon wakes): re-apply the difference from `before`. */
+        reapplyEquipment(before) {
+            const after = this.equipmentModifiers(), p = this.player;
+            for (const stat of APPLIED) p[stat] = (p[stat] || 0) + (after[stat] || 0) - (before[stat] || 0);
+            p.hp = Math.min(p.hp, p.maxHp);
+        }
         equipItem(name) {
             if (Object.values(this.player.equipment || {}).includes(name)) return true;
             const item = this.findInventoryItem(name), block = this.equipBlock(item);
@@ -145,7 +158,13 @@
         }
         equipmentDamageBonus(type, loadout = this.player.equipment) {
             const mods = this.equipmentModifiers(loadout);
-            if (!type || type === 'physical') return mods.physicalDamage || 0;
+            // A caster's staff or wand puts its magic into the bolts it fires too (the free attack is physical, scaled by
+            // INT): before 2026-11-09 a mage's weapon did nothing for the attack they make most (WEAPONS_BEFORE_THE_WARDEN.md).
+            if (!type || type === 'physical') {
+                const hand = loadout && loadout.mainHand && this.itemDef(loadout.mainHand);
+                const focus = hand && hand.damageType === 'magic' ? (hand.statModifiers || {}).magicDamage || 0 : 0;
+                return (mods.physicalDamage || 0) + focus;
+            }
             // Necrotic/poison direct spells use magical gear too; true damage and DoT ticks do not.
             if (['magic', 'fire', 'ice', 'lightning', 'radiant', 'necrotic', 'poison', 'shadow'].includes(type)) return mods.magicDamage || 0;
             return 0;

@@ -171,8 +171,17 @@
     const defaultCosmetics = () => ({ hairStyle: 0, hairColor: 0, outfit: 0, outfitColor: 0, hat: 0, weapon: 0, shield: SHIELDS.length > 1 ? 1 : 0 });
     // A calling suggests a look (the player can change all of it): outfit style and colour, weapon and shield by
     // their names in the art's options, so this list never depends on index order.
-    const CLASS_LOOK = { warrior: ['Ironclad', 'Rust', 'Iron Sword', 'Oak Round'], mage: ['Robe', 'Indigo', 'Iron Spear', 'None'],
-        rogue: ['Shadow Leathers', 'Crow', 'Iron Sword', 'None'], necromancer: ['Robe', 'Plum', 'Obsidian Mace', 'None'] };
+    // Casters carry casters' weapons (Tokelo, 2026-11-09): a staff for the mage, a dark staff for the necromancer.
+    const CLASS_LOOK = { warrior: ['Ironclad', 'Rust', 'Iron Sword', 'Oak Round'], mage: ['Robe', 'Indigo', 'Frost Staff', 'None'],
+        rogue: ['Shadow Leathers', 'Crow', 'Iron Sword', 'None'], necromancer: ['Robe', 'Plum', 'Obsidian Staff', 'None'] };
+    /** The kind of weapon actually in the main hand, so the sprite draws a staff or wand when one is equipped
+     *  (assets/sprites/enso-player.js heldType). Older saves whose look was a spear or mace show their staff this way. */
+    const HELD = { staff: 'staff', wand: 'wand', spear: 'spear', scythe: 'staff', 'one-hand': 'blade', 'two-hand': 'blade' };
+    function heldWeapon() {
+        const id = engine && engine.player && engine.player.equipment && engine.player.equipment.mainHand;
+        const d = id && engine.itemDef ? engine.itemDef(id) : null;
+        return (d && HELD[d.weaponType]) || null;
+    }
     function suggestLook(cls) {
         const look = CLASS_LOOK[cls];
         if (!look) return;
@@ -2278,6 +2287,7 @@
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
         view.look = engine.legendaryLook ? engine.legendaryLook() : null;   // the Fallen Seraphim's halo, wings and red eyes
+        if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }
