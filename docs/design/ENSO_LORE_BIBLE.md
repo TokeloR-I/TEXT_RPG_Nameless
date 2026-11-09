@@ -315,3 +315,84 @@ Sources: [FMA Wiki: The Gate](https://fma.fandom.com/wiki/The_Gate) ·
 [Elden Ring Wiki: Lore](https://eldenring.fandom.com/wiki/Lore) ·
 [UESP: Elder Scrolls](https://app.uesp.net/wiki/Lore:Elder_Scrolls) ·
 [Jane Friedman: when and why reveals don't work](https://janefriedman.com/when-and-why-reveals-dont-work/)
+
+## 8. One mythology per chapter (roadmap; Tokelo, 2026-11-09)
+
+> "I want the game to have a mix of culture and lore and especially the mythology ... for Germany I chose a legendary
+> Angel because of the roman influence ... so I want each area or perhaps chapter to be able to incorporate different
+> lore and Powers as a culmination of getting powerful ... Nordic ... Norse gods that can provide a new legendary
+> class ... an area with a Chinese theme and have a legendary class based on the monkey king ... the geography can
+> look however I want it to look." (Tokelo)
+
+**The rule.** Each chapter is a land shaped by one real culture and its mythology, and each has a hidden legendary
+class granted by that mythology's powers, the way Caelith grants the Fallen Seraphim in Chapter One. Geography is
+free: lands sit where the story needs them, joined by roads, passes and seas.
+
+**What ties them together: every mythology has its own answer to death, and the old lord broke all of them.** The
+Keeping (4.1) means the people he took never reached *any* afterlife. So in every land, some power is missing its
+dead and has a reason to care about the player. Each chapter's myth is also chosen because it **mirrors the
+Keeping**, so the player sees their own crime from a new side every time.
+
+| Chapter | Culture and myth | How it mirrors the Keeping | Legendary class (working) | Status |
+|---|---|---|---|---|
+| 1 | German lands: Kloster, saints, the Roman-Christian heaven | Caelith opened a door to **give**; the old lord opened people to **keep** | **Fallen Seraphim** (Caelith) | Shipped |
+| 2 | **The North**: Norse gods, Valhalla, Hel, the World Ash | Odin also **keeps** the dead (the einherjar in Valhalla, for the last war); and Odin could not bring back his own son Baldr, which the old lord did | **Allfather's Chosen** (Odin): see 9 | Outline below |
+| later | **China**: the Jade Emperor's heaven, the underworld, the Monkey King | Sun Wukong cheated death by **striking names out of the Register of Life and Death**, which is what the Keeping does to its victims; Heaven then sealed him under a mountain for 500 years, just as the heroes sealed the old lord | **Great Sage** (Sun Wukong) | Idea |
+| idea | Egypt: the Duat, the weighing of the heart, the *ren* (a person's name as part of their soul) | Erasing a name is the second death; the Kept have lost theirs | the **Black Pharaoh** (already named in old class notes) | Idea |
+| idea | Japan: Izanagi goes into Yomi to bring back his dead wife Izanami, and seals the way with a boulder | The same story as the old lord and his beloved, but Izanagi let go | open | Idea |
+
+**Ground rules for the team.** Research the real myth before writing (part 7's method); keep gods and figures
+respectful and recognisable rather than renamed copies; each legendary is hidden, found by an act that fits its
+myth (Caelith: *looking* for two minutes); and each legendary is **as strong as Fallen Seraphim at unlock and gated
+by a trial** (Gauge's benchmark in FALLEN_SERAPHIM.md). Thorne and Gauge own the mechanics, Ashby and Wick the story.
+
+## 9. Chapter Two outline: the North (proposal)
+
+**Getting there.** Q08 already says "follow the crows east". The road east climbs out of Blackbriar Vale over the
+passes, and the land turns to pine, snow and fjords: **the North** (working region name **Hrimvald**, "frost
+holds"). The crow is uneasy here: "Big birds in this country. They work for someone."
+
+**The land.** Longhouses, mead halls, rune stones, ship burials, skalds who sing the sagas, and a jarl whose word is
+law. Two powers watch over the dead: **Odin**, whose valkyries choose warriors who die in battle for his hall,
+Valhalla, where they feast and fight until the last war; and **Hel**, who keeps everyone else. Both have been
+cheated.
+
+**The wound.** Twenty years ago the old crown marched north. At the battle the North calls **the Silent Field**, a
+whole northern host fell, and not one of them reached Valhalla or Hel. The valkyries found the field empty. The old
+lord had kept them all. Valhalla's benches are short six hundred warriors, and Odin wants them back.
+
+**The Keeper (boss 2).** **Hallvard the One-Handed**, an old skald and the only man who walked off the Silent Field.
+The Sealwright gave him the second seal because he would never open it: his sons are inside. He guards it in the
+barrow of the Silent Field, and Odin's two ravens sit on the barrow roof. Like the Warden he is good, he warns the
+player off, and he loses. Qliphoth aspect: **A'arab Zaraq**, "the ravens of dispersion", fitting a land of ravens.
+
+**The crowd.** The six hundred of the Silent Field: the northern host, Hallvard's sons among them. Opening the seal
+gives the player their strength in battle (the second aspect's power, Thorne's call) and the **second memory**: the
+old lord on the Silent Field, drawing the circle in the snow, and a host going quiet.
+
+**The first real choice.** After the seal, Odin's ravens come to the player. The Allfather offers a bargain: **let
+the six hundred go to Valhalla, and Odin will give you something in return.** This is the first time the game asks
+the player to let any of the Kept go, and to pay for it: releasing them gives up that seal's power for good. The
+player can refuse, keep the host, and keep its strength. Hel makes her own quieter offer for the ones who weren't
+warriors. Either way the North remembers what the player chose.
+
+**The legendary: Allfather's Chosen (working name).** Granted by Odin, hidden like Caelith, and found by an act from
+his myth: Odin **hung himself on the World Ash for nine nights** to win the runes, and **gave an eye** at Mimir's
+well for wisdom. Proposal: at the great ash above the fjord, the player hangs from it for nine nights (rest nine
+times at its foot) and gives something up for good to win the runes. Two paths for Thorne to shape: **Valkyrie**
+(choose who falls, call the chosen dead to fight) and **Rune-hanged** (runes carved into the air as spells). Its trial
+boss: a valkyrie sent to collect the player. Unlocking it does **not** require releasing the six hundred, but Odin's
+voice changes depending on whether the player did.
+
+**Baldr, the foreshadowing.** In a mead hall, a skald tells how Odin's son Baldr died and Hel agreed to send him back
+if every thing in the world wept for him. Everything did, except one giantess in a cave, and Baldr stayed dead. The
+crow says only: "He asked. Your kind of person doesn't ask." It is the first time the game hints that the old lord
+brought someone back. [late] meaning; [Ch2] the story.
+
+**Open for Tokelo:** the region name, Hallvard, the bargain with Odin (letting the Kept go costs power), and the
+legendary's unlock act and two paths.
+
+Sources for 8 and 9: [Wikipedia: Einherjar](https://en.wikipedia.org/wiki/Einherjar) ·
+[Wikipedia: Þökk](https://en.wikipedia.org/wiki/%C3%9E%C3%B6kk) ·
+[Journey to the West Research: the register of births and deaths](https://journeytothewestresearch.com/tag/underworld/) ·
+[World History Edu: Sun Wukong](https://worldhistoryedu.com/sun-wukong-in-chinese-mythology-origin-story-powers-abilities-importance/)
