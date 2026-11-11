@@ -192,11 +192,10 @@ in ENSO is just a door.
   are the old cells' bars. His name should appear for the first time **on his grave or in Tamsin's mourning line**,
   never before the fight: the player kills "the Warden" and buries Bran.
 - **The table set for two.** [late] May point to a lost loved one, working name **Maren**, possibly the first Kept. **Unapproved late-game proposal**, not a required answer or the sovereign's only motive. Who laid the body in the cellar and carved the scratched warning remains an open mystery.
-- **The crow.** It refuses a name until the second seal opens, then picks one it likes ([mid]; suggested: **Mourn**).
+- **Nahemoth, the first aspect.** This is the talking crow awakened by opening the first seal, distinct from the Warden's living birds. It is already named **Nahemoth**. Any later nickname is optional; do not claim the crow is nameless through Chapter One.
 - **Shane the Shamed.** He ran the old crown's field hospital in the Vale, which is why his medicines work and why the
   watch has a file on him. He has never told anyone. His farewell stays exactly **"Suffer!"**.
-- **Elian.** Lost his sister on the Night of Lanterns. His letter of names (SF5) is the only list of the Kept anyone
-  has. Later, a name on it can answer from inside the player.
+- **Elian.** The proposed personal history is that he lost his sister on the Night of Lanterns. His letter of names (SF5) is a vital **local surviving record**, not the only record of people taken anywhere: Hrimvald's Eydis separately compiles the names of the six hundred. A later voice answering from within the player is a **[mid] proposal**, not a Chapter One fact.
 
 ### 4.6 Places to come
 
