@@ -29,10 +29,10 @@ against [ENSO_LORE_BIBLE.md](ENSO_LORE_BIBLE.md)
 L01 finishes just before the Captain opens the orchard road, so the Thanks weapon arrives for the last stretch
 (orchard, Featherwatch, the Warden). Pre-Warden Gold is about 170, so the forge weapon is affordable with food left over.
 
-**Lore.** Each name is Chapter One canon: the tollgate of the old crown (bars that "spent twenty years as a door"),
+**Lore.** Each name is Chapter One canon: the tollgate of the old crown (bars that "barred the road for twenty years"),
 the Vale hunters, Kloster ash, the Kloster burial ground, the festival mark "a sun breaking a crown" (worn, without
 knowing it, by the old lord himself), the mill falls of SF4, the bell that rang for an hour (SF5), and the memorial
-stone with no names, under which "something hums, like a crowd behind a door" (the Kept, [mid] hint only).
+stone with no names, under which "something hums, like a crowd heard through a wall" (the Kept, [mid] hint only).
 
 ## Rules added
 

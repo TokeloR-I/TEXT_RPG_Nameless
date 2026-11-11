@@ -51,7 +51,7 @@ At designated lookout landmarks, use crow perspective to **survey a nearby area*
 ## Crow's voice — sample script (draft, not final)
 **First appearance, after memory fragment:**
 - [The seal splits. A flock of ink-black feathers rises from a seam that has no depth. They turn against the wind and fold into a single crow.]
-- **Crow:** 'You broke a door that was meant to stay shut. Consider me impressed. Or concerned. I haven't decided.'
+- **Crow:** 'You broke a seal that was meant to hold. Consider me impressed. Or concerned. I haven't decided.'
 - **Player:** 'Are you one of his birds?'
 - **Crow:** 'No. His birds loved him. I merely borrowed the shape. There's a difference.'
 - **Player:** 'What are you?'
@@ -75,7 +75,7 @@ At designated lookout landmarks, use crow perspective to **survey a nearby area*
 - **Arrival:** player opens seal, a silhouette of a mason in black grit and smoke steps from the seam or an old blueprint unfurls; Orin is unable to stay in physical form near the broken sanctuary and follows dormant foundations to Homestead. First encounter remains at Homestead to preserve Q07 map flow. He should **not appear before the seal is actually opened**.
 - **Mystery:** Orin knows old geometry, not the protagonist's complete identity. His first instinct is to rebuild what the crow remembers, but he conceals why he feels summoned. Human villagers can interact with him as a peculiar craftsman.
 - **Motivation and limits:** He wants stones set and foundations awakened; Gold pays for actual labor and materials, not for his personal taste. He might become an ally or menace later. Long-term architecture mirrors dark empire without giving away its owner at once.
-- **Possible dialogue:** 'Your gate is an insult to masonry. And to insults. Give me stone, timber, and a ledger worth believing in.' / 'Why am I here? Because a door opened. Because old things hear doors.'
+- **Possible dialogue:** 'Your gate is an insult to masonry. And to insults. Give me stone, timber, and a ledger worth believing in.' / 'Why am I here? Because a seal broke. Old things hear that sort of noise.'
 - **Continuity:** replace, do not merely append, the old 'I have been trying to enter the roost for years' explanation. No prisoner retcon required. Existing Orin quest, builder ledger and first repair remain.
 
 ## First-boss reward ledger: separate award timings

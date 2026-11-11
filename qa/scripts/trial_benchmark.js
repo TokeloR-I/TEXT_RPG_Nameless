@@ -1,4 +1,4 @@
-// The Trial of the Cold Door (Fallen Seraphim): Aurevain on the real ActionSim + engine, the player NOT kept alive.
+// The Trial of the Live Coal (Fallen Seraphim): Aurevain on the real ActionSim + engine, the player NOT kept alive.
 // Gauge (2026-11-04; Tokelo: "a quest with a ridiculously strong boss ... so that going forward is earned"). Target: an
 // ordinary level 10 build almost never wins; a level 10 Fallen build (the gifts and the first half of the web) wins
 // about half the time in a long fight. Bot: the warden_benchmark one (hold range, cast what is ready, dodge a tell
@@ -72,7 +72,7 @@ if (process.env.ONE) { const [c, b, f] = process.env.ONE.split(','); console.log
 const SETUPS = [];
 for (const [cls, branch] of [['warrior', 'vanguard'], ['warrior', 'berserker'], ['rogue', 'assassin'], ['rogue', 'duelist'], ['necromancer', 'bone_warden'], ['necromancer', 'plaguecaller']])   // the bot can't kite the mage round the fountain; Tokelo asked about these three
     for (const fallen of [false, true]) SETUPS.push({ cls, branch, fallen });
-console.log(`Aurevain (Trial of the Cold Door), level ${LEVEL}, ${SEEDS} seeds, react ${REACT}, cap ${MAX_S} s\n`);
+console.log(`Aurevain (Trial of the Live Coal), level ${LEVEL}, ${SEEDS} seeds, react ${REACT}, cap ${MAX_S} s\n`);
 console.log('| build | win | time to win | died | timeouts |');
 console.log('|---|---|---|---|---|');
 for (const st of SETUPS) {

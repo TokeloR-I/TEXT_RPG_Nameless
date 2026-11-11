@@ -14,7 +14,7 @@ test('Save: a SaveGame v1 is plain JSON with the spec header, and the engine ver
     const save = g.serialize({ label: 'Hallway', createdAt: '2026-10-23T20:00:00Z', attachments: { note: 'x' } });
     assert.deepStrictEqual(roundTrip(save), save, 'JSON-safe');
     assert.strictEqual(save.format, 'enso-save');
-    assert.strictEqual(save.formatVersion, 2);
+    assert.strictEqual(save.formatVersion, SaveMethods.FORMAT_VERSION);
     assert.deepStrictEqual(save.game, { version: save.engine.version, chapter: null });
     assert.strictEqual(save.engine.version, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version);
     assert.deepStrictEqual(save.meta, { label: 'Hallway', createdAt: '2026-10-23T20:00:00Z' });
@@ -50,7 +50,7 @@ test('Save: bad saves are refused with the spec codes and leave the current game
     const good = g.serialize();
     const cases = [
         [null, 'FORMAT_UNKNOWN'], [{ format: 'other' }, 'FORMAT_UNKNOWN'],
-        [{ ...good, formatVersion: 3 }, 'VERSION_UNSUPPORTED'],
+        [{ ...good, formatVersion: SaveMethods.FORMAT_VERSION + 1 }, 'VERSION_UNSUPPORTED'],
         [{ ...good, state: undefined }, 'CORRUPT'],
         [{ ...good, state: { ...good.state, mode: 'flying' } }, 'CORRUPT'],
         [{ ...good, state: { ...good.state, combat: null } }, 'CORRUPT'],
@@ -153,6 +153,24 @@ test('Save updates: a format 1 save is migrated (input untouched) and loads with
     assert.ok(copy.lastLoad.warnings.some((w) => w.code === 'UPGRADED'));
     assert.strictEqual(copy.questState('Q01'), 'complete');
     for (let v = 1; v < SaveMethods.FORMAT_VERSION; v++) assert.strictEqual(typeof SaveMethods.MIGRATIONS[v], 'function', `a migration from format ${v}`);
+});
+
+test('Save updates: a format 2 save holding the old door names gets the fire names (Fallen Seraphim rename)', () => {
+    const v2 = roundTrip(worldGame().serialize());
+    v2.formatVersion = 2;
+    v2.state.player.inventory.push('Doorward', 'Spear of the Cold Door');
+    v2.state.player.equipment.mainHand = 'Doorward';
+    v2.state.player.skills = [...(v2.state.player.skills || []), 'The Door Held Open'];
+    v2.state.flags.door_note = 'Doorward is a word, not a key';   // only exact names are renamed
+    const m = SaveMethods.migrateSave(v2);
+    const p = m.save.state.player;
+    assert.ok(p.inventory.includes('Emberward') && p.inventory.includes('Spear of the Altar Fire'));
+    assert.ok(!JSON.stringify(m.save.state).includes('"Doorward"'));
+    assert.strictEqual(p.equipment.mainHand, 'Emberward');
+    assert.ok(p.skills.includes('The Coal Carried Down'));
+    assert.strictEqual(m.save.state.flags.door_note, 'Doorward is a word, not a key');
+    const copy = GameEngine.fromSave(v2);
+    assert.ok(copy.lastLoad.ok !== false && copy.player.inventory.includes('Emberward'));
 });
 
 test('Save updates: quests added after the save start unseen, and effects that name them do not break', () => {

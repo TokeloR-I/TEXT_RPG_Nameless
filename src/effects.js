@@ -114,7 +114,7 @@
         }
     });
 
-    register('heal_percent', { // Mercy of the Fallen, The Door Held Open (Fallen Seraphim): heal the caster `value` of max HP
+    register('heal_percent', { // Mercy of the Fallen, The Coal Carried Down (Fallen Seraphim): heal the caster `value` of max HP
         apply(ctx) {
             const c = ctx.caster;
             const healed = ctx.engine.heal(c, Math.max(1, Math.floor(c.maxHp * ctx.effect.value)));

@@ -31,8 +31,8 @@ The unlock is hidden (you have to know, or stare at a statue for two minutes), s
   hold the web. Saves that woke the statue before this get them on load (a story `catchUp`).
 
 **The trial.** Every node at level 10 and up is sealed (`trial: true` on the node, `trial` on the web) until you win
-**the Trial of the Cold Door** (quest QS1). After the Watcher rank the statue asks you to let its door's warden
-come; say yes and **Aurevain, Warden of the Shut Door** waits in the courtyard: 3200 HP (about 21 Crow Wardens),
+**the Trial of the Live Coal** (quest QS1). After the Watcher rank the statue asks you to let Heaven's altar-warden
+come; say yes and **Aurevain, Warden of the Altar** waits in the courtyard: 3200 HP (about 21 Crow Wardens),
 ATK 34, DEF 10, a two-hit spear sweep, a lunging thrust, a 1.2 s wingbeat you can't guard (×1.6), three pillars of
 light (×1.7) and a bolt at range. Winning sets `seraph_trial_won` and opens the rest of the web, and with it the
 wings, the red eyes and the holy weapon.
@@ -66,12 +66,14 @@ benches. A plain level 10 build dies. Mage is left out: the bot sticks behind th
 
 ## Lore (Ashby, Wick)
 
-**Caelith, Keeper of the Cold Door.** Long before the Kloster, the hill at Briarwell was a gate. Behind it lay the
-warm country; in front of it, a winter that did not end. Caelith, a six-winged seraph, was set to keep the warmth
-in and the world out. The ones outside knocked for a hundred years. Caelith opened the door, and spring ran down
-the hill for the first time. The spring under the courtyard fountain is the last of it.
+**Caelith, Keeper of the Altar Fire.** (Renamed from "the Cold Door" on 2026-11-11: Tokelo doesn't want a door
+motif; see the lore bible, 4.8.) Seraph means "the burning one". Long before the Kloster, Heaven's fire burned on its
+altar above the hill at Briarwell; below it lay a winter that did not end. Caelith, a six-winged seraph, was set to
+keep the fire above and the world below. The ones below froze for a hundred years. Caelith took one live coal from
+the altar (as the seraph does in Isaiah 6) and carried it down, and spring ran down the hill for the first time. The
+spring under the courtyard fountain is the last of it.
 
-Heaven called it sin and shut the door behind it. Caelith fell, and the hill closed over it. Stone is patient.
+Heaven called it sin and threw Caelith down after the coal, and the hill closed over it. Stone is patient.
 The monks found the figure when they dug their cloister and built their walls around it. They do not know what it
 is. One of them guessed, and carved it small on the altar step: **HE FELL FOR US**. The chained book in the
 church, *On the Six-Winged Ones, and Why They Are Not Spoken Of*, has most of its pages cut out.
@@ -97,9 +99,9 @@ path, and each path asks one question:
 | Rank | Reached at | The statue says |
 |---|---|---|
 | Fallen | the heart (the waking) | the waking speech (PR #226) |
-| Watcher | 6 nodes | its name, Caelith, and the Cold Door it opened |
+| Watcher | 6 nodes | its name, Caelith, and the altar fire it carried down |
 | Ashen Seraph | 13 nodes | the monks, the carving, "make sure there is a second hand on the page" |
-| Seraph Unbound | the Seraph Unbound node | "Now you are what I was, before the door. Go on. Open something." |
+| Seraph Unbound | the Seraph Unbound node | "Now you are what I was, before the fall. Go on. Give something away." |
 | The Six-Winged | every node of the web | "All of it. Every feather." It offers a holy weapon of your choosing (below) |
 
 Watcher and Ashen Seraph each give **one free Skill Web point** the first time ("it gets lighter the more of it
@@ -125,15 +127,15 @@ wings and red eyes go until you learn it back; the weapon stays yours.
 **The holy weapons (Gauge).** Legendary, bound, unsellable, main hand, any class.
 Tokelo, 2026-11-09: "the only weapon I know off is the holy sword and that also we have yet to see a player use it
 cause of the level lock". So the weapon now comes when the statue wakes (no level needed) at the dormant stats, and
-full mastery wakes it to the stats below. Dormant: Doorward +3 physical, +1 STR; Spear +3 physical, +1 AGI, +3% crit;
+full mastery wakes it to the stats below. Dormant: Emberward +3 physical, +1 STR; Spear +3 physical, +1 AGI, +3% crit;
 Twin Pinions +2 physical, +2 AGI, +4% crit; Censer +3 magic, +1 INT, +5 Max HP; Scythe +3 magic, +1 physical, +8 Max HP
 (about Shamefield's Thanks, see [WEAPONS_BEFORE_THE_WARDEN.md](WEAPONS_BEFORE_THE_WARDEN.md)). Awake, each sits well
 above Chapter One gear, because it costs the whole web.
 
 | Weapon | Hands | Stats | For |
 |---|---|---|---|
-| Doorward (holy greatsword) | 2 | +6 physical damage, +2 STR, +1 DEF | warriors |
-| Spear of the Cold Door | 2 | +5 physical damage, +2 AGI, +5% crit | wardens, spears |
+| Emberward (holy greatsword) | 2 | +6 physical damage, +2 STR, +1 DEF | warriors |
+| Spear of the Altar Fire | 2 | +5 physical damage, +2 AGI, +5% crit | wardens, spears |
 | Twin Pinions (two feather blades) | 1 | +4 physical damage, +3 AGI, +8% crit | rogues (keeps the off hand free) |
 | Censer of Ash (holy staff) | 2 | +6 magic damage, +2 INT, +10 Max HP | mages |
 | Grey Feather Scythe | 2 | +5 magic damage, +2 physical damage, +15 Max HP | necromancers |
@@ -155,7 +157,7 @@ level 18, which needs **all three capstones**. The six first-pass nodes keep the
    ◆ Brand of the Watcher L6 ◆ Mercy of the Fallen L7  ◆ Wings of Sorrow L8 ── also from Halo of Ash
    ◆ Rain of Feathers L9  ○ What Is Evil? L10 ──── links Grace and Wings of Sorrow (the crossroads)
    ○ Burning Grace L11    ◆ Ashen Communion L12     ○ Weightless L11
-   ◆ Verdict of Ash L14   ◆ The Door Held Open L14  ◆ Judgement from Above L12
+   ◆ Verdict of Ash L14   ◆ The Coal Carried Down L14  ◆ Judgement from Above L12
           │                      │                  ◆ Six-Winged Descent L14
           └──────────────────────┼──────────────────────┘
                       ○ Seraph Unbound L18 (needs all three capstones)
@@ -215,7 +217,7 @@ the Feet path can afford.
 | Mercy of the Fallen ◆ | 7 | 2 / 24 s | heal 25% of max HP and burn away every damage over time |
 | What Is Evil? ○ | 10 | | take 10% less damage from everything |
 | Ashen Communion ◆ | 12 | 3 / 16 s | 8–12 radiant to every enemy, heal for half the damage dealt |
-| **The Door Held Open** ◆ capstone | 14 | all / once per fight | 50% less damage for 3 turns (10 s live), heal 40% of max HP, shed every DoT and debuff |
+| **The Coal Carried Down** ◆ capstone | 14 | all / once per fight | 50% less damage for 3 turns (10 s live), heal 40% of max HP, shed every DoT and debuff |
 
 Healing has no fight cap (Tokelo, 2026-11-04), so the cooldowns are the limit: Mercy every 24 s is about 1% of max
 HP a second.
@@ -235,7 +237,7 @@ HP a second.
 
 | Node | Level | Needs | What it does |
 |---|---|---|---|
-| **Seraph Unbound** ○ | 18 | Verdict of Ash, The Door Held Open, Six-Winged Descent | +15% damage and 10% less damage taken |
+| **Seraph Unbound** ○ | 18 | Verdict of Ash, The Coal Carried Down, Six-Winged Descent | +15% damage and 10% less damage taken |
 
 With every passive the Fallen character deals about +27% (Weightless x Unbound), +52% against Undead and Void,
 +58% under half HP, and takes 19% less damage. That is legendary on purpose; Gauge tunes it with `npm run balance`

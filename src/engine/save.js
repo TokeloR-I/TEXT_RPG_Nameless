@@ -31,7 +31,7 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const FORMAT = 'enso-save';
-    const FORMAT_VERSION = 2;
+    const FORMAT_VERSION = 3;
     const ENGINE_VERSION = '0.1.0';          // package.json "version" (kept in step by tests/33-save-load.test.js)
     const STATE_KEYS = ['rooms', 'currentRoom', 'mode', 'player', 'combat', 'pendingBranchChoice', 'flags', 'stats', 'progression', 'world', 'story'];
     // Fields a save must have to be loaded at all (story/world may be null: the text game).
@@ -48,6 +48,23 @@
         1: (save) => {
             save.game = { version: (save.engine && save.engine.version) || null, chapter: (save.state && save.state.story && save.state.story.chapter) || null };
             save.formatVersion = 2;
+            return save;
+        },
+        // v2 -> v3: the Fallen Seraphim's door names became fire names (Tokelo, 2026-11-11: "I am still not liking
+        // this door obsession"). Item and skill names are their own keys, so a save holding the old ones is renamed
+        // wherever the exact name appears: inventory, equipment, skill bar, cooldowns, statuses, quest notes.
+        2: (save) => {
+            const RENAMED = { 'Doorward': 'Emberward', 'Spear of the Cold Door': 'Spear of the Altar Fire', 'The Door Held Open': 'The Coal Carried Down' };
+            const fix = (x) => {
+                if (typeof x === 'string') return Object.prototype.hasOwnProperty.call(RENAMED, x) ? RENAMED[x] : x;
+                if (Array.isArray(x)) return x.map(fix);
+                if (!isObj(x)) return x;
+                const out = {};
+                for (const k of Object.keys(x)) out[Object.prototype.hasOwnProperty.call(RENAMED, k) ? RENAMED[k] : k] = fix(x[k]);
+                return out;
+            };
+            if (save.state) save.state = fix(save.state);
+            save.formatVersion = 3;
             return save;
         }
     };

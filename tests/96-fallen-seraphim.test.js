@@ -32,7 +32,7 @@ const PATHS = {   // docs/design/FALLEN_SERAPHIM.md: one path per pair of wings,
 };
 const trait = (id) => FS.nodes.find((n) => n.id === `fallen_seraphim.${id}`).trait;
 const GIFTS = ['judgement', 'halo_of_ash', 'wingstep'];   // the statue's gift: owned free the moment it wakes
-const won = (g) => { g.applyStoryEffects([{ flag: 'seraph_trial_won' }]); return g; };   // as if the Trial of the Cold Door were won
+const won = (g) => { g.applyStoryEffects([{ flag: 'seraph_trial_won' }]); return g; };   // as if the Trial of the Live Coal were won
 /** Wake the statue, level to `level`, and learn these nodes (short ids) in order (the gifts are already owned). */
 function seraph(level, ids = [], cls = 'mage', seed = 96) {
     const g = world(cls, seed);
@@ -74,7 +74,7 @@ test('Fallen Seraphim: Seraph Unbound needs all three capstones, and holds them 
         { g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` }); assert.ok(g.webOwns(`fallen_seraphim.${id}`), id); }
     const unbound = () => g.getSkillWeb().nodes.find((n) => n.id === 'fallen_seraphim.unbound');
     assert.strictEqual(unbound().reason.code, 'NEEDS_NODES');
-    assert.match(unbound().reason.message, /The Door Held Open/);
+    assert.match(unbound().reason.message, /The Coal Carried Down/);
     assert.deepStrictEqual(unbound().needs, ['fallen_seraphim.verdict', 'fallen_seraphim.door', 'fallen_seraphim.descent']);
     g.act({ type: 'learn_node', nodeId: 'fallen_seraphim.door' });
     g.act({ type: 'learn_node', nodeId: 'fallen_seraphim.unbound' });
@@ -148,13 +148,13 @@ test('Fallen Seraphim at unlock: the statue gives one skill from each pair of wi
     for (const id of GIFTS) assert.ok(old.webOwns(`fallen_seraphim.${id}`), `${id} after catch-up`);
 });
 
-test('Fallen Seraphim: the second half is sealed until the Trial of the Cold Door is won (Caelith calls Aurevain)', () => {
+test('Fallen Seraphim: the second half is sealed until the Trial of the Live Coal is won (Caelith calls Aurevain)', () => {
     const g = seraph(18, ['feather_ward', 'mercy', 'gale']);
     g.webState().bonusPoints += 10;
     const node = (id) => g.getSkillWeb().nodes.find((n) => n.id === `fallen_seraphim.${id}`);
     for (const n of FS.nodes.filter((x) => x.trial)) assert.ok(n.minLevel >= 10, `${n.id} is the second half`);
     assert.strictEqual(node('what_is_evil').reason.code, 'TRIAL_LOCKED');
-    assert.match(node('what_is_evil').reason.message, /Trial of the Cold Door/);
+    assert.match(node('what_is_evil').reason.message, /Trial of the Live Coal/);
     assert.notStrictEqual((node('wings_of_sorrow').reason || {}).code, 'TRIAL_LOCKED', 'the first half stays open');
     // Caelith offers the trial after its name.
     g.act({ type: 'talk', npcId: 'seraph_statue' }); g.act({ type: 'dialogue_leave' });
@@ -209,7 +209,7 @@ test('Fallen Seraphim mastered: Caelith offers five holy weapons; you take the o
     for (const id of [...PATHS.face, ...PATHS.feet, ...PATHS.wings, 'unbound']) if (!g.webOwns(`fallen_seraphim.${id}`)) g.act({ type: 'learn_node', nodeId: `fallen_seraphim.${id}` });
     g.act({ type: 'talk', npcId: 'seraph_statue' });
     assert.strictEqual(g.story.dialogue.node, 'six');
-    const HOLY = ['Doorward', 'Spear of the Cold Door', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];
+    const HOLY = ['Emberward', 'Spear of the Altar Fire', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];
     for (const w of HOLY) { const d = data.itemDefinitions[w]; assert.ok(d.holy && d.type === 'weapon' && d.slot === 'mainHand' && d.bound && !d.sellable, w); assert.ok(!d.legalClasses, `${w}: any class`); }
     const choices = g.getAvailableActions().actions.filter((x) => x.type === 'dialogue_choice');
     assert.strictEqual(choices.length, 6, 'five weapons, or not yet');
@@ -239,7 +239,7 @@ test('Fallen Seraphim: the new passives (Burning Grace, Weightless, Seraph Unbou
     assert.ok(Math.abs(g.traitDamageMult({}, unbound) - 0.9) < 1e-9);
 });
 
-test('Fallen Seraphim: Mercy of the Fallen heals a quarter of max HP and burns poison away; The Door Held Open heals 40%', () => {
+test('Fallen Seraphim: Mercy of the Fallen heals a quarter of max HP and burns poison away; The Coal Carried Down heals 40%', () => {
     const { registry } = require('../src/effects.js');
     const g = world();
     const p = g.player;
@@ -250,7 +250,7 @@ test('Fallen Seraphim: Mercy of the Fallen heals a quarter of max HP and burns p
     assert.strictEqual(p.hp, Math.min(p.maxHp, 10 + Math.floor(p.maxHp * 0.25)));
     assert.ok(!p.statusEffects.some((x) => x.name === 'Poison'), 'poison burned away');
     p.hp = 1;
-    registry.heal_percent.apply({ engine: g, caster: p, targets: [p], skill: { name: 'The Door Held Open' }, effect: { type: 'heal_percent', value: 0.4 } });
+    registry.heal_percent.apply({ engine: g, caster: p, targets: [p], skill: { name: 'The Coal Carried Down' }, effect: { type: 'heal_percent', value: 0.4 } });
     assert.strictEqual(p.hp, 1 + Math.floor(p.maxHp * 0.4));
 });
 
