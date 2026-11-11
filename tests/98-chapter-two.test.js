@@ -182,6 +182,44 @@ for (const [choice, flag, keeps] of [[/belongs with the Roll/, 'tablet_with_eydi
     });
 }
 
+test('Chapter Two dialogue (Wick review): every spoken line fits one page of the dialogue box', () => {
+    const DP = require('../ui/dialogue-pages.js');
+    for (const [nid, npc] of Object.entries(CH2.npcs)) for (const [k, node] of Object.entries(npc.nodes)) for (const [, line] of node.lines || []) {
+        assert.ok(DP.splitSentences(line).length <= 2, `${nid}.${k}: more than two sentences: ${line}`);
+        assert.strictEqual(DP.paginate(line).length, 1, `${nid}.${k}: longer than one page: ${line}`);
+    }
+});
+
+test('Skeldvik seeds Hrafnholm: the succession, the Wolf-Banner\'s own case and the southern silver, none of it required', () => {
+    const { g, s } = run();
+    frostspine(g, s);
+    // Thora: whose law, and why the high seat is in question.
+    talk(s, 'skeldvik_thora'); let r = say(g, /Whose law/);
+    assert.ok(/Ragnhild Frostmark/.test(text(r)) && /grave-ale/.test(text(r)));
+    assert.ok(g.hasStoryFlag('heard_of_succession'));
+    say(g, /Goodbye/);
+    // Geir speaks for Torvald; the silver question only once Leif has named it.
+    talk(s, 'skeldvik_geir');
+    assert.ok(!(g.getAvailableActions().actions || []).some((a) => /silver/.test(a.text || '')));
+    r = say(g, /Who are you people/);
+    assert.ok(/Arni/.test(text(r)) && g.hasStoryFlag('wolfbanner_heard'));
+    say(g, /Goodbye/);
+    talk(s, 'skeldvik_eydis'); say(g, /ask around/);
+    talk(s, 'skeldvik_leif'); say(g, /armed crews/); r = say(g, /took it anyway/);
+    assert.ok(/Osric Vane/.test(text(r)));
+    say(g, /Goodbye/);
+    talk(s, 'skeldvik_geir'); say(g, /silver/); say(g, /Goodbye/);
+    assert.ok(g.hasStoryFlag('southern_friends_heard'));
+    // Eydis: the Silent Field names Hallvard, and asking about him is then offered.
+    talk(s, 'skeldvik_eydis'); r = say(g, /Silent Field/);
+    assert.ok(/Hallvard/.test(text(r)) && g.hasStoryFlag('heard_of_hallvard'));
+    r = say(g, /Who is Hallvard/);
+    assert.ok(/Runa/.test(text(r)));
+    // None of it is on the quest's path.
+    assert.strictEqual(g.questState('C202'), 'active');
+    for (const o of CH2.quests.C202.objectives) assert.ok(!['heard_of_succession', 'wolfbanner_heard', 'heard_of_hallvard'].includes(o.on.id));
+});
+
 test('Skeldvik: the harbour bell attunes a Black Flight anchor, and the crow can bring you back to it', () => {
     const { g, s } = run();
     frostspine(g, s);

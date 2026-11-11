@@ -182,6 +182,7 @@
                 { id: 'skeldvik_leif', kind: 'npc', npc: 'leif', x: 8, y: 20, name: 'Leif Ropehand', sprite: 'shipwright' },
                 { id: 'skeldvik_solveig', kind: 'npc', npc: 'solveig', x: 20, y: 10, name: 'Solveig', sprite: 'fishwife' },
                 { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 25, y: 4, name: 'Thora Half-Oar', sprite: 'reeve' },
+                { id: 'skeldvik_geir', kind: 'npc', npc: 'geir', x: 25, y: 21, name: 'Geir', sprite: 'wolfcrew' },
                 { id: 'skeldvik_bell', kind: 'inspect', x: 26, y: 3, name: 'Harbour bell',
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 7, y: 6, name: 'Memorial stone',

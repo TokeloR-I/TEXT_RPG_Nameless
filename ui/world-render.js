@@ -541,7 +541,8 @@
         carter: { cloak: '#6a6458', hair: '#8a8a88', belt: '#4a3a2a', prop: 'staff' },
         shipwright: { cloak: '#7a5a34', hair: '#a8582a', belt: '#2a2018', prop: 'hammer', skin: '#d0a888' },
         fishwife: { cloak: '#5a6a5a', hood: '#d8d0bc', belt: '#8a6a3a', prop: 'basket' },
-        reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' }
+        reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' },
+        wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {

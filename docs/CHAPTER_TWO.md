@@ -17,7 +17,13 @@ This file tracks what the game actually contains. Started 2026-11-11 (Tokelo: "s
 | C2-03 The Hall of Winter | Quest `C203` is a pointer only ("take the south-west road to Hrafnholm"). The south-west road out of Skeldvik is a boundary. | next slice |
 
 People: Eydis Namesinger, Leif Ropehand (both from the lore doc); Hakon the carter, Solveig the fish-seller,
-Thora Half-Oar the harbour reeve and Ulfrun Grey-Mantle are new minor characters for this slice.
+Thora Half-Oar the harbour reeve, Ulfrun Grey-Mantle and Geir the Wolf-Banner steersman (on the east pier, optional)
+are new minor characters for this slice.
+
+**Narrative review (2026-11-11):** Ashby, Wick and Cairn checked Act I against the lore doc and the lore bible and
+revised every line to fit one page of the dialogue box. They also set out Hrafnholm's politics: the grave-ale, the
+law of twenty winters, who stands with whom, and how the tablet choice is read at the Thing. See
+[design/CHAPTER_TWO_NARRATIVE_REVIEW.md](design/CHAPTER_TWO_NARRATIVE_REVIEW.md).
 
 ## How it joins Chapter One
 One story, one world: `src/story/chapter1.js` merges `chapter2.js` (quests, NPCs, triggers, anchors) and
@@ -37,7 +43,8 @@ with Ten Seals active just walks east (tested in `tests/98-chapter-two.test.js`)
 ## Candidates and open points
 - **Numbers (Gauge):** the three Wolf-Banner kits, quest XP (40, 45) and Gold (20, 25) are first-pass candidates
   sized for a level 4 to 5 character coming off the Warden. Not yet run through the balance bot or Tally's QA.
-- **Text (Wick, Ashby):** all dialogue here is a first draft.
+- **Text (Wick, Ashby):** reviewed 2026-11-11 (see above). Optional flags `heard_of_succession`, `wolfbanner_heard`,
+  `southern_friends_heard`, `heard_of_osric` and `heard_of_hallvard` are set for Hrafnholm to read; none is required.
 - **Names:** Hrimvald and the settlement names are used as the lore doc proposes them (its open decision 1).
 - **Not built yet:** Skeldvik's shops (Skeldvik Iron Axe and the regional gear), side quest C2-S04 The Fisherman's
   Debt, Hrafnholm and everything after it.
