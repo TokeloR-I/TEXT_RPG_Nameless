@@ -22,7 +22,7 @@ test('Original art: no Mana Seed file or reference is left in the game', () => {
     assert.ok(!SPRITES.manifest.manaseed);
 });
 
-test('ENSO doll: every frame of every shape choice is 64x64 with known colours, and left mirrors right', () => {
+test('ENSO doll: every frame of every shape choice is frame-sized with known colours, and left mirrors right', () => {
     const m = SPRITES.manifest.enso, o = m.options;
     const known = new Set(Object.keys(m.paletteFor()));
     const shapes = [{}, { hairStyle: 5, outfit: 3, hat: 1, weapon: 3, shield: 2 }, { hairStyle: 8, outfit: 2, hat: 4, weapon: 2, shield: 5 }, { hairStyle: 3, outfit: 4, hat: 3, weapon: -1 }];
@@ -30,7 +30,7 @@ test('ENSO doll: every frame of every shape choice is 64x64 with known colours, 
         const sheet = SPRITES.getSheet(`enso.${m.sheetFields(c).shape}`);
         for (const f of ENSO_PLAYER.FACINGS) for (const p of ENSO_PLAYER.POSES) {
             const rows = sheet.frames[`${f}.${p}`];
-            assert.strictEqual(rows.length, 64); rows.forEach((r) => assert.strictEqual(r.length, 64));
+            assert.strictEqual(rows.length, m.frame.h); rows.forEach((r) => assert.strictEqual(r.length, m.frame.w));
             for (const ch of new Set(rows.join('').replace(/\./g, ''))) assert.ok(known.has(ch), `role ${ch}`);
         }
         const r = sheet.frames['right.walk2'], l = sheet.frames['left.walk2'];
@@ -63,7 +63,7 @@ test('ENSO doll v2 (chibi): big eyes with iris and shine facing front and side, 
     assert.strictEqual(count('up.stand', 'u'), 0);
     assert.strictEqual(count('down.hit', 'u'), 0, 'shut when hit');
     // The head is chibi-sized: at least 14 px across facing front.
-    const rows = sheet.frames['down.stand'], widest = Math.max(...rows.slice(8, 22).map((r) => r.replace(/^\.+|\.+$/g, '').length));
+    const rows = sheet.frames['down.stand'], top = rows.findIndex((r) => /[^.]/.test(r)), widest = Math.max(...rows.slice(top, top + 14).map((r) => r.replace(/^\.+|\.+$/g, '').length));
     assert.ok(widest >= 14, `head ${widest} px`);
 });
 
@@ -80,6 +80,61 @@ test('ENSO doll v2: fluid animation set, every step a real pose, combat timings 
         const k = (x) => sheet.frames[`${f}.${x}`].join('');
         assert.ok(k(p) !== k(a) && k(p) !== k(b), `${f}.${p}`);
     }
+});
+
+// Tokelo (2026-11-11): the main character rebuilt for fluid motion. One pose is written in the character's own space
+// and projected for every facing; hair and cloth follow the body through a spring; a swing leaves the blade's trail.
+test('ENSO rig v3: a taller figure, every motion with its frames, and the totals the fight depends on', () => {
+    const m = SPRITES.manifest.enso, sheet = SPRITES.getSheet(`enso.${m.sheetFields({ weapon: -1 }).shape}`);
+    const rows = sheet.frames['down.stand'], filled = rows.map((r, i) => (/[^.]/.test(r) ? i : -1)).filter((i) => i >= 0);
+    const tall = filled[filled.length - 1] - filled[0] + 1;
+    assert.ok(tall >= 38 && tall <= 44, `figure ${tall} px tall`);
+    const stepsOf = (a) => (Array.isArray(a) ? a : a.steps), total = (n) => stepsOf(m.animations[n]).reduce((t, s) => t + s.ms, 0);
+    for (const [n, min] of [['idle', 8], ['walk', 10], ['swing', 8], ['heavy', 10], ['thrust', 7], ['cast', 8], ['hurt', 4], ['dodge', 4], ['stop', 3]]) assert.ok(stepsOf(m.animations[n]).length >= min, n);
+    assert.deepStrictEqual(['swing', 'heavy', 'thrust', 'hurt', 'dodge'].map(total), [350, 720, 350, 250, 250]);
+    // No two neighbouring frames of a motion are the same picture, in any view.
+    for (const n of ['walk', 'swing', 'heavy', 'thrust', 'cast']) for (const f of ['down', 'right', 'up', 'down-right']) {
+        const poses = stepsOf(m.animations[n]).map((s) => sheet.frames[`${f}.${s.pose}`].join(''));
+        for (let i = 1; i < poses.length; i++) assert.notStrictEqual(poses[i], poses[i - 1], `${f} ${n} frame ${i + 1}`);
+    }
+    // The four attacks are four different motions.
+    const mid = ['slash5', 'heavy7', 'thrust5', 'cast5'].map((p) => sheet.frames[`right.${p}`].join(''));
+    assert.strictEqual(new Set(mid).size, 4);
+});
+
+test('ENSO rig v3: the feet stay on the ground line through every frame, and nothing is cut off by the frame edge', () => {
+    const m = SPRITES.manifest.enso;
+    for (const c of [{ weapon: -1 }, { hairStyle: 5, outfit: 0, hat: 2, weapon: 3, shield: 2 }]) {
+        const sheet = SPRITES.getSheet(`enso.${m.sheetFields(c).shape}`);
+        for (const f of ['down', 'right', 'up', 'down-right', 'up-right']) for (const p of ENSO_PLAYER.POSES) {
+            const rows = sheet.frames[`${f}.${p}`];
+            assert.ok(!/[^.]/.test(rows[0]) && !/[^.]/.test(rows[rows.length - 1]) && rows.every((r) => r[0] === '.' && r[r.length - 1] === '.'), `${f}.${p} touches the frame edge`);
+            if (c.weapon !== -1 || /^(down|dash|fall)/.test(p)) continue;
+            const lowest = rows.reduce((y, r, i) => (/[^.]/.test(r) ? i : y), -1);
+            assert.ok(Math.abs(lowest - m.anchor.y) <= 2, `${f}.${p}: lowest pixel at row ${lowest}`);
+        }
+    }
+});
+
+test('ENSO rig v3: hair and cloth trail the body, and a swing leaves the blade\'s trail', () => {
+    const m = SPRITES.manifest.enso;
+    const sk = (f, p) => ENSO_PLAYER.skeleton(f, p);
+    // Standing: the cloth hangs near rest. Running to the right: it streams out behind (to the left).
+    assert.ok(Math.abs(sk('right', 'stand').swC[0]) < 1.5);
+    for (let i = 1; i <= 10; i++) assert.ok(sk('right', `walk${i}`).swC[0] < -1, `walk${i} cloth ${sk('right', `walk${i}`).swC[0]}`);
+    // It moves through the stride, not a fixed offset, and the hair has its own timing.
+    const xs = Array.from({ length: 10 }, (_, i) => sk('right', `walk${i + 1}`)), spread = (a) => Math.max(...a) - Math.min(...a);
+    assert.ok(spread(xs.map((k) => k.swC[1])) > 0.5 && spread(xs.map((k) => k.swH[1])) > 0.5);
+    // The tail of hair and the cape are drawn where the sway puts them.
+    const frames = (c, f, p) => SPRITES.getSheet(`enso.${m.sheetFields(c).shape}`).frames[`${f}.${p}`].join('');
+    const count = (s, chars) => [...s].filter((ch) => chars.includes(ch)).length;
+    assert.notStrictEqual(count(frames({ hairStyle: 1, weapon: -1 }, 'right', 'walk3'), '5678'), count(frames({ hairStyle: 1, weapon: -1 }, 'right', 'stand'), '5678'));
+    // The trail: bright pixels in the cutting frames of each attack, none standing still.
+    for (const f of ['down', 'right', 'up']) {
+        assert.ok(count(frames({}, f, 'slash5'), 'ZY') + count(frames({}, f, 'slash6'), 'ZY') > 8, `${f} swing trail`);
+        assert.strictEqual(count(frames({}, f, 'stand'), 'ZY'), 0);
+    }
+    assert.ok(count(frames({}, 'right', 'heavy8'), 'ZY') > 8, 'heavy trail');
 });
 
 test('Scene art: the homestead grounds paint whole, the same every time, with a crown layer over people', () => {

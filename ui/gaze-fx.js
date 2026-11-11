@@ -70,9 +70,9 @@
         }
     }
 
-    // The player sprite (assets/sprites/enso-player.js): a 64 px frame, feet at y 43, head centre at y 17.6 (radius
-    // about 7), neck at 24. So the head is ~25 px over the feet and its top ~33.
-    const HEAD_TOP = 33, SHOULDERS = 20;
+    // The player sprite (assets/sprites/enso-player.js, v3 rig): a 96 px frame, feet at y 68, head centre about 30 px
+    // over the feet (radius about 7), shoulders about 22 px. So the head's top is ~38 px over the feet.
+    const HEAD_TOP = 38, SHOULDERS = 24;
     /** Six wings at your back, at about half the statue's size (it is twice your height). */
     function playerWings(g, cx, base, facing, now) {
         wings(g, cx, base - SHOULDERS - 16 * 0.6, 1, now, facing === 'up' ? 0.5 : 0.6);

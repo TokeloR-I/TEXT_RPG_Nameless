@@ -3,17 +3,20 @@
  * Every pixel of this character is made here, from shapes and our own palette. No picture, pack or
  * generator output goes in, so nothing third-party is ever used as input (docs/art/ORIGINAL_ART_PLAN.md §0).
  *
- * A pose is a skeleton (head, shoulders, elbows, hands, hips, knees, feet, weapon angle). Each body part is a
- * shape on that skeleton (ellipse, capsule or polygon) shaded by its own curvature, light from the top left,
- * with a darker edge where it overlaps something and a coloured outline round the whole figure.
+ * A pose is written once in the character's own space (forward, right, up) and projected for each facing (the rig,
+ * v3), so all eight directions show the same pose from a different side. Each body part is a shape on the projected
+ * skeleton (ellipse, capsule or polygon) shaded by its own curvature, light from the top left, with a darker edge
+ * where it overlaps something and a coloured outline round the whole figure. Hair and cloth are not posed: a damped
+ * spring trails the head and chest through each motion, and the hanging parts bend by how far it lags (swayTrack).
  *
- * Style (docs/art/PLAYER_STYLE_SHEET.md, v2): chibi proportions, the head and everything on it scaled by HEAD_S,
- * big eyes (lid, shine, iris), soft skin shading and a near-black outline.
+ * Style (docs/art/PLAYER_STYLE_SHEET.md, v3): a figure about 40 px tall, the head and everything on it scaled by
+ * HEAD_S, big eyes (lid, shine, iris), soft skin shading and a near-black outline.
  *
- * Contract (the same as the earlier 64x64 doll, so the world, hitboxes and camera need no change):
- *   frame 64x64, feet at (32, 43), facings down/up/left/right plus the diagonals down-right/down-left/up-right/up-left
- *   (each -left facing mirrors its -right one), poses (POSES):
- *   stand, idle1-4, walk1-8, ready1-4, slash0-5, parry, hit, hit2, down1-4 (slash0/5, hit2, down1 are TWEENS).
+ * Contract: frame 96x96, feet at (48, 68) (manifest.enso.anchor; the world places the feet, so hitboxes and the
+ *   camera are unchanged), facings down/up/left/right plus the diagonals down-right/down-left/up-right/up-left
+ *   (each -left facing mirrors its -right one). Frames are '<motion><n>' for the motions in ANIMS (idle, walk,
+ *   ready, guard, slash, heavy, thrust, cast, hit, dash, stop, fall), plus down3/down4 lying; stand, parry, hit
+ *   and down1/down2 are older names kept as aliases.
  * Shape choices (hair style, outfit style, hat, weapon type, shield type) pick the sheet; colours (skin, hair
  * colour, outfit colour, metal) are palette roles, so one sheet serves every colour. Sheets are built when first
  * asked for (ENSO.sheetProviders, ui/sprites.js) and each frame only when first drawn.
@@ -25,25 +28,13 @@
     const manifest = ENSO.spriteManifest || (ENSO.spriteManifest = {});
     const providers = ENSO.sheetProviders || (ENSO.sheetProviders = []);
 
-    const W = 64, H = 64, FRAME = { w: W, h: H };
+    const W = 96, H = 96, FRAME = { w: W, h: H };
     const FACINGS = ['down', 'up', 'right', 'left', 'down-right', 'down-left', 'up-right', 'up-left'];
     // A diagonal is the front or back view turned part of the way toward the profile (a 3/4 view): the skeleton is
     // the blend of the two, and the parts are drawn as the front/back view with the face and details moved by k.turn.
     const DIAG = { 'down-right': ['down', 'right'], 'up-right': ['up', 'right'] };
     const MIRROR = { left: 'right', 'down-left': 'down-right', 'up-left': 'up-right' };
-    const TURN = 0.5;
-    const WALK_N = 8;
-    const POSES = ['stand', 'idle1', 'idle2', 'idle3', 'idle4', ...Array.from({ length: WALK_N }, (_, i) => `walk${i + 1}`),
-        'ready1', 'ready2', 'ready3', 'ready4', 'slash0', 'slash1', 'slash2', 'slash3', 'slash4', 'slash5', 'parry', 'hit', 'hit2',
-        'down1', 'down2', 'down3', 'down4'];
-    // In-betweens: a pose part of the way from one keyed pose to another (fluid motion without hand-keying every frame).
-    const TWEENS = {
-        slash0: ['ready2', 'slash1', 0.55],     // gathering into the wind-up
-        slash5: ['slash4', 'ready1', 0.5],      // follow-through settling back to guard
-        hit2: ['hit', 'ready1', 0.5],           // recovering from the flinch
-        down1: ['hit', 'down2', 0.5]            // the stagger before the knees go
-    };
-
+    const TURN = 0.5;                            // how far a diagonal has turned, for the painters
     // ---------------------------------------------------------------------
     // Materials: each is a ramp of 4 roles (highlight, base, shade, deep) plus its outline role.
     // ---------------------------------------------------------------------
@@ -283,245 +274,282 @@
         }
         for (const [i, r] of add) { grid.role[i] = r; grid.mat[i] = 'outline'; }
         // Feet and the ground contact read darkest.
-        for (let x = 0; x < W; x++) for (let y = H - 1; y > 0; y--) { const i = y * W + x; if (grid.mat[i] === 'outline' && !grid.role[i + W]) { if (y >= 42) grid.role[i] = BLACK; break; } }
+        for (let x = 0; x < W; x++) for (let y = H - 1; y > 0; y--) { const i = y * W + x; if (grid.mat[i] === 'outline' && !grid.role[i + W]) { if (y >= FEET - 1) grid.role[i] = BLACK; break; } }
     }
 
     // ---------------------------------------------------------------------
-    // Skeletons. Coordinates are frame pixels (feet at 32, 43). R/L are the character's own right/left; the
-    // character holds the weapon in the right hand and the shield on the left arm. `right` is drawn and
-    // `left` is its mirror.
+    // The rig (v3). A pose is written ONCE, in the character's own space (forward, right, up), and projected for
+    // each of the five drawn facings, so all eight directions show the same pose from a different side instead of
+    // five separately keyed drawings. Arms and the weapon are aimed with angles (yaw round the body, elevation), so
+    // a swing between two keys travels an arc, and elbows and knees are solved from where the hands and feet are.
+    // R/L are the character's own right/left; the weapon is in the right hand, the shield on the left arm.
     // ---------------------------------------------------------------------
     const lerp = (a, b, t) => a + (b - a) * t;
-    function baseSkeleton(facing) {
-        if (facing === 'right') return {
-            head: [32.5, 17.6], neck: [32, 24], torsoTop: 24.2, torsoBottom: 34.5, torsoX: 32, lean: 0, bob: 0,
-            shR: [31.5, 26], elR: [31.8, 29.8], haR: [32.6, 33.2], shL: [32.5, 26], elL: [32.6, 29.8], haL: [33.2, 33],
-            hipR: [31.6, 34.6], knR: [31.8, 38.6], ftR: [31.6, 42.4], hipL: [32.4, 34.6], knL: [32.6, 38.6], ftL: [32.8, 42.4],
-            weapon: 65, eyes: 'open'
+    const CX = W / 2, FEET = 67.4, TILT = 0.45;        // screen centre, the sole line, how far "toward the camera" drops on screen
+    const BODY = { hip: 10.8, chest: 23.3, sh: 21.7, neck: 23.4, head: 29.8, shW: 5.3, hipW: 2.1, upArm: 4.3, foreArm: 4.3, thigh: 5.7, shin: 5.5 };
+    const VIEW = { right: 0, 'down-right': 45, down: 90, 'up-right': -45, up: -90 };   // the screen angle the character faces
+    const rad = (d) => (d * Math.PI) / 180;
+    const vadd = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], vsub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const vmul = (a, s) => [a[0] * s, a[1] * s, a[2] * s], vdot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const vlen = (a) => Math.hypot(a[0], a[1], a[2]) || 1e-6;
+    /** Turn [forward, right, up] round the up axis; a positive angle swings forward toward the right. */
+    const rotY = ([f, r, u], deg) => { const c = Math.cos(rad(deg)), s = Math.sin(rad(deg)); return [f * c - r * s, f * s + r * c, u]; };
+    /** A direction from yaw (0 = forward, 90 = out to the `side`) and elevation (90 = straight up). */
+    const sph = (yaw, elev, side = 1) => { const ce = Math.cos(rad(elev)); return [ce * Math.cos(rad(yaw)), side * ce * Math.sin(rad(yaw)), Math.sin(rad(elev))]; };
+    /** The middle joint of a two-bone limb from a to c, bent toward `pole`. */
+    function ik(a, c, l1, l2, pole) {
+        const d = vsub(c, a), L = vlen(d), n = vmul(d, 1 / L), Lc = Math.min(L, l1 + l2 - 0.02);
+        const x = (l1 * l1 - l2 * l2 + Lc * Lc) / (2 * Lc), h = Math.sqrt(Math.max(0, l1 * l1 - x * x));
+        let p = vsub(pole, vmul(n, vdot(pole, n))); p = vmul(p, 1 / vlen(p));
+        return vadd(vadd(a, vmul(n, x * (L / Lc))), vmul(p, h));
+    }
+
+    // A pose: numbers only, so two poses blend field by field.
+    //   px/pr/pu  pelvis shift (forward, right, up)      hipYaw/yaw  hips and shoulders turned (positive: right side back)
+    //   pitch/roll lean forward / to the right (degrees)  hf/hr/hu    head shift          br  breath (chest and head rise)
+    //   aR/aL     arm: [yaw, elevation, reach] from the shoulder (yaw 90 = out to that arm's own side)
+    //   fR/fL     foot: [forward, out to its own side, lift]        w  weapon: [yaw, elevation]
+    const REST = { px: 0, pr: 0, pu: 0, hipYaw: 0, yaw: 0, pitch: 0, roll: 0, hf: 0, hr: 0, hu: 0, br: 0,
+        aR: [80, -80, 8.2], aL: [90, -84, 8.3], fR: [0, 2.2, 0], fL: [0, 2.2, 0], w: [25, -52] };
+    const pose = (base, over) => ({ ...base, ...over });
+    const READY = pose(REST, { pu: -1.4, hipYaw: 24, yaw: 30, pitch: 6, fL: [3.4, 2.2, 0], fR: [-3.2, 2.9, 0], aR: [52, -24, 6.6], w: [-8, 36], aL: [28, -34, 6.4], shieldFront: 1 });
+    const GUARD = pose(READY, { pu: -2.1, yaw: 12, hipYaw: 14, pitch: 9, aL: [8, 2, 5.6], aR: [30, 16, 6], w: [-62, 52], parry: 1 });
+    const blend = (a, b, t) => {
+        const o = { ...(t < 0.5 ? a : b) };
+        for (const key of Object.keys(REST)) o[key] = Array.isArray(REST[key]) ? a[key].map((v, i) => lerp(v, b[key][i], t)) : lerp(a[key], b[key], t);
+        return o;
+    };
+    const EASE = { lin: (t) => t, out: (t) => 1 - (1 - t) * (1 - t), in: (t) => t * t, io: (t) => t * t * (3 - 2 * t) };
+    /** Keyed motion: [[ms, pose, ease into this key], ...] -> pose at any time. */
+    const keyed = (keys) => (t) => {
+        if (t <= keys[0][0]) return keys[0][1];
+        for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) return blend(keys[i - 1][1], keys[i][1], EASE[keys[i][2] || 'io']((t - keys[i - 1][0]) / (keys[i][0] - keys[i - 1][0])));
+        return keys[keys.length - 1][1];
+    };
+    const TAU = Math.PI * 2;
+
+    // --- The motions. Each: how long, whether it loops, the times its frames are taken at, and the pose at a time.
+    const RUN_MS = 640;
+    function runPose(t) {
+        const p = ((t / RUN_MS) % 1 + 1) % 1, th = p * TAU, A = 4.6;
+        // A foot is planted for half the cycle (sliding back under the body) and swings forward, lifted, for the other half.
+        const foot = (ph) => { const q = ((ph % 1) + 1) % 1; if (q < 0.5) return [A - 4 * A * q, 2, q < 0.08 ? 0.5 : 0]; const s = (q - 0.5) * 2; return [-A + 2 * A * EASE.io(s), 2, Math.sin(Math.PI * s) * 3.2 + (s < 0.4 ? 1.2 * (1 - s / 0.4) : 0)]; };
+        const sw = Math.cos(th);                                   // +1 when the right foot lands in front
+        const arm = (deg, reach) => [Math.sin(rad(deg)) * reach, 0.9, -Math.cos(rad(deg)) * reach];
+        return pose(REST, {
+            pu: -1.3 + 1.5 * Math.abs(Math.sin(th)), px: 0.4, pitch: 9, roll: 1.5 * Math.sin(th),
+            hipYaw: -11 * sw, yaw: 15 * sw, hu: 0.25 * Math.sin(th * 2 - 0.6),
+            fR: foot(p), fL: foot(p + 0.5),
+            hL: arm(34 * sw - 4, 7.4), hR: arm(-20 * sw + 8, 6.6), w: [14 + 10 * sw, -34 - 6 * sw]
+        });
+    }
+    const idlePose = (t) => { const b = Math.sin((t / 2400) * TAU); return pose(REST, { pr: 0.5, roll: 1.2, hipYaw: 6, yaw: 4, br: 0.45 + 0.45 * b, hu: 0.2 * Math.sin((t / 2400) * TAU - 0.9), fL: [0.6, 2.6, 0], aR: [80, -80 + 1.5 * b, 8.2] }); };
+    const readyPose = (t) => { const b = Math.sin((t / 1600) * TAU); return pose(READY, { pu: -1.4 - 0.5 * b, br: 0.3 + 0.3 * b, aR: [52, -24 + 3 * b, 6.6], w: [-8, 36 + 3 * b] }); };
+    const guardPose = (t) => { const b = Math.sin((t / 1200) * TAU); return pose(GUARD, { pu: -2.1 - 0.4 * b, br: 0.3 + 0.3 * b }); };
+    // Swing: coil back (weight on the back foot, shoulders wound up), cut across the front with the whole body
+    // turning and stepping in, overshoot, settle back to guard.
+    const COIL = pose(READY, { yaw: 58, hipYaw: 36, px: -1.5, pu: -2.3, pitch: -3, hf: -0.4, aR: [124, 48, 7.6], w: [142, 62], aL: [8, -18, 6.6], fR: [-3.6, 2.9, 0] });
+    const CUT = pose(READY, { yaw: -50, hipYaw: -14, px: 2.8, pu: -2.5, pitch: 17, hf: 0.5, aR: [-52, -30, 8.5], w: [-72, -36], aL: [66, -52, 6.2], fL: [4.6, 2.2, 0], fR: [-4.6, 2.8, 0.7] });
+    const THROUGH = pose(CUT, { yaw: -60, pitch: 19, pu: -2.8, aR: [-92, -44, 7.8], w: [-128, -48] });
+    // Heavy: both hands over the head, up on the toes, then the whole body drops into the blow.
+    const GATHER = pose(READY, { pu: -2.7, pitch: 9, aR: [40, -40, 6], aL: [36, -40, 6], w: [0, 14] });
+    const RAISED = pose(READY, { pu: 0.7, px: -0.8, pitch: -13, yaw: 16, hipYaw: 10, hu: 0.3, hf: -0.5, aR: [26, 76, 8.2], aL: [26, 70, 7.8], w: [172, 58], fR: [-3.2, 2.9, 0.6], fL: [3.2, 2.2, 0.3] });
+    const SLAM = pose(READY, { pu: -3.8, px: 3, pitch: 31, yaw: 0, hipYaw: 0, hf: 0.8, aR: [6, -46, 8.5], aL: [6, -50, 8.2], w: [4, -30], fR: [-5, 2.7, 0.6], fL: [4.8, 2.3, 0] });
+    // Thrust: draw the hand back to the hip, then drive the point straight out behind a long step.
+    const CHAMBER = pose(READY, { yaw: 46, hipYaw: 30, px: -1.6, pu: -2.2, aR: [150, -22, 6.2], w: [4, 4], aL: [14, -6, 7.2] });
+    const LUNGE = pose(READY, { yaw: -34, hipYaw: -8, px: 3.6, pu: -3, pitch: 20, hf: 0.7, aR: [-4, -4, 8.5], w: [0, 0], aL: [150, -30, 7], fL: [5.4, 2.2, 0], fR: [-5.2, 2.8, 0.5] });
+    // Cast: gather at the chest, raise the weapon hand high, throw it forward.
+    const DRAW_IN = pose(READY, { pu: -1.6, yaw: 36, aR: [70, 8, 5.4], w: [20, 74], aL: [34, -8, 5.2] });
+    const RAISE = pose(READY, { pu: 0.5, pitch: -7, yaw: 10, hu: 0.4, aR: [24, 64, 8.3], w: [8, 82], aL: [48, 22, 7.2] });
+    const RELEASE = pose(READY, { px: 1.4, pu: -1.8, pitch: 11, yaw: -22, hipYaw: 4, aR: [4, 10, 8.5], w: [0, 26], aL: [72, -34, 6.6] });
+    // Hurt: thrown back off the front foot, head snapping away, arms flung wide.
+    const RECOIL = pose(READY, { px: -2.4, pu: -0.5, pitch: -17, yaw: -14, hipYaw: 4, hf: -1.3, hu: -0.3, aR: [112, -28, 7.6], aL: [104, -22, 7.6], w: [150, -18], fR: [-3.8, 2.7, 0], fL: [1.6, 2.4, 0.9], eyes: 'shut', shieldFront: 0 });
+    const REEL = pose(RECOIL, { px: -3.1, pitch: -21, pu: -1.1, fL: [0.6, 2.4, 0.2] });
+    // Dodge: a low sprinting dive, arms and weapon streaming back.
+    const DIVE = (lead) => pose(REST, { pu: -3.7, px: 2.2, pitch: 38, yaw: 14 * lead, hf: 0.6, aR: [172, -8, 8], w: [178, -4], aL: [176, -14, 8], fR: lead > 0 ? [5.2, 2.2, 1.6] : [-5.6, 2.2, 2.4], fL: lead > 0 ? [-5.6, 2.2, 2.4] : [5.2, 2.2, 1.6] });
+    const CROUCH = pose(REST, { pu: -2.6, pitch: 20, fL: [2.4, 2.3, 0], fR: [-2.4, 2.5, 0], aR: [120, -50, 7.4], aL: [120, -54, 7.4] });
+    const SKID = pose(REST, { px: -0.9, pu: -1.5, pitch: -9, fR: [3.8, 2.2, 0], fL: [-2.2, 2.4, 0], aR: [30, -62, 7.6], aL: [40, -60, 7.6], hf: -0.3 });
+    const KNEEL = pose(REST, { pu: -5.6, px: 0.6, pitch: 27, hf: 1.2, hu: -1, fR: [3, 2.4, 0], fL: [-3.6, 2.2, 0.4], aR: [30, -70, 8], aL: [60, -80, 8.2], w: [10, -8], eyes: 'shut' });
+    const ANIMS = {
+        idle: { ms: 2400, loop: true, at: [0, 300, 600, 900, 1200, 1500, 1800, 2100], pose: idlePose, wind: 1 },
+        walk: { ms: RUN_MS, loop: true, at: Array.from({ length: 10 }, (_, i) => (i * RUN_MS) / 10), pose: runPose, drag: 2.4 },
+        ready: { ms: 1600, loop: true, at: [0, 267, 533, 800, 1067, 1333], pose: readyPose, wind: 0.6 },
+        guard: { ms: 1200, loop: true, at: [0, 300, 600, 900], pose: guardPose, wind: 0.4 },
+        slash: { ms: 350, at: [0, 30, 55, 90, 120, 150, 200, 270], trail: [3, 4, 5, 6],
+            pose: keyed([[0, READY], [55, COIL, 'out'], [150, CUT, 'in'], [215, THROUGH, 'out'], [350, READY, 'io']]) },
+        heavy: { ms: 720, at: [0, 70, 130, 200, 270, 330, 380, 430, 500, 600], trail: [6, 7],
+            pose: keyed([[0, READY], [130, GATHER, 'out'], [330, RAISED, 'out'], [430, SLAM, 'in'], [560, pose(SLAM, { pu: -3.3, pitch: 28 }), 'out'], [720, READY, 'io']]) },
+        thrust: { ms: 350, at: [0, 40, 80, 115, 150, 200, 270], trail: [3, 4],
+            pose: keyed([[0, READY], [80, CHAMBER, 'out'], [150, LUNGE, 'in'], [215, pose(LUNGE, { px: 3.9, pu: -3.2 }), 'out'], [350, READY, 'io']]) },
+        cast: { ms: 540, at: [0, 70, 140, 220, 300, 360, 420, 480],
+            pose: keyed([[0, READY], [140, DRAW_IN, 'out'], [300, RAISE, 'io'], [420, RELEASE, 'in'], [540, READY, 'io']]) },
+        hit: { ms: 250, at: [0, 50, 110, 180], pose: keyed([[0, RECOIL], [70, REEL, 'out'], [250, READY, 'io']]) },
+        dash: { ms: 250, at: [0, 60, 120, 190], drag: 4.6, pose: keyed([[0, CROUCH], [60, DIVE(1), 'out'], [150, DIVE(-1), 'io'], [250, CROUCH, 'io']]) },
+        stop: { ms: 180, at: [0, 60, 120], pose: keyed([[0, SKID], [180, idlePose(0), 'out']]) },
+        fall: { ms: 440, at: [0, 140, 240, 440], pose: keyed([[0, RECOIL], [140, REEL, 'out'], [440, KNEEL, 'in']]) }
+    };
+    // Frame names: '<motion><n>' (walk1..walk10). The older names stay as aliases, so nothing that asks for one breaks.
+    const FRAMES = {};
+    for (const [name, a] of Object.entries(ANIMS)) a.at.forEach((t, i) => { FRAMES[`${name}${i + 1}`] = { anim: name, i, t }; });
+    Object.assign(FRAMES, { stand: FRAMES.idle1, parry: FRAMES.guard1, hit: FRAMES.hit1, down1: FRAMES.fall3, down2: FRAMES.fall4, slash0: FRAMES.slash1 });
+    const LYING = { down3: -1, down4: 0 };
+    const POSES = [...Object.keys(FRAMES), ...Object.keys(LYING)];
+
+    /** A pose seen from one facing: every joint in frame pixels, plus what the painters need to layer it. */
+    function build(s, facing) {
+        const a = rad(VIEW[facing]), ca = Math.cos(a), sa = Math.sin(a);
+        const proj = ([f, r, u]) => { const gy = f * sa + r * ca; return [CX + f * ca - r * sa, FEET - u + gy * TILT, gy]; };
+        const hipC = [s.px, s.pr, BODY.hip + s.pu];
+        const sp = [Math.sin(rad(s.pitch)), Math.sin(rad(s.roll)), Math.cos(rad(s.pitch)) * Math.cos(rad(s.roll))];
+        const up = (h, lift = s.br) => vadd(vadd(hipC, vmul(sp, h - BODY.hip)), [0, 0, lift]);
+        const shC = up(BODY.sh);
+        const arm = (side, spec, explicit) => {
+            const S = vadd(shC, rotY([0, side * BODY.shW, 0], s.yaw));
+            const off = explicit ? [explicit[0], side * explicit[1], explicit[2]] : vmul(sph(spec[0], spec[1], side), Math.min(spec[2], 8.55));
+            const Hd = vadd(S, off);
+            return [S, ik(S, Hd, BODY.upArm, BODY.foreArm, [-0.6, side * 0.4, -0.7]), Hd];
         };
-        const s = facing === 'up' ? 1 : -1;            // +x is the character's right when seen from behind
+        const leg = (side, ft) => {
+            const Hp = vadd(hipC, rotY([0, side * BODY.hipW, 0], s.hipYaw)), F = [ft[0], side * ft[1], ft[2]];
+            return [Hp, ik(Hp, F, BODY.thigh, BODY.shin, [1, side * 0.3, 0.1]), F];
+        };
+        const R = arm(1, s.aR, s.hR), L = arm(-1, s.aL, s.hL), lr = leg(1, s.fR), ll = leg(-1, s.fL);
+        const head = vadd(up(BODY.neck), [s.hf + sp[0] * 1.4, s.hr + sp[1] * 1.4, BODY.head - BODY.neck + s.hu]);
+        const P = (v) => { const q = proj(v); return [q[0], q[1]]; };
+        const hipS = proj(hipC), chestS = proj(up(BODY.chest));
+        const wv = sph(s.w[0], s.w[1]), wx = wv[0] * ca - wv[1] * sa, wd = wv[0] * sa + wv[1] * ca, wy = -wv[2] + wd * TILT;
+        const dR = proj(R[2])[2] - hipS[2], dL = proj(L[2])[2] - hipS[2];
         return {
-            head: [32, 17.6], neck: [32, 24], torsoTop: 24.2, torsoBottom: 34.5, torsoX: 32, lean: 0, bob: 0,
-            shR: [32 + s * 5.3, 26], elR: [32 + s * 5.9, 29.6], haR: [32 + s * 6.2, 33.2],
-            shL: [32 - s * 5.3, 26], elL: [32 - s * 5.9, 29.6], haL: [32 - s * 6.2, 33.2],
-            hipR: [32 + s * 2.1, 34.6], knR: [32 + s * 2.2, 38.6], ftR: [32 + s * 2.2, 42.4],
-            hipL: [32 - s * 2.1, 34.6], knL: [32 - s * 2.2, 38.6], ftL: [32 - s * 2.2, 42.4],
-            weapon: 90 + s * 20, eyes: 'open'
+            head: P(head), neck: P(up(BODY.neck)), shR: P(R[0]), elR: P(R[1]), haR: P(R[2]), shL: P(L[0]), elL: P(L[1]), haL: P(L[2]),
+            hipR: P(lr[0]), knR: P(lr[1]), ftR: P(lr[2]), hipL: P(ll[0]), knL: P(ll[1]), ftL: P(ll[2]),
+            torsoTop: chestS[1], torsoBottom: hipS[1] - 0.1, torsoX: hipS[0], lean: chestS[0] - hipS[0],
+            weapon: (Math.atan2(wy, wx) * 180) / Math.PI, wScale: Math.max(0.58, Math.min(1.05, Math.hypot(wx, wy))),
+            dR, dL, dW: dR + wd * 6, nearR: proj(lr[2])[2] >= proj(ll[2])[2], face: [ca, sa],
+            eyes: s.eyes || 'open', parry: !!s.parry, shieldFront: !!s.shieldFront
         };
     }
-    const add = (p, dx, dy) => [p[0] + dx, p[1] + dy];
-    function shiftBody(k, dx, dy, { feet = false } = {}) {
-        for (const j of ['head', 'neck', 'shR', 'elR', 'haR', 'shL', 'elL', 'haL', 'hipR', 'hipL']) k[j] = add(k[j], dx, dy);
-        if (feet) for (const j of ['knR', 'knL', 'ftR', 'ftL']) k[j] = add(k[j], dx, dy);
-        k.torsoTop += dy; k.torsoBottom += dy; k.torsoX += dx;
+
+    // Secondary motion. Hair and cloth are not posed: they follow. A damped spring is dragged behind the head (hair)
+    // and the chest (cloth) through the whole motion, and how far it trails at each frame is what the painters bend
+    // the hanging parts by. A run adds the drag of moving through the air; standing still adds a slow breeze.
+    const SPRING = { h: { hz: 2.7, damp: 0.3, gain: 1.5 }, c: { hz: 1.9, damp: 0.42, gain: 1.9 } };
+    const tracks = new Map();
+    function swayTrack(facing, name) {
+        const key = facing + ':' + name;
+        if (tracks.has(key)) return tracks.get(key);
+        const A = ANIMS[name], dt = 5, pre = A.loop ? A.ms * 2 : 300;
+        const anchors = (t) => { const k = build(A.pose(A.loop ? ((t % A.ms) + A.ms) % A.ms : Math.max(0, t)), facing); return { h: k.head, c: [k.torsoX + k.lean, k.torsoTop], face: k.face }; };
+        const st = {}, out = A.at.map(() => null);
+        const a0 = anchors(-pre);
+        for (const id of ['h', 'c']) st[id] = { x: [...a0[id]], v: [0, 0] };
+        for (let t = -pre; t <= A.ms; t += dt) {
+            const an = anchors(t);
+            for (const id of ['h', 'c']) {
+                const { hz, damp } = SPRING[id], w = (TAU * hz) / 1000, s = st[id];
+                for (const j of [0, 1]) { s.v[j] += (w * w * (an[id][j] - s.x[j]) - 2 * damp * w * s.v[j]) * dt; s.x[j] += s.v[j] * dt; }
+            }
+            A.at.forEach((ft, i) => {
+                if (out[i] || t < ft) return;
+                const o = {};
+                for (const id of ['h', 'c']) {
+                    const g = SPRING[id].gain, ph = (ft / A.ms) * TAU - (id === 'c' ? 1.1 : 0);
+                    o[id] = [(st[id].x[0] - an[id][0]) * g - an.face[0] * (A.drag || 0) + (A.wind || 0) * Math.sin(ph) * (id === 'c' ? 1 : 0.8),
+                        (st[id].x[1] - an[id][1]) * g - an.face[1] * (A.drag || 0) * 0.8 + (A.wind || 0) * 0.25 * Math.cos(ph)];
+                }
+                for (const id of ["h", "c"]) { const m = Math.hypot(o[id][0], o[id][1]), cap = id === "c" ? 4.2 : 3.4; if (m > cap) o[id] = [(o[id][0] / m) * cap, (o[id][1] / m) * cap]; }   // cloth stretches only so far
+                out[i] = o;
+            });
+        }
+        tracks.set(key, out);
+        return out;
     }
-    /** A knee halfway between hip and foot, pushed by `bend` (side view: forward; front view: outward). */
-    const knee = (hip, foot, bx, by = 0) => [lerp(hip[0], foot[0], 0.5) + bx, lerp(hip[1], foot[1], 0.52) + by];
-    const elbow = (sh, hand, bx, by = 0) => [lerp(sh[0], hand[0], 0.5) + bx, lerp(sh[1], hand[1], 0.5) + by];
 
     /** The skeleton of one frame. */
-    const lerpPt = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
-    /** A skeleton part of the way between two others: points and numbers blend, the weapon turns the short way round,
-     *  flags (eyes, smear, layering) come from whichever end is nearer. */
-    function tween(a, b, t) {
-        const k = { ...(t < 0.5 ? a : b) };
-        for (const j of ['head', 'neck', 'shR', 'elR', 'haR', 'shL', 'elL', 'haL', 'hipR', 'knR', 'ftR', 'hipL', 'knL', 'ftL']) k[j] = lerpPt(a[j], b[j], t);
-        for (const j of ['torsoTop', 'torsoBottom', 'torsoX', 'lean']) k[j] = lerp(a[j] || 0, b[j] || 0, t);
-        k.weapon = a.weapon + (((b.weapon - a.weapon + 540) % 360) - 180) * t;
-        k.smear = null;
-        if (a.eyes === 'shut' || b.eyes === 'shut') k.eyes = 'shut';
-        return k;
-    }
-    function skeleton(facing, pose) {
-        if (DIAG[facing]) {
-            const [v, h] = DIAG[facing], a = skeleton(v, pose), b = skeleton(h, pose);
-            if (a.lying) return a;
-            const k = tween(a, b, TURN);
-            // Layering and expression follow the front/back view; the swing's smear follows the profile facing down
-            // (the arc sweeps out in front) and the back view facing up.
-            return { ...k, pose: a.pose, weaponBehind: a.weaponBehind, shieldFront: a.shieldFront, eyes: a.eyes, parry: a.parry, smear: v === 'down' ? b.smear || a.smear : a.smear, turn: TURN };
-        }
-        if (TWEENS[pose]) { const [a, b, t] = TWEENS[pose]; return { ...tween(skeleton(facing, a), skeleton(facing, b), t), pose: TWEENS[pose][0].replace(/\d+$/, '') }; }
-        const k = baseSkeleton(facing);
-        const side = facing === 'right', back = facing === 'up', s = back ? 1 : -1;
-        const m = /^([a-z]+)(\d?)$/.exec(pose), name = m[1], n = Number(m[2] || 0);
-        k.pose = name;
-        k.weaponBehind = back;
-        k.shieldFront = !back;
-        if (name === 'idle') {
-            // Breathing: the chest rises and falls 1 px, shoulders and hands with it, feet planted.
-            const b = [0, 0.5, 1, 0.5][n - 1];
-            shiftBody(k, 0, b);
-            k.head = add(k.head, 0, n === 3 ? 0.4 : 0);
-        } else if (name === 'walk') {
-            const ph = ((n - 1) / WALK_N) * Math.PI * 2, sn = Math.sin(ph), cs = Math.cos(ph);
-            const bob = Math.abs(cs) > 0.7 ? 0 : -1;
-            shiftBody(k, 0, bob);
-            if (side) {
-                k.ftR = [32 + 4.2 * sn, 42.4 - (cs > 0.2 ? 1.6 * cs : 0)]; k.ftL = [32 - 4.2 * sn, 42.4 - (cs < -0.2 ? -1.6 * cs : 0)];
-                k.knR = knee(k.hipR, k.ftR, 1.1 + (cs > 0 ? 0.8 : 0)); k.knL = knee(k.hipL, k.ftL, 1.1 + (cs < 0 ? 0.8 : 0));
-                k.haR = [32.6 - 3.2 * sn, 33 + bob]; k.elR = elbow(k.shR, k.haR, -0.4 * sn);
-                k.haL = [33.2 + 3.2 * sn, 32.8 + bob]; k.elL = elbow(k.shL, k.haL, 0.4 * sn);
-                k.weapon = 65 - 18 * sn;
-            } else {
-                const liftR = sn > 0.2 ? 1.8 * sn : 0, liftL = sn < -0.2 ? -1.8 * sn : 0;
-                k.ftR = add(k.ftR, 0, -liftR); k.ftL = add(k.ftL, 0, -liftL);
-                k.knR = knee(k.hipR, k.ftR, s * 0.3 * liftR, -liftR * 0.5); k.knL = knee(k.hipL, k.ftL, -s * 0.3 * liftL, -liftL * 0.5);
-                k.haR = add(k.haR, 0, bob + (back ? 1 : -1) * 1.3 * sn); k.haL = add(k.haL, 0, bob - (back ? 1 : -1) * 1.3 * sn);
-                k.elR = elbow(k.shR, k.haR, s * 0.5); k.elL = elbow(k.shL, k.haL, -s * 0.5);
-            }
-        } else if (name === 'ready') {
-            const breathe = n === 2 || n === 3 ? 1 : 0;
-            shiftBody(k, 0, 1 + breathe);
-            if (side) {
-                k.ftR = [35.4, 42.4]; k.ftL = [28.6, 42.4];
-                k.knR = knee(k.hipR, k.ftR, 1.4); k.knL = knee(k.hipL, k.ftL, 0.6);
-                k.haR = [36.6, 31 + breathe]; k.elR = [33.6, 30.6 + breathe];
-                k.haL = [36.2, 29.4 + breathe]; k.elL = [34.6, 29.6 + breathe];
-                k.weapon = -38 + (n === 3 ? 4 : 0);
-                k.lean = 0.8;
-            } else {
-                k.ftR = add(k.ftR, s * 1.4, 0); k.ftL = add(k.ftL, -s * 1.4, 0);
-                k.knR = knee(k.hipR, k.ftR, s * 0.9); k.knL = knee(k.hipL, k.ftL, -s * 0.9);
-                k.haR = [32 + s * 6.4, 31.4 + breathe]; k.elR = [32 + s * 7, 28.8 + breathe];
-                k.haL = [32 - s * 4.2, 30.4 + breathe]; k.elL = [32 - s * 6.6, 28.6 + breathe];
-                k.weapon = back ? -64 : -116 + (n === 3 ? 4 : 0);
-            }
-        } else if (name === 'slash') {
-            shiftBody(k, 0, 1);
-            if (side) {
-                k.ftR = [36, 42.4]; k.ftL = [28.4, 42.4];
-                k.knR = knee(k.hipR, k.ftR, 1.6); k.knL = knee(k.hipL, k.ftL, 0.4);
-                const arm = [
-                    { ha: [27.6, 20.4], w: -150, lean: -0.8 },
-                    { ha: [34.4, 21.6], w: -52, lean: 0.4, smear: [-150, -35] },
-                    { ha: [40, 29.4], w: 18, lean: 1.4, smear: [-110, 25], dy: 1 },
-                    { ha: [37.4, 34.4], w: 72, lean: 1, smear: [-20, 70], dy: 1 }
-                ][n - 1];
-                k.haR = arm.ha; k.elR = elbow(k.shR, k.haR, n === 1 ? -1.2 : 0.4, n === 1 ? 1 : 0.8);
-                k.haL = n >= 3 ? [30.4, 32] : [35.4, 30.6]; k.elL = elbow(k.shL, k.haL, 0.6, 0.6);
-                k.weapon = arm.w; k.lean = arm.lean; k.smear = arm.smear;
-                if (arm.dy) shiftBody(k, 0.6, arm.dy);
-            } else if (back) {
-                k.ftR = add(k.ftR, 1, -1); k.ftL = add(k.ftL, -1, 0);
-                const arm = [
-                    { ha: [39.6, 22.6], w: -40 },
-                    { ha: [36, 20.6], w: -88, smear: [-30, -100] },
-                    { ha: [30.6, 21.4], w: -128, smear: [-60, -170], behind: true },
-                    { ha: [26.6, 30.4], w: 140, smear: [-150, -220] }
-                ][n - 1];
-                k.haR = arm.ha; k.elR = elbow(k.shR, k.haR, 1.2, 0.4);
-                k.weapon = arm.w; k.smear = arm.smear;
-                k.weaponBehind = n === 3 || n === 2;
-                k.haL = [26.4, 30.6]; k.elL = elbow(k.shL, k.haL, -0.8);
-            } else {
-                k.ftR = add(k.ftR, -1, 0); k.ftL = add(k.ftL, 1, -0.4);
-                k.knR = knee(k.hipR, k.ftR, -0.9); k.knL = knee(k.hipL, k.ftL, 0.9);
-                const arm = [
-                    { ha: [24.4, 21.4], w: -128 },
-                    { ha: [28, 26.6], w: 175, smear: [240, 165] },
-                    { ha: [35.6, 32.8], w: 38, smear: [200, 55] },
-                    { ha: [38.6, 34.4], w: 78, smear: [110, 50] }
-                ][n - 1];
-                k.haR = arm.ha; k.elR = elbow(k.shR, k.haR, -1.4, n === 1 ? 1.2 : 0.4);
-                k.weapon = arm.w; k.smear = arm.smear;
-                k.haL = n >= 3 ? [37.6, 30] : [37.2, 32.6]; k.elL = elbow(k.shL, k.haL, 1);
-                k.weaponBehind = n === 1;
-            }
-        } else if (name === 'parry') {
-            shiftBody(k, 0, 1);
-            if (side) {
-                k.ftR = [34.6, 42.4]; k.ftL = [29, 42.4]; k.knR = knee(k.hipR, k.ftR, 1.2); k.knL = knee(k.hipL, k.ftL, 0.6);
-                k.haL = [36.6, 27.4]; k.elL = [34.6, 29.6];
-                k.haR = [35.2, 26.6]; k.elR = [33.2, 30]; k.weapon = -80; k.lean = -0.4;
-            } else {
-                k.ftR = add(k.ftR, s, 0); k.ftL = add(k.ftL, -s, 0);
-                k.haL = [32 - s * 2.2, 28]; k.elL = [32 - s * 6.2, 28.6];
-                k.haR = [32 + s * 5.6, 26]; k.elR = [32 + s * 7.2, 29]; k.weapon = back ? -70 : -110;
-            }
-            k.parry = true;
-        } else if (name === 'hit') {
-            if (side) { shiftBody(k, -1.4, -1); k.lean = -1.4; k.haR = [28.6, 30.6]; k.elR = elbow(k.shR, k.haR, 0.6); k.haL = [36, 28]; k.elL = elbow(k.shL, k.haL, 0, 0.6); k.ftR = [34, 42.4]; k.ftL = [29.4, 42]; k.weapon = 150; }
-            else { shiftBody(k, 0, back ? 1 : -1); k.haR = [32 + s * 8, 28.6]; k.haL = [32 - s * 8, 28.6]; k.elR = elbow(k.shR, k.haR, 0, 0.8); k.elL = elbow(k.shL, k.haL, 0, 0.8); k.weapon = back ? 10 : 170; }
-            k.knR = knee(k.hipR, k.ftR, side ? 0.6 : s * 0.4); k.knL = knee(k.hipL, k.ftL, side ? 0.6 : -s * 0.4);
-            k.eyes = 'shut';
-        } else if (name === 'down' && n === 2) {
-            shiftBody(k, 0, 5);
-            if (side) {
-                k.ftR = [36.4, 42.4]; k.knR = [36.2, 37.6]; k.ftL = [27.4, 42.6]; k.knL = [33.2, 42];
-                k.haR = [37.6, 34]; k.elR = elbow(k.shR, k.haR, 0.6); k.haL = [35.8, 37]; k.elL = elbow(k.shL, k.haL, 0.4); k.weapon = 88; k.lean = 1.2;
-            } else {
-                k.ftR = [32 + s * 3.6, 42.6]; k.knR = [32 + s * 3.4, 41.4]; k.ftL = [32 - s * 2.6, 42.6]; k.knL = [32 - s * 3, 38.6];
-                k.haR = [32 + s * 6.2, 34.6]; k.elR = elbow(k.shR, k.haR, s * 0.8); k.haL = [32 - s * 4.4, 37.2]; k.elL = elbow(k.shL, k.haL, -s * 0.6); k.weapon = 92;
-            }
-            k.eyes = 'shut';
-        } else if (name === 'down') {
+    function skeleton(facing, name) {
+        if (name in LYING) {
             // Lying on the ground, head to the left (all facings). down3 is the bounce on landing, down4 at rest.
-            const lift = n === 3 ? -1 : 0, up = (q) => [q[0], q[1] + lift];
-            const lying = {
-                pose: 'lying', head: [20.4, 37.6], lying: true, eyes: 'shut', torsoX: 0, lean: 0, weaponBehind: true,
-                shR: [25.6, 39.8], elR: [29.4, 41.6], haR: [33.2, 41.6], shL: [25.6, 36.6], elL: [29.4, 35.4], haL: [32.8, 36],
-                hipR: [36.4, 40], knR: [40.4, 40.4], ftR: [44.6, 40.8], hipL: [36.4, 38], knL: [40.2, 36.8], ftL: [44.2, 38.2],
-                weapon: 8, weaponAt: [36, 43]
-            };
-            for (const j of ['head', 'shR', 'elR', 'haR', 'shL', 'elL', 'haL', 'hipR', 'knR', 'ftR', 'hipL', 'knL', 'ftL']) lying[j] = up(lying[j]);
-            return lying;
+            const lift = LYING[name], at = (x, y) => [x + CX - 32, y + FEET - 42.4 + lift];
+            return { pose: 'lying', lying: true, eyes: 'shut', torsoX: 0, lean: 0, weaponBehind: true, wScale: 1, swH: [0, 0], swC: [0, 0], lift,
+                head: at(18.4, 37.6), shR: at(24.6, 39.8), elR: at(28.8, 41.6), haR: at(33, 41.6), shL: at(24.6, 36.6), elL: at(28.8, 35.4), haL: at(32.6, 36),
+                hipR: at(37.4, 40), knR: at(42.6, 40.4), ftR: at(48, 40.8), hipL: at(37.4, 38), knL: at(42.4, 36.8), ftL: at(47.6, 38.2),
+                weapon: 8, weaponAt: at(37, 43) };
         }
-        if (k.lean) { k.head = add(k.head, k.lean, 0); k.neck = add(k.neck, k.lean * 0.6, 0); k.shR = add(k.shR, k.lean * 0.5, 0); k.shL = add(k.shL, k.lean * 0.5, 0); }
+        const fr = FRAMES[name], A = ANIMS[fr.anim];
+        const k = build(A.pose(fr.t), facing), sw = swayTrack(facing, fr.anim)[fr.i];
+        k.pose = fr.anim; k.swH = sw.h; k.swC = sw.c;
+        k.weaponBehind = k.dW < -2.2;
+        if (A.trail && A.trail.includes(fr.i)) {
+            // The blade's trail: where the weapon was through the time since the last frame.
+            const t0 = A.at[fr.i - 1];
+            k.trail = Array.from({ length: 7 }, (_, j) => { const q = build(A.pose(lerp(t0, fr.t, j / 6)), facing); return { hand: q.haR, deg: q.weapon, scale: q.wScale }; });
+        }
         return k;
     }
 
     // ---------------------------------------------------------------------
     // Parts
     // ---------------------------------------------------------------------
-    function drawLeg(grid, hip, kn, ft, style, side, near) {
-        const robe = style === 3;
+    /** Hanging things (a tail of hair, a scarf end): a tapering run of dots from a root, bent by the frame's sway. */
+    function chain(p, x, y, dx, dy, len, r0, r1, sw, gain = 1) {
+        const n = Math.ceil(len / 0.7);
+        for (let i = 0; i <= n; i++) { const t = i / n, q = Math.pow(t, 1.5) * gain, r = lerp(r0, r1, t); ellipse(p, x + dx * len * t + sw[0] * q, y + dy * len * t + sw[1] * q * 0.6, r, r); }
+        return p;
+    }
+    function drawLeg(grid, hip, kn, ft, style, side, near = true) {
+        const robe = style === 3, dim = near ? 0 : -0.32;               // the far leg sits in shade
         const boot = part();
         // Boots: a rounded block at the foot, toe pointing the way the character faces (`side` 0..1: how far turned).
-        const turn = +side || 0, toe = 1.4 * turn;
-        ellipse(boot, ft[0] + toe * 0.5, ft[1] - 1.2, lerp(1.9, 2.6, turn), 1.7);
-        capsule(boot, kn[0], lerp(kn[1], ft[1], 0.45), ft[0], ft[1] - 1.4, lerp(1.6, 1.7, turn));
+        const turn = +side || 0, toe = 1.4 * turn, top = [lerp(kn[0], ft[0], 0.32), lerp(kn[1], ft[1], 0.32)];
+        ellipse(boot, ft[0] + toe * 0.5, ft[1] - 1.2, lerp(1.9, 2.6, turn), 1.7, dim);
+        capsule(boot, top[0], top[1], ft[0], ft[1] - 1.4, lerp(1.65, 1.75, turn), dim);
         const leg = part();
-        capsule(leg, hip[0], hip[1], kn[0], kn[1], 1.75);
-        capsule(leg, kn[0], kn[1], ft[0], lerp(kn[1], ft[1], 0.5), 1.6);
+        capsule(leg, hip[0], hip[1], kn[0], kn[1], 1.9, dim);
+        capsule(leg, kn[0], kn[1], top[0], top[1], 1.65, dim);
         if (!robe) paint(grid, leg, 'cloth2');
         paint(grid, boot, 'leather');
-        if (style === 5) { const cuff = part(); rect(cuff, Math.round(lerp(kn[0], ft[0], 0.45)) - 1, Math.round(lerp(kn[1], ft[1], 0.45)), 3, 1, 0.2); paint(grid, cuff, 'cloth2', { edge: false }); }
+        const cuff = part(); ellipse(cuff, top[0], top[1], 2.05, 0.95, near ? 0.5 : 0.1);   // the turned-down top of the boot
+        paint(grid, cuff, style === 5 ? 'cloth2' : 'leather', { edge: false });
     }
 
     function drawArm(grid, sh, el, ha, style, back, opts = {}) {
+        const dim = opts.far ? -0.32 : 0;
         const sleeve = part();
-        capsule(sleeve, sh[0], sh[1], el[0], el[1], style === 3 ? 2 : 1.65);
-        capsule(sleeve, el[0], el[1], lerp(el[0], ha[0], 0.7), lerp(el[1], ha[1], 0.7), style === 3 ? 1.9 : 1.45);
+        capsule(sleeve, sh[0], sh[1], el[0], el[1], style === 3 ? 2 : 1.7, dim);
+        capsule(sleeve, el[0], el[1], lerp(el[0], ha[0], 0.7), lerp(el[1], ha[1], 0.7), style === 3 ? 1.9 : 1.5, dim);
         const wide = style === 3;   // robe sleeves flare at the wrist
-        if (wide) ellipse(sleeve, lerp(el[0], ha[0], 0.7), lerp(el[1], ha[1], 0.7), 2.1, 1.7);
-        paint(grid, sleeve, style === 2 ? 'cloth2' : style === 5 ? 'cloth2' : style === 4 ? 'cloth' : 'cloth');
-        if (style === 2) { const pad = part(); ellipse(pad, sh[0], sh[1] - 0.2, 2.6, 2.1, 0.1); paint(grid, pad, 'metal'); }
-        if (style === 4) { const wrap2 = part(); capsule(wrap2, lerp(el[0], ha[0], 0.35), lerp(el[1], ha[1], 0.35), lerp(el[0], ha[0], 0.7), lerp(el[1], ha[1], 0.7), 1.5); paint(grid, wrap2, 'leather'); }
+        if (wide) ellipse(sleeve, lerp(el[0], ha[0], 0.7), lerp(el[1], ha[1], 0.7), 2.1, 1.7, dim);
+        paint(grid, sleeve, style === 2 ? 'cloth2' : style === 5 ? 'cloth2' : 'cloth');
+        if (style === 2) { const pad = part(); ellipse(pad, sh[0], sh[1] - 0.2, 2.7, 2.2, 0.1 + dim); paint(grid, pad, 'metal'); }
+        if (style === 4 || style === 0 || style === 2) {             // bracers: wrapped leather, or plate on the Ironclad
+            const wrap2 = part(); capsule(wrap2, lerp(el[0], ha[0], 0.3), lerp(el[1], ha[1], 0.3), lerp(el[0], ha[0], 0.72), lerp(el[1], ha[1], 0.72), 1.55, dim);
+            paint(grid, wrap2, style === 2 ? 'metal' : 'leather');
+        }
         const hand = part();
-        ellipse(hand, ha[0], ha[1], 1.55, 1.5, 0.1);
+        ellipse(hand, ha[0], ha[1], 1.55, 1.5, 0.1 + dim);
         paint(grid, hand, opts.glove ? 'leather' : 'skin');
     }
 
     function drawTorso(grid, k, style, facing) {
         const side = facing === 'right', back = facing === 'up';
-        const t = k.torsoTop, b = k.torsoBottom, cx = k.torsoX, lean = k.lean || 0;
+        const t = k.torsoTop, b = k.torsoBottom, cx = k.torsoX, lean = (k.lean || 0) / 0.6, sw = k.swC || [0, 0];
         const turn = side ? 1 : k.turn || 0;
-        const wTop = lerp(5.4, 3.6, turn), wWaist = lerp(4.2, 3.2, turn), wHip = lerp(4.8, 3.6, turn);
+        // The shoulders are as wide as they really are in this pose: a body wound up for a swing shows its turn.
+        const wTop = k.lying ? 5.4 : Math.max(3.6, Math.min(5.8, Math.abs(k.shR[0] - k.shL[0]) / 2 + 0.3));
+        const wWaist = Math.max(3.1, wTop * 0.78), wHip = lerp(4.8, 3.6, turn);
         const chestF = 0.9 * turn;
         const fo = side ? 0 : (back ? -1 : 1) * turn * 1.6;   // a 3/4 view: the front (or back) details move round
         const waistY = lerp(t, b, 0.66);
         // Hem: how far the garment reaches below the hips.
-        const hem = { 0: 3.2, 1: 7.4, 2: 2.6, 3: 8.4, 4: 1.8, 5: 1.2 }[style];
+        const hem = { 0: 3.6, 1: 9.6, 2: 3, 3: 10.6, 4: 2.2, 5: 1.6 }[style], hs = sw[0] * (hem > 5 ? 1.1 : 0.35);   // long hems swing
         const flare = { 0: 1.2, 1: 1.4, 2: 1.4, 3: 1.8, 4: 0.4, 5: 0.6 }[style];
-        const hemY = Math.min(b + hem, 42.2);
+        const hemY = Math.min(b + hem + (hem > 5 ? sw[1] * 0.4 : 0), FEET - 0.2);
         const body = part();
         poly(body, [[cx - wTop + lean * 0.6 + chestF * 0.2, t], [cx + wTop + lean * 0.6 + chestF, t], [cx + wWaist + lean * 0.3 + chestF * 0.5, waistY], [cx + wHip, b],
-            [cx + wHip + flare, hemY], [cx - wHip - flare, hemY], [cx - wHip, b], [cx - wWaist + lean * 0.3, waistY]]);
+            [cx + wHip + flare + hs, hemY], [cx + hs * 1.1, hemY + (hem > 5 ? 0.9 : 0)], [cx - wHip - flare + hs, hemY], [cx - wHip, b], [cx - wWaist + lean * 0.3, waistY]]);
         // Round the shoulders.
         ellipse(body, cx - wTop + 1 + lean * 0.6, t + 1.3, 1.8, 1.6); ellipse(body, cx + wTop - 1 + lean * 0.6 + chestF, t + 1.3, 1.8, 1.6);
         paint(grid, body, 'cloth');
-        const P = (pts) => pts.map(([x, y]) => [x + cx + fo, y]);
+        const P = (pts) => pts.map(([x, y]) => [x + cx + fo + lean * 0.6 * Math.max(0, 1 - (y - t) / (b - t)), y]);
         if (style === 1 && !back) {                       // open coat: the shirt shows down the front
             const shirt = part();
             if (side) poly(shirt, P([[1.4 + chestF, t + 0.6], [wTop + chestF - 0.4, t + 0.6], [wWaist + chestF * 0.4, waistY], [1.2, waistY]]), 0.2);
@@ -558,15 +586,47 @@
             if (style === 0) { const sc = part(); poly(sc, side ? [[cx - 1.8, t - 0.6], [cx + 2.8, t - 0.6], [cx + 2.2, t + 2], [cx - 1.4, t + 2]] : P([[-4 + turn, t - 0.6], [4 - turn, t - 0.6], [2.6 - turn, t + 2.4], [-2.6 + turn, t + 2.4]]), 0.1); paint(grid, sc, 'accent'); }
             if (style === 4) { const sc = part(); ellipse(sc, cx + (side ? 0.8 : fo), t + 0.6, lerp(4.4, 3, turn), 1.9); paint(grid, sc, 'accent'); }
             if (style === 3 && !side) { for (let y = Math.ceil(t + 1); y < waistY; y++) dot(grid, cx + fo, y, MAT.accent[1]); }
-        } else {
-            if (style === 0 || style === 4) {          // a short cape or hood falls over the back
-                const cape = part();
-                const cb = style === 0 ? b + 1.6 : t + 6;
-                poly(cape, P([[-wTop + 0.6, t - 0.6], [wTop - 0.6, t - 0.6], [wTop + 0.4, cb - 1], [2, cb], [0, cb - 1.4], [-2, cb], [-wTop - 0.4, cb - 1]]));
-                paint(grid, cape, 'accent');
-                for (const fx of [-2.4, 1.6]) for (let y = Math.ceil(t + 2); y < cb - 1.6; y++) dot(grid, cx + fo + fx, y, MAT.accent[2]);
-            }
         }
+        // Cloth folds: a darker line down a long garment, swinging with the hem.
+        if (hem > 5 && !side) for (const fx of [-0.42, 0.45]) for (let y = Math.ceil(b + 1); y < hemY - 0.5; y++) { const x = cx + fx * (wHip + flare) + hs * ((y - b) / hem); const i = Math.floor(y) * W + Math.floor(x); if (grid.mat[i] === 'cloth') grid.role[i] = MAT.cloth[2]; }
+    }
+
+    // Capes and scarf ends: cloth that hangs from the shoulders and follows the body a beat late (k.swC).
+    const CAPE = { 0: { len: 15.5, mat: 'accent' }, 2: { len: 17, mat: 'cloth' }, 4: { len: 9.5, mat: 'accent' } };
+    const SCARF = { 0: { len: 6.5 }, 4: { len: 10.5 } };
+    function drawCape(grid, k, style, facing) {
+        const c = CAPE[style];
+        if (!c) return;
+        const side = facing === 'right', back = facing === 'up', sw = k.swC || [0, 0];
+        const t = k.torsoTop, cx = k.torsoX, lean = k.lean || 0, turn = k.turn || 0;
+        const by = Math.min(t + c.len + sw[1] * 0.7, FEET - 1.4), sx = sw[0] * 1.5;
+        const p = part();
+        let folds = [];
+        if (side) {
+            poly(p, [[cx + lean - 2.4, t - 0.4], [cx + lean + 1.2, t - 0.2], [cx - 0.4 + lean * 0.4, t + c.len * 0.55], [cx - 1.4 + sx, by], [cx - 3.6 + sx * 1.15, by + 0.9],
+                [cx - 5.8 + sx * 1.25, by - 0.6], [cx - 4.8 + sx * 0.5 + lean * 0.4, t + c.len * 0.5], [cx + lean - 4, t + 1.6]]);
+            folds = [[[cx + lean - 2.6, t + 3], [cx - 3.6 + sx * 1.1, by - 1.5]]];
+        } else {
+            const w = Math.max(3.9, Math.abs(k.shR[0] - k.shL[0]) / 2 + 0.6), o = (back ? 1 : -1) * turn * 1.6, fl = w + 1.5;
+            poly(p, [[cx + lean - w, t - 0.5], [cx + lean + w, t - 0.5], [cx + o + fl + sx * 0.8, by - 1.2], [cx + o + fl * 0.5 + sx, by + 0.7], [cx + o + sx, by - 0.9],
+                [cx + o - fl * 0.5 + sx, by + 0.7], [cx + o - fl + sx * 0.8, by - 1.2]]);
+            folds = [-0.5, 0.45].map((fx) => [[cx + lean + fx * w, t + 2.5], [cx + o + fx * fl + sx * 0.9, by - 1.6]]);
+        }
+        paint(grid, p, c.mat);
+        for (const [[ax, ay], [bx, by2]] of folds) for (let y = Math.ceil(ay); y < by2; y++) {
+            const i = y * W + Math.floor(lerp(ax, bx, (y - ay) / Math.max(1, by2 - ay)));
+            if (p.has(i) && grid.mat[i] === c.mat) grid.role[i] = MAT[c.mat][2];
+        }
+    }
+    function drawScarf(grid, k, style, facing) {
+        const s = SCARF[style];
+        if (!s) return;
+        const side = facing === 'right', back = facing === 'up', sw = k.swC || [0, 0], t = k.torsoTop, cx = k.torsoX + (k.lean || 0);
+        const p = part();
+        if (side) chain(p, cx - 2.6, t + 0.8, -0.42, 0.9, s.len, 1.35, 0.8, sw, 2.3);
+        else if (back) chain(p, cx + 1.8, t + 0.4, 0.14, 1, s.len, 1.35, 0.8, sw, 2.3);
+        else chain(p, cx - 3.2 - (k.turn || 0) * 1.2, t + 1.8, -0.22, 1, s.len, 1.35, 0.8, sw, 2.3);
+        paint(grid, p, 'accent');
     }
 
     /** How far (head-space px) the face has moved toward +x in a 3/4 view facing down; 0 otherwise. */
@@ -575,25 +635,25 @@
     // Hair: drawn round the head centre. `front` is everything over the face/head; `back` goes behind the body.
     const drawHairBack = inHead(function drawHairBack(grid, k, style, facing) {
         const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right';
-        const p = part();
-        const dir = side ? -1 : 0;
+        const p = part(), sw = k.swH || [0, 0];
+        const q = (x, y, g) => [x + sw[0] * g, y + sw[1] * g * 0.6];
         if (style === 1) {                                               // tied tail
-            if (side) { capsule(p, hx - 4.6, hy - 1, hx - 7.4, hy + 4.4, 1.6); ellipse(p, hx - 7.6, hy + 5.6, 1.6, 1.8); }
-            else if (back) { capsule(p, hx, hy + 2, hx, hy + 9.4, 1.7); ellipse(p, hx, hy + 9.8, 1.5, 1.6); }
+            if (side) chain(p, hx - 4.6, hy - 1, -0.42, 0.9, 7.8, 1.7, 1.05, sw, 1.6);
+            else if (back) chain(p, hx, hy + 2, 0, 1, 9.2, 1.8, 1.05, sw, 1.6);
+            else chain(p, hx + 2, hy + 3, 0.1, 1, 7.4, 1.6, 1, sw, 1.8);
         } else if (style === 5) {                                        // long, loose
-            if (side) poly(p, [[hx - 5.6, hy - 3], [hx - 1, hy - 2], [hx - 0.6, hy + 11.4], [hx - 6.6, hy + 10.4]]);
-            else poly(p, [[hx - 6.6, hy - 2], [hx + 6.6, hy - 2], [hx + 6.8, hy + 11], [hx - 6.8, hy + 11]]);
+            if (side) poly(p, [[hx - 5.6, hy - 3], [hx - 1, hy - 2], q(hx - 0.6, hy + 11.6, 1.2), q(hx - 3.4, hy + 13, 1.5), q(hx - 6.8, hy + 11.2, 1.3)]);
+            else poly(p, [[hx - 6.6, hy - 2], [hx + 6.6, hy - 2], q(hx + 6.9, hy + 11.2, 1.2), q(hx + 3.4, hy + 12.8, 1.45), q(hx, hy + 11.6, 1.3), q(hx - 3.4, hy + 12.8, 1.45), q(hx - 6.9, hy + 11.2, 1.2)]);
         } else if (style === 3) {                                        // braid
-            if (back) for (let i = 0; i < 4; i++) ellipse(p, hx + (i % 2 ? 0.5 : -0.5), hy + 4 + i * 2.4, 1.6, 1.4);
-            else if (side) for (let i = 0; i < 4; i++) ellipse(p, hx - 4.2 - i * 0.6, hy + 2.6 + i * 2.2, 1.5, 1.3);
+            const root = side ? [hx - 4.2, hy + 2.6, -0.26, 0.96] : back ? [hx, hy + 4, 0, 1] : null;
+            if (root) for (let i = 0; i < 5; i++) { const t = i / 4, g = Math.pow(t, 1.5) * 1.7; ellipse(p, root[0] + root[2] * 9 * t + (i % 2 ? 0.5 : -0.5) + sw[0] * g, root[1] + root[3] * 9 * t + sw[1] * g * 0.6, 1.6 - t * 0.3, 1.4); }
         } else if (style === 2) {                                        // bob: back of the bob shows below the head
-            if (back || side) poly(p, [[hx - 6.4 + (side ? 1 : 0), hy - 1], [hx + (side ? 0 : 6.4), hy - 1], [hx + (side ? 0.4 : 6.6), hy + 5.6], [hx - 6.6, hy + 5.6]]);
+            if (back || side) poly(p, [[hx - 6.4 + (side ? 1 : 0), hy - 1], [hx + (side ? 0 : 6.4), hy - 1], q(hx + (side ? 0.4 : 6.6), hy + 5.6, 0.6), q(hx - 6.6, hy + 5.6, 0.6)]);
         } else if (style === 8) {                                        // curls
-            if (!side && !back) { ellipse(p, hx - 6.2, hy + 3, 2.4, 3.2); ellipse(p, hx + 6.2, hy + 3, 2.4, 3.2); }
-            if (side) ellipse(p, hx - 4.4, hy + 3, 3.2, 3.6);
-            if (back) ellipse(p, hx, hy + 3, 7.4, 4.6);
+            if (!side && !back) { ellipse(p, ...q(hx - 6.2, hy + 3, 0.4), 2.4, 3.2); ellipse(p, ...q(hx + 6.2, hy + 3, 0.4), 2.4, 3.2); }
+            if (side) ellipse(p, ...q(hx - 4.4, hy + 3, 0.5), 3.2, 3.6);
+            if (back) ellipse(p, ...q(hx, hy + 3, 0.4), 7.4, 4.6);
         }
-        void dir;
         if (p.size) paint(grid, p, 'hair');
     });
     const drawHairFront = inHead(function drawHairFront(grid, k, style, facing, hat) {
@@ -624,7 +684,7 @@
         if (!back && !side) {
             if (style === 0) for (const dx of [-3.4, -0.8, 1.8]) poly(p, [[hx + dx - 1.2, hy - 2.6], [hx + dx + 1.8, hy - 2.6], [hx + dx + 0.4, hy + 0.4]]);
             if (style === 2) { capsule(p, hx - 5.8, hy - 1, hx - 5.4, hy + 4.6, 1.5); capsule(p, hx + 5.8, hy - 1, hx + 5.4, hy + 4.6, 1.5); }
-            if (style === 5) { capsule(p, hx - 6, hy - 1, hx - 6.2, hy + 8.4, 1.6); capsule(p, hx + 6, hy - 1, hx + 6.2, hy + 8.4, 1.6); }
+            if (style === 5) { const sx = (k.swH || [0, 0])[0] * 0.9; capsule(p, hx - 6, hy - 1, hx - 6.2 + sx, hy + 8.4, 1.6); capsule(p, hx + 6, hy - 1, hx + 6.2 + sx, hy + 8.4, 1.6); }
             if (style === 6) poly(p, [[hx - 6, hy - 4.6], [hx + 3, hy - 5.2], [hx + 1.4, hy - 1.6], [hx - 5, hy - 0.4]]);
             if (style === 3) { capsule(p, hx + 5.6, hy, hx + 6.6, hy + 5, 1.3); for (let i = 0; i < 3; i++) ellipse(p, hx + 6.6, hy + 6 + i * 1.8, 1.3, 1.1); }
             if (style === 1) { capsule(p, hx - 5.6, hy - 1, hx - 5.8, hy + 1.6, 1.1); capsule(p, hx + 5.6, hy - 1, hx + 5.8, hy + 1.6, 1.1); }
@@ -749,9 +809,10 @@
         if (type < 0) return;                                            // unarmed (villagers)
         const [hx, hy] = k.weaponAt || k.haR;
         const a = (k.weapon * Math.PI) / 180, ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
-        const at = (t, o = 0) => [hx + ux * t + px * o, hy + uy * t + py * o];
+        const sc = k.wScale || 1;                                         // a weapon pointing at or away from the camera is seen short
+        const at = (t, o = 0) => [hx + ux * t * sc + px * o, hy + uy * t * sc + py * o];
         const grip = part(), blade = part(), guard = part();
-        const ground = (q) => { for (const i of [...q.keys()]) if (((i / W) | 0) > 44) q.delete(i); return q; };
+        const ground = (q) => { for (const i of [...q.keys()]) if (((i / W) | 0) > FEET + 1.6) q.delete(i); return q; };
         if (type === 0) {                                                // sword
             const L = flags.short ? 7 : 12;
             capsule(grip, ...at(-2.6), ...at(0.6), 0.75);
@@ -760,7 +821,7 @@
             capsule(blade, ...at(2), ...at(L), 1.05, 0.15);
             line(blade, ...at(2, -0.4), ...at(L - 0.6, -0.4), 0.9);
             paint(grid, ground(grip), 'leather'); paint(grid, ground(blade), 'metal', { levels: [0.6, -0.1, -0.7] }); paint(grid, ground(guard), 'accent');
-            const [tx, ty] = at(L + 0.4); if (ty <= 44) dot(grid, tx, ty, MAT.metal[0]);
+            const [tx, ty] = at(L + 0.4); if (ty <= FEET + 1.6) dot(grid, tx, ty, MAT.metal[0]);
         } else if (type === 1) {                                         // axe
             capsule(grip, ...at(-3), ...at(10), 0.8);
             paint(grid, ground(grip), 'wood');
@@ -780,7 +841,7 @@
             // ground and its stone beside the head; swung or raised, it follows the arm like any weapon.
             const rest = uy > 0.25, ra = (-96 * Math.PI) / 180;
             const vx = rest ? Math.cos(ra) : ux, vy = rest ? Math.sin(ra) : uy, wx = -vy, wy = vx;
-            const st = (t, o = 0) => [hx + vx * t + wx * o, hy + vy * t + wy * o];
+            const ss = rest ? 1 : sc, st = (t, o = 0) => [hx + vx * t * ss + wx * o, hy + vy * t * ss + wy * o];
             const T = rest ? 15 : 21, foot = rest ? -13 : -6;
             capsule(grip, ...st(foot), ...st(T - 2), 0.8);
             paint(grid, ground(grip), 'wood');
@@ -789,7 +850,7 @@
             paint(grid, ground(cage), 'leather', { edge: false });
             const stone = part(); ellipse(stone, ...st(T + 0.4), 2.1, 2.1);
             paint(grid, ground(stone), 'metal', { levels: [0.7, 0, -0.6] });
-            const [gx, gy] = st(T - 0.2, -0.7); if (gy <= 44) dot(grid, gx, gy, MAT.metal[0]);
+            const [gx, gy] = st(T - 0.2, -0.7); if (gy <= FEET + 1.6) dot(grid, gx, gy, MAT.metal[0]);
         } else if (type === 5) {                                         // wand: short, tapered, a bright tip
             capsule(grip, ...at(-1.6), ...at(1), 0.8);
             capsule(blade, ...at(1), ...at(8.4), 0.75, 0.35);
@@ -838,27 +899,28 @@
         else { ellipse(boss, cx, cy, 1.4, 1.4); paint(grid, boss, 'metal', { edge: false }); }
     }
 
-    /** The bright arc of a swing (slash2-4), from angle a0 to a1 round the shoulder, at a radius. */
-    function drawSmear(grid, k, facing) {
-        if (!k.smear) return;
-        const [a0, a1] = k.smear, cx = k.shR[0], cy = k.shR[1] + 1;
-        const r = 12.4, steps = 40;
-        for (let i = 0; i <= steps; i++) {
-            const t = i / steps, a = ((a0 + (a1 - a0) * t) * Math.PI) / 180;
-            const w = Math.sin(t * Math.PI) * 2.2 + 0.4;
-            for (let d = 0; d < w; d += 0.5) {
-                const x = cx + Math.cos(a) * (r - d), y = cy + Math.sin(a) * (r - d) * (facing === 'right' ? 1 : 0.8);
-                const xi = Math.floor(x), yi = Math.floor(y);
-                if (!inside(xi, yi) || grid.role[yi * W + xi]) continue;
-                dot(grid, xi, yi, d < 0.6 ? SMEAR : SMEAR2);
+    /** The blade's trail: the area the weapon swept since the last frame (k.trail), bright at the blade, thinning and
+     *  breaking up toward where it started. Only drawn on empty pixels, so it never hides the figure. */
+    const WLEN = [12.6, 11.6, 12.6, 17.6, 21, 9.6];
+    function drawTrail(grid, k, type) {
+        if (!k.trail || type < 0) return;
+        const L = WLEN[type] || 12, n = k.trail.length;
+        const pt = (s, t) => { const a = rad(s.deg); return [s.hand[0] + Math.cos(a) * t * s.scale, s.hand[1] + Math.sin(a) * t * s.scale]; };
+        for (let j = 0; j + 1 < n; j++) {
+            const age = 1 - (j + 1) / (n - 1), inner = L * (0.64 + 0.26 * age);
+            const q = poly(part(), [pt(k.trail[j], inner), pt(k.trail[j], L + 0.6), pt(k.trail[j + 1], L + 0.6), pt(k.trail[j + 1], inner)], 0, true);
+            for (const i of q.keys()) {
+                if (grid.role[i]) continue;
+                if (age > 0.6 && ((i % W) + ((i / W) | 0)) % 2) continue;
+                grid.role[i] = age < 0.34 ? SMEAR : SMEAR2; grid.mat[i] = 'smear';
             }
         }
     }
 
-    /** Draw one frame. Returns 64 strings of roles ('.' = transparent). */
+    /** Draw one frame. Returns the frame's rows of roles ('.' = transparent). */
     function drawFrame(shape, facing, pose) {
         const k = skeleton(facing, pose);
-        if (DIAG[facing]) facing = DIAG[facing][0];                      // drawn as the front/back view, turned by k.turn
+        if (DIAG[facing]) { facing = DIAG[facing][0]; k.turn = TURN; }   // drawn as the front/back view, turned by k.turn
         const g = newGrid();
         const side = facing === 'right', back = facing === 'up';
         const { hair, outfit, hat, weapon, shield } = shape;
@@ -870,67 +932,72 @@
             drawTorsoLying(g, k, outfit);
             drawLeg(g, k.hipR, k.knR, k.ftR, outfit, true); drawArm(g, k.shR, k.elR, k.haR, outfit, false);
             drawHead(g, k, 'down');
-            const capK = { ...k, head: k.head };
-            drawHairLying(g, capK, hair, hat);
+            drawHairLying(g, k, hair, hat);
             outline(g);
             return toRows(g);
         }
-        // Behind everything: what hangs at the back.
-        if (back) {
-            if (hasShield && !k.parry) drawShield(g, { ...k, haL: [32, 27.4] }, shield, 'up');
-        }
+        const armL = (far) => drawArm(g, k.shL, k.elL, k.haL, outfit, back, { far });
+        const armR = (far) => drawArm(g, k.shR, k.elR, k.haR, outfit, back, { far });
+        const head = () => { drawHead(g, k, facing); drawHairFront(g, k, hair, facing, hat); drawHat(g, k, hat, facing, 'front'); };
+        // Behind everything: what hangs at the back, and a weapon held away from the camera.
+        if (back && hasShield && !k.parry) drawShield(g, { ...k, haL: [k.torsoX + k.lean, k.torsoTop + 4.4] }, shield, 'up');
         if (k.weaponBehind) drawWeapon(g, k, weapon);
-        drawHairBack(g, k, hair, facing);
+        if (!back) { drawCape(g, k, outfit, facing); drawHairBack(g, k, hair, facing); }
         drawHat(g, k, hat, facing, 'back');
         if (side) {
             // Far side first: left leg, left arm (with the shield on it).
             drawLeg(g, k.hipL, k.knL, k.ftL, outfit, true, false);
-            if (!k.parry && !k.pose.startsWith('ready')) { drawArm(g, k.shL, k.elL, k.haL, outfit, false); if (hasShield) drawShield(g, k, shield, facing); }
+            drawScarf(g, k, outfit, facing);
+            if (!k.shieldFront) { armL(true); if (hasShield) drawShield(g, k, shield, facing); }
             drawLeg(g, k.hipR, k.knR, k.ftR, outfit, true, true);
             drawTorso(g, k, outfit, facing);
-            if (k.parry || k.pose.startsWith('ready')) { drawArm(g, k.shL, k.elL, k.haL, outfit, false); if (hasShield) drawShield(g, k, shield, facing); }
-            drawHead(g, k, facing);
-            drawHairFront(g, k, hair, facing, hat);
-            drawHat(g, k, hat, facing, 'front');
-            drawSmear(g, k, facing);
-            drawArm(g, k.shR, k.elR, k.haR, outfit, false);
+            if (k.shieldFront) { armL(false); if (hasShield) drawShield(g, k, shield, facing); }
+            head();
+            drawTrail(g, k, weapon);
+            armR(false);
             if (!k.weaponBehind) drawWeapon(g, k, weapon);
             outline(g);
             return toRows(g);
         }
-        drawLeg(g, k.hipR, k.knR, k.ftR, outfit, k.turn || false);
-        drawLeg(g, k.hipL, k.knL, k.ftL, outfit, k.turn || false);
+        // Front and back views: the leg nearer the camera over the other; an arm reaching away from the camera goes
+        // behind the body, one raised over the head goes over it.
+        const legs = [[k.hipR, k.knR, k.ftR, back ? !k.nearR : k.nearR], [k.hipL, k.knL, k.ftL, back ? k.nearR : !k.nearR]].sort((a, b) => a[3] - b[3]);
+        for (const [hip, kn, ft, near] of legs) drawLeg(g, hip, kn, ft, outfit, k.turn || false, near || Math.abs(k.ftR[1] - k.ftL[1]) < 1.2);
+        const hidden = (d) => (back ? d > 2.6 : d < -2.6), raised = (ha) => ha[1] < k.head[1] + 2;
+        if (hidden(k.dL) && !raised(k.haL)) armL(true);
+        if (hidden(k.dR) && !raised(k.haR)) armR(true);
         drawTorso(g, k, outfit, facing);
-        if (back) {                                                      // seen from behind: arms, then the head over them
-            drawArm(g, k.shL, k.elL, k.haL, outfit, true);
-            drawArm(g, k.shR, k.elR, k.haR, outfit, true);
-            drawHead(g, k, facing);
-            drawHairFront(g, k, hair, facing, hat);
-            drawHat(g, k, hat, facing, 'front');
-            if (hasShield && k.parry) drawShield(g, { ...k, haL: [k.haL[0], k.haL[1]] }, shield, 'up');
-            drawSmear(g, k, facing);
+        if (back) {                                                      // seen from behind: cape and hair down the back, arms, then the head
+            drawCape(g, k, outfit, facing); drawScarf(g, k, outfit, facing);
+            if (!hidden(k.dL) && !raised(k.haL)) armL(false);
+            if (!hidden(k.dR) && !raised(k.haR)) armR(false);
+            drawHairBack(g, k, hair, facing);
+            head();
+            if (raised(k.haL)) armL(false);
+            if (hasShield && k.parry) drawShield(g, k, shield, 'up');
+            drawTrail(g, k, weapon);
+            if (raised(k.haR)) armR(false);
             if (!k.weaponBehind) drawWeapon(g, k, weapon);
             outline(g);
             return toRows(g);
         }
-        drawHead(g, k, facing);
-        drawHairFront(g, k, hair, facing, hat);
-        drawHat(g, k, hat, facing, 'front');
-        drawArm(g, k.shL, k.elL, k.haL, outfit, false);
+        drawScarf(g, k, outfit, facing);
+        head();
+        if (!hidden(k.dL) || raised(k.haL)) armL(false);
         if (hasShield) drawShield(g, k, shield, facing);
-        drawSmear(g, k, facing);
-        drawArm(g, k.shR, k.elR, k.haR, outfit, false);
+        drawTrail(g, k, weapon);
+        if (!hidden(k.dR) || raised(k.haR)) armR(false);
         if (!k.weaponBehind) drawWeapon(g, k, weapon);
         outline(g);
         return toRows(g);
     }
     function drawTorsoLying(g, k, style) {
-        const p = part();
+        const p = part(), ox = CX - 32, oy = FEET - 42.4 + (k.lift || 0);
         const hem = style === 1 || style === 3 ? 6 : 2;
-        poly(p, [[24.2, 35.4], [36.6, 36], [36.6 + hem, 36.4], [36.6 + hem, 41.4], [36.6, 41.6], [24.2, 41.8]]);
-        ellipse(p, 25, 38.6, 2, 3.2);
+        poly(p, [[23.2, 35.4], [37.6, 36], [37.6 + hem, 36.4], [37.6 + hem, 41.4], [37.6, 41.6], [23.2, 41.8]].map(([x, y]) => [x + ox, y + oy]));
+        ellipse(p, 24 + ox, 38.6 + oy, 2, 3.2);
         paint(g, p, 'cloth');
-        const belt = part(); rect(belt, 33, 36, 2, 6); paint(g, belt, style === 3 ? 'accent' : 'leather');
+        const belt = part(); rect(belt, Math.round(34 + ox), Math.round(36 + oy), 2, 6); paint(g, belt, style === 3 ? 'accent' : 'leather');
     }
     const drawHairLying = inHead(function drawHairLying(g, k, hair, hat) {
         const [hx, hy] = k.head;
@@ -974,28 +1041,23 @@
     }
     providers.push((id) => (ID.test(id) ? buildSheet(id) : null));
 
-    const st = (pose, ms, oy = 0) => ({ pose, ms, oy });
-    const steps = (poses, ms) => poses.map((pose, i) => ({ pose, ms: Array.isArray(ms) ? ms[i] : ms, oy: 0 }));
+    /** An animation's steps: each frame of a motion, shown until the next one is due. */
+    const play = (name, scale = 1) => { const A = ANIMS[name]; return A.at.map((t, i) => ({ pose: `${name}${i + 1}`, ms: Math.round(((i + 1 < A.at.length ? A.at[i + 1] : A.ms) - t) * scale), oy: 0 })); };
+    const once = (name, then = 'ready', scale = 1) => ({ once: true, then, steps: play(name, scale) });
     manifest.enso = {
         classes: ['*'],                     // every player class; villagers use it too (ui/world-render.js person())
         frame: FRAME,
-        anchor: { x: 32, y: 43 },
+        anchor: { x: CX, y: Math.round(FEET + 0.6) },
         animations: {
-            // Fluid set (docs/art/PLAYER_STYLE_SHEET.md): breathing idle, 8-frame walk, anticipation and follow-through.
-            idle: steps(['idle1', 'idle2', 'idle3', 'idle4'], [320, 240, 420, 240]),
-            walk: steps(Array.from({ length: WALK_N }, (_, i) => `walk${i + 1}`), 95),
-            ready: steps(['ready1', 'ready2', 'ready3', 'ready4'], 220),
-            attack: { once: true, then: 'ready', steps: steps(['slash0', 'slash1', 'slash2', 'slash3', 'slash4', 'slash5'], [70, 130, 55, 55, 150, 90]) },
-            cast: { once: true, then: 'ready', steps: steps(['parry', 'parry'], [160, 380]) },
-            hit: { once: true, then: 'ready', steps: steps(['hit', 'hit2', 'ready1'], [200, 100, 100]) },
-            death: { once: true, steps: steps(['hit', 'down1', 'down2', 'down3', 'down4'], [140, 100, 200, 110, 1]) },
-            // Action combat (docs/ACTION_COMBAT.md): swing 350 ms (startup 90 → active → recovery), heavy 720 ms,
-            // dodge ≈ 250 ms, guard a held block, hurt a short flinch. Totals match the sim's timings.
-            swing: { once: true, then: 'ready', steps: [st('slash0', 40), st('slash1', 50), st('slash2', 50), st('slash3', 50), st('slash4', 100), st('slash5', 60)] },
-            heavy: { once: true, then: 'ready', steps: [st('ready1', 120, 1), st('slash0', 80), st('slash1', 120), st('slash2', 70), st('slash3', 90, 1), st('slash4', 150), st('slash5', 90)] },
-            dodge: { once: true, then: 'ready', steps: [st('ready1', 60, 1), st('walk3', 120, 2), st('walk7', 70, 1)] },
-            guard: [st('parry', 600, 0), st('parry', 600, 1)],
-            hurt: { once: true, then: 'ready', steps: [st('hit', 100, -1), st('hit2', 60), st('ready1', 90)] }
+            // docs/art/PLAYER_STYLE_SHEET.md (v3). Totals the fight depends on are unchanged: swing 350 ms, heavy 720 ms,
+            // hurt 250 ms, dodge 250 ms.
+            idle: play('idle'), walk: play('walk'), ready: play('ready'), guard: play('guard'),
+            stop: once('stop', 'idle'),
+            attack: once('slash', 'ready', 1.4), swing: once('slash'), heavy: once('heavy'), thrust: once('thrust'),
+            cast: once('cast'),
+            hit: once('hit', 'ready', 1.6), hurt: once('hit'),
+            dodge: once('dash'),
+            death: { once: true, steps: [...play('fall'), { pose: 'down3', ms: 110, oy: 0 }, { pose: 'down4', ms: 1, oy: 0 }] }
         },
         layerOrder: Object.fromEntries(FACINGS.map((f) => [f, ['body']])),
         layers: { body: 'enso.{shape}' },
@@ -1010,6 +1072,6 @@
             weapons: WEAPONS, shields: SHIELDS
         }
     };
-    ENSO.ensoPlayer = { drawFrame, skeleton, shapeOf, paletteFor, buildSheet, FACINGS, POSES, ramp, MAT };
+    ENSO.ensoPlayer = { drawFrame, skeleton, shapeOf, paletteFor, buildSheet, FACINGS, POSES, ANIMS, FRAME, ramp, MAT };
     if (typeof module !== 'undefined' && module.exports) module.exports = ENSO.ensoPlayer;
 })(typeof window !== 'undefined' ? window : globalThis);
