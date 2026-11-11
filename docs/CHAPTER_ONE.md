@@ -1,4 +1,6 @@
 # Chapter One: how it's built
+> **Development handoff (proposal, not shipped):** For the Director-approved Chapter One uplift—five new story layers, Festival of the Sun event, food-buff onboarding, optional SF1–SF6, combat/quest clarity, exploration and Homestead consequences—start with [Chapter One Development Master Brief](design/CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md). The implementation route below describes the **currently shipped game** until specific changes are merged and tested.
+
 
 Chapter One's implemented content follows the Creative Director's narrative direction and the design handoff recorded in issue #87:
 [`docs/design/ENSO_CH1_LEVELS_QUESTS_AND_SHANE.md`](design/ENSO_CH1_LEVELS_QUESTS_AND_SHANE.md) and the other `ENSO_CH1_*` docs.
