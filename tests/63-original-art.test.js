@@ -276,6 +276,6 @@ test('Scene art: the last tile-art areas (homestead rooms, the wilds, the Warden
         for (const [id, s] of Object.entries(map.spawns)) assert.ok(a.over[((s.y * 32 + 16) * a.w + s.x * 32 + 16) * 4 + 3] < 60, `${mapId}: open over spawn ${id}`);
     }
     // No map on the way through Chapter One is left on tile art.
-    for (const f of ['shamefield', 'road', 'bakers-lane', 'kloster', 'kloster-inner']) require(`../ui/scene-${f}.js`);
+    for (const f of ['shamefield', 'road', 'bakers-lane', 'kloster', 'kloster-inner', 'hrimvald']) require(`../ui/scene-${f}.js`);   // hrimvald: Chapter Two (tests/98)
     for (const [id, map] of Object.entries(ZONE1.maps)) assert.ok(SCENE.has(map), `${id} has a painted scene`);
 });

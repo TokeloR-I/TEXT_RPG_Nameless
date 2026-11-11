@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -26,7 +26,10 @@
         ash: ['#1d1416','#3e2224','#663432','#8d4f45','#b8806a'],       // the zealot's ash-red robe
         hex: ['#2a0d12','#6a1420','#b0242e','#e0484a','#ff9a8a'],       // hex-eyed crows' wrong red
         holy: ['#2a2418','#6b5a32','#b0954e','#e0c878','#fff4c8'],     // Aurevain's gilded plate (Fallen Seraphim trial)
-        vestment: ['#1c1c2a','#3c4060','#7a84a8','#b8c0d8','#eef0f8']
+        vestment: ['#1c1c2a','#3c4060','#7a84a8','#b8c0d8','#eef0f8'],
+        wolfred: ['#24100f','#4a1c18','#7a2c22','#a8482f','#d08a5c'],    // Wolf-Banner madder-red wool (Chapter Two)
+        pelt: ['#1a1b1f','#34363c','#5a5c60','#8c8c88','#c8c6ba'],       // a grey wolf pelt over the shoulders
+        undyed: ['#2a2620','#544a3a','#84765a','#b4a580','#ddd2b0']      // undyed northern wool
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -44,7 +47,12 @@
         shackled_ghoul_stronger: {kind:'ghoul', body:'ghoul', coat:'cloth', tall:38, wide:9, scar:true},
         watch_constable: {kind:'watch', body:'metal', coat:'watch', tall:37, wide:8},
         crow_touched_warden: {kind:'warden', body:'metal', coat:'feather', tall:41, wide:11},
-        heaven_doorwarden: {kind:'knight', body:'holy', coat:'vestment', tall:40, wide:10}
+        heaven_doorwarden: {kind:'knight', body:'holy', coat:'vestment', tall:40, wide:10},
+        // Chapter Two, the Wolf-Banner (docs/design/CHAPTER_TWO_LORE.md): shield and axe in madder red, a lighter
+        // spear-thrower in undyed wool, and Ulfrun Grey-Mantle under a wolf pelt. No horned helmets.
+        wolfbanner_raider: {kind:'watch', body:'metal', coat:'wolfred', tall:38, wide:9},
+        wolfbanner_skirmisher: {kind:'watch', body:'leather', coat:'undyed', tall:36, wide:7},
+        wolfbanner_ringleader: {kind:'knight', body:'metal', coat:'pelt', tall:40, wide:10}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

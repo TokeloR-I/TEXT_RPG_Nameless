@@ -261,7 +261,7 @@ test('Chapter One: content integrity: every objective marker, npc and condition 
     // XP table from the design doc
     const main = ['Q01', 'Q02', 'Q03', 'Q04', 'Q05', 'Q06'].map((q) => STORY.quests[q].xp);
     assert.deepStrictEqual(main, [15, 20, 25, 25, 20, 30]);
-    const gates = Object.values(ZONE1.maps).flatMap((m) => m.encounters || []).filter((e) => e.gate);
+    const gates = Object.values(ZONE1.maps).filter((m) => !/^hrimvald_/.test(m.zoneId)).flatMap((m) => m.encounters || []).filter((e) => e.gate);   // Chapter Two's gates have their own test (98)
     assert.strictEqual(gates.reduce((sum, e) => sum + e.enemies.reduce((t, k) => t + data.enemies[k].xp, 0), 0), 207, 'required fights: 20+25+40+30, and the climb (2026-11-04) 68+24');
     assert.strictEqual(STORY.npcs.shane.farewell, 'Suffer!');
 });

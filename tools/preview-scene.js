@@ -12,6 +12,7 @@ require('../ui/scene-kloster-inner.js');                   // adds the 'kloster_
 require('../ui/scene-homestead-rooms.js');                 // adds 'cellar', 'farmhouse', 'old_shed', 'well_bottom'
 require('../ui/scene-ch1-wilds.js');                       // adds 'tollway', 'allotment', 'orchard', 'featherwatch'
 require('../ui/scene-featherwatch-roost.js');              // adds 'warden_sanctuary', 'seal_chamber'
+require('../ui/scene-hrimvald.js');                        // adds 'frostspine_pass', 'skeldvik' (Chapter Two)
 const { encode } = require('./lib/png.js');
 const [mapId = 'grounds', out = 'scene.png', scaleArg = '1'] = process.argv.slice(2);
 const S = Number(scaleArg);

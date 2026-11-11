@@ -200,6 +200,27 @@
                     { name: 'Wingbeat', base_damage: [20, 26] },
                     { name: 'Sentence of Light', base_damage: [16, 22] }
                 ]
+            },
+            // Chapter Two, Act I (docs/design/CHAPTER_TWO_LORE.md, C2-01 The Frostspine Road; Tokelo 2026-11-11 "start
+            // building the world for chapter 2"). Torvald Redhand's Wolf-Banner raiders, hunting the name tablets of the six
+            // hundred. CANDIDATE kits for Gauge: a step above the Broken Oath zealot, for a level 4-5 character after the Warden.
+            'wolfbanner_raider': {
+                name: 'Wolf-Banner Raider',
+                hp: 46, maxHp: 46, xp: 34, atk: 9, def: 4, spd: 9,
+                critChance: 0.1, critMultiplier: 1.6,
+                skills: [{ name: 'Bearded Axe', base_damage: [8, 12] }, { name: 'Shield Rush', base_damage: [5, 8] }]
+            },
+            'wolfbanner_skirmisher': {
+                name: 'Wolf-Banner Spear-Thrower',
+                hp: 32, maxHp: 32, xp: 30, atk: 9, def: 2, spd: 11,
+                critChance: 0.12, critMultiplier: 1.6,
+                skills: [{ name: 'Thrown Spear', base_damage: [8, 11] }, { name: 'Spear Jab', base_damage: [6, 9] }]
+            },
+            'wolfbanner_ringleader': {
+                name: 'Ulfrun Grey-Mantle',
+                hp: 120, maxHp: 120, xp: 110, atk: 12, def: 5, spd: 10, tier: 'elite',
+                critChance: 0.15, critMultiplier: 1.7,
+                skills: [{ name: 'Two-Hand Axe', base_damage: [12, 17] }, { name: 'Wolf Howl', base_damage: [4, 6] }]
             }
         };
 		
@@ -1332,6 +1353,38 @@
                         { name: 'Chain Whip', skill: 'Frenzied Bite', shape: 'arc', reach: 32, arcDeg: 160, windupMs: 800, activeMs: 150, recoveryMs: 700, cooldownMs: 4000, blockCost: 22, useAt: [20, 40] }
                     ]
                 },
+                // Chapter Two (CHAPTER_TWO_LORE.md C2-01): the Wolf-Banner. The raider is a shield-and-axe front liner, the
+                // spear-thrower hangs back and throws, and Ulfrun leads with a two-hand axe and a howl that brings them in.
+                wolfbanner_raider: {
+                    speed: 54, detect: 120, alertMs: 900, reach: 22, arcDeg: 100, windupMs: 560, activeMs: 110, recoveryMs: 560, radius: 6, poise: 3, leash: 220,
+                    keepDistance: [0, 20], group: 'pincer', frontalShield: { arcDeg: 90, damageTaken: 0.6 },
+                    attacks: [
+                        { name: 'Bearded Axe', skill: 'Bearded Axe', shape: 'arc', reach: 22, arcDeg: 100, windupMs: 560, activeMs: 110, recoveryMs: 560, cooldownMs: 1500, blockCost: 14, useAt: [0, 24] },
+                        { name: 'Shield Rush', skill: 'Shield Rush', shape: 'line', reach: 48, width: 14, lunge: 36, windupMs: 650, activeMs: 150, recoveryMs: 750, cooldownMs: 4200, blockCost: 18, knockbackPx: 18, staggers: true, useAt: [26, 60] }
+                    ]
+                },
+                wolfbanner_skirmisher: {
+                    speed: 50, detect: 128, alertMs: 1000, ranged: true, keepDistance: [56, 96], reach: 130, shape: 'projectile', projectile: 'arrow', projSpeed: 170,
+                    windupMs: 620, activeMs: 0, recoveryMs: 650, radius: 5, poise: 2, leash: 200, group: 'ranged_keeps_distance', roles: ['blade', 'hexer'], backOffBelow: 40,
+                    attacks: [
+                        { name: 'Thrown Spear', skill: 'Thrown Spear', shape: 'projectile', reach: 130, projSpeed: 170, radius: 5, windupMs: 620, activeMs: 0, recoveryMs: 650, cooldownMs: 2600, blockCost: 12, role: 'hexer' },
+                        { name: 'Spear Jab', skill: 'Spear Jab', shape: 'line', reach: 26, width: 8, windupMs: 480, activeMs: 100, recoveryMs: 520, cooldownMs: 1300, blockCost: 10, role: 'blade' }
+                    ]
+                },
+                wolfbanner_ringleader: {
+                    speed: 52, detect: 136, alertMs: 700, reach: 26, arcDeg: 140, windupMs: 650, activeMs: 120, recoveryMs: 650, radius: 8, poise: 6, hyperArmor: true, leash: 240,
+                    keepDistance: [0, 24], group: 'direct',
+                    attacks: [
+                        {
+                            name: 'Two-Hand Axe', skill: 'Two-Hand Axe', shape: 'arc', reach: 26, arcDeg: 140, cooldownMs: 2000, useAt: [0, 28],
+                            combo: [
+                                { windupMs: 650, activeMs: 120, recoveryMs: 240, blockCost: 18 },
+                                { windupMs: 460, activeMs: 120, recoveryMs: 820, blockCost: 22, reverse: true, staggers: true, knockbackPx: 14 }
+                            ]
+                        },
+                        { name: 'Wolf Howl', skill: 'Wolf Howl', shape: 'circle', radius: 44, windupMs: 900, activeMs: 150, recoveryMs: 900, cooldownMs: 9000, guardable: false, parryable: false, useAt: [0, 40] }
+                    ]
+                },
                 crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' },
                 // The Trial of the Live Coal: four wings, a spear, and every tell readable (first-pass numbers, Gauge).
                 heaven_doorwarden: {
@@ -1861,6 +1914,13 @@
                 "sellable": false,
                 "description": "Mara’s supplies for Tamsin."
             },
+            "Birkholt Name Tablet": {
+                "type": "quest",
+                "bound": true,
+                "unique": true,
+                "sellable": false,
+                "description": "A wooden tablet carved with forty names of the six hundred, from the village of Birkholt. Raiders wanted it badly."
+            },
             "Seal-Key of the First Echo": {
                 "type": "quest",
                 "bound": true,
@@ -2232,6 +2292,21 @@
                 3,
                 "guardian",
                 "boss"
+            ],
+            "wolfbanner_raider": [
+                3,
+                "humanoid",
+                "common"
+            ],
+            "wolfbanner_skirmisher": [
+                3,
+                "humanoid",
+                "common"
+            ],
+            "wolfbanner_ringleader": [
+                3,
+                "humanoid",
+                "elite"
             ]
         };
         for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
