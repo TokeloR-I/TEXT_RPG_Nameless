@@ -1,4 +1,6 @@
 # ENSO's Last Stand — Chapter One: Ashes Beneath the Sun
+> **Implementation reference (11 November 2026):** The Director approved extending this narrative with the Festival of the Sun, stronger gameplay onboarding and exploration. Use [CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md](CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md) for the comprehensive team handoff, five newly proposed quest layers, gating, QA and implementation order. This narrative document remains the story foundation; the master brief is **proposed implementation work**, not a claim it has shipped.
+
 ## The Broken Crown: Narrative Rework and Development Handoff
 
 **Date:** 11 November 2026  
