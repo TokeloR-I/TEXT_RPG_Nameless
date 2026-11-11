@@ -32,11 +32,22 @@ Cellar → House → Grounds → Overgrown Road → Broken Tollway → Shamefiel
 | Q07 The Mason Who Waited | home, Orin Vale, the Builder's Ledger, repair the gate | | |
 | Q08 Ten Seals | the hook for Chapter Two | | |
 
-Required since Tokelo 2026-11-04: once the register is back, the Watch Captain (lazy, and usually drinking) keeps the
-orchard gate shut until you take his deal, L01 *Get to Know the Locals*: six Shamefield favours (SF1 *Bread and Beer*, the
-planting and crafting tutorial; SF2 *The Brown Hops*; SF3 *Pigs at Large*; SF4 *Singing at the Mill*; SF5 *Names for the
-Bell*; SF6 *A Proper Meal*, the hearth cooking and eating tutorial), then report back. L01 opens the gate and starts Q06.
-They add 105 quest XP and 60 fight XP, so the mainline reaches the Warden with 663 XP (still level 4).
+**The Broken Crown rework (Tokelo, 2026-11-11, `docs/design/CHAPTER_ONE_NARRATIVE_REWORK.md`).** The register is
+evidence now: its forged clearances start **C1-N02 *The Ash on the Register*** (25 XP, candidate). The orchard gate opens
+by either of two routes, once:
+- **Story route:** Elian names the quartermaster's seal, you grab or follow the Broken Oath courier (`oath_courier_caught`
+  / `oath_courier_tracked`), and the Captain reads the orders: Corvin Sere.
+- **Village route:** two of the six households (SF1 to SF6) vouch for you (`village_vouched`). L01 *Get to Know the
+  Locals* is a side quest now; all six still earn its reward and Bragg's weapon.
+
+C1-N02 starts **C1-N04 *An Oath in Ash*** (20 XP, candidate): talk to Corvin Sere at the foot of the Featherwatch climb
+(challenge, deceive or bargain; he always leaves) and break the Oathbound rearguard. Then Q06. The mainline reaches the
+Warden with **543 XP** (level 4, nine fights, no household favours). Act I's clue (`Torn Salvage Order`) comes with Q02's
+required look at the grounds; the road scavenger is optional. After the Warden: burying him or Tamsin's mourning gives his
+name, Bran Ashdown, for the first time; what you tell Tamsin (`warden_admitted` / `warden_denied` / `warden_silent`) is
+remembered, and Q07's ending plays Orin's "I know this cut", the Broken Oath's answer to your approach and the Sunbearer's
+"Send someone to the vale. Quietly." Older saves waiting at the shut gate get C1-N02 on load (`catchUp: broken_oath_route`).
+Route helpers: `tools/lib/broken-oath-route.js`; tests: `tests/99-broken-crown.test.js`.
 
 Optional: S01 *Shame on Shane!*, J01 *Wolf on the Road*, J02 *Herbs for Iona* (from the notice board), and the old rats and
 wolf. `tests/32-chapter-one.test.js` traces the mainline for each base class with all optional content skipped. **This is a progression/integration test, not a fair-combat balance test:** its player has effectively unlimited HP and enemies are reduced to 1 HP before attacks. It proves XP, routing and quest triggers can complete; it does **not** prove ordinary characters can survive the required encounters, beat the Warden, or afford supplies.

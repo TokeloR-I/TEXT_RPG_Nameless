@@ -90,7 +90,7 @@
                 { id: 'tollway_ragpickers', gate: true, x: 9, y: 9, name: 'Ragpicker Pair', enemies: ['weak_goblin', 'weak_goblin'], trigger: 'contact', sprite: 'goblins',
                     text: 'Two thin goblins squat on the bridge, picking through a dead traveller\'s pack. They look more hungry than cruel. They won\'t let you pass, though. Walk into them to fight, or come back later.' },
                 { id: 'tollway_root_chewers', gate: true, x: 9, y: 13, name: 'Root-Chewers', enemies: ['bone_gnawer', 'rust_rat'], trigger: 'contact', sprite: 'gnawer',
-                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels.' },
+                    text: 'Something bony is gnawing at the cart wheels in the only gap through the wreckage, a rust-furred rat at its heels. Ash is smeared round one wheel rim in a circle, left open at the top.' },
                 // Q05 (Tokelo, 2026-11-02): the register is guarded. Four looters sit on the strongbox, and the box
                 // won't open (guardedBy) until they are beaten, so the player has to fight for it.
                 { id: 'tollway_strongbox_looters', x: 15, y: 16, name: 'Strongbox Looters', enemies: ['weak_goblin', 'weak_goblin', 'weak_goblin', 'rust_rat'], trigger: 'contact', sprite: 'goblins',
@@ -202,6 +202,9 @@
                 { id: 'village_elian', kind: 'npc', npc: 'elian', x: 20, y: 9, name: 'Elian', sprite: 'traveller', when: { flags: ['elian_in_village'] } },
                 { id: 'village_shane', kind: 'npc', npc: 'shane', x: 24, y: 11, name: 'Shane', sprite: 'shane', when: { notFlags: ['shane_recruited'] } },
                 { id: 'village_crowd', kind: 'npc', npc: 'crowd', x: 22, y: 11, name: 'Villagers', sprite: 'crowd', when: { notFlags: ['shane_watch_resolved'] } },
+                // C1-N02 (Broken Crown rework): the Broken Oath courier, once Elian has pointed him out.
+                { id: 'village_oath_courier', kind: 'npc', npc: 'oath_courier', x: 24, y: 5, name: 'Man in a grey cloak', sprite: 'oath_courier',
+                    when: { flags: ['oath_courier_seen'], notFlags: ['oath_orders_taken', 'north_gate_open'] } },
                 { id: 'village_notice_board', kind: 'inspect', x: 21, y: 6, name: 'Notice board',
                     text: 'FESTIVAL OF THE SUN: the heroes\' victory, one year on! Below the bunting, two handwritten requests: "Wolf on the homestead road. Someone see to it." and "Herbs wanted from the north orchard. Ask Iona."' },
                 { id: 'village_well', kind: 'inspect', x: 26, y: 12, name: 'Village well',
@@ -673,6 +676,9 @@
                     text: 'A ghoul, scarred with ritual cuts, strains at a snapped chain in the narrow path. It got loose from somewhere above.' }
             ],
             interactables: [
+                // C1-N04 (Broken Crown rework): Corvin Sere at the foot of the climb, until he leaves or the Warden dies.
+                { id: 'featherwatch_corvin', kind: 'npc', npc: 'corvin', x: 11, y: 18, name: 'Corvin Sere', sprite: 'oath_officer',
+                    when: { notFlags: ['corvin_gone', 'warden_dead'], any: [{ quests: { 'C1-N04': 'active' } }, { flags: ['corvin_met'] }] } },
                 { id: 'featherwatch_cage', kind: 'inspect', x: 13, y: 8, name: 'Broken cage',
                     text: 'A heavy cage, its door bent outward. The lock was mended many times, by someone patient, before it finally gave.' },
                 { id: 'featherwatch_chanterelles', kind: 'forage', forage: 'chanterelles', x: 3, y: 10, name: 'Chanterelles', sprite: 'mushrooms',
@@ -732,7 +738,10 @@
                 { id: 'sanctuary_warden_npc', kind: 'npc', npc: 'warden', x: 13, y: 5, name: 'The Crow-Touched Warden', sprite: 'warden_npc',
                     when: { notFlags: ['warden_challenged'] } },
                 { id: 'sanctuary_journal', kind: 'inspect', x: 5, y: 4, name: "Warden's log",
-                    text: '"Mended the gray one\'s wing today. It bit me twice. Good. It wants to live." Page after page: feedings, splints, names for every bird. The last entry: "Someone has woken in the old house. The crows saw. Keep the seal."' },
+                    text: '"Mended the gray one\'s wing today. It bit me twice. Good. It wants to live." Page after page: feedings, splints, names for every bird. Near the end: "Grey robes on the causeway again, with chains. Doubled the watch on the seal." The last entry: "Someone has woken in the old house. The crows saw. Keep the seal."' },
+                // After the fight (Broken Crown rework, Act V): you bury the Warden, and learn his name.
+                { id: 'sanctuary_grave', kind: 'station', station: 'warden_grave', x: 9, y: 6, name: 'The Warden', sprite: 'fallen_warden', verb: 'Kneel by',
+                    when: { flags: ['warden_dead'] }, looks: [{ when: { flags: ['bran_buried'] }, name: 'Cairn', sprite: 'cairn' }] },
                 { id: 'sanctuary_cage_grey', kind: 'inspect', x: 2, y: 3, name: 'Rebuilt cage',
                     text: 'A cage rebuilt from old prison bars, its door tied open with a ribbon. Inside, a nest, and a gray crow with a crooked wing.' },
                 { id: 'sanctuary_cage_empty', kind: 'inspect', x: 19, y: 6, name: 'Empty cage',
@@ -809,7 +818,10 @@
                 { id: 'road_chanterelles_east', kind: 'forage', forage: 'chanterelles', x: 28, y: 3, name: 'Chanterelles', sprite: 'mushrooms',
                     text: 'A ring of chanterelles where nobody walks.' },
                 { id: 'road_herbs', kind: 'forage', forage: 'wild_herbs', x: 7, y: 10, name: 'Wild herbs', sprite: 'herbs',
-                    text: 'Yarrow and thyme growing wild along the verge.' }
+                    text: 'Yarrow and thyme growing wild along the verge.' },
+                // The Broken Crown rework (Act I): the man who dug at your house, until he runs or the story moves on.
+                { id: 'road_scavenger', kind: 'npc', npc: 'scavenger', x: 13, y: 4, name: 'Scavenger', sprite: 'scavenger',
+                    when: { notFlags: ['scavenger_fled'], quests: { Q04: 'unseen' } } }
             ]
         }
     };

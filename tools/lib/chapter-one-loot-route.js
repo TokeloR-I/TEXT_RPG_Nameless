@@ -5,8 +5,9 @@ const {WorldSession} = require('../../src/world/world');
 const world = require('../../src/world/zone1');
 const H = require('../../tests/world-helpers');
 const {helpLocals} = require('./shamefield-locals-route');
+const {storyRouteNorth, meetCorvin} = require('./broken-oath-route');
 const {choose} = require('../../qa/scripts/smartbot');
-function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment=true,stopBeforeBoss=false}={}) {
+function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment=true,stopBeforeBoss=false,locals=false}={}) {
     const g=new GameEngine({seed});g.start();
     if(!equipment) g.equipStarters=()=>{};
     g.input(cls);
@@ -50,11 +51,15 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     H.inspect(s,'village_mara');say(/carry supplies/);bye();H.inspect(s,'village_tamsin');say(/Mara sent/);bye();
     H.inspect(s,'village_captain');bye();H.travel(s,'tollway');if(!fight('tollway_strongbox_looters'))return {...result,g,s};H.inspect(s,'tollway_register');H.travel(s,'shamefield');
     H.inspect(s,'village_captain');say(/Here it is/);bye();
-    // The Captain opens the orchard gate only after the six Shamefield favours (Tokelo 2026-11-04).
+    // The orchard gate (Broken Crown rework, 2026-11-11): the mandatory route proves who forged the register's
+    // clearances (C1-N02). The six Shamefield favours are optional; `locals: true` walks them too (the old route).
     const settle=()=>{if(g.mode==='branch_select')g.act({type:'choose_branch',branchId:Object.keys(data.evolutionPaths[cls].branches)[branch]});};
-    const lost=new Error('route lost a fight');
-    try{helpLocals(g,s,{say,bye:()=>{bye();settle();},settle,fight:id=>{settle();if(!fight(id)){result.where=id;throw lost;}}});}
-    catch(err){if(err===lost)return {...result,g,s};throw err;}
+    if(locals) {
+        const lost=new Error('route lost a fight');
+        try{helpLocals(g,s,{say,bye:()=>{bye();settle();},settle,fight:id=>{settle();if(!fight(id)){result.where=id;throw lost;}}});}
+        catch(err){if(err===lost)return {...result,g,s};throw err;}
+    }
+    if(g.questState('C1-N02')==='active')storyRouteNorth(g,s,{say,bye:()=>{bye();settle();},settle});
     if(buy) {
         H.inspect(s,'village_iona');say(/What have you got/);
         for(const item of ['Healing Herb Bundle','Bandages']) while(g.act({type:'buy',shopId:'iona',item}).ok)result.bought++;
@@ -65,6 +70,7 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     H.travel(s,'orchard');
     for(const id of ['orchard_east_lookouts','orchard_west_lookouts','orchard_cultists'])if(!fight(id))return {...result,g,s};
     H.takeExit(s,'orchard_north');
+    meetCorvin(g,s,{say,bye});   // C1-N04: Corvin Sere at the foot of the climb
     for(const id of ['featherwatch_rearguard','featherwatch_crows','featherwatch_ghoul'])if(!fight(id))return {...result,g,s};
     H.takeExit(s,'featherwatch_north');H.inspect(s,'sanctuary_journal');H.inspect(s,'sanctuary_warden_npc');
     result.preWardenGold=g.player.gold;
