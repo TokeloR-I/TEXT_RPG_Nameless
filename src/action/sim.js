@@ -344,7 +344,11 @@
             g.engaged = false;
             g.reengageAt = this.now + 1500;
             this.actors = this.actors.filter((x) => !(x.illusionOf && x.encounterId === g.encounterId));   // the false Wardens are gone
-            for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
+            for (const a of this.actors) if (a.encounterId === g.encounterId) {
+                // The engine brings the whole group back next time (actionEngage builds every enemy again), so the ones
+                // you killed before it gave up stand up too. Left dead here, they'd be invisible engine enemies the
+                // group can never clear without, and the chest they guard stays shut (Tokelo's toll register, playtest 2026-11-11).
+                if (a.dead) Object.assign(a, { dead: false, deadAt: 0, x: a.homeX, y: a.homeY, hurtUntil: 0 });
                 Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
             }
         }

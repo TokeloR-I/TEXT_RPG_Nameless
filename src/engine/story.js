@@ -466,6 +466,7 @@
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
                 if (a.type === 'sell' && a.shopId === s.dialogue.shopId) { this.sellItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
+                if (a.type === 'cook') { this.cookAtStation(String(a.recipeId || '')); return true; }   // the cooking menu (kitchen)
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
                 this.showDialogueChoices();
@@ -485,6 +486,49 @@
                 case 'dialogue_choice': case 'dialogue_leave': this.refuse('WRONG_MODE', "You aren't talking to anyone."); return true;
                 default: return false;
             }
+        }
+
+        /**
+         * Pure. The cooking menu of the station you're talking to (a story npc with `kitchen: '<station>'`, e.g. a
+         * hearth), or null: its recipes with what each needs and has, and the ingredients you carry for them.
+         * The front end shows it as slots; cookAtStation() runs the same check (playtest 2026-11-11: a real menu).
+         */
+        kitchenView() {
+            const d = this.story && this.story.dialogue;
+            const npc = d && this.npcDef(d.npcId);
+            if (!npc || !npc.kitchen) return null;
+            const inv = this.player.inventory;
+            const count = (item) => inv.filter((x) => x === item).length;
+            const recipes = Object.entries(this.data.recipeDefinitions || {}).filter(([, r]) => r.station === npc.kitchen).map(([id, r]) => {
+                const reason = this.cookBlock(id, npc.kitchen);
+                return { id, output: r.output, yield: Number.isSafeInteger(r.yield) && r.yield > 1 ? r.yield : 1, verb: r.verb || 'Made',
+                    ingredients: Object.entries(r.ingredients || {}).map(([item, qty]) => ({ item, qty, have: count(item) })),
+                    description: (this.itemDef(r.output) || {}).description || '', enabled: !reason, ...(reason ? { reason } : {}) };
+            });
+            const used = [...new Set(recipes.flatMap((r) => r.ingredients.map((x) => x.item)))];
+            const pantry = used.filter((item) => count(item) > 0).map((item) => ({ item, owned: count(item), description: (this.itemDef(item) || {}).description || '' }));
+            return { station: npc.kitchen, name: npc.name, recipes, pantry };
+        }
+
+        /** Pure. Why this recipe can't be cooked here now, or null. */
+        cookBlock(recipeId, station) {
+            const r = (this.data.recipeDefinitions || {})[recipeId];
+            if (!r || r.station !== station) return { code: 'WRONG_STATION', message: "That isn't made here." };
+            if (r.requiresUpgrade && !this.player.homestead?.built?.[r.requiresUpgrade]) return { code: 'RECIPE_LOCKED', message: 'This recipe or station is unavailable.' };
+            const inv = this.player.inventory;
+            const short = Object.entries(r.ingredients || {}).filter(([item, qty]) => inv.filter((x) => x === item).length < qty).map(([item]) => item);
+            if (short.length) return { code: 'MISSING_INGREDIENTS', message: `You need ${short.join(', ')}.` };
+            return null;
+        }
+
+        /** The cooking menu's Cook button: one recipe at the station you're talking to. */
+        cookAtStation(recipeId) {
+            const d = this.story.dialogue;
+            const npc = this.npcDef(d.npcId);
+            if (!npc || !npc.kitchen) { this.refuse('WRONG_STATION', 'There is nothing to cook on here.'); return; }
+            const block = this.cookBlock(recipeId, npc.kitchen);
+            if (block) { this.refuse(block.code, block.message); return; }
+            this.craftRecipe(recipeId);
         }
 
         /** Availability while talking (pure). */
@@ -511,8 +555,11 @@
                     owned: this.player.inventory.filter(id => id === item).length, description: this.itemDetails(item), enabled: !reason, ...(reason ? { reason } : {}) };
             }) : [];
             actions.push(...goods, ...selling);
+            const kitchen = this.kitchenView();
+            if (kitchen) actions.push(...kitchen.recipes.map((r) => ({ type: 'cook', recipeId: r.id, enabled: r.enabled, ...(r.reason ? { reason: r.reason } : {}) })));
             return {
                 shop: shop ? { shopId, gold: this.player.gold, goods, selling } : null,
+                kitchen,
                 dialogue: {
                     npcId: d.npcId, name: npc.name, title: npc.title || null,
                     lines: (node.lines || []).map((l) => {

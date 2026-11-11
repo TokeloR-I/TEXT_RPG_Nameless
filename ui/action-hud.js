@@ -73,6 +73,25 @@
         return { remainingMs: t.remainingMs, totalMs: total, frac: clamp01(t.remainingMs / total) };
     }
 
+    /** Kitchen buffs (src/engine/kitchen.js) show a picture, not the dish's name (Tokelo, playtest 2026-11-11): a bowl
+     *  for any meal, a full beer mug for beer and what beer does to you (Tipsy, Drunk). Null for every other status. */
+    function foodIcon(s) {
+        if (!s || !s.food) return null;
+        if (s.meal) return 'meal';
+        return 'beer';   // drinks, Tipsy and Drunk: the only food statuses that aren't meals come from beer
+    }
+    /** 12×12 pixel icons for food chips; currentColor-free so they read on the dark HUD in both themes. */
+    const FOOD_SVG = {
+        meal: '<svg viewBox="0 0 12 12" width="1.4em" height="1.4em" shape-rendering="crispEdges" aria-hidden="true">'
+            + '<path fill="#e8e1cf" opacity=".75" d="M3 0h1v1H3zM4 1h1v1H4zM3 2h1v1H3zM7 0h1v1H7zM8 1h1v1H8zM7 2h1v1H7z"/>'
+            + '<path fill="#d8923a" d="M2 4h8v1H2z"/><path fill="#f0c060" d="M3 4h2v1H3zM7 4h1v1H7z"/><path fill="#7fbf5a" d="M5 4h1v1H5z"/>'
+            + '<path fill="#e8d8b0" d="M0 5h12v1H0z"/><path fill="#c8a070" d="M0 6h12v1H0zM1 7h10v1H1z"/>'
+            + '<path fill="#9a6a3a" d="M2 8h8v1H2zM3 9h6v1H3z"/><path fill="#6a4424" d="M4 10h4v1H4z"/></svg>',
+        beer: '<svg viewBox="0 0 12 12" width="1.4em" height="1.4em" shape-rendering="crispEdges" aria-hidden="true">'
+            + '<path fill="#fffbe8" d="M2 1h7v2H2z"/><path fill="#e8a417" d="M2 3h7v8H2z"/><path fill="#f6c84a" d="M3 4h1v6H3z"/>'
+            + '<path fill="#b8c4cc" d="M9 4h2v1h1v4h-1v1H9V9h2V5H9z"/><path fill="#b8c4cc" d="M1 3h1v8H1zM2 11h7v1H2z"/></svg>'
+    };
+
     /** Status chips for the HUD: seconds left on the fight clock, stacks, category glyph. */
     function statusChips(list, defs, fightNow) {
         return (list || []).map((s) => {
@@ -86,8 +105,9 @@
             }
             const seconds = msLeft == null ? null : Math.ceil(msLeft / 1000);
             const left = seconds != null ? `${seconds}s` : num(s.duration) ? `${s.duration}t` : '';
+            const icon = foodIcon(s);
             return {
-                id: s.name, name: s.name, category: cat, glyph: CATEGORY_GLYPH[cat], stacks, seconds, frac, left,
+                id: s.name, name: s.name, category: cat, glyph: CATEGORY_GLYPH[cat], stacks, seconds, frac, left, icon,
                 title: `${s.name} (${cat}${stacks ? `, ${stacks} stacks` : ''}${seconds != null ? `, ${seconds}s left` : ''})`
             };
         });
@@ -417,9 +437,11 @@
                     e = { el, g: h('i', '', el), n: h('span', 'n', el), x: h('b', 'x', el), t: h('span', 't', el), d: h('span', 'drain', el) };
                     chipEls.set(c.id, e);
                 }
-                attr(e.el, 'class', `ahud-chip st-${c.category}${c.frac != null && c.frac < 0.25 ? ' ending' : ''}`);
+                attr(e.el, 'class', `ahud-chip st-${c.category}${c.icon ? ` food-chip food-${c.icon}` : ''}${c.frac != null && c.frac < 0.25 ? ' ending' : ''}`);
                 attr(e.el, 'title', c.title);
-                text(e.g, c.glyph); text(e.n, c.name); text(e.x, c.stacks ? `×${c.stacks}` : ''); text(e.t, c.left);
+                // A meal or a beer: its icon stands in for the glyph and the dish's name (still in the tooltip).
+                if (c.icon) { if (put(e.g, 't', `icon:${c.icon}`)) e.g.innerHTML = FOOD_SVG[c.icon] || ''; text(e.n, ''); }
+                else { text(e.g, c.glyph); text(e.n, c.name); } text(e.x, c.stacks ? `×${c.stacks}` : ''); text(e.t, c.left);
                 width(e.d, c.frac == null ? '0%' : qpct(c.frac, 16));
             }
             for (const [id, e] of chipEls) if (!live.has(id)) { e.el.remove(); chipEls.delete(id); }
@@ -518,7 +540,7 @@
         };
     }
 
-    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, healCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, NOTICE_MS };
+    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, NOTICE_MS };
     ENSO.actionHud = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

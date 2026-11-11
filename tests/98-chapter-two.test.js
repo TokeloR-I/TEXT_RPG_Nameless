@@ -299,3 +299,20 @@ test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every
         assert.strictEqual(typeof a.animate, 'function');
     }
 });
+
+test('Playtest 2026-11-11 (16 px world): the harbour bell answers E from the terrace in front of it, and the stair opens onto the town', () => {
+    const { doubleWorld } = require('../src/world/scale16.js');
+    const { pathTo } = require('./world-helpers.js');
+    const W16 = doubleWorld(ZONE1);
+    const { g } = run();
+    const s = new WorldSession(W16, { engine: g });
+    s.place('skeldvik', 'flight_bell');
+    assert.strictEqual(s.facing, 'up');
+    const r = s.interact();
+    assert.strictEqual(r.type, 'message', 'arriving by crow you face the bell, and E rings true');
+    assert.strictEqual(r.id, 'skeldvik_bell');
+    // Down the Upland stair: straight on to the square in front of the inn, not a pocket walled by the ring stones.
+    s.place('skeldvik', 'from_pass');
+    const steps = pathTo(s, 22 * 2, 7 * 2).length;
+    assert.ok(steps <= 50, `the inn door is ${steps} steps from the foot of the stair (it was 112, the long way round)`);
+});

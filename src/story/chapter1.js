@@ -302,8 +302,8 @@
             title: 'A Proper Meal', kind: 'side', xp: 10, candidate: true,
             summary: "Oda caught you eating a plain Brötchen in the street and took it personally. A roll is half a meal: she wants to see you cook the other half.",
             objectives: [
-                { id: 'hearth', text: 'Cook a Leberkäsbrötchen at the hearth on your homestead (Pork and a Brötchen)', on: { type: 'craft', id: 'cook_leberkaese' }, marker: { map: 'grounds', x: 17, y: 6 } },
-                { id: 'eat', text: 'Eat it (Esc, then Items) and feel the buff', on: { type: 'eat', id: 'Leberkäsbrötchen' }, marker: { map: 'grounds', x: 17, y: 6 }, effects: [{ flag: 'sf6_ate' }] },
+                { id: 'hearth', text: "Cook a Leberkäsbrötchen at the hearth by Oda's oven, or your own at home (Pork and a Brötchen)", on: { type: 'craft', id: 'cook_leberkaese' }, marker: { map: 'village_residential_lane', x: 20, y: 7 } },
+                { id: 'eat', text: 'Eat it (Esc, then Items) and feel the buff', on: { type: 'eat', id: 'Leberkäsbrötchen' }, marker: { map: 'village_residential_lane', x: 20, y: 7 }, effects: [{ flag: 'sf6_ate' }] },
                 { id: 'oda', text: 'Tell Oda you ate properly', on: { type: 'story', id: 'oda_meal' }, marker: { map: 'village_residential_lane', x: 17, y: 6 } }
             ],
             onComplete: [{ item: 'Brezel', key: 'item:sf6_brezel_1' }, { item: 'Brezel', key: 'item:sf6_brezel_2' }]
@@ -1421,7 +1421,7 @@
                 sf6_start: {
                     lines: [
                         ['npc', "I saw you. Standing in the square, chewing a plain Brötchen like a goat. A roll on its own is half a meal. You eat the other half too, or you don't eat."],
-                        ['npc', "Here: a roll, and a slice of Greta's pork. Take them to that hearth on your homestead and cook a Leberkäsbrötchen. Then eat it, sit down, and notice that you feel stronger. Then come back and thank me."],
+                        ['npc', "Here: a roll, and a slice of Greta's pork. Take them to the hearth there under my eaves, or the one on your homestead, and cook a Leberkäsbrötchen. Then eat it, sit down, and notice that you feel stronger. Then come back and thank me."],
                         ['npc', "Any hearth recipe works the same way: carry what it needs, stand at the fire, cook. Ask the fire what it can make if you forget."]
                     ],
                     effects: [{ start: 'SF6' }, { item: 'Brötchen', key: 'item:sf6_roll' }, { item: 'Pork', key: 'item:sf6_pork' }],
@@ -1576,7 +1576,7 @@
         },
         // The homestead kitchen and lot (2026-11-02): your own hearth, two fields, a pigsty and a hen coop.
         homestead_hearth: {
-            name: 'Cooking hearth', title: 'Your homestead',
+            name: 'Cooking hearth', title: 'Your homestead', kitchen: 'hearth',
             talk: [{ node: 'hearth' }],
             nodes: {
                 hearth: {
@@ -1833,10 +1833,21 @@
             }
         },
 
+        // The public hearth in Baker's Lane, beside Oda's oven (playtest 2026-11-11): cook in the village, not only at home.
+        lane_hearth: {
+            name: 'Lane hearth', title: "Baker's Lane", kitchen: 'hearth',
+            talk: [{ node: 'hearth' }],
+            nodes: {
+                hearth: {
+                    lines: [[null, "A brick hearth under the bakery eaves, fed from Oda's woodpile. A slate by it reads: COOK WHAT YOU LIKE. CLEAN THE POT. — O."]],
+                    choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
+                }
+            }
+        },
         // ------------------------------------------------------------- The rest of the master brief (2026-11-11)
         // The festival hearth by the raven tree (C1-N03): a public hearth, so the cooking lesson needs no trip home.
         square_hearth: {
-            name: 'Festival hearth', title: 'Shamefield',
+            name: 'Festival hearth', title: 'Shamefield', kitchen: 'hearth',
             talk: [{ node: 'hearth' }],
             nodes: {
                 hearth: {

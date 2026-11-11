@@ -58,7 +58,7 @@ test('LOOT-01: elites scale Gold and gear exactly once; boss guarantee is indepe
     }
     chance(gear, 10000, .18); chance(material, 10000, .35); chance(consumable, 10000, .20);
     const boss = g.rollEnemyLoot({ ...data.enemies.crow_touched_warden, lootClaimId: 'warden' });
-    assert.strictEqual(boss.gold, 0);
+    assert.ok(boss.gold >= 13 && boss.gold <= 22, `the Warden carries a purse now (playtest 2026-11-11): ${boss.gold}`);
     assert.deepStrictEqual(boss.items, [{ item: 'Seal-Key of the First Echo', storyKey: 'item:crow_warden_memory_key' }]);
 });
 test('LOOT-01: Gold formula scales with authored level rather than player level', () => {
@@ -125,7 +125,7 @@ test('LOOT-01: overflow and invalid drops retain a durable error and do not sile
 test('LOOT-01: boss key and seal are separate; no duplicate story key or treasury', () => {
     const g = game(101); g.act({ type:'enter_world' });
     defeat(g, 'sanctuary_warden', ['crow_touched_warden']);
-    assert.strictEqual(g.player.gold, 0);
+    assert.ok(g.player.gold >= 13 && g.player.gold <= 22, 'his purse only (playtest 2026-11-11), not the seal treasury');
     assert.strictEqual(g.player.inventory.filter(i => i === 'Seal-Key of the First Echo').length, 1);
     assert.ok(!g.hasStoryFlag('aspect_nahemoth'));
     g.storyGold(20, 'first_seal_treasury'); const before = g.player.gold;

@@ -32,6 +32,10 @@
 
     const FORMAT = 'enso-save';
     const FORMAT_VERSION = 3;
+    // Which content release wrote a save. Bump it when a PR adds or removes story content (quests, NPCs, items,
+    // maps), so a save carried back to an older copy of the game is recognised as newer, not "updated" (playtest
+    // 2026-11-11). A save that names quests or items this build doesn't know is newer whatever the number says.
+    const CONTENT_REVISION = 1;
     const ENGINE_VERSION = '0.1.0';          // package.json "version" (kept in step by tests/33-save-load.test.js)
     const STATE_KEYS = ['rooms', 'currentRoom', 'mode', 'player', 'combat', 'pendingBranchChoice', 'flags', 'stats', 'progression', 'world', 'story'];
     // Fields a save must have to be loaded at all (story/world may be null: the text game).
@@ -107,7 +111,7 @@
                 format: FORMAT,
                 formatVersion: FORMAT_VERSION,
                 engine: { version: ENGINE_VERSION, eventSchema: 1 },
-                game: { version: ENGINE_VERSION, chapter: (this.story && this.story.chapter) || null },
+                game: { version: ENGINE_VERSION, revision: CONTENT_REVISION, chapter: (this.story && this.story.chapter) || null },
                 data: { hash: this.dataHash() },
                 meta: { label, createdAt },
                 rng: { algorithm: 'mulberry32', seed: this.seed, state: snap.rng },
@@ -149,6 +153,8 @@
                 if (strictData) return { ok: false, warnings, events: [], attachments: null, error: { code: 'DATA_CHANGED', message: 'The game data has changed since this save was made.' } };
                 warnings.push({ code: 'DATA_CHANGED', message: 'The game data has changed since this save was made; it was loaded anyway.' });
             }
+            const ahead = this.saveAhead(save);   // read before reconcileSave() sets the unknown things aside
+            if (ahead.length) warnings.push({ code: 'NEWER_SAVE', message: `This save was made by a newer version of the game: ${ahead.join('; ')}.`, details: ahead });
             let failure = null;
             let reconciled = [];
             const events = this.transact(() => {
@@ -168,6 +174,23 @@
             if (failure) return { ok: false, warnings, events, attachments: null, error: { code: 'CORRUPT', message: failure.message } };
             if (reconciled.length) warnings.push({ code: 'CONTENT_UPDATED', message: `New content was added to this save: ${reconciled.join('; ')}.`, details: reconciled });
             return { ok: true, warnings, events, attachments: save.attachments == null ? null : JSON.parse(JSON.stringify(save.attachments)), game: clone(save.game) || null };
+        }
+
+        /** Pure. What in `save` this build doesn't know (it came from a newer version), as short notes; [] if nothing. */
+        saveAhead(save) {
+            const notes = [];
+            const rev = save && save.game && save.game.revision;
+            if (Number.isInteger(rev) && rev > CONTENT_REVISION) notes.push(`content release ${rev}, this game is release ${CONTENT_REVISION}`);
+            const st = save && save.state;
+            const data = this.storyContent && this.storyContent();
+            const quests = st && isObj(st.story) && isObj(st.story.quests) ? Object.keys(st.story.quests) : [];
+            const unknownQuests = data && isObj(data.quests) ? quests.filter((id) => !data.quests[id]) : [];
+            if (unknownQuests.length) notes.push(`${unknownQuests.length} quest${unknownQuests.length > 1 ? 's' : ''} this version doesn't have`);
+            const inv = st && isObj(st.player) && Array.isArray(st.player.inventory) ? st.player.inventory : [];
+            const defs = this.data.itemDefinitions || {};
+            const unknownItems = [...new Set(inv.filter((i) => typeof i === 'string' && !defs[i] && !/ \[[^\]]+\]$/.test(i)))];   // "Name [id]" is generated gear
+            if (unknownItems.length) notes.push(`${unknownItems.length} item${unknownItems.length > 1 ? 's' : ''} this version doesn't have`);
+            return notes;
         }
 
         /** Fit a restored state to the content this version ships. Returns short notes on what changed
@@ -205,6 +228,10 @@
             if (isObj(st) && data && isObj(data.quests)) {
                 for (const k of ['flags', 'seen', 'claimed']) if (!Array.isArray(st[k])) st[k] = [];
                 if (!isObj(st.quests)) st.quests = {};
+                // A quest set aside by an older copy of the game (a save carried back and forth) comes back as it was.
+                const back = isObj(st.retiredQuests) ? Object.keys(st.retiredQuests).filter((id) => data.quests[id] && !isObj(st.quests[id])) : [];
+                for (const id of back) { st.quests[id] = st.retiredQuests[id]; delete st.retiredQuests[id]; }
+                if (back.length) notes.push(`${back.length} quest${back.length > 1 ? 's' : ''} restored`);
                 const added = Object.keys(data.quests).filter((id) => !isObj(st.quests[id]));
                 for (const id of added) st.quests[id] = { state: 'unseen', step: 0 };
                 if (added.length) notes.push(`${added.length} new quest${added.length > 1 ? 's' : ''}`);
@@ -241,6 +268,7 @@
 
     SaveMethods.FORMAT = FORMAT;
     SaveMethods.FORMAT_VERSION = FORMAT_VERSION;
+    SaveMethods.CONTENT_REVISION = CONTENT_REVISION;
     SaveMethods.ENGINE_VERSION = ENGINE_VERSION;
     SaveMethods.cyrb53 = cyrb53;
     SaveMethods.migrateSave = migrateSave;

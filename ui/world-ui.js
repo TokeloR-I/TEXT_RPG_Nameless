@@ -519,8 +519,13 @@
         for (const id of ((engine.lastLoad.attachments || {}).seen) || []) seen.add(id);
         enterExplore(engine.player.className, engine.player.appearance || 0, (engine.lastLoad.attachments || {}).cosmetics || defaultCosmetics());
         resetAutosave();
-        const updated = engine.lastLoad.warnings.some((w) => w.code === 'DATA_CHANGED' || w.code === 'UPGRADED' || w.code === 'CONTENT_UPDATED');
-        const warn = updated ? [`(This save is from version ${saveVersion(save)}. The game has been updated since, and your progress carried over.)`] : [];
+        // A save carried back to an older copy of the game says so, instead of claiming the game was updated
+        // (Tokelo, playtest 2026-11-11). Unknown quests are kept aside and come back when you load it in the newer copy.
+        const codes = new Set(engine.lastLoad.warnings.map((w) => w.code));
+        const updated = codes.has('DATA_CHANGED') || codes.has('UPGRADED') || codes.has('CONTENT_UPDATED');
+        const warn = codes.has('NEWER_SAVE')
+            ? ["(This save was made in a newer version of the game than this one. Some places, quests or items in it don't exist here yet. Your progress is kept, but play it in the newest version to see everything.)"]
+            : updated ? [`(This save is from version ${saveVersion(save)}. The game has been updated since, and your progress carried over.)`] : [];
         openDialog([`Welcome back, ${engine.player.name}.`, ...warn], null, afterStory);
         return true;
     }
@@ -762,6 +767,7 @@
         const avail = engine.getAvailableActions();
         if (avail.awaiting !== 'dialogue') { closeTalk(events); return; }
         if (avail.shop && !conversationOnly) { renderShop(avail); return; }
+        if (avail.kitchen && !conversationOnly) { kitchenEvents(events); renderKitchen(avail); return; }
         const { pages, notices } = DP.arrange(readable(events), { skipSpeaker: engine.player.name });
         for (const n of notices) notify(n.text, n.kind);
         const choices = avail.actions.filter((a) => a.type === 'dialogue_choice');
@@ -818,6 +824,137 @@
         }
     }
 
+    // ---------------------------------------------------------------------
+    // The cooking menu (Tokelo, playtest 2026-11-11: "crafting from a chat box is not a standard gaming mechanic").
+    // A hearth opens a pantry, a pot with four slots and the recipe book. Drag (or click) ingredients into the pot;
+    // when the pot holds exactly a recipe, Cook makes it. Clicking a recipe fills the pot for you. The engine's
+    // kitchenView() says what can be cooked and act({ type: 'cook' }) does it, with the same check.
+    // ---------------------------------------------------------------------
+    const POT_SLOTS = 4;
+    let kitchen = null;   // { npcId, pot: [{ item, qty }], message }
+    const potCount = (item) => (kitchen.pot.find((x) => x.item === item) || { qty: 0 }).qty;
+    /** The recipe the pot holds exactly (same ingredients, same amounts), or null. */
+    function potRecipe(k) {
+        const pot = kitchen.pot;
+        return k.recipes.find((r) => r.ingredients.length === pot.length && r.ingredients.every((x) => potCount(x.item) === x.qty)) || null;
+    }
+    function kitchenEvents(events) {
+        if (!events || !events.length) return '';
+        const { pages, notices } = DP.arrange(readable(events), { skipSpeaker: engine.player.name });
+        for (const n of notices) notify(n.text, n.kind);
+        return pages.map((p) => p.text).join(' ');
+    }
+    function potAdd(item, k) {
+        const have = (k.pantry.find((x) => x.item === item) || { owned: 0 }).owned;
+        const slot = kitchen.pot.find((x) => x.item === item);
+        if (slot) { if (slot.qty < have) slot.qty++; else kitchen.message = `You only have ${have} ${item}.`; }
+        else if (kitchen.pot.length >= POT_SLOTS) kitchen.message = 'The pot is full. Take something out first.';
+        else if (have > 0) kitchen.pot.push({ item, qty: 1 });
+    }
+    function potRemove(item) {
+        const slot = kitchen.pot.find((x) => x.item === item);
+        if (!slot) return;
+        if (--slot.qty <= 0) kitchen.pot = kitchen.pot.filter((x) => x !== slot);
+    }
+    function potFill(r) {
+        kitchen.pot = r.ingredients.slice(0, POT_SLOTS).map((x) => ({ item: x.item, qty: Math.min(x.qty, x.have) })).filter((x) => x.qty > 0);
+        kitchen.message = r.enabled ? '' : (r.reason && r.reason.message) || '';
+        kitchen.picked = r.id;
+    }
+    function kitchenCook(r) {
+        const res = engine.act({ type: 'cook', recipeId: r.id });
+        const said = kitchenEvents(res.events);
+        updateHud();
+        kitchen.message = res.ok ? (said || `${r.verb} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output}.`) : res.error.message;
+        const next = engine.getAvailableActions();
+        if (next.awaiting !== 'dialogue' || !next.kitchen) { renderTalk([], true); return; }
+        const again = next.kitchen.recipes.find((x) => x.id === r.id);
+        if (!again || !again.enabled) kitchen.pot = [];   // keep the pot filled while there's enough for another
+        renderKitchen(next);
+    }
+    function renderKitchen(avail) {
+        const k = avail.kitchen;
+        if (!kitchen || kitchen.npcId !== avail.dialogue.npcId) kitchen = { npcId: avail.dialogue.npcId, pot: [], message: '', picked: null };
+        // The pot never holds more than you carry (you may have eaten or cooked since).
+        kitchen.pot = kitchen.pot.map((x) => ({ ...x, qty: Math.min(x.qty, (k.pantry.find((p) => p.item === x.item) || { owned: 0 }).owned) })).filter((x) => x.qty > 0);
+        const leave = () => { kitchen = null; renderTalk(engine.act({ type: 'dialogue_leave' }).events); };
+        const match = potRecipe(k);
+        const recipes = k.recipes.slice().sort((a, b) => (b.enabled - a.enabled));
+        menu = makeMenu([
+            ...recipes.map((r) => ({
+                label: `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}`,
+                sub: r.ingredients.map((x) => `${x.qty} ${x.item}${x.have < x.qty ? ` (${x.have})` : ''}`).join(' · '),
+                recipe: r,
+                action: () => { if (match && match.id === r.id && r.enabled) kitchenCook(r); else { potFill(r); renderKitchen(engine.getAvailableActions()); } }
+            })),
+            { label: 'Leave the hearth', action: leave }
+        ], { back: leave, render: draw });
+        const keep = kitchen.picked ? menu.items.findIndex((it) => it.recipe && it.recipe.id === kitchen.picked) : -1;
+        if (keep >= 0) menu.index = keep;
+        draw();
+        function draw() {
+            stopTyping();
+            const m = potRecipe(k);
+            const sel = menu.items[menu.index] && menu.items[menu.index].recipe;
+            const slots = Array.from({ length: POT_SLOTS }, (_, i) => kitchen.pot[i]);
+            els.dialog.hidden = false;
+            els.dialog.className = 'dialog kitchen';
+            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} <span class="dialog-role">Cooking</span></div>
+                <div class="kitchen-grid">
+                  <section class="kitchen-pantry" aria-label="Your ingredients">
+                    <div class="kitchen-head">Your bag</div>
+                    <div class="kitchen-slots">${k.pantry.length ? k.pantry.map((p) => {
+                        const left = p.owned - potCount(p.item);
+                        return `<button type="button" class="k-slot k-item${left <= 0 ? ' used' : ''}" draggable="true" data-item="${esc(p.item)}" title="${esc(p.item)}${p.description ? ` · ${esc(p.description)}` : ''}">
+                            <span class="k-name">${esc(p.item)}</span><span class="k-qty">×${left}</span></button>`;
+                    }).join('') : '<div class="kitchen-empty">Nothing you carry cooks here. Buy or grow some ingredients.</div>'}</div>
+                  </section>
+                  <section class="kitchen-pot" aria-label="The pot">
+                    <div class="kitchen-head">The pot</div>
+                    <div class="kitchen-slots pot-slots">${slots.map((x, i) => x
+                        ? `<button type="button" class="k-slot k-pot filled" data-slot="${i}" data-item="${esc(x.item)}" title="Take one out"><span class="k-name">${esc(x.item)}</span><span class="k-qty">×${x.qty}</span></button>`
+                        : `<div class="k-slot k-pot empty" data-slot="${i}" aria-label="Empty slot"></div>`).join('')}</div>
+                    <div class="kitchen-result${m ? (m.enabled ? ' ready' : ' blocked') : ''}">${m
+                        ? `→ <b>${esc(m.output)}${m.yield > 1 ? ` ×${m.yield}` : ''}</b>${m.description ? `<span class="k-desc">${esc(m.description)}</span>` : ''}`
+                        : kitchen.pot.length ? 'That makes nothing yet.' : 'Drag ingredients here, or pick a recipe.'}</div>
+                    <div class="kitchen-actions">
+                      <button type="button" class="k-btn k-cook"${m && m.enabled ? '' : ' disabled'}>Cook</button>
+                      <button type="button" class="k-btn k-clear"${kitchen.pot.length ? '' : ' disabled'}>Empty pot</button>
+                    </div>
+                  </section>
+                  <section class="kitchen-book" aria-label="Recipes">
+                    <div class="kitchen-head">Recipes</div>
+                    ${menuHtml(menu, 'kitchen-recipes')}
+                  </section>
+                </div>
+                <div class="shop-message" role="status">${esc(kitchen.message || (sel && !sel.enabled && sel.reason ? sel.reason.message : ''))}</div>
+                <div class="dialog-keys">Drag or click ingredients into the pot · ↑ ↓ recipe · Enter fill pot, Enter again cook · Esc leave</div>`;
+            bindMenuClicks(els.dialog, menu);
+            const again = () => { kitchen.message = ''; renderKitchen(engine.getAvailableActions()); };
+            els.dialog.querySelectorAll('.k-item').forEach((b) => {
+                b.addEventListener('click', () => { kitchen.message = ''; potAdd(b.dataset.item, k); kitchen.picked = null; renderKitchen(engine.getAvailableActions()); });
+                b.addEventListener('dragstart', (ev) => { ev.dataTransfer.setData('text/plain', b.dataset.item); ev.dataTransfer.effectAllowed = 'copy'; });
+            });
+            els.dialog.querySelectorAll('.k-pot.filled').forEach((b) => {
+                b.addEventListener('click', () => { potRemove(b.dataset.item); again(); });
+                b.draggable = true;
+                b.addEventListener('dragstart', (ev) => { ev.dataTransfer.setData('application/x-enso-pot', b.dataset.item); ev.dataTransfer.effectAllowed = 'move'; });
+            });
+            const pot = els.dialog.querySelector('.kitchen-pot');
+            pot.addEventListener('dragover', (ev) => { ev.preventDefault(); pot.classList.add('drop'); });
+            pot.addEventListener('dragleave', () => pot.classList.remove('drop'));
+            pot.addEventListener('drop', (ev) => { ev.preventDefault(); const item = ev.dataTransfer.getData('text/plain'); if (item) { kitchen.message = ''; potAdd(item, k); kitchen.picked = null; renderKitchen(engine.getAvailableActions()); } });
+            // Drag a pot ingredient back to the bag: it comes out of the pot.
+            const bag = els.dialog.querySelector('.kitchen-pantry');
+            bag.addEventListener('dragover', (ev) => { if ([...ev.dataTransfer.types].includes('application/x-enso-pot')) ev.preventDefault(); });
+            bag.addEventListener('drop', (ev) => { const item = ev.dataTransfer.getData('application/x-enso-pot'); if (item) { ev.preventDefault(); const s = kitchen.pot.find((x) => x.item === item); if (s) kitchen.pot = kitchen.pot.filter((x) => x !== s); again(); } });
+            els.dialog.querySelector('.k-cook').addEventListener('click', () => { const r = potRecipe(k); if (r && r.enabled) kitchenCook(r); });
+            els.dialog.querySelector('.k-clear').addEventListener('click', () => { kitchen.pot = []; kitchen.picked = null; again(); });
+            const selectedRow = els.dialog.querySelector('.kitchen-recipes .selected');
+            if (selectedRow) selectedRow.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
     /** One page of the conversation. While pages remain: the page and ▼. On the last page: the choices too.
      *  `type` restarts the typewriter (a new page); menu moves redraw without retyping. */
     function drawTalk(avail, type) {
@@ -856,6 +993,7 @@
         modal = null; syncActionHudVisibility();
         menu = null;
         talk = null;
+        kitchen = null;
         closedAt = performance.now();
         updateHud();
         showStory(null, events, null, afterStory);
