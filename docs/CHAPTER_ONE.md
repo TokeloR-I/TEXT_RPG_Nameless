@@ -33,14 +33,14 @@ Cellar → House → Grounds → Overgrown Road → Broken Tollway → Shamefiel
 | Q08 Ten Seals | the hook for Chapter Two | | |
 
 **The Broken Crown rework (Tokelo, 2026-11-11, `docs/design/CHAPTER_ONE_NARRATIVE_REWORK.md`).** The register is
-evidence now: its forged clearances start **C1-N02 *The Ash on the Register*** (25 XP, candidate). The orchard gate opens
+evidence now: its forged clearances start **C1-N02 *The Ash on the Register*** (25 XP). The orchard gate opens
 by either of two routes, once:
 - **Story route:** Elian names the quartermaster's seal, you grab or follow the Broken Oath courier (`oath_courier_caught`
   / `oath_courier_tracked`), and the Captain reads the orders: Corvin Sere.
 - **Village route:** two of the six households (SF1 to SF6) vouch for you (`village_vouched`). L01 *Get to Know the
   Locals* is a side quest now; all six still earn its reward and Bragg's weapon.
 
-C1-N02 starts **C1-N03 *The Festival in Ash*** (20 XP, candidate; the Captain opens the gate the day after the festival):
+C1-N02 starts **C1-N03 *The Festival in Ash*** (20 XP; the Captain opens the gate the day after the festival):
 - Oda's cooking lesson: she hands over one Brötchen and one Pork (one restock if they go astray), you cook a
   Leberkäsbrötchen at the new **festival hearth** by the raven tree (`square_hearth`, stays after the festival) and eat
   it; the game explains the buff from the item's own `effectText`. A run that finished SF6 *A Proper Meal* skips these steps.
@@ -49,11 +49,11 @@ C1-N02 starts **C1-N03 *The Festival in Ash*** (20 XP, candidate; the Captain op
   thief** (`festival_pursue`, fight `festival_thief`; the roll is saved, Greta's stall is wrecked and she says so).
 - The Captain's debrief opens the gate (`north_gate_open`) and pays 10 Gold.
 
-**C1-N04 *An Oath in Ash*** (20 XP, candidate): beat **Sergeant Kess, the Ash-Marked** (`oath_sergeant`, elite, with one
+**C1-N04 *An Oath in Ash*** (20 XP): beat **Sergeant Kess, the Ash-Marked** (`oath_sergeant`, elite, with one
 acolyte) at the orchard supply post, then hand the sergeant to the watch or let the sergeant go (`kess_captured` /
 `kess_released`, remembered in Q07's ending; if the thief got away at the festival, Kess has the memorial roll). Then talk
 to Corvin Sere at the foot of the Featherwatch climb (challenge, deceive or bargain; he always leaves) and break the
-Oathbound rearguard. **C1-N05 *A Sanctuary Under Siege*** (15 XP, candidate): drive two cage-breakers out of the
+Oathbound rearguard. **C1-N05 *A Sanctuary Under Siege*** (15 XP): drive two cage-breakers out of the
 sanctuary and see the broken cages; afterwards the Warden accepts your help mending them (`warden_helped`), which never
 buys the key. Then Q06. The mainline reaches the Warden with **746 XP** (level 4, twelve fights, no household favours).
 

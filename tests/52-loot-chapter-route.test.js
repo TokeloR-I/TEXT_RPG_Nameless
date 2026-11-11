@@ -6,7 +6,7 @@ const {runRoute}=require('../tools/lib/chapter-one-loot-route');
 // The Broken Crown rework (2026-11-11) makes them optional again; the story route north (C1-N02, C1-N04) adds 45 XP
 // and no Gold (Gauge to decide any quest Gold), so the Gold band is back to the one before the favours.
 // The rest of the master brief (2026-11-11) adds the festival raid, Sergeant Kess and the sanctuary siege (+168 XP,
-// still level 4) and the festival's 10 Gold: measured 223 to 269 Gold, average 248 (candidate band for Gauge).
+// still level 4) and the festival's 10 Gold: measured 223 to 269 Gold, average 248 (Gauge kept the 210-290 band, 2026-11-11).
 test('LOOT-01: 200 seeded mandatory routes collect >=210 Gold and exactly 746 pre-Warden XP',()=>{
     const classes=Object.keys(data.basePlayerClasses), amounts=[];
     for(let seed=1;seed<=200;seed++) {

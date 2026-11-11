@@ -217,7 +217,8 @@
                 skills: [{ name: 'Thrown Spear', base_damage: [8, 11] }, { name: 'Spear Jab', base_damage: [6, 9] }]
             },
             // Sergeant Kess, the Ash-Marked (Chapter One master brief §3, 2026-11-11): a former Crown sergeant who fights
-            // with measured melee pressure beside one acolyte. An elite, not a second boss. CANDIDATE numbers for Gauge.
+            // with measured melee pressure beside one acolyte. An elite, not a second boss. Gauge 2026-11-11: kept as is, met
+            // at level 3 it is the hardest non-boss fight in Chapter One (turn: 7-10 rounds, 15-45% HP; action: 6-25 s), 100% wins.
             'oath_sergeant': {
                 name: 'Sergeant Kess',
                 hp: 90, maxHp: 90, xp: 60, atk: 10, def: 4, spd: 9, tier: 'elite',
