@@ -24,7 +24,8 @@
  * total 498 = level 4. The Broken Crown rework (2026-11-11, CHAPTER_ONE_NARRATIVE_REWORK.md) adds C1-N02 and C1-N04
  * (25 + 20) and keeps the six Shamefield favours optional: total 543 = level 4. The rest of the master brief adds
  * C1-N03 and C1-N05 (20 + 15), the festival raid (48), Sergeant Kess (80) and the sanctuary siege (40): total 746,
- * still level 4 (tests/32-chapter-one.test.js traces it).
+ * still level 4 (tests/32-chapter-one.test.js traces it). Gauge 2026-11-11: kept. Level 5 is at 812, so the mainline
+ * meets the Warden at level 4 (as since 2026-11-04) and the six optional favours (+165, 911) reach level 5 first.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -109,9 +110,9 @@
         // ------------------------------------------------------------- The Broken Oath (Broken Crown rework, 2026-11-11)
         // CHAPTER_ONE_NARRATIVE_REWORK.md Acts III-IV and CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md §3 (its provisional ids).
         // Two ways north, and either opens the gate once: the story route (Elian names the seal, the courier, the orders)
-        // or the village route (two households vouch for you; the Captain's L01 deal). XP is a candidate for Gauge.
+        // or the village route (two households vouch for you; the Captain's L01 deal). XP settled by Gauge, 2026-11-11.
         'C1-N02': {
-            title: 'The Ash on the Register', kind: 'main', xp: 25, candidate: true,
+            title: 'The Ash on the Register', kind: 'main', xp: 25,
             summary: 'The tollway register is full of forged clearances for the north road, all under one seal. The Captain will open the gate for proof of who sent them, or for the word of the village.',
             objectives: [
                 { id: 'seal', text: 'Ask Elian whose seal is on the forged clearances', on: { type: 'story', id: 'oath_seal_named' }, marker: { map: 'shamefield', x: 20, y: 9 },
@@ -125,9 +126,9 @@
         },
         // C1-N03 (master brief §3, §4, §11): Oda's cooking lesson, the memorial, and the raid. Protect the people or
         // chase the roll: both reach Corvin, and Shamefield remembers which you chose. Skipped lesson steps: a run that
-        // already finished A Proper Meal (SF6) has had the lesson. XP and rewards are candidates for Gauge.
+        // already finished A Proper Meal (SF6) has had the lesson. XP, the 10 Gold and the Bratwurst settled by Gauge, 2026-11-11.
         'C1-N03': {
-            title: 'The Festival in Ash', kind: 'main', xp: 20, candidate: true,
+            title: 'The Festival in Ash', kind: 'main', xp: 20,
             summary: 'Shamefield keeps the Festival of the Sun: one year since the heroes broke the old crown. The Captain will open the gate after it. Oda wants a hand at the tables.',
             objectives: [
                 { id: 'lesson', text: 'Help Oda with the festival tables', on: { type: 'story', id: 'festival_lesson' }, marker: { map: 'village_residential_lane', x: 17, y: 6 },
@@ -150,7 +151,7 @@
                 { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'C1-N04' }]
         },
         'C1-N04': {
-            title: 'An Oath in Ash', kind: 'main', xp: 20, candidate: true,
+            title: 'An Oath in Ash', kind: 'main', xp: 20,
             summary: 'The Broken Oath are moving men and chains up the climb to Featherwatch, where the Warden keeps his seal. Someone is giving the orders.',
             objectives: [
                 // Sergeant Kess, the Ash-Marked (master brief §3): the supply post in the orchard, an elite fight.
@@ -162,7 +163,7 @@
         },
         // C1-N05 (master brief §3): the Broken Oath reached the roost first. The Warden is not weakened by it.
         'C1-N05': {
-            title: 'A Sanctuary Under Siege', kind: 'main', xp: 15, candidate: true,
+            title: 'A Sanctuary Under Siege', kind: 'main', xp: 15,
             summary: "Corvin's men went up the climb ahead of you. The Warden's sanctuary, and the birds he keeps there, are paying for it.",
             objectives: [
                 { id: 'siege', text: 'Drive the Oathbound out of the sanctuary', on: { type: 'defeat', id: 'sanctuary_siege' }, marker: { map: 'sanctuary', x: 11, y: 10 } },
