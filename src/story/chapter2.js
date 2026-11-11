@@ -12,7 +12,10 @@
  *   - The six hundred are people with names. Raiders are people too: Ulfrun is beaten, not butchered.
  *   - No door motif. The old Crown is remembered by roads, mile markers and customs stones.
  *   - Odin's two ravens only watch. The crow dislikes them and does not say why.
- * Lines here are first-pass DRAFTS for Wick and Ashby to own. XP and Gold are CANDIDATES for Gauge.
+ *   - Names live in wood, not in people (lore bible 4.1): Hrimvald's families need the boards to say their missing
+ *     ones' names and think it is grief. Seeded, never explained here (the why is a [mid] reveal).
+ * Dialogue reviewed by Ashby, Wick and Cairn on 2026-11-11 (docs/design/CHAPTER_TWO_NARRATIVE_REVIEW.md, which also
+ * sets out Hrafnholm's politics). XP and Gold are CANDIDATES for Gauge.
  * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03 (a pointer only, until Hrafnholm is built).
  * ========================================================================= */
 (function (global) {
@@ -48,7 +51,7 @@
                 { id: 'decide', text: 'Tell Eydis what you learned, and decide who keeps the tablet', on: { type: 'story', id: 'tablet_decided' }, marker: { map: 'skeldvik', x: 8, y: 7 } }
             ],
             onComplete: [{ flag: 'skeldvik_evidence' }, { gold: 25, key: 'c202_reward' },
-                { say: 'Three harbours, three boards split off their stones, and one banner at every one of them. Whoever leads the Wolf-Banner wants the names of the six hundred, all of them, and is not asking the families.' },
+                { say: "Four boards since midsummer: two up the coast, Asta's on the road, Skeldvik's off its stone, and the running wolf at every one. Whoever leads the Wolf-Banner wants all six hundred names, and is not asking the families." },
                 { start: 'C203' }]
         },
         C203: {
@@ -61,6 +64,9 @@
         }
     };
 
+    // Each line below is one page of the dialogue box (docs/ui/DIALOGUE_BOX.md: at most two sentences, ~160
+    // characters); tests/98-chapter-two.test.js checks it. Voices (Wick): Eydis exact and dry, Hakon plain,
+    // Leif brusque, Solveig salt, Thora legal, Geir grieving and sure of himself.
     const npcs = {
         // ------------------------------------------------------------- Eydis Namesinger, keeper of the Roll
         eydis: {
@@ -76,14 +82,16 @@
                 hiding: {
                     lines: [
                         ['npc', "Keep your voice down. They're still at the biers."],
-                        ['npc', "They want something Asta was carrying. I don't have a sword, I have a harp, and Hakon has a broken wrist. If you're going to do something, do it."]
+                        ['npc', "They want something Asta was carrying. I have a harp, not a sword, and Hakon's wrist is broken."],
+                        ['npc', "If you're going to do something, do it."]
                     ],
                     choices: [{ text: "Stay by the fire.", end: 'interrupt' }]
                 },
                 meet: {
                     lines: [
-                        ['npc', "You fight like someone who's done it before and doesn't remember where. I'm Eydis. I keep the Roll."],
-                        ['npc', "Six hundred of ours went to the Silent Field twenty years ago and did not come home. No bodies. Every village cut its own names into wood, so somebody would still say them."]
+                        ['npc', "You fight like someone who's done it before and doesn't remember where. I'm Eydis, and I keep the Roll."],
+                        ['npc', "Six hundred of ours marched to the Silent Field twenty years ago and never came home. No bodies, no graves, nothing to burn."],
+                        ['npc', "The morning a host marches, every steading cuts its warriors' names on a board, to count them home. Ours became the only graves they have."]
                     ],
                     effects: [{ flag: 'eydis_met' }],
                     choices: [
@@ -94,8 +102,9 @@
                 },
                 roll: {
                     lines: [
-                        ['npc', "All of the tablets, copied into one book, and every name sung once a year so the count stays honest. I have four hundred and eleven."],
-                        ['npc', "Some families cut a name in that the next valley swears was never there. I write both down. A skald who only keeps the tidy version is a liar with a good voice."]
+                        ['npc', "Every board, copied into one book, and every name sung once a year so the count stays honest. I have four hundred and eleven of the six hundred."],
+                        ['npc', "Some families swear their board is missing someone, and can't tell me who. I write that down too."],
+                        ['npc', "A skald who keeps only the tidy version is a liar with a good voice."]
                     ],
                     choices: [
                         { text: 'Why would raiders want a list of the dead?', to: 'why' },
@@ -105,8 +114,8 @@
                 },
                 why: {
                     lines: [
-                        ['npc', "I don't know, and that frightens me more than the axes. You can't ransom a name. You can't sell it."],
-                        ['npc', "They wore the running wolf. That's Torvald Redhand's banner, and Torvald doesn't do things for no reason. Asta's tablet is the third taken since midsummer."]
+                        ['npc', "I don't know, and that frightens me more than the axes. You can't ransom a name, and you can't sell one."],
+                        ['npc', "They wore the running wolf, Torvald Redhand's banner. Asta's board is the third taken since midsummer."]
                     ],
                     choices: [
                         { text: 'What is the Roll?', to: 'roll' },
@@ -116,8 +125,8 @@
                 },
                 tablet: {
                     lines: [
-                        ['npc', "Birkholt's. Forty names. Asta cut the last eleven herself, after her eyes went, by feel."],
-                        ['npc', "Carry it for me as far as Skeldvik. Nobody stops a stranger to ask what's in their pack. Everybody stops me."]
+                        ['npc', "Birkholt's. Forty names, and Asta recut the last eleven herself when the wood wore thin, by feel, in the old grooves."],
+                        ['npc', "Carry it as far as Skeldvik for me. Nobody stops a stranger to ask what's in their pack, and everybody stops me."]
                     ],
                     choices: [
                         { text: 'What is the Roll?', to: 'roll' },
@@ -126,11 +135,14 @@
                     ]
                 },
                 onward: {
-                    lines: [['npc', "There's a woman in the gap with a wolf on her shoulders. Ulfrun. She's kin to half of Birkholt, which is the worst of it. I'll bring Hakon down by the goat track once the road is quiet."]],
+                    lines: [
+                        ['npc', "There's a woman in the gap with a wolf pelt on her shoulders, Ulfrun Grey-Mantle. She's kin to half of Birkholt, which is the worst of it."],
+                        ['npc', "I'll bring Hakon down by the goat track once the road is quiet."]
+                    ],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 pass_again: {
-                    lines: [['npc', "Skeldvik is down the far side. Ask for me at the memorial stone. And mind the tablet: it's the only copy of eleven of those names."]],
+                    lines: [['npc', "Skeldvik is down the far side; ask for me at the memorial stone. Mind the tablet: it's the only copy of eleven of those names."]],
                     choices: [
                         { text: 'What is the Roll?', to: 'roll' },
                         { text: 'Why would raiders want it?', to: 'why' },
@@ -141,7 +153,8 @@
                 harbor: {
                     lines: [
                         ['npc', "You came through. Look at the stone behind me before you say anything."],
-                        ['npc', "That board was whole at midsummer. Skeldvik is the fourth, then. Somebody here watched it happen. Ask Leif at the yard about the crews, and Solveig at the fish stalls. She misses nothing and forgives less."]
+                        ['npc', "That board was whole at midsummer, so Skeldvik makes four. Somebody here watched it happen."],
+                        ['npc', "Ask Leif at the shipyard about the armed crews. Ask Solveig at the fish stalls too; she misses nothing and forgives less."]
                     ],
                     effects: [{ flag: 'eydis_met' }, { flag: 'eydis_harbor_met' }, { event: { type: 'story', id: 'eydis_roll' } }, { event: { type: 'story', id: 'eydis_harbor' } }],
                     choices: [{ text: "I'll ask around.", end: true }]
@@ -152,21 +165,33 @@
                         { text: 'I know who is taking the names.', if: { flags: ASKED, notFlags: ['tablet_decided'] }, to: 'report' },
                         { text: 'What happens now?', if: { flags: ['tablet_decided'] }, to: 'next' },
                         { text: 'Tell me about the Silent Field.', to: 'field' },
+                        { text: 'Who is Hallvard?', if: { flags: ['heard_of_hallvard'] }, to: 'hallvard' },
                         { text: "I'm still asking.", if: { notFlags: ['tablet_decided'] }, end: true },
                         { text: 'Goodbye.', if: { flags: ['tablet_decided'] }, end: true }
                     ]
                 },
                 field: {
                     lines: [
-                        ['npc', "A cold flat place past Hrafnholm. The old Crown's army came up the road it had built, and ours stood in its way. By evening ours were gone."],
-                        ['npc', "Not dead on the grass. Gone. The ones who came back don't agree on what they saw. I have nine accounts and no two match. I've stopped asking which is true. I ask which hurts to tell."]
+                        ['npc', "A cold flat place past Hrafnholm. The old Crown came north up the road it had built, and our host stood across it."],
+                        ['npc', "By evening they were gone: not dead on the grass, just gone. The old songs say the choosers of the slain came down that night and found nobody to choose."],
+                        ['npc', "Hallvard the One-Handed is the only one who walked off that field. Everyone else who came home was a wagon boy, or a wife watching from the ridge."],
+                        ['npc', "I have nine accounts from the ridge, and no two match. Hallvard won't give me his at all."]
+                    ],
+                    effects: [{ flag: 'heard_of_hallvard' }],
+                    choices: [{ text: 'Who is Hallvard?', to: 'hallvard' }, { text: 'Back.', to: 'harbor_again' }]
+                },
+                hallvard: {
+                    lines: [
+                        ['npc', "The best skald the North had. He lost two sons and a hand on the Silent Field, and now he keeps a barrow beyond it and lets nobody near."],
+                        ['npc', "His daughter Runa is sworn to the Jarl's daughter at Hrafnholm. She asks me what her father saw, as if I would know."]
                     ],
                     choices: [{ text: 'Back.', to: 'harbor_again' }]
                 },
                 report: {
                     lines: [
-                        ['npc', "The wolf at every harbour, silver that isn't Torvald's own, and they want the names whole. Then it isn't spite. He needs the Roll for something."],
-                        ['npc', "The assembly meets at Hrafnholm before the snow. I'm going to read every stolen name out loud with him standing there. But the tablet can't come with me on an open road. Who keeps it?"]
+                        ['npc', "The wolf at every harbour, silver that isn't Torvald's own, and they want the names whole. Then it isn't spite: he needs the Roll for something."],
+                        ['npc', "The Thing meets at Hrafnholm before the snow. I'm going to read every stolen name aloud there, with him standing in front of me."],
+                        ['npc', "But the tablet can't travel an open road with me. Who keeps it?"]
                     ],
                     choices: [
                         { text: 'You. It belongs with the Roll.', effects: [{ removeItem: TABLET }, { flag: 'tablet_with_eydis' }, { flag: 'tablet_decided' }, { event: { type: 'story', id: 'tablet_decided' } }], to: 'chose_eydis' },
@@ -175,19 +200,28 @@
                     ]
                 },
                 chose_eydis: {
-                    lines: [['npc', "Then they'll have to come through me, and I am very loud. Thank you. I'll copy it tonight, twice."]],
+                    lines: [['npc', "Then they'll have to come through me, and I am very loud. Thank you; I'll copy it twice tonight."]],
                     choices: [{ text: 'What happens now?', to: 'next' }, { text: 'Goodbye.', end: true }]
                 },
                 chose_reeve: {
-                    lines: [['npc', "Thora's honest. She's also the Jarl's, and the Jarl would rather nobody read anything aloud this year. But it will be safe. I can live with safe."]],
+                    lines: [
+                        ['npc', "Thora is honest. She is also the Jarl's, and the Jarl would rather nobody read anything aloud this year."],
+                        ['npc', "But it will be safe. I can live with safe."]
+                    ],
                     choices: [{ text: 'What happens now?', to: 'next' }, { text: 'Goodbye.', end: true }]
                 },
                 chose_kept: {
-                    lines: [['npc', "Hm. I asked you to carry it to Skeldvik and here we are in Skeldvik. All right. But you'll stand next to me at Hrafnholm when I read it. That's the price."]],
+                    lines: [
+                        ['npc', "Hm. I asked you to carry it to Skeldvik, and here we are in Skeldvik."],
+                        ['npc', "All right. But you'll stand beside me at Hrafnholm when I read it; that's the price."]
+                    ],
                     choices: [{ text: 'What happens now?', to: 'next' }, { text: 'Goodbye.', end: true }]
                 },
                 next: {
-                    lines: [['npc', "West, to Hrafnholm, when the road is open. Jarl Ragnhild holds the hall and Torvald Redhand wants it. Go and look at them both before you decide which one you believe. I'd like to know what a stranger sees."]],
+                    lines: [
+                        ['npc', "West to Hrafnholm, when the road opens. Jarl Ragnhild holds the hall, Torvald Redhand wants it, and her daughter Sigrun is tired of being talked over."],
+                        ['npc', "Arnkel the Lawspeaker will hear them all at the Thing. Look at each of them before you decide who you believe; I'd like to know what a stranger sees."]
+                    ],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
@@ -198,11 +232,11 @@
             talk: [{ if: { flags: ['caravan_saved'] }, node: 'after' }, { node: 'before' }],
             nodes: {
                 before: {
-                    lines: [['npc', "They turned the wagon over with her still in it. Sixty years she wove sailcloth for that coast and they tipped her out like turnips."]],
+                    lines: [['npc', "They turned the wagon over with her still in it. Sixty years she wove sailcloth for this coast, and they tipped her out like turnips."]],
                     choices: [{ text: 'Stay down.', end: 'interrupt' }]
                 },
                 after: {
-                    lines: [['npc', "I'll set the wagon up when my wrist lets me. She's going home to Birkholt if I have to carry her."]],
+                    lines: [['npc', "I'll right the wagon when my wrist lets me. She's going home to Birkholt if I have to carry her."]],
                     choices: [
                         { text: 'Who was she?', to: 'asta' },
                         { text: 'Did you know the raiders?', to: 'raiders' },
@@ -211,13 +245,17 @@
                 },
                 asta: {
                     lines: [
-                        ['npc', "Asta. A weaver. Her man Ketil went to the Silent Field with a borrowed spear and a new cloak she'd finished that morning."],
-                        ['npc', "She kept the tablet after the old keeper died. Every spring she'd take it down and read it with her thumbs. She never once said his name out loud. She said the wood could do it."]
+                        ['npc', "Asta, a weaver. Her man went to the Silent Field with a borrowed spear and a cloak she'd finished that morning."],
+                        ['npc', "She could tell you every stitch of that cloak. His name she couldn't keep without the board, so every spring she read it with her thumbs."],
+                        ['npc', "Ketil, eleventh from the top. I've said it for her since her eyes went."]
                     ],
                     choices: [{ text: 'Did you know the raiders?', to: 'raiders' }, { text: 'Goodbye.', end: true }]
                 },
                 raiders: {
-                    lines: [['npc', "Knew one. Sold him a ewe last autumn. Good lad, his uncle's on that tablet. I don't understand people any more. I understand sheep."]],
+                    lines: [
+                        ['npc', "Knew one. Sold him a ewe last autumn; good lad, and his uncle's on that board."],
+                        ['npc', "I don't understand people any more. I understand sheep."]
+                    ],
                     choices: [{ text: 'Who was she?', to: 'asta' }, { text: 'Goodbye.', end: true }]
                 }
             }
@@ -228,7 +266,7 @@
             talk: [{ node: 'yard' }],
             nodes: {
                 yard: {
-                    lines: [['npc', "If you've come about passage, I build them, I don't sail them. If you've come about money, I haven't any. If it's anything else, hold this end."]],
+                    lines: [['npc', "If it's passage, I build ships, I don't sail them. If it's money, I haven't any; if it's anything else, hold this end."]],
                     choices: [
                         { text: 'Eydis sent me. Who are the armed crews in the harbour?', if: { flags: ['eydis_harbor_met'], notFlags: ['leif_told'] }, to: 'crews' },
                         { text: 'Tell me about the crews again.', if: { flags: ['leif_told'] }, to: 'crews_again' },
@@ -239,8 +277,9 @@
                 },
                 crews: {
                     lines: [
-                        ['npc', "Wolf-Banner. Two ships since midsummer, a third coming. They pay for their mooring, which is the trouble. Thora can't turn away a crew that pays."],
-                        ['npc', "They paid me too, for that hull. In hack-silver cut from southern plate. The old Crown's plate. I know the stamp, I paid dues on it for six years. I didn't ask where a northern war-chief gets that."]
+                        ['npc', "Wolf-Banner. Two ships since midsummer and a third coming, and they pay their mooring, which is the trouble."],
+                        ['npc', "They paid me for that hull in hack-silver cut from southern plate, the old Crown's plate. I paid dues on that stamp for six years; I know it."],
+                        ['npc', "I didn't ask where a northern war-chief gets it."]
                     ],
                     effects: [{ flag: 'leif_told' }, { event: { type: 'story', id: 'leif_crews' } }],
                     choices: [
@@ -249,19 +288,26 @@
                     ]
                 },
                 crews_again: {
-                    lines: [['npc', "Wolf-Banner crews, paying in the old Crown's silver. That's all I know and more than I wanted to."]],
+                    lines: [['npc', "Wolf-Banner crews, paying in the old Crown's silver. That's all I know, and more than I wanted to."]],
                     choices: [{ text: 'You took it anyway.', to: 'debt' }, { text: 'Goodbye.', end: true }]
                 },
                 debt: {
-                    lines: [['npc', "I owe three households and a man in Hrafnholm who counts on his fingers so you can watch him do it. Yes. I took it. Tell Eydis I said so, she'll put it in a verse and I'll deserve it."]],
+                    lines: [
+                        ['npc', "I owe three households, and a southern factor at Hrafnholm called Osric Vane, who counts on his fingers so you can watch him do it."],
+                        ['npc', "He lends in the same old plate. Tell Eydis I took it anyway; she'll put it in a verse, and I'll deserve it."]
+                    ],
+                    effects: [{ flag: 'heard_of_osric' }],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 ship: {
-                    lines: [['npc', "Twenty oars a side when she's done. Oak keel, pine strakes, every plank split along the grain so it bends and doesn't break. A sawn plank is a dead plank."]],
+                    lines: [['npc', "Twenty oars a side when she's done: oak keel, pine strakes, every plank split along the grain. A split plank bends; a sawn plank is a dead plank."]],
                     choices: [{ text: 'There is a mark on the keel.', to: 'mark' }, { text: 'Goodbye.', end: true }]
                 },
                 mark: {
-                    lines: [['npc', "My brother's. He taught me the trade and went to the Silent Field. I cut it into every keel so he gets to sea one way or another. Don't tell the buyers."]],
+                    lines: [
+                        ['npc', "My brother's. He taught me the trade and went to the Silent Field."],
+                        ['npc', "His name won't come to me any more, but my hands remember his mark. So he goes to sea on every keel I lay."]
+                    ],
                     choices: [{ text: 'What are you building?', to: 'ship' }, { text: 'Goodbye.', end: true }]
                 }
             }
@@ -272,7 +318,7 @@
             talk: [{ node: 'stall' }],
             nodes: {
                 stall: {
-                    lines: [['npc', "Cod, dried, by the pair. Herring, salted, by the cask. Opinions, free."]],
+                    lines: [['npc', "Cod, dried, by the pair. Herring, salted, by the cask; opinions free."]],
                     choices: [
                         { text: 'Eydis says you miss nothing. Who split the memorial board?', if: { flags: ['eydis_harbor_met'], notFlags: ['solveig_told'] }, to: 'witness' },
                         { text: 'Tell me again what you saw.', if: { flags: ['solveig_told'] }, to: 'witness_again' },
@@ -282,8 +328,9 @@
                 },
                 witness: {
                     lines: [
-                        ['npc', "Four nights ago, at the turn of the tide. Three of them off the narrow ship, with a wedge and a mallet wrapped in cloth so it wouldn't ring. They knew which half they wanted."],
-                        ['npc', "One had it under his cloak like a baby. I shouted. He looked right at me and said, 'They'll thank us, mother.' I'm not his mother. My son's name was on that half."]
+                        ['npc', "Four nights back, at the turn of the tide: three off the narrow ship, with a wedge and a mallet wrapped so it wouldn't ring."],
+                        ['npc', "One carried the half-board under his cloak like a baby. When I shouted, he looked right at me and said, 'They'll thank us, mother.'"],
+                        ['npc', "I'm not his mother. My son's name was on that half, and I can't say it without the board."]
                     ],
                     effects: [{ flag: 'solveig_told' }, { event: { type: 'story', id: 'solveig_witness' } }],
                     choices: [
@@ -292,15 +339,18 @@
                     ]
                 },
                 witness_again: {
-                    lines: [['npc', "Three men off the Wolf-Banner ship, a wedge, a muffled mallet. 'They'll thank us, mother.' I hear it when I'm gutting."]],
+                    lines: [['npc', "Three off the Wolf-Banner ship with a wedge and a muffled mallet, and that boy calling me mother. I hear him while I'm gutting."]],
                     choices: [{ text: 'Did you tell Thora?', to: 'thora' }, { text: 'Goodbye.', end: true }]
                 },
                 thora: {
-                    lines: [['npc', "I told her. She wrote it down. She's got eight guards and they've got sixty oars. Writing it down is what she can do."]],
+                    lines: [['npc', "I told her, and she wrote it down. She has eight guards and they have sixty oars; writing it down is what she can do."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 opinion: {
-                    lines: [['npc', "The Jarl is careful and Redhand is angry, and people round here are tired of careful. Doesn't make him right. A man can be wrong and still be the only one saying what you feel."]],
+                    lines: [
+                        ['npc', "The Jarl is careful and Redhand is angry, and folk here are tired of careful."],
+                        ['npc', "That doesn't make him right. A man can be wrong and still be the only one saying what you feel."]
+                    ],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
@@ -311,28 +361,104 @@
             talk: [{ if: { flags: ['tablet_with_reeve'] }, node: 'keeping' }, { if: { flags: ['tablet_decided'] }, node: 'after' }, { node: 'post' }],
             nodes: {
                 post: {
-                    lines: [['npc', "Harbour law is short. Pay your mooring, keep your steel in its sheath on the wharf, and ring that bell if you see fog before I do. You're on foot, so only two of those apply."]],
+                    lines: [
+                        ['npc', "Harbour law is short: pay your mooring, keep your steel sheathed on the wharf, and ring the bell if you see fog before I do."],
+                        ['npc', "You're on foot, so only two of those apply."]
+                    ],
                     choices: [
                         { text: 'There are armed crews on your wharf.', to: 'crews' },
+                        { text: 'Whose law is it?', to: 'law' },
                         { text: 'What is the bell for?', to: 'bell' },
                         { text: 'Goodbye.', end: true }
                     ]
                 },
                 crews: {
-                    lines: [['npc', "There are. They've paid and they've broken no law I can prove on the wharf. The board on the stone was cut at night, off the wharf. I know who. Knowing is not proving, and proving is not eight guards against sixty."]],
-                    choices: [{ text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
+                    lines: [
+                        ['npc', "They've paid, and they've broken no law I can prove on the wharf. The board was cut at night, off the wharf."],
+                        ['npc', "I know who did it. Knowing is not proving, and proving is not eight guards against sixty."]
+                    ],
+                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
+                },
+                law: {
+                    lines: [
+                        ['npc', "The Jarl's. Ragnhild Frostmark has held Hrafnholm for twenty years, for a husband who marched to the Silent Field and never came back."],
+                        ['npc', "No body, so no grave-ale, so no heir has ever taken Jarl Eirik's high seat. The law has been patient for twenty years."],
+                        ['npc', "Redhand says a seat nobody has drunk the grave-ale for is an empty seat. The Lawspeaker says the Thing decides, and I say pay your mooring."]
+                    ],
+                    effects: [{ flag: 'heard_of_succession' }],
+                    choices: [{ text: 'There are armed crews on your wharf.', to: 'crews' }, { text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
                 },
                 bell: {
-                    lines: [['npc', "Fog. Late ships. And once a year we ring it forty-three times for Skeldvik's share of the six hundred. Put your hand on the rope if you like. Everyone does. It brings you back, they say."]],
-                    choices: [{ text: 'There are armed crews on your wharf.', to: 'crews' }, { text: 'Goodbye.', end: true }]
+                    lines: [
+                        ['npc', "Fog, and late ships. Once a year we ring it forty-three times, once for each of Skeldvik's share of the six hundred."],
+                        ['npc', "Put your hand on the rope if you like; everyone does. It brings you back, they say."]
+                    ],
+                    choices: [{ text: 'There are armed crews on your wharf.', to: 'crews' }, { text: 'Whose law is it?', to: 'law' }, { text: 'Goodbye.', end: true }]
                 },
                 keeping: {
-                    lines: [['npc', "The Birkholt tablet is in the dues chest under two locks and my bed. If the Jarl asks, I'll tell her I have it. If Redhand asks, I'll tell him the same, and then we'll see what eight guards are worth."]],
-                    choices: [{ text: 'Goodbye.', end: true }]
+                    lines: [
+                        ['npc', "The Birkholt tablet is in the dues chest, under two locks and my bed."],
+                        ['npc', "If the Jarl asks, I'll tell her I have it, and if Redhand asks, the same. Then we'll see what eight guards are worth."]
+                    ],
+                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'Goodbye.', end: true }]
                 },
                 after: {
-                    lines: [['npc', "The skald says you can be trusted with things. I'd have locked it up, myself. But I lock everything up. It's the job."]],
-                    choices: [{ text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
+                    lines: [['npc', "The skald says you can be trusted with things. I'd have locked it up myself, but I lock everything up; it's the job."]],
+                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Geir, steersman of the Wolf-Banner ship
+        // The Wolf-Banner's own voice before Hrafnholm (lore doc 4.2: grieving families and opportunists, and
+        // Torvald's grief is real). Optional: nothing in C2-02 waits on him.
+        geir: {
+            name: 'Geir', title: 'Wolf-Banner steersman',
+            talk: [{ node: 'wharf' }],
+            nodes: {
+                wharf: {
+                    lines: [['npc', "Mind the oars, stranger. You're the one who carried the Birkholt board down out of the pass."]],
+                    choices: [
+                        { text: 'Who are you people?', to: 'who' },
+                        { text: "Your crew split Skeldvik's memorial board.", to: 'board' },
+                        { text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                who: {
+                    lines: [
+                        ['npc', "Torvald Redhand's crews. Half of us lost someone on the Silent Field, and Torvald lost his brother Arni."],
+                        ['npc', "For twenty years the Jarl has said wait: wait for the law, wait for the gods, wait for spring. We've waited."]
+                    ],
+                    effects: [{ flag: 'wolfbanner_heard' }],
+                    choices: [
+                        { text: "Your crew split Skeldvik's memorial board.", to: 'board' },
+                        { text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                board: {
+                    lines: [
+                        ['npc', "We took it to keep it. Redhand is gathering every name, so that when he goes to the Field, nobody gets left behind."],
+                        ['npc', "Ask the fish-seller whether she'd rather it rotted on a stone. Then ask her if she'd like her son home."]
+                    ],
+                    effects: [{ flag: 'wolfbanner_heard' }],
+                    choices: [
+                        { text: 'Home how?', to: 'how' },
+                        { text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                how: {
+                    lines: [['npc', "I don't know, and I don't ask. Redhand has never lied to us, which is more than I can say for the hall."]],
+                    choices: [{ text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' }, { text: 'Goodbye.', end: true }]
+                },
+                silver: {
+                    lines: [
+                        ['npc', "Silver is silver. Redhand has friends in the south who say they remember how well the North fought."],
+                        ['npc', "I don't love them. I love my brother more than I hate them."]
+                    ],
+                    effects: [{ flag: 'wolfbanner_heard' }, { flag: 'southern_friends_heard' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
         }
@@ -356,7 +482,8 @@
         ] },
         { id: 'c2_ulfrun', on: { type: 'defeat', id: 'frostspine_ulfrun' }, effects: [
             { flag: 'ulfrun_beaten' },
-            { say: "Ulfrun goes down on one knee and stays there, leaning on the axe. 'My brother is on that tablet,' she says. 'I wasn't going to burn it. I want him back. Redhand says there is a way.'", important: true },
+            { say: "Ulfrun goes down on one knee and stays there, leaning on the axe. 'My brother is on that board,' she says. 'I wasn't going to burn it.'", important: true },
+            { say: "'I want him back. Redhand says there is a way, and the names are part of it.'" },
             { say: 'Her spear-thrower gets a shoulder under her arm and they go up the scree together. She does not look back. The two ravens watch them out of sight, then turn their heads to you.' }
         ] },
         // Eydis and Hakon come down by the goat track: she is at the memorial stone when you reach the harbour.

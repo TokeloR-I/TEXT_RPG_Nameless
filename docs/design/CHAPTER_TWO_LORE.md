@@ -4,6 +4,7 @@
 **Proposed region:** Hrimvald — the North  
 **Prepared:** 11 November 2026  
 **Status:** **PROPOSED, NOT CANON OR IMPLEMENTED**. For Creative Director, Ashby (narrative continuity), Wick (dialogue), Cairn (worldbuilding), Thorne (systems), Gauge (balance), and the development team to review.  
+**Review:** Act I (C2-01, C2-02) reviewed against canon by Ashby, Wick and Cairn on 2026-11-11; rulings and the Hrafnholm political map are in [CHAPTER_TWO_NARRATIVE_REVIEW.md](CHAPTER_TWO_NARRATIVE_REVIEW.md).  
 **Scope:** Story, geography, culture, characters, factions, quests, equipment identities, boss concepts, consequences, and chapter resolution. **No combat balance values, engine changes, or construction tasks are authorized by this document alone.**
 
 ## Existing ENSO continuity and decision boundaries
