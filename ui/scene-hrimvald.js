@@ -8,13 +8,15 @@
  *                      in undyed wool, a second bier tipped empty with its grave goods set upright, a low campfire,
  *                      the raiders' spear with its red wolf rag. Past the gap a log watch post on a stone footing
  *                      with its beacon basket, the travellers' cairn, the old Crown's mile marker pushed over.
- *   'skeldvik'         Skeldvik Harbor. A grey-green fjord between cliffs; a plank wharf with three jetties; two
- *                      clinker-built ships at their moorings (a broad trader, and a narrow one with shields along
- *                      the rail and a red rag at the masthead); a hull half planked on the stocks in Leif's yard;
- *                      cod drying on racks, a market stall under a striped awning, nets hung to mend, the harbour
- *                      bell on its post; turf-roofed longhouses with crossed gable boards and smoke holes, the
- *                      alehouse with its kettle sign; the squat customs stone; the memorial stone with half its
- *                      name board split away. No horned helmets, no dragon heads: a working harbour.
+ *   'skeldvik'         Skeldvik Harbor at dusk under snow, after Tokelo's reference map (2026-11-11). The Upland
+ *                      Trail comes down a stair through the palisade; the memorial stone stands in its ring of
+ *                      small stones and fire bowls, half its name board split away; the Stormtide Inn, a great
+ *                      gabled hall with carved bargeboards, two chimneys and lit windows; the harbour bell under
+ *                      its own roof on a terrace of fitted stone; the market wharf's striped stalls; cod on the
+ *                      racks; the crane with its net; plank wharves on piles with torches on the mooring posts;
+ *                      the armed ship in the basin with her red sail set and shields along the rail, the trader
+ *                      at the north dock; the shipwright's hall open on its fire and a hull on the stocks; the
+ *                      customs stone; skerries, a waterfall across the fjord and mist coming in. No horned helmets.
  *
  * Adds these scenes to ENSO.sceneArt (ui/scene-art.js) with its kit and the Overgrown Road's painters (SA.roadKit,
  * so load this file after ui/scene-road.js). The maps' tiles (src/world/chapter2-maps.js) decide collision, exits
@@ -340,164 +342,459 @@
     }
 
     // ---------------------------------------------------------------------
-    // Skeldvik Harbor
+    // Skeldvik Harbor (after Tokelo's reference map, 2026-11-11): a harbour town at dusk under snow
     // ---------------------------------------------------------------------
+    const ROOF = R(['#15110f', '#201a17', '#2c2420', '#3a302a', '#4a3e35', '#5b4d42', '#6d5e50']);
+    const COBBLE = R(['#231e1b', '#352e29', '#463d36', '#574c43', '#695d51', '#7b6e60', '#8d8070', '#a09382']);
+    const FLAG = R(['#26272a', '#36383c', '#484b50', '#5a5e63', '#6d7176', '#82868a', '#989b9d']);
+    const WARM = [255, 176, 92];
+    const GROUND = new Set(['snow', 'cobble', 'yard', 'wharf', 'terrace', 'steps']);
+    const BASE_OF = { fir: 'snow', palisade: 'snow', cliff: 'cliff', waterfall: 'cliff', water: 'water', longship: 'water', rowboat: 'water', nets: 'water', skerry: 'water',
+        inn: 'cobble', house: 'cobble', shipyard_hall: 'yard', shipyard: 'yard', harbour_bell: 'terrace', terrace_wall: 'cobble', steps: 'cobble' };
+
     function skeldvik(map, nameAt) {
         const cw = map.tiles[0].length, ch = map.tiles.length, L = layersFor(map), seed = 947, img = L.base;
-        // Which cells are plank wharf: the wharf itself, the jetties, and whatever stands in a run of wharf.
-        const WH = new Set(['wharf', 'jetty']), ONWHARF = new Set(['fish_rack', 'stall', 'nets', 'barrel', 'crate', 'harbour_bell']);
-        const plankCell = new Uint8Array(cw * ch);
-        for (let y = 0; y < ch; y++) {
-            for (let x = 0; x < cw; x++) if (WH.has(nameAt(map, x, y))) plankCell[y * cw + x] = 1;
-            for (let pass = 0; pass < 2; pass++) for (let i = 0; i < cw; i++) { const x = pass ? cw - 1 - i : i; if (ONWHARF.has(nameAt(map, x, y)) && (plankCell[y * cw + x - 1] || plankCell[y * cw + x + 1]) && nameAt(map, x, y - 1) === 'wharf') plankCell[y * cw + x] = 1; }
+        const N = (x, y) => nameAt(map, x, y);
+        // What lies under each cell: the ground itself, or for a thing standing on it, the ground its neighbours share.
+        const under = new Array(cw * ch);
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { const n = N(x, y); under[y * cw + x] = n === 'steps' ? 'cobble' : GROUND.has(n) ? n : BASE_OF[n] || null; }
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (!under[y * cw + x]) {
+            const votes = {};
+            for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) { const n = N(x + dx, y + dy); if (GROUND.has(n)) { const g = n === 'steps' ? 'cobble' : n; votes[g] = (votes[g] || 0) + 1; } }
+            under[y * cw + x] = Object.keys(votes).sort((a, b) => votes[b] - votes[a] || (a < b ? -1 : 1))[0] || 'cobble';
         }
-        const isPlank = (x, y) => x >= 0 && y >= 0 && x < cw && y < ch && !!plankCell[y * cw + x];
-        const DIRTY = { road: 1, turf_house: 0.35, alehouse: 0.4, memorial_stone: 0.5, customs_stone: 0.5, shipyard: 0.75 };
-        const dirtC = new Float32Array(cw * ch), wetC = new Float32Array(cw * ch);
-        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
-            const n = nameAt(map, x, y);
-            dirtC[y * cw + x] = DIRTY[n] || 0;
-            wetC[y * cw + x] = n === 'water' || n === 'longship' || n === 'jetty' || (n === 'rowboat' && nameAt(map, x, y - 1) === 'water') ? 1 : isPlank(x, y) ? (isPlank(x, y - 1) ? 0.3 : 0.75) : 0;
-        }
-        const dirt = field(dirtC, cw, ch), wet = field(wetC, cw, ch);
-        const kind = new Uint8Array(img.w * img.h);               // 0 grass, 1 road, 2 shingle, 3 water, 5 rock
-        const shoreY = 7 * C;
+        const U = (x, y) => (x < 0 || y < 0 || x >= cw || y >= ch ? null : under[y * cw + x]);
+        const isPlank = (x, y) => U(x, y) === 'wharf', isWater = (x, y) => U(x, y) === 'water';
+        const snowC = new Float32Array(cw * ch), yardC = new Float32Array(cw * ch);
+        for (let i = 0; i < cw * ch; i++) { snowC[i] = under[i] === 'snow' ? 1 : under[i] === 'cliff' ? 0.35 : 0; yardC[i] = under[i] === 'yard' ? 1 : 0; }
+        const snowF = field(snowC, cw, ch), yardF = field(yardC, cw, ch);
+        const kind = new Uint8Array(img.w * img.h);               // 0 cobble, 1 yard, 3 water, 4 snow, 5 rock
+        const cobbleAt = (x, y, ramp, sw, sh, sd) => {
+            const row = Math.floor(y / sh), u = x + hash(row, 1, sd) * sw * 2 + Math.sin(y / 9 + row) * 1.2, col = Math.floor(u / sw), fx = u - col * sw, fy = y - row * sh;
+            if (fx < 1 || fy < 1 || (fx < 2 && fy < 2) || (fx > sw - 1.2 && fy < 2)) return ramp[0];
+            return pick(ramp, 0.22 + hash(col, row, sd + 2) * 0.5 + (fy < 2.2 ? 0.1 : fy > sh - 1.6 ? -0.1 : 0) + (fx < 2.2 ? 0.05 : 0));
+        };
         for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
-            const i = y * img.w + x, cell = nameAt(map, Math.floor(x / C), Math.floor(y / C));
-            const n1 = fbm(x / 22, y / 22, seed + 1), n2 = vnoise(x / 5, y / 5, seed + 2), w = wet(x, y) + (n1 - 0.5) * 0.35 + (n2 - 0.5) * 0.08;
-            if (cell === 'cliff') { kind[i] = 5; put(img, x, y, n1 * 0.7 + n2 * 0.3 > 0.42 ? pick(NP.turf, 0.1 + n1 * 0.5 + hash(x, y, seed) * 0.1) : pick(NP.cliff, 0.12 + n1 * 0.35 + hash(x, y, seed) * 0.08)); continue; }
-            if (w > 0.5) {
+            const i = y * img.w + x, cx = Math.floor(x / C), cy = Math.floor(y / C), g = under[cy * cw + cx];
+            const n1 = fbm(x / 22, y / 22, seed + 1), n2 = vnoise(x / 5, y / 5, seed + 2);
+            if (g === 'water') {
                 kind[i] = 3;
-                let t = 0.12 + (y / shoreY) * 0.42 + (fbm(x / 40, y / 9, seed + 12) - 0.5) * 0.4;
-                if (vnoise(x / 9, y / 1.8, seed + 13) > 0.8) t += 0.14;
+                let t = 0.1 + (fbm(x / 46, y / 10, seed + 12) - 0.5) * 0.42 + (x / img.w) * 0.16 + 0.12;
+                if (vnoise(x / 10, y / 1.7, seed + 13) > 0.8) t += 0.13;
                 put(img, x, y, pick(NP.water, t));
-            } else if (w > 0.3) {
-                kind[i] = 2;
-                put(img, x, y, pick(NP.shingle, 0.15 + vnoise(x / 2, y / 2, seed + 14) * 0.6 + hash(x, y, seed) * 0.25));
-            } else if (dirt(x, y) + (n1 - 0.5) * 0.42 + (n2 - 0.5) * 0.1 > 0.5) {
+                continue;
+            }
+            if (g === 'cliff') { kind[i] = 5; put(img, x, y, n1 * 0.7 + n2 * 0.3 > 0.45 ? pick(NP.snow, 0.2 + n1 * 0.5) : pick(NP.cliff, 0.1 + n1 * 0.35 + hash(x, y, seed) * 0.08)); continue; }
+            if (g === 'wharf') { kind[i] = 2; continue; }
+            if (g === 'terrace') { kind[i] = 0; put(img, x, y, cobbleAt(x, y, FLAG, 13, 9, seed + 50)); if (fbm(x / 9, y / 7, seed + 41) > 0.7) put(img, x, y, pick(NP.snow, 0.5 + n2 * 0.4), 0.85); continue; }
+            if (snowF(x, y) + (n1 - 0.5) * 0.5 + (n2 - 0.5) * 0.14 > 0.5) {
+                kind[i] = 4;
+                put(img, x, y, pick(NP.snow, 0.5 + (fbm(x / 34, y / 16, seed + 3) - 0.5) * 0.9 + (n2 - 0.5) * 0.12 + (N(cx, cy) === 'fir' ? -0.2 : 0)));
+            } else if (yardF(x, y) + (n1 - 0.5) * 0.4 + (n2 - 0.5) * 0.1 > 0.5) {
                 kind[i] = 1;
-                put(img, x, y, pick(NP.dirt, fbm(x / 10, y / 10, seed + 7) * 0.55 + hash(x, y, seed + 8) * 0.35 + 0.1));
+                put(img, x, y, pick(NP.dirt, fbm(x / 10, y / 10, seed + 7) * 0.5 + hash(x, y, seed + 8) * 0.3 + 0.2)); put(img, x, y, [120, 84, 44], 0.14);
+                if (hash(x, y, seed + 9) < 0.09) put(img, x, y, PAL.straw[1 + ((x + y) & 1)], 0.8);                          // straw and shavings trodden in
             } else {
-                let t = fbm(x / 34, y / 34, seed + 3) * 0.5 + vnoise(x / 4, y / 4, seed + 4) * 0.38 + hash(x, y, seed + 5) * 0.2;
-                if (cell === 'fir') t *= 0.6;
-                put(img, x, y, pick(NP.grass, t + 0.06));
+                kind[i] = 0;
+                put(img, x, y, cobbleAt(x, y, COBBLE, 8, 6, seed + 30));
+                const sn = fbm(x / 13, y / 9, seed + 40) + snowF(x, y) * 0.5;                                              // snow lying between the stones
+                if (sn > 0.74) put(img, x, y, pick(NP.snow, 0.45 + n2 * 0.4), sn > 0.8 ? 0.95 : 0.6);
             }
         }
         for (let y = 1; y < img.h - 1; y++) for (let x = 1; x < img.w - 1; x++) {
             const i = y * img.w + x, k = kind[i];
-            if (k === 3 && (kind[i + img.w] === 2 || kind[i + 1] === 2 || kind[i - 1] === 2)) put(img, x, y, NP.foam[1 + ((x + y) & 1)], 0.75);
-            else if (k === 2 && kind[i - img.w] === 3) put(img, x, y, NP.shingle[0], 0.8);
-            else if (k === 1 && (kind[i - img.w] === 0 || kind[i + img.w] === 0)) put(img, x, y, NP.dirt[0], 0.5);
-            else if (k === 0 && (kind[i + img.w] === 1 || kind[i + 1] === 1)) put(img, x, y, NP.grass[0], 0.5);
+            if (k === 4 && (kind[i + img.w] === 0 || kind[i + img.w] === 1 || kind[i + 1] === 0 || kind[i + 1] === 1)) put(img, x, y, NP.snow[0], 0.75);
+            else if (k === 4 && (kind[i - img.w] === 0 || kind[i - 1] === 0)) put(img, x, y, NP.snow[6], 0.8);
         }
-        for (let n = 0; n < (img.w * img.h) / 30; n++) {
+        for (let n = 0; n < (img.w * img.h) / 40; n++) {
             const x = Math.floor(hash(n, 7, seed) * img.w), y = Math.floor(hash(n, 8, seed) * img.h), k = kind[y * img.w + x], r = hash(n, 9, seed);
-            if (k === 0 && r < 0.65) { const h = 2 + Math.floor(hash(n, 10, seed) * 4); for (let j = 0; j < h; j++) put(img, x + (j === h - 1 ? 1 : 0), y - j, NP.grass[j === h - 1 ? 7 : 5]); put(img, x, y + 1, NP.grass[1]); }
-            else if (k === 0 && r < 0.71) { const c = [[232, 228, 214], [200, 170, 220], [240, 214, 120]][n % 3]; put(img, x, y, c); put(img, x + 1, y + 1, c); }   // sea pinks, heather
-            else if (k === 2 && r < 0.3) { const p = shape(); ellipse(p, img, x, y, 2 + hash(n, 1, seed) * 2, 1.5); fill(img, p, NP.shingle.slice(2), { outline: NP.shingle[0] }); }
-            else if (k === 2 && r < 0.36) { for (let j = 0; j < 6; j++) put(img, x + j, y + Math.round(Math.sin(j) * 1), [58, 70, 40]); }                             // wrack on the tideline
+            if (k === 4 && r < 0.1) { for (let j = 0; j < 4; j++) put(img, x + (j > 2 ? 1 : 0), y - j, [150, 132, 92]); put(img, x + 1, y + 1, NP.snow[1]); }
+            else if (k === 4 && r < 0.3) { put(img, x, y, NP.snow[2]); put(img, x + 1, y, NP.snow[1]); put(img, x, y - 1, NP.snow[6]); }
             else if (k === 1 && r < 0.3) { put(img, x, y, NP.rock[6]); put(img, x + 1, y, NP.rock[5]); put(img, x, y + 1, NP.dirt[0]); }
+            else if (k === 0 && r < 0.05) { rectFill(img, x, y, 3, 1, [70, 86, 52]); put(img, x + 1, y - 1, [70, 86, 52]); }                 // moss between the cobbles
         }
-        // The wharf and the jetties: planks on piles, laid over the shore.
-        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (isPlank(x, y)) {
-            const jetty = nameAt(map, x, y) === 'jetty', X0 = x * C, Y0 = y * C;
-            if (jetty) {
-                for (let j = 0; j < C + 6; j++) for (const px of [X0 + 3, X0 + C - 1]) put(img, px + 3, Y0 + j, NP.shadow, 0.35);                         // shadow on the water
-                RK.planks(img, X0 + 3, Y0, C - 6, C, seed + x, NP.plank, false);
-                for (let j = 0; j < C; j++) { put(img, X0 + 3, Y0 + j, NP.plank[0]); put(img, X0 + C - 4, Y0 + j, NP.plank[0]); put(img, X0 + 4, Y0 + j, NP.plank[6], 0.5); }
-                if (!isPlank(x, y - 1)) for (let i = 3; i < C - 3; i++) { put(img, X0 + i, Y0, NP.plank[7]); put(img, X0 + i, Y0 - 1, NP.plank[0]); }
-            } else {
-                RK.planks(img, X0, Y0, C, C, seed + y * 3, NP.plank, true);
-                if (!isPlank(x, y - 1)) { for (let i = 0; i < C; i++) { put(img, X0 + i, Y0, NP.plank[7]); put(img, X0 + i, Y0 + 1, NP.plank[6], 0.6); put(img, X0 + i, Y0 - 1, NP.plank[0]); put(img, X0 + i, Y0 - 2, NP.shadow, 0.4); } }
-                if (!isPlank(x, y + 1)) for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 1, NP.plank[0]); put(img, X0 + i, Y0 + C, NP.shadow, 0.45); put(img, X0 + i, Y0 + C + 1, NP.shadow, 0.25); }
-                if (!isPlank(x - 1, y)) for (let j = 0; j < C; j++) put(img, X0, Y0 + j, NP.plank[0]);
-                if (!isPlank(x + 1, y)) for (let j = 0; j < C; j++) { put(img, X0 + C - 1, Y0 + j, NP.plank[0]); put(img, X0 + C, Y0 + j, NP.shadow, 0.4); }
-                for (let n = 0; n < 3; n++) if (hash(x, y * 7 + n, seed) < 0.35) put(img, X0 + 4 + hash(x, n, seed) * 24, Y0 + 4 + hash(y, n, seed) * 24, PAL.iron[1]);   // nail heads
+        // A round of pale flagstones about the memorial stone.
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (N(x, y) === 'memorial_stone') {
+            const mx = x * C + 16, my = y * C + 26;
+            for (let yy = -46; yy <= 46; yy++) for (let xx = -62; xx <= 62; xx++) {
+                const d = Math.hypot(xx / 62, yy / 46), px = mx + xx, py = my + yy;
+                if (d >= 1 || kind[py * img.w + px] !== 0) continue;
+                const ring = Math.floor(d * 5), ang = Math.floor((Math.atan2(yy / 46, xx / 62) + Math.PI) * (3 + ring * 2.2) + ring * 0.5);
+                const fr = d * 5 - ring, af = (Math.atan2(yy / 46, xx / 62) + Math.PI) * (3 + ring * 2.2) + ring * 0.5 - ang;
+                put(img, px, py, fr < 0.1 || af < 0.07 ? FLAG[0] : pick(FLAG, 0.3 + hash(ring, ang, seed + 55) * 0.45), d > 0.92 ? 0.6 : 1);
+                if (fbm(px / 8, py / 6, seed + 41) > 0.72) put(img, px, py, NP.snow[5], 0.8);
             }
         }
-        const OPEN = new Set(['grass', 'road', 'wharf', 'jetty']), open = (x, y) => OPEN.has(nameAt(map, x, y));
+        // The stone quay where the town meets the water, and the wharves: planks on piles.
+        const flames = [], smoke = [], glows = [], items = [];
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const g = U(x, y), X0 = x * C, Y0 = y * C;
+            if (g !== 'water' && g !== 'wharf' && g !== 'cliff' && isWater(x, y + 1)) {
+                RK.blocks(img, X0, Y0 + C, C, 10, seed + x, NP.cliff);
+                for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 1, COBBLE[7]); put(img, X0 + i, Y0 + C + 10, NP.shadow, 0.6); put(img, X0 + i, Y0 + C + 11, NP.shadow, 0.4); put(img, X0 + i, Y0 + C + 12, NP.shadow, 0.2); if (hash(X0 + i, y, seed) < 0.3) put(img, X0 + i, Y0 + C + 9, [58, 70, 40]); }
+            }
+            if (g !== 'water' && g !== 'wharf' && g !== 'cliff') {
+                if (isWater(x + 1, y)) for (let j = 0; j < C; j++) { put(img, X0 + C - 1, Y0 + j, COBBLE[0]); put(img, X0 + C - 2, Y0 + j, COBBLE[6], 0.6); put(img, X0 + C, Y0 + j, NP.shadow, 0.5); put(img, X0 + C + 1, Y0 + j, NP.shadow, 0.3); }
+                if (isWater(x - 1, y)) for (let j = 0; j < C; j++) { put(img, X0, Y0 + j, COBBLE[0]); put(img, X0 - 1, Y0 + j, NP.shadow, 0.4); }
+                if (isWater(x, y - 1)) for (let i = 0; i < C; i++) { put(img, X0 + i, Y0, COBBLE[0]); put(img, X0 + i, Y0 + 1, COBBLE[6], 0.6); }
+            }
+            if (g !== 'wharf') continue;
+            RK.planks(img, X0, Y0, C, C, seed + y * 3 + (isPlank(x - 1, y) || isPlank(x + 1, y) ? 0 : x), NP.plank, isPlank(x - 1, y) || isPlank(x + 1, y) || !isPlank(x, y + 1));
+            for (let n = 0; n < 3; n++) if (hash(x, y * 7 + n, seed) < 0.35) put(img, X0 + 4 + hash(x, n, seed) * 24, Y0 + 4 + hash(y, n, seed) * 24, PAL.iron[1]);
+            if (hash(x, y, seed + 60) < 0.25) for (let i = 0; i < 9; i++) put(img, X0 + 6 + i + hash(i, x, seed) * 3, Y0 + 9 + hash(i, y, seed) * 12, NP.snow[4 + (i & 1)], 0.8);   // a little snow on the boards
+            if (!isPlank(x, y - 1)) for (let i = 0; i < C; i++) { put(img, X0 + i, Y0, NP.plank[7]); put(img, X0 + i, Y0 + 1, NP.plank[6], 0.6); if (isWater(x, y - 1)) { put(img, X0 + i, Y0 - 1, NP.plank[0]); put(img, X0 + i, Y0 - 2, NP.shadow, 0.4); } }
+            if (!isPlank(x - 1, y)) for (let j = 0; j < C; j++) { put(img, X0, Y0 + j, NP.plank[0]); put(img, X0 + 1, Y0 + j, NP.plank[6], 0.4); }
+            if (!isPlank(x + 1, y)) for (let j = 0; j < C; j++) { put(img, X0 + C - 1, Y0 + j, NP.plank[0]); if (isWater(x + 1, y)) { put(img, X0 + C, Y0 + j, NP.shadow, 0.5); put(img, X0 + C + 1, Y0 + j, NP.shadow, 0.3); } }
+            if (isWater(x, y + 1)) {                                    // the edge beam, the dark under the wharf and its piles
+                for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 2, NP.plank[6]); put(img, X0 + i, Y0 + C - 1, NP.plank[1]); for (let j = 0; j < 9; j++) put(img, X0 + i, Y0 + C + j, NP.shadow, 0.78 - j * 0.07); }
+                for (const px of [X0 + 5, X0 + 21]) { for (let j = 0; j < 13; j++) { rectFill(img, px, Y0 + C + j, 4, 1, NP.plank[j < 2 ? 4 : 2]); put(img, px, Y0 + C + j, NP.plank[5]); } for (let j = 13; j < 22; j++) if (j & 1) rectFill(img, px, Y0 + C + j, 4, 1, NP.plank[1], 0.35); }
+            } else if (!isPlank(x, y + 1)) for (let i = 0; i < C; i++) put(img, X0 + i, Y0 + C - 1, NP.plank[0]);
+            // Mooring posts along the water, some with a torch.
+            const sea = isWater(x, y - 1) ? -1 : isWater(x, y + 1) ? 1 : 0, torch = hash(x * 3, y, seed + 70) < 0.3;
+            if (sea && (x + y) % 2 === 0) items.push({ x, y: sea < 0 ? y - 0.2 : y + 0.86, draw: () => post(img, X0 + 16, sea < 0 ? Y0 + 6 : Y0 + C - 3, seed + x, torch ? { flames, glows } : null) });
+            else if ((isWater(x + 1, y) || isWater(x - 1, y)) && y % 2 === 0) items.push({ x, y: y + 0.3, draw: () => post(img, isWater(x + 1, y) ? X0 + C - 4 : X0 + 4, Y0 + 18, seed + y, torch ? { flames, glows } : null) });
+        }
+        const open = (x, y) => GROUND.has(N(x, y));
         const behind = (x, y) => open(x, y - 1) || open(x - 1, y - 1) || open(x + 1, y - 1);
         const inner = innerFn(map, nameAt);
         const anyBehind = (b) => { for (let xx = b.x0; xx <= b.x1; xx++) if (open(xx, b.y0 - 1)) return true; return false; };
         const idAt = (b) => { const o = (map.interactables || []).find((q) => q.x >= b.x0 && q.x <= b.x1 && q.y >= b.y0 && q.y <= b.y1 && q.kind === 'inspect'); return o ? o.id : ''; };
-        const items = [], seen = new Set(), flames = [], smoke = [];
+        const seen = new Set(), FX = { flames, smoke, glows };
         const BLOCKS = {
-            longship: (b) => ({ y: b.y1 + 0.3, draw: () => longship(img, b, seed + b.x0, /armed/.test(idAt(b))) }),
+            inn: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 77, anyBehind(b), FX, { gw: 64, wallH: 32, depth: 80, chimneys: 2, sign: 'inn', banner: true, carved: true, lantern: true }) }),
+            house: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), FX, { chimneys: hash(b.x0, b.y0, seed) < 0.6 ? 1 : 0, banner: b.x1 - b.x0 >= 4 }) }),
+            shipyard_hall: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 31, anyBehind(b), FX, { gw: 68, wallH: 36, depth: 54, open: true, sign: 'axes' }) }),
             shipyard: (b) => ({ y: b.y1 + 0.9, draw: () => shipyard(L, b, seed, anyBehind(b)) }),
-            turf_house: (b) => ({ y: b.y1 + 0.9, draw: () => longhouse(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), smoke, {}) }),
-            alehouse: (b) => ({ y: b.y1 + 0.9, draw: () => longhouse(L, b, seed + 77, anyBehind(b), smoke, { sign: true, glow: true }, flames) }),
+            longship: (b) => ({ y: b.y1 + 0.3, draw: () => { const armed = /armed/.test(idAt(b)); ship(L, b, seed + b.x0, { sail: armed, shields: armed }); } }),
             fish_rack: (b) => ({ y: b.y1 + 0.6, draw: () => fishRack(L, b, seed + b.x0, anyBehind(b)) }),
-            stall: (b) => ({ y: b.y1 + 0.6, draw: () => stall(L, b, seed, anyBehind(b)) }),
-            nets: (b) => ({ y: b.y1 + 0.6, draw: () => nets(L, b, seed, anyBehind(b)) })
+            stall: (b) => ({ y: b.y1 + 0.6, draw: () => stall(L, b, seed + b.x0 + b.y0 * 3, anyBehind(b), FX) }),
+            nets: (b) => ({ y: b.y0 - 0.1, draw: () => hangingNets(img, b, seed + b.x0) }),
+            terrace_wall: (b) => ({ y: b.y1 + 0.5, draw: () => terraceWall(img, b, seed) }),
+            waterfall: (b) => ({ y: ch + 1, draw: () => waterfall(img, b, seed) })
         };
         for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
-            const n = nameAt(map, x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
             if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
             const P2 = {
-                cliff: () => { const inn = inner(x, y, 'cliff'); if (inn && hash(x, y, seed + 31) > 0.22) return; cragCell(L, x, y, seed, NP.cliff, NP.turf, y < 7 ? 3 : 6, open(x, y + 1) || nameAt(map, x, y + 1) === 'water', open(x, y - 1), inn ? 2 : 1); },
-                fir: () => fir(L, x, y, seed, behind(x, y), 0),
-                rock: () => { stone(img, cx - 3, gy - 8, 10, 8, seed + x * 3 + y, NP.cliff, RP.moss, 0.5); stone(img, cx + 9, gy - 3, 5, 4, seed + x + y * 5, NP.cliff, RP.moss, 0.4); },
-                rowboat: () => rowboat(img, cx, gy, seed + x, nameAt(map, x, y - 1) === 'water'),
+                cliff: () => { const inn = inner(x, y, 'cliff'); if (inn && hash(x, y, seed + 31) > 0.22) return; cragCell(L, x, y, seed, NP.cliff, NP.snow, 7, open(x, y + 1) || isWater(x, y + 1), open(x, y - 1), inn ? 2 : 1); },
+                fir: () => fir(L, x, y, seed, behind(x, y), 0.75),
+                skerry: () => skerry(img, cx, gy, seed + x * 3 + y),
+                rowboat: () => rowboat(img, cx, gy, seed + x, true),
                 barrel: () => barrel(L, cx, gy, seed + x),
                 crate: () => crate(L, cx, gy, seed + x),
                 fence: () => fence(L, map, nameAt, x, y, seed),
-                harbour_bell: () => tall(L, [cx - 22, gy - 62, cx + 22, gy + 6], y * C, open(x, y - 1), (S) => { flames.push(harbourBell(S, cx, gy, seed)); }),
+                steps: () => steps(img, map, N, x, y, seed),
+                palisade: () => tall(L, [cx - 18, gy - 60, cx + 18, gy + 6], y * C, false, (S) => palisade(S, x * C, gy, seed + x * 7 + y, N(x - 1, y) === 'steps' || N(x + 1, y) === 'steps' ? (y === 1 ? 'banner' : 'post') : '')),
+                harbour_bell: () => tall(L, [cx - 34, gy - 96, cx + 34, gy + 8], y * C, false, (S) => bellTower(S, cx, gy, seed)),
+                memorial_stone: () => tall(L, [cx - 24, gy - 84, cx + 24, gy + 8], y * C - 6, open(x, y - 1), (S) => memorialStone(S, cx, gy, seed)),
+                ring_stone: () => tall(L, [cx - 12, gy - 34, cx + 12, gy + 6], y * C, open(x, y - 1), (S) => ringStone(S, cx, gy, seed + x + y * 3)),
+                brazier: () => tall(L, [cx - 14, gy - 40, cx + 14, gy + 6], y * C, false, (S) => brazier(S, cx, gy, seed + x, FX)),
+                banner: () => tall(L, [cx - 14, gy - 70, cx + 18, gy + 6], y * C, open(x, y - 1), (S) => townBanner(S, cx, gy, seed + x)),
+                crane: () => tall(L, [cx - 20, gy - 90, cx + 50, gy + 30], y * C - 8, open(x, y - 1), (S) => crane(S, cx, gy, seed)),
                 customs_stone: () => customsStone(img, cx, gy, seed),
-                memorial_stone: () => tall(L, [cx - 20, gy - 56, cx + 20, gy + 6], y * C, open(x, y - 1), (S) => memorialStone(S, cx, gy, seed))
+                log_pile: () => logPile(img, cx, gy, seed + x),
+                workbench: () => workbench(img, cx, gy, seed + x)
             }[n];
-            if (P2) items.push({ x, y: y + (n === 'fir' ? 0.8 : n === 'cliff' ? 0.95 : 0.5), draw: P2 });
-        }
-        // Mooring posts along the wharf's sea edge and at the jetty heads.
-        for (let x = 0; x < cw; x++) for (let y = 0; y < ch; y++) {
-            if (nameAt(map, x, y) === 'wharf' && !isPlank(x, y - 1) && x % 3 === 0) items.push({ x, y: y - 0.2, draw: () => post(img, x * C + 16, y * C + 5, seed + x) });
-            if (nameAt(map, x, y) === 'jetty' && !isPlank(x, y - 1)) items.push({ x, y: y - 0.2, draw: () => { post(img, x * C + 5, y * C + 6, seed + x); post(img, x * C + C - 5, y * C + 6, seed + x + 1); } });
+            if (P2) items.push({ x, y: y + (n === 'fir' ? 0.8 : n === 'cliff' ? 0.95 : n === 'steps' ? -1 : 0.5), draw: P2 });
         }
         items.sort((a, b) => a.y - b.y || a.x - b.x);
         for (const it of items) it.draw();
-        edgeShade(img, 14, 0.28);
-        // Flat northern daylight, a little haze over the far water.
-        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) put(img, x, y, [176, 196, 210], y < shoreY ? 0.05 + 0.1 * (1 - y / shoreY) : 0.03);
+        // Gulls on the water and the skerries.
+        for (let n = 0; n < 9; n++) { const gx = Math.floor((0.55 + hash(n, 1, seed + 80) * 0.43) * img.w), gy2 = Math.floor((0.2 + hash(n, 2, seed + 80) * 0.75) * img.h); if (kind[gy2 * img.w + gx] === 3 && isWater(Math.floor(gx / C), Math.floor(gy2 / C))) { rectFill(img, gx - 2, gy2, 2, 1, [236, 238, 240]); rectFill(img, gx + 1, gy2, 2, 1, [236, 238, 240]); put(img, gx, gy2 + 1, [210, 214, 220]); } }
+        edgeShade(img, 14, 0.3);
+        // Sea mist coming in over the far water.
+        for (let y = 0; y < img.h; y++) for (let x = Math.floor(img.w * 0.62); x < img.w; x++) {
+            const a = clamp(sstep(0.62, 1.0, x / img.w) * 0.42 * (0.35 + fbm(x / 60, y / 26, seed + 90) * 1.1), 0, 0.5) * (y > img.h * 0.75 ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(y / 120)));
+            if (a > 0.02 && isWater(Math.floor(x / C), Math.floor(y / C))) put(img, x, y, [168, 186, 200], a);
+        }
+        dusk([img, L.over], glows);
         const water = [];
         for (let i = 0; i < kind.length; i += 5) if (kind[i] === 3 && hash(i, 0, seed) < 0.1) water.push(i);
         return { w: img.w, h: img.h, base: img.data, over: L.over.data, water, animate: animator(flames, smoke) };
     }
-    /** A mooring post with a turn of rope. */
-    function post(img, x, y, seed) {
-        const p = shape(); box(p, img, x - 2, y - 11, 5, 12, 0); for (const [i] of p.px) p.px.set(i, (((i % img.w) - x) / 2.5) * -0.6);
-        fill(img, p, NP.plank.slice(1), { tex: 0.3, seed, outline: NP.plank[0] });
-        rectFill(img, x - 2, y - 12, 5, 1, NP.plank[7]); rectFill(img, x - 3, y - 6, 7, 2, NP.wool[3]); rectFill(img, x - 3, y - 4, 7, 1, NP.wool[1]);
+    /** Evening: everything goes blue and dim, then each lit window, torch and brazier warms the ground round it. */
+    function dusk(layers, glows) {
+        for (const im of layers) { const d = im.data; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { d[i] = d[i] * 0.78 + 2; d[i + 1] = d[i + 1] * 0.82 + 5; d[i + 2] = d[i + 2] * 0.94 + 12; } }
+        for (const g of glows) {
+            const r = g.r, a = g.a == null ? 0.5 : g.a;
+            const ry = Math.round(r * 0.8);
+            for (let yy = -ry; yy <= ry; yy++) for (let xx = -r; xx <= r; xx++) {
+                const x = Math.round(g.x) + xx, y = Math.round(g.y) + yy, dd = Math.hypot(xx, yy / 0.8) / r;
+                if (dd >= 1 || x < 0 || y < 0 || x >= layers[0].w || y >= layers[0].h) continue;
+                const w = (1 - dd) * (1 - dd) * a;
+                for (const im of layers) { const i = (y * im.w + x) * 4, d = im.data; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] = d[i + j] + WARM[j] * w * 0.5 + (WARM[j] - d[i + j]) * w * 0.25; }
+            }
+        }
     }
-    /** A clinker-built ship at her mooring, seen from above the rail: overlapping strakes, thwarts, mast and yard
-     *  with the sail furled. `armed`: narrower, shields hung along the rail, a red rag at the masthead. */
-    function longship(img, b, seed, armed) {
-        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, W = X1 - X0, mid = b.y0 * C + 15, half = armed ? 9 : 12, mx = X0 + W / 2;
-        const edge = (px) => { const u = (px - X0) / W; return Math.pow(Math.sin(Math.PI * clamp(u)), 0.55) * half; };
-        for (let px = X0; px < X1; px++) for (let j = 0; j < 5; j++) put(img, px + 3, mid + edge(px) + 1 + j, NP.shadow, 0.4 - j * 0.07);      // her shadow on the water
-        const hull = shape();
-        for (let px = X0; px < X1; px++) { const e = edge(px); for (let py = Math.round(mid - e); py <= Math.round(mid + e); py++) sset(hull, img, px, py, ((py - mid) / half) * -0.75 + ((px - mx) / W) * -0.3); }
-        fill(img, hull, NP.oak, { outline: NP.oak[0] });
-        for (const [i] of hull.px) {                                 // strakes outside, the open hold inside
-            const px = i % img.w, py = (i / img.w) | 0, e = edge(px), d = e - Math.abs(py - mid);
-            if (d > 4.5) put(img, px, py, pick(NP.plank, 0.25 + vnoise(px / 6, py / 2, seed) * 0.35));
-            else if (Math.round(d) === 2 || Math.round(d) === 4) put(img, px, py, NP.oak[1], 0.8);
-            else if (d < 1.2 && py < mid) put(img, px, py, NP.oak[6]);
+    /** A lit window: dark frame, warm panes, a mullion. */
+    function windowLit(S, x, y, w, h, FX) {
+        rectFill(S, x - 1, y - 1, w + 2, h + 2, NP.oak[0]);
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(S, x + i, y + j, pick(NP.glow, 0.55 + (1 - j / h) * 0.3 + hash(x + i, y + j, 5) * 0.12));
+        for (let j = 0; j < h; j++) put(S, x + (w >> 1), y + j, NP.oak[1]);
+        for (let i = 0; i < w; i++) put(S, x + i, y + (h >> 1), NP.oak[1]);
+        rectFill(S, x - 1, y + h + 1, w + 2, 1, NP.snow[5]);
+        FX.glows.push({ x: x + w / 2, y: y + h / 2 + 6, r: 30, a: 0.5 });
+    }
+    function roofPx(S, px, py, t, snowAmt, seed, course) {
+        put(S, px, py, course ? ROOF[0] : pick(ROOF, t + (hash(px >> 1, py >> 1, seed) - 0.5) * 0.14));
+        const m = fbm(px / 9, py / 7, seed + 5);
+        if (m > 0.63 && !course) put(S, px, py, pick(NP.turf, 0.15 + m * 0.5), 0.7);                                   // moss
+        if (snowAmt + (fbm(px / 8, py / 6, seed + 9) - 0.5) * 1.0 > 0.5) put(S, px, py, pick(NP.snow, 0.42 + t * 0.45 + hash(px, py, seed) * 0.14));
+    }
+    function timberPx(S, px, py, X, seed, dark = 0) {
+        const bq = Math.floor((px - X) / 5), u = ((px - X) % 5 + 5) % 5;
+        put(S, px, py, u === 0 ? NP.plank[0] : pick(NP.plank, 0.3 + (hash(bq, 0, seed) - 0.5) * 0.3 + (vnoise(bq * 3.1, py / 9, seed) - 0.5) * 0.28 + (u === 1 ? 0.12 : 0) - dark));
+    }
+    function chimney(S, x, y, seed, FX) {
+        RK.blocks(S, x - 6, y - 26, 12, 30, seed, NP.cliff);
+        for (let j = 0; j < 30; j++) { put(S, x - 7, y - 26 + j, NP.cliff[0]); put(S, x + 6, y - 26 + j, NP.cliff[0]); }
+        rectFill(S, x - 8, y - 29, 16, 4, NP.cliff[3]); rectFill(S, x - 8, y - 30, 16, 2, NP.snow[5]); rectFill(S, x - 4, y - 28, 8, 2, [10, 8, 8]);
+        FX.smoke.push({ x, y: y - 30 });
+    }
+    /** A timber house, gable end to the street: plank walls on a stone sill, a steep plank roof under snow and
+     *  moss running back from crossed bargeboards. Wider plots get lower wings either side under their own roofs.
+     *  The inn is the same house built large, with a sign, a banner and two chimneys; the shipwright's hall has
+     *  its whole front open on the fire inside. */
+    function building(L, b, seed, overhead, FX, o = {}) {
+        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, Y0 = b.y0 * C, B = (b.y1 + 1) * C - 3, W = X1 - X0, mx = Math.round(X0 + W / 2);
+        const wallH = o.wallH || 26, gw = Math.round(Math.min(o.gw || 46, W / 2 - 1)), rise = Math.round(gw * 0.74), wallTop = B - wallH, apex = wallTop - rise;
+        const depth = Math.max(8, Math.min(o.depth || 70, apex - (Y0 - 14))), wings = W / 2 - gw > 10, eave = (gw + 6);
+        tall(L, [X0 - 16, apex - depth - 40, X1 + 16, B + 8], Y0 + 8, overhead, (S) => {
+            shadow(S, mx + 6, B + 3, W / 2 + 10, 7, 0.55);
+            if (wings) {
+                const wt = B - wallH + 4, ridge = Math.max(Y0 + 2, wt - 76);
+                for (let py = wt; py < B; py++) for (let px = X0; px < X1; px++) timberPx(S, px, py, X0, seed + 3, py < wt + 5 ? 0.25 : 0.05);
+                RK.blocks(S, X0, B - 4, W, 4, seed + 1, NP.rock);
+                for (let px = X0; px < X1; px++) put(S, px, B, NP.rock[0]);
+                for (const side of [-1, 1]) { const wx = side < 0 ? Math.round((X0 + mx - gw) / 2) : Math.round((X1 + mx + gw) / 2); if (Math.abs(wx - mx) - gw > 9) windowLit(S, wx - 4, wt + 7, 8, 8, FX); }
+                for (let py = ridge; py <= wt + 2; py++) {
+                    const f = (py - ridge) / (wt + 2 - ridge), xa = X0 + 3 - f * 8, xb = X1 - 3 + f * 8;
+                    for (let px = Math.round(xa); px < xb; px++) roofPx(S, px, py, 0.72 - f * 0.45, 1.0 - f * 0.95, seed + 11, (py - ridge) % 6 === 5 || (hash(Math.floor((py - ridge) / 6), 0, seed) * 40 + px) % 23 < 1);
+                    put(S, Math.round(xa) - 1, py, ROOF[0]); put(S, Math.round(xb), py, ROOF[0]);
+                }
+                for (let px = X0 - 5; px < X1 + 5; px++) { put(S, px, wt + 3, ROOF[0]); put(S, px, wt + 4, NP.shadow, 0.5); put(S, px, ridge - 1, NP.snow[6]); }
+            }
+            // The two roof planes running back from the gable.
+            for (let u = 0; u <= eave; u++) for (const side of [-1, 1]) {
+                if (u === 0 && side > 0) continue;
+                const px = mx + side * u, yf = apex - 3 + (u * (wallTop + 5 - apex)) / eave;
+                for (let py = Math.round(yf - depth); py <= yf; py++) roofPx(S, px, py, (side < 0 ? 0.72 : 0.5) - (u / eave) * 0.22, 0.95 - (u / eave) * 0.85 + ((yf - py) / depth) * 0.2, seed + 13, u % 6 === 5 || (hash(Math.floor(u / 6), side, seed) * 30 + py) % 19 < 1);
+                put(S, px, Math.round(yf - depth) - 1, ROOF[0]);
+                if (u === eave) for (let py = Math.round(yf - depth); py <= yf; py++) put(S, px + side, py, ROOF[0]);
+            }
+            for (let py = apex - 3 - depth; py <= apex - 3; py++) { put(S, mx, py, NP.snow[6]); put(S, mx - 1, py, NP.snow[5]); }
+            // The gable wall.
+            const face = shape(); poly(face, S, [[mx - gw, B], [mx - gw, wallTop], [mx, apex], [mx + gw, wallTop], [mx + gw, B]], 0);
+            for (const [i] of face.px) { const px = i % S.w, py = (i / S.w) | 0, under = py - (apex + (Math.abs(px - mx) * (wallTop - apex)) / gw); timberPx(S, px, py, mx - gw, seed, under < 7 ? 0.28 - under * 0.03 : 0); }
+            for (let px = mx - gw; px <= mx + gw; px++) { put(S, px, wallTop, NP.oak[5]); put(S, px, wallTop + 1, NP.oak[2]); put(S, px, wallTop + 2, NP.oak[0]); }
+            for (const px of [mx - gw, mx + gw - 3]) for (let py = wallTop; py < B; py++) { rectFill(S, px, py, 3, 1, NP.oak[3]); put(S, px, py, NP.oak[5]); put(S, px + 3, py, NP.oak[0]); }
+            RK.blocks(S, mx - gw, B - 4, gw * 2, 5, seed + 1, NP.rock);
+            for (let px = mx - gw; px <= mx + gw; px++) { put(S, px, B + 1, NP.rock[0]); if (hash(px, 2, seed) < 0.45) put(S, px, B - 5, NP.snow[5]); }
+            if (o.open) {                                              // the shipwright's hall: the whole front open on the work inside
+                const dw = Math.round(gw * 0.62), dh = wallH + 8;
+                for (let py = B - dh; py < B - 1; py++) for (let px = mx - dw; px <= mx + dw; px++) { const f = (py - (B - dh)) / dh; put(S, px, py, [26 + f * 150, 14 + f * 78, 8 + f * 24]); }
+                for (let px = mx - dw - 2; px <= mx + dw + 2; px++) { put(S, px, B - dh - 1, NP.oak[5]); put(S, px, B - dh - 2, NP.oak[3]); put(S, px, B - dh, NP.oak[0]); }
+                for (const px of [mx - dw - 3, mx + dw + 1]) for (let py = B - dh; py < B; py++) { rectFill(S, px, py, 3, 1, NP.oak[3]); put(S, px, py, NP.oak[5]); }
+                for (const px of [mx - dw + 10, mx + dw - 14]) { rectFill(S, px, B - 16, 5, 15, [30, 18, 10]); rectFill(S, px - 2, B - 18, 9, 3, [30, 18, 10]); }                     // trestles against the light
+                FX.glows.push({ x: mx, y: B - 6, r: 78, a: 0.75 }); FX.flames.push({ x: mx - 6, y: B - 8 });
+            } else {
+                rectFill(S, mx - 9, B - 24, 18, 23, NP.oak[0]);
+                RK.planks(S, mx - 7, B - 22, 14, 21, seed + 9, NP.oak.slice(1), true);
+                rectFill(S, mx - 10, B - 26, 20, 2, NP.oak[5]); put(S, mx + 4, B - 11, PAL.iron[4]); put(S, mx + 4, B - 10, PAL.iron[2]);
+                for (const side of [-1, 1]) if (gw > 34) windowLit(S, mx + side * Math.round(gw * 0.58) - 4, wallTop + 8, 8, 9, FX);
+                for (let px = mx - 12; px <= mx + 12; px++) { put(S, px, B + 1, NP.cliff[4]); put(S, px, B + 2, NP.cliff[5]); put(S, px, B + 3, NP.cliff[2]); }                       // the door stone
+                FX.glows.push({ x: mx, y: B + 4, r: 26, a: 0.28 });
+            }
+            if (rise > 30 && o.sign !== 'axes') windowLit(S, mx - 4, apex + Math.round(rise * 0.5), 8, 8, FX);
+            if (o.sign === 'axes') {                                   // crossed axes on a board in the gable
+                const sy = apex + Math.round(rise * 0.55);
+                rectFill(S, mx - 13, sy - 9, 26, 18, NP.oak[1]); rectFill(S, mx - 12, sy - 8, 24, 16, NP.oak[3]);
+                const ax = shape(); thick(ax, S, mx - 8, sy + 6, mx + 8, sy - 6, 0.8); thick(ax, S, mx + 8, sy + 6, mx - 8, sy - 6, 0.8); fill(S, ax, NP.wool.slice(3), { edge: false });
+                rectFill(S, mx + 5, sy - 8, 5, 5, PAL.iron[4]); rectFill(S, mx - 10, sy - 8, 5, 5, PAL.iron[4]);
+            }
+            if (o.sign === 'inn') {                                    // a painted board over the door and a hanging sign with a mug on it
+                rectFill(S, mx - 22, B - 40, 44, 11, NP.oak[0]); rectFill(S, mx - 21, B - 39, 42, 9, [22, 22, 26]);
+                for (let k = 0; k < 9; k++) rectFill(S, mx - 17 + k * 4, B - 36 + (k % 3 === 1 ? 1 : 0), 2, 3 + (k % 2), [214, 204, 178]);
+                const hx = mx + 26; rectFill(S, hx, B - 34, 12, 1, PAL.iron[2]); rectFill(S, hx + 2, B - 33, 9, 11, NP.oak[1]); rectFill(S, hx + 3, B - 32, 7, 9, NP.oak[4]);
+                rectFill(S, hx + 4, B - 30, 4, 6, [232, 190, 80]); rectFill(S, hx + 4, B - 31, 4, 1, [244, 240, 226]); put(S, hx + 8, B - 28, [232, 190, 80]); put(S, hx + 8, B - 27, [232, 190, 80]);
+            }
+            if (o.lantern) for (const side of [-1, 1]) { const lx = mx + side * 14; rectFill(S, lx - 1, B - 22, 3, 5, PAL.iron[1]); rectFill(S, lx - 1, B - 21, 3, 3, NP.glow[4]); FX.flames.push({ x: lx, y: B - 20 }); FX.glows.push({ x: lx, y: B - 14, r: 34, a: 0.5 }); }
+            if (o.banner) clothBanner(S, mx - Math.round(gw * 0.58) - (gw > 34 ? 16 : -6), wallTop + 5, 11, 26, seed);
+            // Bargeboards, crossed past the ridge; the inn's end in carved beasts' heads.
+            for (const side of [-1, 1]) {
+                const bb = shape(); thick(bb, S, mx + side * (eave + 2), wallTop + 7, mx - side * 7, apex - 12, 1.8);
+                fill(S, bb, NP.plank.slice(3), { outline: NP.oak[0] });
+                for (const [i] of bb.px) if (!bb.px.has(i - S.w)) { const px = i % S.w, py = (i / S.w) | 0; put(S, px, py - 1, NP.snow[6]); if (hash(px, py, seed) < 0.5) put(S, px, py - 2, NP.snow[5]); }
+                if (o.carved) { const hx = mx - side * 8, hy = apex - 14; rectFill(S, hx - (side > 0 ? 5 : 0), hy - 4, 6, 4, NP.plank[5]); put(S, hx - side * 5, hy - 2, NP.plank[6]); put(S, hx - side * 2, hy - 3, [20, 14, 10]); put(S, hx, hy - 5, NP.plank[6]); }
+            }
+            for (let k = 0; k < (o.chimneys || 0); k++) chimney(S, mx + (k ? -1 : 1) * (wings ? gw + Math.round((W / 2 - gw) * 0.5) : Math.round(gw * 0.55)), wings ? Math.max(Y0 + 8, B - wallH - 36) : apex - depth + 22 + Math.round(gw * 0.3), seed + k, FX);
+        });
+    }
+    /** Skeldvik's banner: madder red with a pale branching mark. */
+    function clothBanner(S, x, y, w, h, seed) {
+        const cl = shape(); poly(cl, S, [[x, y], [x + w, y], [x + w, y + h - 4], [x + w / 2, y + h], [x, y + h - 4]], (px, py) => ((px - x) / w) * -0.7 + Math.sin(py / 4 + seed) * 0.2);
+        fill(S, cl, NP.madder.slice(1), { tex: 0.25, seed, outline: [26, 8, 8] });
+        const mc = [226, 216, 196], mx = Math.round(x + w / 2);
+        for (let j = 5; j < h - 8; j++) put(S, mx, y + j, mc);
+        for (const [dy, r] of [[7, 3], [11, 3], [15, 2]]) for (let k = 1; k <= r; k++) { put(S, mx - k, y + dy - k, mc); put(S, mx + k, y + dy - k, mc); }
+        rectFill(S, x - 1, y - 2, w + 2, 2, NP.oak[4]);
+    }
+    function townBanner(S, cx, gy, seed) {
+        shadow(S, cx + 4, gy + 1, 6, 2.5, 0.4);
+        const p = shape(); thick(p, S, cx - 4, gy, cx - 4, gy - 62, 1.5); thick(p, S, cx - 4, gy - 58, cx + 12, gy - 58, 1); fill(S, p, NP.plank.slice(2), { outline: NP.plank[0] });
+        put(S, cx - 4, gy - 65, NP.snow[6]); put(S, cx - 5, gy - 64, NP.snow[5]);
+        clothBanner(S, cx - 1, gy - 56, 12, 28, seed);
+    }
+    /** The gate palisade: sharpened logs with snow on their points. */
+    function palisade(S, X0, gy, seed, extra) {
+        for (let k = 0; k < 4; k++) {
+            const x = X0 + k * 8, h = 44 + hash(k, 1, seed) * 8, lg = shape();
+            poly(lg, S, [[x, gy], [x, gy - h + 6], [x + 4, gy - h], [x + 8, gy - h + 6], [x + 8, gy]], (px) => ((px - x - 4) / 4) * -0.7);
+            fill(S, lg, NP.oak, { tex: 0.3, seed: seed + k, outline: NP.oak[0] });
+            for (let i = 2; i < 7; i++) put(S, x + i, gy - h + 5 - (i === 4 ? 4 : i === 3 || i === 5 ? 2 : 0), NP.snow[6]);
         }
-        for (let px = X0 + 14; px < X1 - 12; px += 9) { const e = edge(px) - 4.5; for (let py = Math.round(mid - e); py <= mid + e; py++) { put(img, px, py, NP.oak[5]); put(img, px + 1, py, NP.oak[2]); } }   // thwarts
-        if (!armed) { crate({ base: img }, mx + 22, mid + 5, seed + 1); const bl = shape(); ellipse(bl, img, mx - 24, mid + 1, 7, 5); fill(img, bl, NP.wool, { tex: 0.3, seed, outline: NP.wool[0] }); }
-        for (const [px, dir] of [[X0, -1], [X1 - 1, 1]]) { const st = shape(); thick(st, img, px, mid, px + dir * 3, mid - 9, 1.6); fill(img, st, NP.oak.slice(2), { outline: NP.oak[0] }); }   // stem and stern posts, plain
-        if (armed) for (let px = X0 + 16; px < X1 - 14; px += 9) for (const side of [-1, 1]) {
-            const sy = mid + side * (edge(px) - 1), sh = shape(); ellipse(sh, img, px, sy, 3.6, 3.6);
-            fill(img, sh, [NP.madder.slice(1), NP.wool.slice(1), NP.woad.slice(1)][Math.floor(hash(px, side, seed) * 3)], { outline: [16, 12, 10] }); put(img, px, sy, PAL.iron[4]);
+        for (let px = X0; px < X0 + C; px++) { put(S, px, gy - 30, NP.oak[1]); put(S, px, gy - 29, NP.oak[5]); if (hash(px, 3, seed) < 0.6) put(S, px, gy + 1, NP.snow[5]); }
+        if (extra === 'banner') clothBanner(S, X0 + 10, gy - 44, 12, 26, seed);
+    }
+    /** Steps cut in stone: treads across the way you climb. */
+    function steps(img, map, N, x, y, seed) {
+        const X0 = x * C, Y0 = y * C, side = !GROUND.has(N(x, y - 1)) && !GROUND.has(N(x, y + 1)) || (N(x, y - 1) !== 'steps' && N(x, y + 1) !== 'steps' && GROUND.has(N(x - 1, y)) && GROUND.has(N(x + 1, y)) && N(x - 1, y) !== 'steps' && N(x + 1, y) !== 'steps' && N(x - 1, y) !== N(x + 1, y));
+        for (let j = 0; j < C; j++) for (let i = 0; i < C; i++) {
+            const a = side ? i : j, u = a % 8, bq = Math.floor((side ? j : i + Math.floor(a / 8) * 5) / 11);
+            put(img, X0 + i, Y0 + j, u === 0 ? FLAG[6] : u === 7 ? FLAG[0] : u === 6 ? FLAG[1] : pick(FLAG, 0.35 + hash(bq, Math.floor(a / 8), seed + x) * 0.3 + (u < 3 ? 0.08 : 0)));
+            if (u > 0 && u < 3 && hash(X0 + i, Y0 + j, seed + 4) < 0.25) put(img, X0 + i, Y0 + j, NP.snow[5]);
         }
-        // The yard lying along her with the sail furled and lashed, and the mast (seen from above: its foot and stays).
-        const yd = shape(); thick(yd, img, mx - W * 0.3, mid - 1, mx + W * 0.3, mid - 2, 1.2); fill(img, yd, NP.oak.slice(2), { outline: NP.oak[0] });
-        const sl = shape(); thick(sl, img, mx - W * 0.27, mid + 1, mx + W * 0.27, mid, 2.2); for (const [i, v] of sl.px) sl.px.set(i, v + Math.sin((i % img.w) / 2.5) * 0.25);
-        fill(img, sl, armed ? NP.wool.slice(0, 5) : NP.wool.slice(1), { outline: NP.wool[0] });
-        for (let px = mx - W * 0.25; px < mx + W * 0.26; px += 8) for (let j = -2; j <= 3; j++) put(img, px, mid + j, NP.oak[1]);
-        const ms = shape(); ellipse(ms, img, mx, mid - 5, 2.6, 2.6); fill(img, ms, NP.oak.slice(3), { outline: NP.oak[0] });
-        for (const [tx, ty] of [[X0 + 6, mid], [X1 - 6, mid]]) for (let t = 0; t < 1; t += 0.02) put(img, mx + (tx - mx) * t, mid - 5 + (ty - mid + 5) * t, [30, 26, 22], 0.45);
-        if (armed) { rectFill(img, mx + 2, mid - 9, 7, 3, NP.madder[4]); rectFill(img, mx + 8, mid - 8, 3, 2, NP.madder[2]); }
-        for (let t = 0; t < 1; t += 0.03) put(img, X0 - 2 - t * 6, mid - 2 + t * (b.y0 * C + C + 2 - mid) * 0.0 + Math.sin(t * 3) * 2, NP.wool[3]);   // mooring line to the jetty
+        for (const [dx, ex] of [[-1, 0], [1, C - 1]]) if (!GROUND.has(N(x + dx, y)) || (!side && N(x + dx, y) !== 'steps')) for (let j = 0; j < C; j++) { put(img, X0 + ex, Y0 + j, FLAG[0]); put(img, X0 + ex + (dx < 0 ? 1 : -1), Y0 + j, FLAG[2]); }
+    }
+    /** The face of the bell terrace: fitted stone, snow along the top. */
+    function terraceWall(img, b, seed) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C;
+        RK.blocks(img, X0, Y0, X1 - X0, C - 2, seed + 5, NP.cliff);
+        for (let px = X0; px < X1; px++) {
+            put(img, px, Y0, NP.cliff[7]); put(img, px, Y0 + 1, NP.cliff[6]); if (hash(px, 1, seed) < 0.85) put(img, px, Y0 - 1, NP.snow[6]); if (hash(px, 2, seed) < 0.5) put(img, px, Y0, NP.snow[5]);
+            put(img, px, Y0 + C - 2, NP.cliff[0]); for (let j = 0; j < 5; j++) put(img, px, Y0 + C - 1 + j, NP.shadow, 0.5 - j * 0.1);
+            if (vnoise(px / 3, 0, seed + 2) > 0.62) for (let j = 0; j < 3 + hash(px, 4, seed) * 5; j++) put(img, px, Y0 + C - 3 - j, RP.moss[1 + (j & 1)], 0.8);
+        }
+        for (let j = 0; j < C - 2; j++) { put(img, X0, Y0 + j, NP.cliff[0]); put(img, X1 - 1, Y0 + j, NP.cliff[0]); }
+    }
+    /** The harbour bell: bronze gone green with salt, hung in a timber frame under its own roof on a stone footing. */
+    function bellTower(S, cx, gy, seed) {
+        shadow(S, cx + 5, gy + 2, 26, 6, 0.5);
+        RK.blocks(S, cx - 22, gy - 10, 44, 12, seed, NP.cliff);
+        for (let px = cx - 22; px < cx + 22; px++) { put(S, px, gy - 10, NP.cliff[7]); put(S, px, gy + 2, NP.cliff[0]); if (hash(px, 1, seed) < 0.7) put(S, px, gy - 11, NP.snow[6]); }
+        for (const px of [cx - 18, cx + 15]) { const p = shape(); box(p, S, px, gy - 64, 4, 54, 0); for (const [i] of p.px) p.px.set(i, (((i % S.w) - px - 2) / 2) * -0.6); fill(S, p, NP.plank.slice(1), { tex: 0.3, seed, outline: NP.oak[0] }); }
+        const br = shape(); thick(br, S, cx - 16, gy - 40, cx - 4, gy - 60, 1.2); thick(br, S, cx + 16, gy - 40, cx + 4, gy - 60, 1.2); thick(br, S, cx - 18, gy - 60, cx + 18, gy - 60, 1.6); fill(S, br, NP.plank.slice(2), { outline: NP.oak[0] });
+        for (let py = gy - 90; py <= gy - 62; py++) { const f = (py - (gy - 90)) / 28, hw = 4 + f * 24; for (let px = Math.round(cx - hw); px <= cx + hw; px++) roofPx(S, px, py, 0.7 - f * 0.3 - (px > cx ? 0.15 : 0), 0.95 - f * 0.7, seed + 3, (py - gy) % 5 === 0); put(S, Math.round(cx - hw) - 1, py, ROOF[0]); put(S, Math.round(cx + hw) + 1, py, ROOF[0]); }
+        for (let px = cx - 29; px <= cx + 29; px++) { put(S, px, gy - 61, ROOF[0]); put(S, px, gy - 60, NP.shadow, 0.5); }
+        const bl = shape(); poly(bl, S, [[cx - 5, gy - 54], [cx + 5, gy - 54], [cx + 8, gy - 38], [cx + 11, gy - 33], [cx - 11, gy - 33], [cx - 8, gy - 38]], (px) => ((px - cx) / 10) * -0.8);
+        fill(S, bl, NP.bronze, { outline: NP.bronze[0] });
+        rectFill(S, cx - 2, gy - 58, 4, 4, PAL.iron[2]); for (let px = cx - 10; px <= cx + 10; px++) put(S, px, gy - 35, NP.bronze[4]);
+        put(S, cx, gy - 32, PAL.iron[2]); put(S, cx, gy - 31, PAL.iron[3]);
+        for (let j = gy - 30; j < gy - 9; j++) put(S, cx + (j % 5 === 0 ? 1 : 0), j, NP.wool[j > gy - 18 ? 5 : 3]);                                                         // the rope, pale where hands go
+    }
+    /** The memorial stone: a standing stone twice a man's height, cut with knotwork, a board of names pegged to
+     *  it. Half the board has been split away along the grain; the wood underneath is still pale. */
+    function memorialStone(S, cx, gy, seed) {
+        shadow(S, cx + 5, gy + 2, 17, 5, 0.5);
+        const s = shape(); poly(s, S, [[cx - 13, gy], [cx - 14, gy - 40], [cx - 10, gy - 66], [cx - 2, gy - 76], [cx + 7, gy - 72], [cx + 13, gy - 54], [cx + 14, gy - 24], [cx + 13, gy]], (px, py) => ((px - cx) / 14) * -0.5 + (vnoise(px / 4, py / 5, seed) - 0.5) * 0.5);
+        fill(S, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
+        for (const [i] of s.px) {
+            const px = i % S.w, py = (i / S.w) | 0;
+            if (py > gy - 8 && vnoise(px / 2, py / 2, seed + 3) > 0.55) put(S, px, py, RP.moss[1 + (px & 1)]);
+            if (!s.px.has(i - S.w)) { put(S, px, py, NP.snow[6]); put(S, px, py + 1, NP.snow[5]); if (hash(px, 1, seed) < 0.6) put(S, px, py + 2, NP.snow[4]); }
+        }
+        for (let py = gy - 66; py < gy - 42; py++) {                   // the knot: two bands crossing over and under
+            const a = Math.sin((py - gy) / 3.2) * 6;
+            for (const sgn of [-1, 1]) { const px = Math.round(cx + sgn * a); if (!(sgn > 0 && Math.abs(a) < 1.5)) { put(S, px, py, NP.cliff[0]); put(S, px + 1, py, NP.cliff[7], 0.7); } }
+        }
+        for (let px = cx - 9; px <= cx + 9; px++) { put(S, px, gy - 68, NP.cliff[1]); put(S, px, gy - 41, NP.cliff[1]); }
+        // The board: grey with weather and cut with rows of names on the left; the right half gone, a pale ragged edge.
+        const X = cx - 10, Y = gy - 37, edge = (py) => cx + 1 + Math.round(Math.sin(py * 1.3) * 1.5 + Math.sin(py * 0.5) * 1);
+        for (let py = Y; py < Y + 26; py++) for (let px = X; px < cx + 11; px++) {
+            if (px < edge(py)) put(S, px, py, pick(NP.plank, 0.55 + (vnoise(px / 5, py / 1.5, seed + 5) - 0.5) * 0.3));
+            else if (px < edge(py) + 2) put(S, px, py, [226, 204, 160]);                                                              // fresh wood
+        }
+        for (let py = Y + 2; py < Y + 25; py += 3) for (let px = X + 1; px < edge(py) - 1; px++) if (hash(px, py, seed) < 0.72) put(S, px, py, NP.plank[1]);
+        for (let px = X; px < cx + 2; px++) { put(S, px, Y - 1, NP.plank[0]); put(S, px, Y + 26, NP.plank[0]); }
+        for (let py = Y; py < Y + 26; py++) put(S, X - 1, py, NP.plank[0]);
+        put(S, X + 1, Y + 1, PAL.iron[4]); put(S, X + 1, Y + 24, PAL.iron[4]);
+        for (const [dx, dy] of [[8, 6], [9, 15], [7, 22]]) put(S, cx + dx, Y + dy, PAL.iron[3]);                                         // the pegs left in the stone
+        for (let k = 0; k < 5; k++) put(S, cx + 4 + k * 2, gy + 2 + (k & 1), [226, 204, 160]);                                          // splinters at its foot
+    }
+    function ringStone(S, cx, gy, seed) {
+        shadow(S, cx + 3, gy + 1, 8, 3, 0.4);
+        const h = 20 + hash(seed, 1, 3) * 8, s = shape(); poly(s, S, [[cx - 6, gy], [cx - 6, gy - h + 6], [cx - 2, gy - h], [cx + 4, gy - h + 3], [cx + 6, gy]], (px, py) => ((px - cx) / 6) * -0.5 + (vnoise(px / 3, py / 4, seed) - 0.5) * 0.5);
+        fill(S, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
+        for (const [i] of s.px) if (!s.px.has(i - S.w)) { put(S, i % S.w, (i / S.w) | 0, NP.snow[6]); put(S, i % S.w, ((i / S.w) | 0) + 1, NP.snow[5]); }
+    }
+    /** A fire bowl on a stone foot. */
+    function brazier(S, cx, gy, seed, FX) {
+        shadow(S, cx + 3, gy + 1, 9, 3, 0.4);
+        RK.blocks(S, cx - 5, gy - 12, 10, 13, seed, NP.cliff); for (let j = 0; j < 13; j++) { put(S, cx - 6, gy - 12 + j, NP.cliff[0]); put(S, cx + 5, gy - 12 + j, NP.cliff[0]); }
+        const bw = shape(); poly(bw, S, [[cx - 9, gy - 19], [cx + 9, gy - 19], [cx + 6, gy - 12], [cx - 6, gy - 12]], (px) => ((px - cx) / 9) * -0.6); fill(S, bw, PAL.iron, { outline: PAL.iron[0] });
+        const f = shape(); ellipse(f, S, cx, gy - 24, 5, 6.5); fill(S, f, NP.glow.slice(1), { edge: false });
+        const f2 = shape(); ellipse(f2, S, cx, gy - 22, 2.6, 3.6); fill(S, f2, NP.glow.slice(3), { edge: false });
+        FX.flames.push({ x: cx, y: gy - 24, big: true }); FX.glows.push({ x: cx, y: gy - 10, r: 62, a: 0.7 });
+    }
+    /** A mooring post with a turn of rope; some carry a torch. */
+    function post(img, x, y, seed, torch) {
+        const h = torch ? 22 : 12, p = shape(); box(p, img, x - 2, y - h + 1, 5, h, 0); for (const [i] of p.px) p.px.set(i, (((i % img.w) - x) / 2.5) * -0.6);
+        fill(img, p, NP.plank.slice(1), { tex: 0.3, seed, outline: NP.plank[0] });
+        rectFill(img, x - 2, y - h, 5, 1, torch ? PAL.iron[2] : NP.snow[6]); rectFill(img, x - 3, y - 6, 7, 2, NP.wool[3]); rectFill(img, x - 3, y - 4, 7, 1, NP.wool[1]);
+        if (torch) { rectFill(img, x - 1, y - h - 5, 3, 5, NP.glow[4]); put(img, x, y - h - 6, NP.glow[NP.glow.length - 1]); torch.flames.push({ x, y: y - h - 3 }); torch.glows.push({ x, y: y - h + 8, r: 44, a: 0.6 }); }
+    }
+    /** A clinker-built ship at her mooring, seen from the wharf: overlapping strakes, stem and stern posts curling
+     *  up to carved heads, mast and yard. `sail`: set, in stripes of red and undyed wool with Skeldvik's mark.
+     *  `shields`: hung along the rail. Without them she is the trader, her sail furled on a lowered yard. */
+    function ship(L, b, seed, { sail = false, shields = false } = {}) {
+        const X0 = b.x0 * C + 12, X1 = (b.x1 + 1) * C - 12, W = X1 - X0, B = (b.y1 + 1) * C - 8, mx = Math.round(X0 + W / 2), mastTop = B - (sail ? 112 : 86);
+        const bow = (px) => Math.pow(Math.abs((px - X0) / W - 0.5) * 2, 2.8), keel = (px) => B - bow(px) * 16, sheer = (px) => B - (sail ? 15 : 18) - bow(px) * 24;
+        tall(L, [X0 - 24, mastTop - 8, X1 + 24, B + 16], b.y0 * C, false, (S) => {
+            for (let px = X0 - 4; px < X1 + 4; px++) for (let j = 0; j < 9; j++) put(S, px + 2, B + j, NP.shadow, 0.55 - j * 0.06);                            // her shadow on the water
+            const hull = shape();
+            for (let px = X0; px <= X1; px++) for (let py = Math.round(sheer(px)); py <= keel(px); py++) sset(hull, S, px, py, ((py - sheer(px)) / 18) * -0.8 + 0.4);
+            fill(S, hull, NP.oak, { outline: NP.oak[0] });
+            for (const [i] of hull.px) { const px = i % S.w, py = (i / S.w) | 0, d = Math.round(keel(px)) - py; if (d % 4 === 3) put(S, px, py, NP.oak[0], 0.75); else if (d % 4 === 1 && px % 7 === 0) put(S, px, py, PAL.iron[4]); }
+            for (let px = X0; px <= X1; px++) { put(S, px, Math.round(sheer(px)), NP.oak[6]); put(S, px, Math.round(sheer(px)) + 1, NP.oak[5]); }
+            // Stem and stern: the posts sweep up and curl; a carved head looks out over the water at the bow.
+            for (const [px, dir] of [[X0, -1], [X1, 1]]) {
+                const st = shape(), y0 = sheer(px);
+                thick(st, S, px + dir * -3, y0 + 4, px + dir * 5, y0 - 16, 2); thick(st, S, px + dir * 5, y0 - 16, px + dir * 4, y0 - 26, 1.7); thick(st, S, px + dir * 4, y0 - 26, px + dir * 9, y0 - 30, 1.6);
+                fill(S, st, NP.oak.slice(2), { outline: NP.oak[0] });
+                if (dir < 0) { rectFill(S, px - 14, y0 - 33, 6, 4, NP.oak[5]); rectFill(S, px - 16, y0 - 31, 3, 3, NP.oak[4]); put(S, px - 12, y0 - 32, [236, 200, 110]); put(S, px - 10, y0 - 35, NP.oak[6]); put(S, px - 8, y0 - 35, NP.oak[6]); }
+                else { put(S, px + 10, y0 - 31, NP.oak[6]); put(S, px + 11, y0 - 30, NP.oak[5]); put(S, px + 10, y0 - 29, NP.oak[4]); }
+            }
+            if (shields) for (let px = X0 + 22; px < X1 - 18; px += 13) {
+                const sy = sheer(px) + 6, sh = shape(); ellipse(sh, S, px, sy, 5.2, 5.2);
+                fill(S, sh, Math.floor((px - X0) / 13) % 2 ? NP.wool.slice(2) : NP.madder.slice(1), { outline: [16, 12, 10] }); put(S, px, sy, PAL.iron[4]); put(S, px + 1, sy, PAL.iron[3]);
+            } else { crate({ base: S }, mx + 26, sheer(mx + 26) + 2, seed + 1); barrel({ base: S }, mx - 30, sheer(mx - 30) + 3, seed + 2); const bl = shape(); ellipse(bl, S, mx - 12, sheer(mx) - 2, 9, 5); fill(S, bl, NP.wool, { tex: 0.3, seed, outline: NP.wool[0] }); }
+            const ms = shape(); thick(ms, S, mx, sheer(mx) + 2, mx, mastTop, 1.6); fill(S, ms, NP.oak.slice(2), { outline: NP.oak[0] });
+            const line = (x1, y1, x2, y2, a) => { const n = Math.hypot(x2 - x1, y2 - y1); for (let t = 0; t <= n; t++) put(S, x1 + ((x2 - x1) * t) / n, y1 + ((y2 - y1) * t) / n, [34, 28, 22], a); };
+            line(mx, mastTop + 2, X0 + 2, sheer(X0) - 14, 0.6); line(mx, mastTop + 2, X1 - 2, sheer(X1) - 14, 0.6);
+            if (sail) {
+                const yy = mastTop + 8, hw = Math.round(W * 0.25), sb = sheer(mx) - 20;
+                const yd = shape(); thick(yd, S, mx - hw - 6, yy, mx + hw + 6, yy, 1.3); fill(S, yd, NP.oak.slice(2), { outline: NP.oak[0] });
+                for (let py = yy + 2; py <= sb + 8; py++) for (let px = mx - hw; px <= mx + hw; px++) {
+                    const u = (px - (mx - hw)) / (hw * 2), f = (py - yy) / (sb - yy), belly = Math.sin(u * Math.PI) * 7;
+                    if (py > sb + belly) continue;
+                    const stripe = Math.floor(u * 5) % 2 === 0, sh = 0.62 + Math.sin(u * Math.PI * 5) * 0.1 - f * 0.18 + (vnoise(px / 5, py / 9, seed) - 0.5) * 0.2 - (u > 0.5 ? 0.1 : 0);
+                    put(S, px, py, pick(stripe ? NP.madder : NP.wool, sh + (stripe ? 0.15 : 0.1)));
+                    if (px === mx - hw || px === mx + hw || Math.abs(u * 5 - Math.round(u * 5)) < 0.02) put(S, px, py, stripe ? NP.madder[0] : NP.wool[0], 0.6);
+                }
+                const mc = [232, 224, 204], cy = Math.round((yy + sb) / 2);                                                         // Skeldvik's mark on the middle stripe
+                for (let j = -13; j <= 13; j++) rectFill(S, mx - 1, cy + j, 2, 1, mc);
+                for (const [dy, r] of [[-8, 6], [-2, 6], [4, 5]]) for (let k = 1; k <= r; k++) { rectFill(S, mx - 1 - k, cy + dy - k, 2, 1, mc); rectFill(S, mx + k, cy + dy - k, 2, 1, mc); }
+                line(mx - hw, sb, X0 + 30, sheer(X0 + 30), 0.5); line(mx + hw, sb, X1 - 30, sheer(X1 - 30), 0.5);
+            } else {
+                const yy = sheer(mx) - 22, hw = Math.round(W * 0.3);
+                const yd = shape(); thick(yd, S, mx - hw, yy, mx + hw, yy - 2, 1.2); fill(S, yd, NP.oak.slice(2), { outline: NP.oak[0] });
+                const sl = shape(); thick(sl, S, mx - hw + 4, yy + 3, mx + hw - 4, yy + 1, 2.6); for (const [i, v] of sl.px) sl.px.set(i, v + Math.sin((i % S.w) / 2.5) * 0.25);
+                fill(S, sl, NP.wool.slice(1), { outline: NP.wool[0] });
+                for (let px = mx - hw + 8; px < mx + hw - 6; px += 9) for (let j = -1; j <= 5; j++) put(S, px, yy + j, NP.oak[1]);
+                rectFill(S, mx + 1, mastTop + 1, 8, 3, NP.woad[3]); rectFill(S, mx + 8, mastTop + 2, 3, 2, NP.woad[1]);
+            }
+            for (let px = X0 + 6; px < X1 - 6; px += 3) if (hash(px, 1, seed) < 0.5) put(S, px, B + 1 + hash(px, 2, seed) * 2, NP.foam[1], 0.7);
+        });
     }
     /** A small boat: afloat, or pulled up on the shingle with her oars shipped. */
     function rowboat(img, cx, gy, seed, afloat) {
@@ -508,6 +805,48 @@
         for (const [i] of h.px) { const px = i % img.w, py = (i / img.w) | 0; if (Math.abs(py - y) < 3 && Math.abs(px - cx) < 10) put(img, px, py, NP.plank[2 + ((px + py) & 1)]); }
         for (const dx of [-5, 4]) rectFill(img, cx + dx, y - 3, 2, 7, NP.oak[5]);
         const o = shape(); thick(o, img, cx - 11, y + 1, cx + 9, y - 1, 0.7); fill(img, o, NP.plank.slice(5), { edge: false }); rectFill(img, cx + 8, y - 2, 4, 3, NP.plank[6]);
+    }
+    /** A rock standing out of the fjord, snow on top, the water white round its foot. */
+    function skerry(img, cx, gy, seed) {
+        for (let a = 0; a < 40; a++) { const t = (a / 40) * Math.PI * 2; put(img, cx + Math.cos(t) * (15 + hash(a, 1, seed) * 3), gy - 6 + Math.sin(t) * (7 + hash(a, 2, seed) * 2), NP.foam[1 + (a & 1)], 0.7); }
+        stone(img, cx - 2, gy - 10, 12, 9, seed, NP.cliff, NP.snow, 0.75); stone(img, cx + 10, gy - 5, 6, 4.5, seed + 5, NP.cliff, NP.snow, 0.6);
+    }
+    /** The fall across the fjord: one white thread down the cliff, lost in mist. */
+    function waterfall(img, b, seed) {
+        const cx = b.x0 * C + 16, y0 = b.y0 * C + 10, y1 = (b.y1 + 1) * C + 6;
+        for (let py = y0; py < y1; py++) { const hw = 4 + ((py - y0) / (y1 - y0)) * 4 + Math.sin(py / 9) * 1.2; for (let px = Math.round(cx - hw); px <= cx + hw; px++) { const e = Math.abs(px - cx) / hw; put(img, px + Math.round(Math.sin(py / 30) * 2), py, pick(NP.foam, 0.4 + hash(px, py >> 2, seed) * 0.6 - e * 0.3), 0.92 - e * 0.5); } }
+        for (let yy = -16; yy <= 14; yy++) for (let xx = -34; xx <= 34; xx++) { const d = Math.hypot(xx / 34, yy / 15); if (d < 1) put(img, cx + xx, y1 + yy + 4, [206, 220, 228], (1 - d) * (0.5 + fbm((cx + xx) / 8, (y1 + yy) / 6, seed) * 0.5) * 0.75); }
+    }
+    /** Nets hung from the wharf's edge to dry, down to the water. */
+    function hangingNets(img, b, seed) {
+        const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, Y = b.y0 * C + 1;
+        for (let px = X0; px < X1; px++) { const sag = Math.sin(((px - X0) / (X1 - X0)) * Math.PI * 2) * 3 + 16; for (let py = Y; py < Y + sag; py++) if ((px + py) % 4 === 0 || (px - py + 400) % 4 === 0) put(img, px, py, [156, 146, 118], 0.9); }
+        for (let px = X0; px < X1; px++) put(img, px, Y, NP.wool[2]);
+        for (let k = 0; k < 5; k++) { const fx = X0 + 5 + k * ((X1 - X0 - 10) / 4), f = shape(); ellipse(f, img, fx, Y + 13 + (k % 2) * 3, 2, 1.6); fill(img, f, NP.oak.slice(4), { outline: NP.oak[1] }); }
+    }
+    /** The wharf crane: a post, a jib, and a net of cod swinging from the rope. */
+    function crane(S, cx, gy, seed) {
+        shadow(S, cx + 4, gy + 1, 10, 3, 0.45);
+        const fr = shape(); thick(fr, S, cx, gy, cx, gy - 78, 2.2); thick(fr, S, cx - 2, gy - 70, cx + 40, gy - 84, 1.6); thick(fr, S, cx, gy - 44, cx + 22, gy - 76, 1.2); thick(fr, S, cx - 8, gy, cx, gy - 18, 1.2);
+        fill(S, fr, NP.plank.slice(2), { tex: 0.3, seed, outline: NP.oak[0] });
+        for (let py = gy - 82; py < gy - 46; py++) put(S, cx + 38, py, NP.wool[3]);
+        for (let yy = -15; yy <= 15; yy++) for (let xx = -10; xx <= 10; xx++) { const d = Math.hypot(xx / (10 * (0.55 + (yy + 15) / 50)), yy / 15); if (d < 1) { const px = cx + 38 + xx, py = gy - 32 + yy; put(S, px, py, (px + py) % 4 === 0 || (px - py + 400) % 4 === 0 ? [150, 140, 112] : [190, 196, 200], (px + py) % 4 === 0 || (px - py + 400) % 4 === 0 ? 1 : 0.85 - d * 0.3); } }
+        put(S, cx, gy - 81, NP.snow[6]); put(S, cx + 1, gy - 80, NP.snow[5]);
+    }
+    function logPile(img, cx, gy, seed) {
+        shadow(img, cx + 3, gy + 1, 16, 4, 0.45);
+        for (const [dx, dy] of [[-8, 0], [0, 0], [8, 0], [-4, -8], [4, -8], [0, -15]]) {
+            const e = shape(); ellipse(e, img, cx + dx, gy - 5 + dy, 4.6, 4.6); fill(img, e, PAL.straw, { outline: NP.oak[0] });
+            put(img, cx + dx, gy - 5 + dy, NP.oak[3]); put(img, cx + dx - 1, gy - 6 + dy, NP.oak[4]);
+        }
+        for (let i = -4; i <= 4; i++) if (hash(i, 1, seed) < 0.7) put(img, cx + i, gy - 25, NP.snow[6]);
+    }
+    function workbench(img, cx, gy, seed) {
+        shadow(img, cx + 3, gy + 1, 15, 4, 0.4);
+        rectFill(img, cx - 11, gy - 10, 3, 10, NP.plank[1]); rectFill(img, cx + 9, gy - 10, 3, 10, NP.plank[1]);
+        const tb = shape(); box(tb, img, cx - 14, gy - 15, 28, 7, 0.3); fill(img, tb, NP.plank.slice(3), { tex: 0.3, seed, outline: NP.plank[0] });
+        rectFill(img, cx - 9, gy - 17, 9, 2, NP.oak[5]); rectFill(img, cx - 1, gy - 18, 3, 4, PAL.iron[3]);                              // an adze
+        rectFill(img, cx + 4, gy - 17, 7, 2, NP.plank[7]);
     }
     /** Leif's yard: a hull on the stocks, half planked, the ribs showing where the strakes haven't reached. */
     function shipyard(L, b, seed, overhead) {
@@ -538,49 +877,6 @@
             rectFill(S, X1 - 22, B - 16, 7, 4, NP.oak[3]); rectFill(S, X1 - 19, B - 12, 2, 2, NP.oak[5]);
         });
     }
-    /** A longhouse under turf: low plank walls on a stone sill, a bowed ridge, crossed boards at each gable, a
-     *  smoke hole. The alehouse is the same house built longer, with a kettle on a pole and its door open. */
-    function longhouse(L, b, seed, overhead, smoke, { sign = false, glow = false } = {}, flames = null) {
-        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, B = (b.y1 + 1) * C - 2, W = X1 - X0, wallTop = B - (sign ? 26 : 22), ridge = Y0 - 4, mx = X0 + W / 2;
-        tall(L, [X0 - 12, ridge - 22, X1 + 14, B + 8], Y0 + 6, overhead, (S) => {
-            shadow(S, mx + 6, B + 2, W / 2 + 8, 6, 0.5);
-            RK.planks(S, X0 + 3, wallTop, W - 6, B - wallTop - 4, seed, NP.plank, true);
-            RK.blocks(S, X0 + 2, B - 5, W - 4, 5, seed + 1, NP.rock);
-            for (let px = X0 + 3; px < X1 - 3; px++) { put(S, px, B - 1, NP.rock[0]); put(S, px, wallTop, NP.plank[0]); }
-            const dx = Math.round(mx - 7);
-            rectFill(S, dx - 2, wallTop + 2, 18, B - wallTop - 2, NP.oak[1]);
-            if (glow) { rectFill(S, dx, wallTop + 4, 14, B - wallTop - 5, [70, 36, 14]); rectFill(S, dx + 2, wallTop + 8, 10, B - wallTop - 9, NP.glow[1]); rectFill(S, dx + 4, B - 9, 6, 6, NP.glow[2]); if (flames) flames.push({ x: dx + 7, y: B - 6 }); }
-            else { RK.planks(S, dx, wallTop + 4, 14, B - wallTop - 5, seed + 9, NP.oak.slice(1), true); put(S, dx + 10, wallTop + 12, PAL.iron[4]); }
-            rectFill(S, dx - 3, wallTop + 1, 20, 2, NP.oak[5]);
-            // The roof: turf, bowed like an upturned boat, grass standing along the ridge.
-            const bow = (px) => Math.sin(((px - X0) / W) * Math.PI) * 5;
-            const roof = shape();
-            for (let px = X0 - 7; px < X1 + 7; px++) { const top = ridge - bow(px) + Math.pow(Math.abs((px - mx) / (W / 2 + 7)), 6) * 16; for (let py = Math.round(top); py <= wallTop + 3; py++) sset(roof, S, px, py, ((py - top) / (wallTop - ridge)) * -0.75 + 0.35 + ((px - mx) / W) * -0.25); }
-            for (const [i, v] of roof.px) { const py = (i / S.w) | 0; roof.px.set(i, v * 1.15 - 0.1 + (vnoise((i % S.w) / 4, py / 3, seed + 4) - 0.5) * 0.5 + ((py - ridge) % 9 === 0 ? -0.35 : 0)); }   // turves laid in courses
-            fill(S, roof, NP.turf, { outline: NP.turf[0] });
-            for (const [i] of roof.px) {
-                const px = i % S.w, py = (i / S.w) | 0;
-                if (!roof.px.has(i - S.w)) { for (let j = 1; j <= 2 + (hash(px, 5, seed) * 3 | 0); j++) put(S, px, py - j, NP.turf[4 + (px & 1)]); }       // grass on the ridge
-                else if (hash(px, py, seed + 6) < 0.012) put(S, px, py, [[236, 226, 160], [226, 226, 220]][px & 1]);                             // a few flowers
-                if (py > wallTop + 1) put(S, px, py, NP.shadow, 0.4);                                                                          // the eaves
-            }
-            for (let px = X0 - 7; px < X1 + 7; px++) put(S, px, wallTop + 4, NP.oak[1]);
-            // Crossed gable boards at each end, plain.
-            for (const gx of [X0 - 3, X1 + 3]) { const g = shape(); thick(g, S, gx - 5, ridge + 14, gx + 4, ridge - 12, 1.1); thick(g, S, gx + 5, ridge + 14, gx - 4, ridge - 12, 1.1); fill(S, g, NP.plank.slice(3), { outline: NP.plank[0] }); }
-            // The smoke hole.
-            const hx = mx + (sign ? -W * 0.2 : W * 0.12), hy = ridge - bow(hx) + 5;
-            rectFill(S, hx - 4, hy - 1, 9, 4, NP.oak[1]); rectFill(S, hx - 3, hy, 7, 2, [10, 8, 8]);
-            for (let k = 0; k < 14; k++) put(S, hx - 5 + hash(k, 1, seed) * 11, hy - 2 - hash(k, 2, seed) * 5, [30, 28, 26], 0.35);
-            smoke.push({ x: hx, y: hy - 2 });
-            if (sign) {                                                // a kettle hung from a pole by the door
-                const px = dx + 26, py = wallTop - 6;
-                const pl = shape(); thick(pl, S, px, B, px, py - 8, 1.3); thick(pl, S, px, py - 6, px + 12, py - 6, 1); fill(S, pl, NP.oak.slice(2), { outline: NP.oak[0] });
-                for (let j = 0; j < 4; j++) put(S, px + 10, py - 5 + j, PAL.iron[2]);
-                const kt = shape(); ellipse(kt, S, px + 10, py + 3, 5, 4.5); fill(S, kt, PAL.iron, { outline: PAL.iron[0] }); rectFill(S, px + 6, py - 1, 9, 1, PAL.iron[4]);
-                put(S, px + 6, py + 6, [240, 240, 236]); put(S, px + 7, py + 7, [240, 240, 236]); put(S, px + 5, py + 7, [30, 30, 34]);   // the gull
-            }
-        });
-    }
     /** Cod split and hung in pairs by the tail on a rack of poles. */
     function fishRack(L, b, seed, overhead) {
         const X0 = b.x0 * C + 3, X1 = (b.x1 + 1) * C - 3, B = (b.y1 + 1) * C - 3, top = B - 40;
@@ -598,7 +894,7 @@
         });
     }
     /** A market stall: a trestle table under a striped wool awning, amber and whetstones and a great many combs. */
-    function stall(L, b, seed, overhead) {
+    function stall(L, b, seed, overhead, FX) {
         const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, B = (b.y1 + 1) * C - 3, W = X1 - X0;
         tall(L, [X0 - 6, B - 50, X1 + 6, B + 6], b.y0 * C, overhead, (S) => {
             shadow(S, X0 + W / 2 + 4, B + 1, W / 2 + 2, 4, 0.4);
@@ -609,32 +905,10 @@
             for (let k = 0; k < 3; k++) rectFill(S, X0 + 30 + k * 6, B - 18, 4, 2, NP.rock[5]);                                                                // whetstones
             for (let k = 0; k < 5; k++) { rectFill(S, X1 - 14 - k * 4, B - 19, 3, 1, [226, 218, 196]); put(S, X1 - 14 - k * 4, B - 18, [226, 218, 196]); put(S, X1 - 12 - k * 4, B - 18, [226, 218, 196]); }   // combs
             const aw = shape(); poly(aw, S, [[X0 - 4, B - 34], [X0 + 2, B - 46], [X1 - 2, B - 46], [X1 + 4, B - 34]], (px, py) => ((py - B + 40) / 12) * -0.6);
-            for (const [i, v] of aw.px) { const px = i % S.w; put(S, px, (i / S.w) | 0, pick(Math.floor((px - X0) / 7) % 2 ? NP.woad : NP.wool, (v + 1) / 2)); }
-            for (let px = X0 - 4; px < X1 + 4; px++) { put(S, px, B - 34, NP.woad[0]); if (px % 4 < 2) put(S, px, B - 33, NP.wool[3]); }
+            for (const [i, v] of aw.px) { const px = i % S.w; put(S, px, (i / S.w) | 0, pick(Math.floor((px - X0) / 7) % 2 ? NP.madder : NP.wool, (v + 1) / 2 + 0.1)); }
+            for (let px = X0 - 4; px < X1 + 4; px++) { put(S, px, B - 34, NP.madder[0]); if (px % 4 < 2) put(S, px, B - 33, NP.wool[3]); if (hash(px, 7, seed) < 0.6) put(S, px, B - 47, NP.snow[6]); }
+            rectFill(S, X0 + 5, B - 32, 3, 5, PAL.iron[1]); rectFill(S, X0 + 5, B - 31, 3, 3, NP.glow[4]); FX.flames.push({ x: X0 + 6, y: B - 30 }); FX.glows.push({ x: X0 + W / 2, y: B - 12, r: 40, a: 0.55 });
         });
-    }
-    /** Nets hung over poles to dry and to mend. */
-    function nets(L, b, seed, overhead) {
-        const X0 = b.x0 * C + 3, X1 = (b.x1 + 1) * C - 3, B = (b.y1 + 1) * C - 3, top = B - 34;
-        tall(L, [X0 - 4, top - 4, X1 + 4, B + 6], b.y0 * C, overhead, (S) => {
-            shadow(S, (X0 + X1) / 2 + 4, B + 1, (X1 - X0) / 2, 4, 0.35);
-            const fr = shape(); for (const px of [X0, X1 - 2]) thick(fr, S, px, B, px, top, 1.1); thick(fr, S, X0 - 2, top + 2, X1 + 2, top + 2, 1); fill(S, fr, NP.plank.slice(2), { outline: NP.plank[0] });
-            for (let px = X0 + 2; px < X1 - 2; px++) { const sag = Math.sin(((px - X0) / (X1 - X0)) * Math.PI) * 6; for (let py = top + 3; py < B - 6 + sag; py++) if ((px + py) % 4 === 0 || (px - py + 400) % 4 === 0) put(S, px, py, [150, 140, 112], 0.85); }
-            for (let k = 0; k < 6; k++) { const fx = X0 + 6 + k * ((X1 - X0 - 12) / 5); const f = shape(); ellipse(f, S, fx, top + 6 + (k % 2) * 3, 2, 1.6); fill(S, f, NP.oak.slice(4), { outline: NP.oak[1] }); }   // cork floats
-        });
-    }
-    /** The harbour bell: bronze gone green with salt, on a post with a worn rope, a small lamp for fog. */
-    function harbourBell(S, cx, gy, seed) {
-        shadow(S, cx + 4, gy + 1, 8, 3, 0.4);
-        const p = shape(); thick(p, S, cx - 6, gy, cx - 6, gy - 52, 1.8); thick(p, S, cx - 6, gy - 48, cx + 10, gy - 48, 1.4); thick(p, S, cx - 6, gy - 36, cx + 4, gy - 48, 1);
-        fill(S, p, NP.plank.slice(2), { tex: 0.3, seed, outline: NP.plank[0] });
-        const bl = shape(); poly(bl, S, [[cx + 2, gy - 45], [cx + 10, gy - 45], [cx + 12, gy - 33], [cx + 14, gy - 30], [cx - 2, gy - 30], [cx, gy - 33]], (px) => ((px - cx - 6) / 8) * -0.7);
-        fill(S, bl, NP.bronze, { outline: NP.bronze[0] });
-        put(S, cx + 6, gy - 29, PAL.iron[2]); put(S, cx + 6, gy - 28, PAL.iron[3]);
-        for (let j = gy - 27; j < gy - 8; j++) put(S, cx + 6 + (j % 5 === 0 ? 1 : 0), j, NP.wool[j > gy - 16 ? 5 : 3]);                                                // the rope, pale where hands go
-        for (let yy = -9; yy <= 9; yy++) for (let xx = -9; xx <= 9; xx++) { const d = Math.hypot(xx, yy); if (d < 9) put(S, cx - 12 + xx, gy - 38 + yy, NP.glow[3], (1 - d / 9) * 0.22); }
-        rectFill(S, cx - 14, gy - 41, 5, 6, PAL.iron[1]); rectFill(S, cx - 13, gy - 40, 3, 4, NP.glow[3]); put(S, cx - 12, gy - 42, PAL.iron[3]); put(S, cx - 9, gy - 42, NP.plank[3]); put(S, cx - 8, gy - 42, NP.plank[3]);
-        return { x: cx - 12, y: gy - 38 };
     }
     /** The old Crown's customs stone: squat, a coin slot cut in the top, its mark on the side. Children sit on it. */
     function customsStone(img, cx, gy, seed) {
@@ -646,26 +920,6 @@
         rectFill(img, cx - 4, gy - 7, 9, 1, NP.cliff[1]);
         for (let px = cx - 9; px < cx + 10; px++) if (vnoise(px / 2, 0, seed + 2) > 0.55) { put(img, px, gy - 1, RP.moss[2]); put(img, px, gy - 2, RP.moss[1], 0.7); }
         put(img, cx + 5, gy - 20, [236, 236, 232]); put(img, cx + 6, gy - 19, [220, 220, 214]);                                          // what the gull left
-    }
-    /** The memorial stone: a standing stone with a board of names pegged to it. Half the board has been split
-     *  away along the grain; the wood underneath is still pale. */
-    function memorialStone(S, cx, gy, seed) {
-        shadow(S, cx + 4, gy + 1, 12, 4, 0.45);
-        const s = shape(); poly(s, S, [[cx - 9, gy], [cx - 10, gy - 30], [cx - 6, gy - 46], [cx + 2, gy - 50], [cx + 8, gy - 42], [cx + 10, gy - 20], [cx + 9, gy]], (px, py) => ((px - cx) / 10) * -0.5 + (vnoise(px / 4, py / 5, seed) - 0.5) * 0.5);
-        fill(S, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
-        for (const [i] of s.px) { const px = i % S.w, py = (i / S.w) | 0; if (py > gy - 8 && vnoise(px / 2, py / 2, seed + 3) > 0.55) put(S, px, py, RP.moss[1 + (px & 1)]); }
-        // The board: grey with weather and cut with rows of names on the left; the right half gone, a pale ragged edge.
-        const X = cx - 7, Y = gy - 38, edge = (py) => cx + Math.round(Math.sin(py * 1.3) * 1.5 + Math.sin(py * 0.5) * 1);
-        for (let py = Y; py < Y + 22; py++) for (let px = X; px < cx + 8; px++) {
-            if (px < edge(py)) put(S, px, py, pick(NP.plank, 0.55 + (vnoise(px / 5, py / 1.5, seed + 5) - 0.5) * 0.3));
-            else if (px < edge(py) + 2) put(S, px, py, [226, 204, 160]);                                                              // fresh wood
-        }
-        for (let py = Y + 2; py < Y + 21; py += 3) for (let px = X + 1; px < edge(py) - 1; px++) if (hash(px, py, seed) < 0.72) put(S, px, py, NP.plank[1]);
-        for (let px = X; px < cx + 1; px++) { put(S, px, Y - 1, NP.plank[0]); put(S, px, Y + 22, NP.plank[0]); }
-        for (let py = Y; py < Y + 22; py++) put(S, X - 1, py, NP.plank[0]);
-        put(S, X + 1, Y + 1, PAL.iron[4]); put(S, X + 1, Y + 20, PAL.iron[4]);
-        for (const [dx, dy] of [[9, 6], [10, 14], [8, 19]]) { put(S, cx + dx - 3, Y + dy, PAL.iron[3]); }                                 // the pegs left in the stone
-        for (let k = 0; k < 5; k++) { put(S, cx + 2 + k * 2, gy + 1 + (k & 1), [226, 204, 160]); }                                      // splinters at its foot
     }
 
     Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik });

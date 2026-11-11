@@ -146,7 +146,7 @@ test('C2-01: a player who fights straight through still gets the Roll from Eydis
     takeExit(s, 'frostspine_north');
     assert.strictEqual(g.questState('C201'), 'active', 'the tablet and the skald are still owed');
     talk(s, 'skeldvik_eydis'); say(g, /ask around/);
-    takeExit(s, 'skeldvik_south');
+    takeExit(s, 'skeldvik_north');
     inspect(s, 'frostspine_tablet');
     settle(g);
     assert.strictEqual(g.questState('C201'), 'complete');
@@ -194,7 +194,7 @@ test('Skeldvik: the harbour bell attunes a Black Flight anchor, and the crow can
     assert.ok(opt && opt.enabled && opt.region === 'Hrimvald');
     s.blackFlight('skeldvik');
     assert.strictEqual(s.mapId, 'skeldvik');
-    assert.deepStrictEqual([s.x, s.y], [11, 9]);
+    assert.deepStrictEqual([s.x, s.y], [26, 4]);
 });
 
 test('Saves: a save from before Chapter Two existed loads, gets the new quests, and walks east into the pass', () => {
@@ -241,8 +241,9 @@ test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every
     const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
     const painted = {
         frostspine_pass: ['ground', 'road', 'fir', 'crag', 'rock', 'watch_post', 'mile_marker', 'caravan', 'bier', 'campfire', 'crate', 'wolf_banner', 'cairn', 'log'],
-        skeldvik: ['grass', 'road', 'water', 'wharf', 'jetty', 'cliff', 'fir', 'rock', 'longship', 'rowboat', 'shipyard', 'turf_house', 'alehouse', 'fish_rack', 'stall', 'nets',
-            'barrel', 'crate', 'harbour_bell', 'customs_stone', 'memorial_stone', 'fence']
+        skeldvik: ['snow', 'cobble', 'yard', 'wharf', 'steps', 'terrace', 'water', 'cliff', 'fir', 'skerry', 'waterfall', 'palisade', 'terrace_wall', 'inn', 'house',
+            'shipyard_hall', 'shipyard', 'harbour_bell', 'memorial_stone', 'ring_stone', 'brazier', 'banner', 'customs_stone', 'stall', 'fish_rack', 'nets', 'crane',
+            'barrel', 'crate', 'log_pile', 'workbench', 'fence', 'longship', 'rowboat']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];
