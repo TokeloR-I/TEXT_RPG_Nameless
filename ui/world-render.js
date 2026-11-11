@@ -904,8 +904,15 @@
 
         /** The player: layered sprite sheets via ENSO.sprites (ui/sprites.js, docs/SPRITES.md). The creator
          *  preview goes through here too, so the preview and the walking character are the same composition. */
+        // The player's gait (presentation only): the run keeps its own clock so a stride carries on across tile steps,
+        // and coming to a halt plays a short settle ('stop') before the idle breathing takes over.
+        const gait = { start: 0, last: -1e9, stopped: -1e9, ran: false };
         function drawPlayer(px, py, view, time) {
             const cx = px + T / 2, base = py + T - 2;
+            if (view.moving) { if (time - gait.last > 90) gait.start = time; gait.last = time; gait.ran = true; view.gait = 'walk'; view.gaitT = time - gait.start; }
+            else if (gait.ran && time - gait.last <= 90) { view.gait = 'walk'; view.gaitT = time - gait.start; gait.stopped = time; }
+            else if (gait.ran && !view.reducedMotion) { view.gait = 'stop'; view.gaitT = time - gait.stopped; }
+            else { view.gait = null; view.gaitT = null; }
             g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
             // The Fallen Seraphim on you (engine.legendaryLook(), ui/gaze-fx.js): wings behind you (in front when you face
             // away), red eyes in the sprite's own palette, the halo over your head.
@@ -914,16 +921,16 @@
             if (look.wings && !away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
             ENSO.sprites.drawCharacter(g, cx, base, {
                 appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, ...(view.look && view.look.redEyes ? { palette: { eye: '#d8141a' } } : {}),
-                facing: view.facing8 || view.facing, anim: view.anim || (view.moving ? 'walk' : 'idle'),
+                facing: view.facing8 || view.facing, anim: view.anim || view.gait || (view.moving ? 'walk' : 'idle'),
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
-            }, view.anim && view.animT != null ? view.animT : time);   // combat v3: swing / dodge / guard / hurt
+            }, view.anim && view.animT != null ? view.animT : !view.anim && view.gaitT != null ? view.gaitT : time);   // combat v3: swing / dodge / guard / hurt
             if (look.wings && away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
             if (look.halo) ENSO.gazeFx.playerHalo(g, cx, base, time);
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
             const facing = view.facing8 || view.facing;
             const hands = facing === 'left' || facing === 'right' ? [cx + (facing === 'left' ? -1 : 1)] : facing.includes('-') ? [cx - 3, cx + 3].map((x) => x + (facing.endsWith('left') ? -1 : 1)) : [cx - 5, cx + 5];
             for (const hx of hands) {
-                const hy = base - 8;
+                const hy = base - 13;
                 const grad = g.createRadialGradient(hx, hy, 0, hx, hy, 6);
                 grad.addColorStop(0, `rgba(160, 255, 220, ${glow})`); grad.addColorStop(1, 'rgba(160, 255, 220, 0)');
                 g.fillStyle = grad; g.fillRect(hx - 6, hy - 6, 12, 12);

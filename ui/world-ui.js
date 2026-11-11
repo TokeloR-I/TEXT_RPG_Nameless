@@ -391,7 +391,7 @@
             const g = tile.getContext('2d');
             if (!g) return;
             g.imageSmoothingEnabled = false;
-            ENSO.sprites.drawCharacter(g, 24, 76, {   // head and shoulders: the hair is what differs
+            ENSO.sprites.drawCharacter(g, 24, ENSO.sprites.characterFor(className).frame.h > 64 ? 86 : 76, {   // head and shoulders: the hair is what differs
                 appearance, cosmetics: { ...cosmetic, hairStyle: Number(tile.dataset.stylePreview) },
                 className, facing: 'down', anim: 'idle', scale: 2
             }, 0);
@@ -1199,7 +1199,7 @@
         const sprite = els.pause.querySelector('canvas.mm-sprite');
         if (sprite) {
             const g = sprite.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sprite.width, sprite.height);
-            ENSO.sprites.drawCharacter(g, 16, 34, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
+            ENSO.sprites.drawCharacter(g, 16, ENSO.sprites.characterFor(view.className).frame.h > 64 ? 39 : 34, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
         }
     }
     /** ← leaves a list, → opens the highlighted tab (keyboard and pad). */
@@ -1776,7 +1776,7 @@
         if (id === 'player') {
             const k = c.width / 20;   // head and shoulders of the 32x36 walking sprite
             g.save(); g.scale(k, k);
-            ENSO.sprites.drawCharacter(g, 10, 33, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
+            ENSO.sprites.drawCharacter(g, 10, ENSO.sprites.characterFor(view.className).frame.h > 64 ? 38 : 33, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
             g.restore();
             return;
         }
@@ -1994,12 +1994,20 @@
         view.facing = p.facing;
         view.facing8 = p.facing8;   // the sprite turns 8 ways; view.facing stays the 4-way world facing
         view.moving = p.moving;
-        const pose = p.state === 'attack' ? (p.attack && !p.attack.isBasic ? 'heavy' : 'swing') : p.state === 'dodge' ? 'dodge' : p.state === 'hurt' ? 'hurt' : p.guarding ? 'guard' : null;
+        // Which attack you see follows what the attack is: a cut for the weapon's arc, a two-handed blow for a skill's arc,
+        // a lunge down a line, a dash, and a cast for everything thrown, placed or called up.
+        const kind = p.state === 'attack' && p.attack ? (p.attack.shape && p.attack.shape.shape) || 'arc' : null;
+        const pose = p.state === 'attack' ? (kind === 'arc' ? (p.attack.isBasic ? 'swing' : 'heavy') : kind === 'line' || kind === 'column' ? 'thrust' : kind === 'dash' ? 'dodge' : 'cast') : p.state === 'dodge' ? 'dodge' : p.state === 'hurt' ? 'hurt' : p.guarding ? 'guard' : null;
         const key = pose ? `${pose}:${p.state === 'attack' && p.attack ? p.attack.shape && p.attack.skill : ''}` : '';
         if (pose && (playerAnim.name !== pose || playerAnim.key !== key)) playerAnim = { name: pose, t0: now, key };
         if (!pose) playerAnim = { name: null, t0: 0, key: '' };
         view.anim = playerAnim.name;
         view.animT = playerAnim.name ? now - playerAnim.t0 : null;
+        // An attack's animation is spread over the attack's real length (a hasted or slow weapon swings as fast as it hits).
+        if (p.state === 'attack' && p.attack && p.attack.progress != null && ENSO.sprites.animationsOf) {
+            const a = ENSO.sprites.animationsOf(ENSO.sprites.characterFor(view.className))[pose];
+            if (a && a.once) view.animT = Math.min(0.999, p.attack.progress) * a.steps.reduce((t, s) => t + s.ms, 0);
+        }
         view.reducedMotion = REDUCED;   // no hit flash on the player when motion is reduced
         view.actors = v.actors.map((a) => ({
             y: (a.y - T / 2 + 2) / T,
