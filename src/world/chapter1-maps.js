@@ -114,7 +114,12 @@
                     guardedText: 'The looters are crowded round the strongbox. You won\'t get the lid open with them on top of it.',
                     text: 'A strongbox wedged under a broken axle, its lock smashed and its coins long gone. Nobody wanted the heavy book inside: the tollway register.' },
                 { id: 'tollway_cart', kind: 'inspect', x: 4, y: 12, name: 'Wrecked cart',
-                    text: 'The cart was pushed over on purpose and chained to the others: a barricade, once. Whatever it was meant to keep out got in anyway.' }
+                    text: 'The cart was pushed over on purpose and chained to the others: a barricade, once. Whatever it was meant to keep out got in anyway.' },
+                // Secret (master brief §8): the old crown's supply cache under the embankment, and Corvin's invoice.
+                { id: 'tollway_quartermaster_marks', kind: 'inspect', x: 16, y: 12, name: 'Old wagon',
+                    text: 'This wreck is older than the barricade. Burnt into its tailboard: the old crown\'s quartermaster mark. Chalk tallies lead from it along the embankment, toward the east trees.' },
+                { id: 'tollway_supply_cache', kind: 'inspect', x: 19, y: 14, name: 'Buried supply box', sprite: 'crate', when: { flags: ['quartermaster_marks_read'] },
+                    text: 'A crown supply box, half buried under the embankment. Under the oilcloth, a fresh invoice: FORTY CHAINS. TWENTY BLANKETS. ONE CART. TO THE OLD CAUSEWAY. C. SERE, QUARTERMASTER. Somebody is still drawing on the old crown\'s stores.' }
             ]
         },
 
@@ -232,6 +237,20 @@
                 // The rye field behind the square:
                 { id: 'village_rye', kind: 'pickup', x: 22, y: 17, item: 'Rye Sheaf', name: 'Rye sheaves', sprite: 'bundle', when: { quests: { SF1: 'active' } },
                     text: 'Cut rye leans against the field fence in sheaves, waiting for someone with the patience to take it to the mill.' },
+                // C1-N03, the Festival of the Sun: the public hearth stays after the festival (master brief §4.1, step 5).
+                { id: 'square_hearth', kind: 'station', station: 'square_hearth', verb: 'Cook at', x: 13, y: 10, name: 'Festival hearth', sprite: 'cookfire',
+                    when: { any: [{ quests: { 'C1-N03': 'active+' } }, { flags: ['north_gate_open'] }] } },
+                { id: 'village_festival_cask', kind: 'inspect', x: 14, y: 8, name: 'Festival cask', sprite: 'cask',
+                    when: { quests: { 'C1-N03': 'active' }, notFlags: ['raid_started'] },
+                    text: 'Fenric\'s cask, rolled down from the Kloster with a sun painted on the head. Sun banners on the raven tree, bread on every trestle, and somebody tuning a fiddle badly.' },
+                { id: 'village_wrecked_stall', kind: 'inspect', x: 22, y: 9, name: 'Wrecked stall', sprite: 'rubble',
+                    when: { flags: ['raid_over', 'festival_pursue'], notFlags: ['warden_dead'] },
+                    text: 'Greta\'s festival stall, kicked over in the raid. The sausages are gone. So, Greta says loudly, is any reason to trust you.' },
+                // Secret (master brief §8): the miller's cellar. Not every haunting is the old crown's doing.
+                { id: 'village_miller_note', kind: 'inspect', x: 9, y: 12, name: 'Note in the door frame',
+                    text: 'A note folded into the mill\'s door frame, in careful letters: "Hob. I put the good flour by under the west boards, like every festival. You never came home to bake it. I can\'t go in there. L."' },
+                { id: 'village_mill_recess', kind: 'inspect', x: 3, y: 7, name: 'Loose board', sprite: 'sacks', when: { flags: ['miller_note_read'] },
+                    text: 'Behind a loose board in the mill\'s west wall: a crock of fine flour sealed with wax, and a purse with a wedding ring in it. You take the flour and the coins, and leave the ring on the doorstep where L. will find it.' },
                 // The church:
                 { id: 'village_church_door', kind: 'station', station: 'church_door', x: 28, y: 7, name: 'Church door', verb: 'Inspect' },
                 // Greta's runaway pigs (SF3): only out while she's missing them.
@@ -243,6 +262,13 @@
                     text: 'An enormous pig sits by the church wall with the dignity of a bishop. This must be Bishop.' }
             ],
             encounters: [
+                // C1-N03, the raid on the Festival of the Sun: the robes at the stalls, or the thief at the chained gate.
+                { id: 'festival_raiders', x: 26, y: 10, name: 'Broken Oath Raiders', enemies: ['cult_zealot', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    when: { quests: { 'C1-N03': 'active' }, flags: ['festival_protect'] },
+                    text: 'A zealot in ash-red is dragging a trestle across the square to pin a family against the fountain. An acolyte keeps the crowd back with a hexed blade.' },
+                { id: 'festival_thief', x: 22, y: 4, name: 'Broken Oath Thief', enemies: ['cult_acolyte', 'cult_zealot'], trigger: 'contact', sprite: 'cultists',
+                    when: { quests: { 'C1-N03': 'active' }, flags: ['festival_pursue'] },
+                    text: 'The thief has reached the north stair and found the orchard gate chained shut above it. A zealot turns to cover him, flail already swinging.' },
                 // Singing at the Mill (SF4): Old Hob and his drinking partner, under the falls, once you've heard them.
                 { id: 'mill_shade', x: 6, y: 4, name: 'Singing Shades', enemies: ['drunken_shade', 'drunken_shade'], trigger: 'contact', sprite: 'shade',
                     when: { quests: { SF4: 'active' }, flags: ['sf4_heard'] },
@@ -606,6 +632,10 @@
                     text: 'Three grey robes among the apple trees, one of them twice the size of the others and dragging a chain flail. "The orchard is closed," the big one says. "By oath."' },
                 { id: 'orchard_west_lookouts', x: 7, y: 11, detect: 200, name: 'Broken Oath Watch', enemies: ['cult_zealot', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
                     text: 'A zealot and an acolyte keep watch from the west rows, a bowl of ash between them. The acolyte points at you. The zealot is already walking.' },
+                // Sergeant Kess, the Ash-Marked (C1-N04, master brief §3): the supply post's elite, with one acolyte.
+                { id: 'orchard_kess', x: 16, y: 5, name: 'Sergeant Kess', enemies: ['oath_sergeant', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    when: { quests: { 'C1-N04': 'active' } },
+                    text: 'A grey-haired sergeant in an old Crown coat with an ash circle on the sleeve looks up from a ledger of crates. "Hold the line," Kess says to the acolyte, quite calmly, and draws.' },
                 { id: 'orchard_cultists', gate: true, x: 13, y: 3, name: 'Broken Oath Cultists', enemies: ['cult_acolyte', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
                     text: 'Two figures in grey robes chant in the old causeway, scraping a circle into the stones. One looks up at you, and for a moment seems almost hopeful. Then afraid.' }
             ],
@@ -623,7 +653,11 @@
                 { id: 'orchard_chanterelles_east', kind: 'forage', forage: 'chanterelles', x: 24, y: 14, name: 'Chanterelles', sprite: 'mushrooms',
                     text: 'A clump of chanterelles at the foot of the wall.' },
                 { id: 'orchard_old_tree', kind: 'inspect', x: 9, y: 15, name: 'Old apple tree',
-                    text: 'The oldest tree in the orchard. Someone tied a ribbon round it for every year since the old crown fell. There is only one ribbon.' }
+                    text: 'The oldest tree in the orchard. Someone tied a ribbon round it for every year since the old crown fell. There is only one ribbon.' },
+                { id: 'orchard_supply_post', kind: 'inspect', x: 19, y: 4, name: 'Supply post', sprite: 'crate', when: { quests: { 'C1-N04': 'active+' } },
+                    text: 'Crates stamped with the old crown\'s quartermaster mark: chains, blankets, rations for forty. A tally board lists them by the hour, and the last hour is DUSK, THE ROOST.' },
+                { id: 'orchard_kess_npc', kind: 'npc', npc: 'kess', x: 17, y: 5, name: 'Sergeant Kess', sprite: 'oath_sergeant',
+                    when: { flags: ['kess_beaten'], notFlags: ['kess_resolved'] } }
             ]
         },
 
@@ -688,7 +722,12 @@
                 { id: 'featherwatch_perch', kind: 'inspect', x: 2, y: 12, name: 'Crow perch',
                     text: 'A perch built from a broken cart axle, with a dish of water and a few scraps of meat. The crows here are fat and unafraid.' },
                 { id: 'featherwatch_roost', kind: 'inspect', x: 14, y: 4, name: 'Splinted crow',
-                    text: 'A crow with a neatly splinted wing hops along a rail and croaks at you. The splint is good work.' }
+                    text: 'A crow with a neatly splinted wing hops along a rail and croaks at you. The splint is good work.' },
+                // Secret (master brief §8): the Warden's own way up, and his lookout over the vale.
+                { id: 'featherwatch_ridge_rope', kind: 'inspect', x: 1, y: 11, name: 'Knotted rope',
+                    text: 'A knotted rope hangs down the rock, the knots worn smooth by one pair of hands. It leads up to a ledge over the roost.' },
+                { id: 'featherwatch_lookout', kind: 'inspect', x: 15, y: 5, name: 'Lookout ledge', sprite: 'bundle', when: { flags: ['ridge_rope_found'] },
+                    text: 'A ledge with the whole vale below it, and the old fortress beyond the roost. In a tin: bandages, dried herbs, and a torn page of a care journal. "Gray one: wing splinted. Bites. Feed twice. Three travellers on the south road. Left bread at the stair."' }
             ]
         },
 
@@ -732,7 +771,11 @@
             encounters: [
                 { id: 'sanctuary_warden', x: 11, y: 5, name: 'The Crow-Touched Warden', enemies: ['crow_touched_warden'], trigger: 'contact', sprite: 'warden',
                     when: { flags: ['warden_challenged'] },
-                    text: 'The Warden stands between you and the seal. His crows settle on his shoulders and arms. He doesn\'t raise his halberd until you do.' }
+                    text: 'The Warden stands between you and the seal. His crows settle on his shoulders and arms. He doesn\'t raise his halberd until you do.' },
+                // C1-N05: the Broken Oath got here first. Two cage-breakers, not a boss: the Warden is not weakened by them.
+                { id: 'sanctuary_siege', x: 11, y: 10, name: 'Oathbound Cage-Breakers', enemies: ['cult_acolyte', 'cult_acolyte'], trigger: 'contact', sprite: 'cultists',
+                    when: { quests: { 'C1-N05': 'active' } },
+                    text: 'Two acolytes are prying at the cages with crowbars while the crows scream from the rafters. Across the hall, the Warden is holding the seal stair alone.' }
             ],
             interactables: [
                 { id: 'sanctuary_warden_npc', kind: 'npc', npc: 'warden', x: 13, y: 5, name: 'The Crow-Touched Warden', sprite: 'warden_npc',
@@ -747,7 +790,10 @@
                 { id: 'sanctuary_cage_empty', kind: 'inspect', x: 19, y: 6, name: 'Empty cage',
                     text: 'Clean straw and a full water dish. Waiting for the next one that needs it.' },
                 { id: 'sanctuary_bedroll', kind: 'inspect', x: 4, y: 12, name: 'Bedroll',
-                    text: 'A thin bedroll by the cages, close enough to hear them in the night.' }
+                    text: 'A thin bedroll by the cages, close enough to hear them in the night.' },
+                // C1-N05, A Sanctuary Under Siege: what the Broken Oath did to his refuge.
+                { id: 'sanctuary_broken_cages', kind: 'inspect', x: 16, y: 8, name: 'Broken cages', sprite: 'cage', when: { quests: { 'C1-N05': 'active+' } },
+                    text: 'Three cages pried open, a perch snapped, a sack of grain slit and kicked across the floor. In the last cage, a crow with a splinted leg watches you and does not make a sound.' }
             ]
         },
 
@@ -821,7 +867,12 @@
                     text: 'Yarrow and thyme growing wild along the verge.' },
                 // The Broken Crown rework (Act I): the man who dug at your house, until he runs or the story moves on.
                 { id: 'road_scavenger', kind: 'npc', npc: 'scavenger', x: 13, y: 4, name: 'Scavenger', sprite: 'scavenger',
-                    when: { notFlags: ['scavenger_fled'], quests: { Q04: 'unseen' } } }
+                    when: { notFlags: ['scavenger_fled'], quests: { Q04: 'unseen' } } },
+                // Secret (master brief §8): the hunter's abandoned cabin in the ruins, and the winter store he never collected.
+                { id: 'road_hunter_note', kind: 'inspect', x: 18, y: 17, name: 'Field note',
+                    text: 'A field note nailed to the ruin\'s doorpost, curled with damp: "Wolves down from the ridge. Boarded the cabin, left the winter store under the brush by the east trees. Back when the road is safe. Jost." The road never was.' },
+                { id: 'road_hunter_cache', kind: 'inspect', x: 29, y: 17, name: 'Heap of brush', sprite: 'bundle', when: { flags: ['hunter_note_read'] },
+                    text: 'Under a heap of cut brush: a hunter\'s winter store, wrapped in waxed hide. Jost never came back for it.' }
             ]
         }
     };

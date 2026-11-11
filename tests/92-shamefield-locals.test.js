@@ -247,9 +247,10 @@ test('Locals: all six favours, in the corners of Shamefield, count toward the Ca
     assert.strictEqual(g.questState('L01'), 'complete');
     assert.strictEqual(g.player.gold, gold + 15);
     assert.ok(g.hasStoryFlag('shamefield_friend'));
-    assert.ok(g.hasStoryFlag('north_gate_open'), 'the gate opens');
     assert.strictEqual(g.questState('C1-N02'), 'complete', 'the village vouched for you, so no evidence was needed');
-    assert.strictEqual(g.questState('C1-N04'), 'active', 'and the main road goes on');
+    assert.ok(!g.hasStoryFlag('north_gate_open'), 'the gate opens the day after the festival');
+    assert.strictEqual(g.questState('C1-N03'), 'active', 'and the main road goes on to the Festival of the Sun');
+    assert.strictEqual(g.currentObjective('C1-N03').id, 'memorial', 'A Proper Meal already taught the cooking lesson, so it is skipped');
     talk(s, 'village_captain'); bye(g);
     assert.strictEqual(g.player.gold, gold + 15, 'paid once');
     assert.deepStrictEqual(g.player.inventory.filter((i) => ['Barley', 'Wild Hops', 'Rye Sheaf', 'Rye Flour', 'Sourdough Starter', 'Briarwell Pale', 'Shamefield Rye Loaf', 'Barley Seed'].includes(i)), [], 'every ingredient went into something');
@@ -332,11 +333,11 @@ test('Locals: two households are enough for the Captain to open the road; the ot
     travel(s, 'shamefield');
     const xp = g.player.xp, lvl = g.player.level;
     talk(s, 'village_captain'); say(g, /Open the gate/); bye(g);
-    assert.ok(g.hasStoryFlag('north_gate_open'), 'two households vouched');
-    assert.ok(g.hasStoryFlag('village_vouched'));
+    assert.ok(g.hasStoryFlag('village_vouched'), 'two households vouched');
     assert.strictEqual(g.questState('C1-N02'), 'complete');
     assert.ok(g.player.xp !== xp || g.player.level !== lvl, 'The Ash on the Register pays its XP once');
-    assert.strictEqual(g.questState('C1-N04'), 'active');
+    assert.strictEqual(g.questState('C1-N03'), 'active', 'the Captain opens the gate after the festival');
+    assert.strictEqual(g.currentObjective('C1-N03').id, 'lesson', 'Oda\'s cooking lesson first: A Proper Meal was never done');
     assert.strictEqual(g.questState('L01'), 'active', 'Get to Know the Locals stays open for the other four');
     for (const id of ['SF1', 'SF2', 'SF5', 'SF6']) assert.strictEqual(g.questState(id), 'available', `${id} is still there to do`);
     assert.ok(!s.visibleObjects().some((o) => o.id === 'village_oath_courier'), 'no courier left waiting for a route you no longer need');

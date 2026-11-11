@@ -8,7 +8,7 @@ const { WorldSession } = require('../src/world/world.js');
 const ZONE1 = require('../src/world/zone1.js');
 const STORY = require('../src/story/chapter1.js');
 const { takeExit, inspect, contact, travel } = require('./world-helpers.js');
-const { storyRouteNorth, meetCorvin } = require('../tools/lib/broken-oath-route.js');
+const { storyRouteNorth, playFestival, beatKess, meetCorvin } = require('../tools/lib/broken-oath-route.js');
 
 const lines = (r) => (r && r.events ? r.events : []).filter((e) => e.type === 'text').map((e) => e.text);
 function settle(g) { if (g.mode === 'branch_select') g.act({ type: 'choose_branch', branchId: Object.keys(data.evolutionPaths[g.player.className].branches)[0] }); }
@@ -31,7 +31,7 @@ function say(g, re) {
 const has = (g, re) => ((g.getAvailableActions().actions) || []).some((x) => x.type === 'dialogue_choice' && re.test(x.text));
 const bye = (g) => { const r = g.act({ type: 'dialogue_leave' }); settle(g); return r; };
 const spoken = (g) => g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' ');
-const io = (g) => ({ say: (re) => say(g, re), bye: () => bye(g), settle: () => settle(g) });
+const io = (g, s) => ({ say: (re) => say(g, re), bye: () => bye(g), settle: () => settle(g), fight: (id) => { fight(g, s, id); return true; } });
 
 function start(cls = 'warrior', seed = 5) {
     const g = new GameEngine({ seed });
@@ -58,17 +58,22 @@ function toRegister(ctx) {
     talk(s, 'village_captain'); say(g, /Here it is/);
     return ctx;
 }
-/** On from the open gate to the Warden's warning, meeting Corvin with `approach`. */
-function toWarden(ctx, approach = 'challenge') {
+/** From the register to the open gate: the story route north, then the Festival of the Sun (`branch`). */
+function toGate(ctx, branch = 'protect', how = 'grab') {
+    const { g, s } = ctx;
+    say(g, /find out who forged/); bye(g);
+    storyRouteNorth(g, s, io(g, s), how);
+    playFestival(g, s, io(g, s), branch);
+    return ctx;
+}
+/** Through the orchard: both lookouts, Sergeant Kess (unless `kess` is false) and the causeway gate. */
+function throughOrchard(ctx, kess = 'capture') {
     const { g, s } = ctx;
     travel(s, 'orchard');
-    for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) fight(g, s, id);
+    for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts']) fight(g, s, id);
+    if (kess) beatKess(g, s, io(g, s), kess);
+    fight(g, s, 'orchard_cultists');
     takeExit(s, 'orchard_north');
-    meetCorvin(g, s, io(g), approach);
-    for (const id of ['featherwatch_rearguard', 'featherwatch_crows', 'featherwatch_ghoul']) fight(g, s, id);
-    takeExit(s, 'featherwatch_north');
-    inspect(s, 'sanctuary_journal');
-    talk(s, 'sanctuary_warden_npc');
     return ctx;
 }
 /** Kill the Warden, open the seal, go home and mend the gate. Returns the lines of the ending. */
@@ -148,11 +153,14 @@ test('C1-N02: the forged register leads through Elian to the courier; grab him o
         talk(s, 'village_captain');
         assert.match(spoken(g), how === 'grab' ? /knocked a man down in my square/ : /found his drop instead/);
         assert.match(spoken(g), /Corvin Sere/);
-        say(g, /go north/); bye(g);
+        say(g, /go north/);
+        assert.match(spoken(g), /Today's the Festival of the Sun/, 'he opens the gate after the festival');
+        bye(g);
         assert.ok(!g.player.inventory.includes('Ash-Marked Orders'), 'the Captain keeps the proof');
-        assert.ok(g.hasStoryFlag('north_gate_open'));
+        assert.ok(!g.hasStoryFlag('north_gate_open'), 'not yet');
         assert.strictEqual(g.questState('C1-N02'), 'complete');
-        assert.strictEqual(g.questState('C1-N04'), 'active');
+        assert.strictEqual(g.questState('C1-N03'), 'active');
+        assert.strictEqual(g.questState('C1-N04'), 'unseen');
         assert.strictEqual(g.questState('Q06'), 'unseen', 'the Warden waits behind the Broken Oath');
         // Nothing twice: the Captain has nothing new, and the quest paid once.
         talk(s, 'village_captain'); bye(g);
@@ -163,13 +171,8 @@ test('C1-N02: the forged register leads through Elian to the courier; grab him o
 test('C1-N04: Corvin Sere looks at the mark, never names you, and remembers which approach you took at the end', () => {
     const endings = {};
     for (const [approach, seed] of [['challenge', 21], ['deceive', 22], ['bargain', 23]]) {
-        const ctx = toRegister(start('necromancer', seed));
+        const ctx = throughOrchard(toGate(toRegister(start('necromancer', seed))));
         const { g, s } = ctx;
-        say(g, /find out who forged/); bye(g);
-        storyRouteNorth(g, s, io(g));
-        travel(s, 'orchard');
-        for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) fight(g, s, id);
-        takeExit(s, 'orchard_north');
         assert.ok(s.visibleObjects().some((o) => o.id === 'featherwatch_corvin'));
         talk(s, 'featherwatch_corvin');
         assert.match(spoken(g), /That's an old sign\. You shouldn't carry it where anyone can see\./);
@@ -183,11 +186,14 @@ test('C1-N04: Corvin Sere looks at the mark, never names you, and remembers whic
         assert.ok(!s.visibleObjects().some((o) => o.id === 'featherwatch_corvin'), 'he leaves');
         assert.strictEqual(g.currentObjective('C1-N04').id, 'rearguard');
         fight(g, s, 'featherwatch_rearguard');
-        assert.strictEqual(g.questState('Q06'), 'active');
-        assert.strictEqual(g.currentObjective('Q06').id, 'climb', 'already on the climb: the first step caught up');
+        assert.strictEqual(g.questState('C1-N05'), 'active', 'on to the sanctuary under siege');
         for (const id of ['featherwatch_crows', 'featherwatch_ghoul']) fight(g, s, id);
         assert.ok(g.story.claimed.includes('trigger:ghoul_name'), 'the ghoul had a name once');
-        takeExit(s, 'featherwatch_north'); inspect(s, 'sanctuary_journal'); talk(s, 'sanctuary_warden_npc');
+        takeExit(s, 'featherwatch_north');
+        fight(g, s, 'sanctuary_siege'); inspect(s, 'sanctuary_broken_cages');
+        assert.strictEqual(g.questState('Q06'), 'active');
+        assert.strictEqual(g.currentObjective('Q06').id, 'look', 'already in the sanctuary: the first steps caught up');
+        inspect(s, 'sanctuary_journal'); talk(s, 'sanctuary_warden_npc');
         endings[approach] = toEnding(ctx);
         assert.strictEqual(g.questState('Q07'), 'complete');
     }
@@ -204,16 +210,11 @@ test('C1-N04: Corvin Sere looks at the mark, never names you, and remembers whic
 });
 
 test('The Warden: food and a seat first, an honest refusal, and his name only after he dies (Bran Ashdown)', () => {
-    const ctx = toRegister(start('warrior', 31));
+    const ctx = throughOrchard(toGate(toRegister(start('warrior', 31)), 'pursue', 'follow'), false);
     const { g, s } = ctx;
-    say(g, /find out who forged/); bye(g);
-    storyRouteNorth(g, s, io(g), 'follow');
-    travel(s, 'orchard');
-    for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) fight(g, s, id);
-    takeExit(s, 'orchard_north');
     for (const id of ['featherwatch_rearguard', 'featherwatch_crows', 'featherwatch_ghoul']) fight(g, s, id);
     takeExit(s, 'featherwatch_north');
-    // Skipping Corvin is allowed: the sanctuary catches the chain up (QA-36/39), and he isn't waiting for ever.
+    // Skipping Kess, Corvin and the siege is allowed: the Warden catches the chain up (QA-36/39), and they don't wait.
     talk(s, 'sanctuary_warden_npc');
     say(g, /rest here/);
     assert.match(spoken(g), /She bit me\. Good\. Means she'll live\./);
@@ -221,6 +222,8 @@ test('The Warden: food and a seat first, an honest refusal, and his name only af
     bye(g);
     inspect(s, 'sanctuary_journal');
     assert.strictEqual(g.questState('C1-N04'), 'complete', 'caught up by the next main step');
+    assert.strictEqual(g.questState('C1-N05'), 'complete');
+    assert.ok(!s.visibleObjects().some((o) => o.id === 'sanctuary_siege'), 'no siege left behind once the story moved on');
     talk(s, 'sanctuary_warden_npc');
     say(g, /I need what is behind that seal/);
     assert.match(spoken(g), /So did the men with their circles and chains/);
@@ -265,7 +268,11 @@ test('Broken Crown lore: no line in Chapter One names the player as the old rule
         if (/\bBran\b/.test(t)) assert.match(path, /npcs\.(tamsin\.nodes\.(mourning|after_admit)|warden_grave\.nodes\.(bury|cairn))/, `Bran named early at ${path}`);
     }
     // Every new person stands on a real map with a story entry; every new quest marker points at a real map.
-    for (const id of ['C1-N02', 'C1-N04']) for (const o of STORY.quests[id].objectives) assert.ok(ZONE1.maps[o.marker.map], `${id}.${o.id}`);
+    for (const id of ['C1-N02', 'C1-N03', 'C1-N04', 'C1-N05']) for (const o of STORY.quests[id].objectives) {
+        const m = ZONE1.maps[o.marker.map];
+        assert.ok(m, `${id}.${o.id}`);
+        assert.ok(o.marker.x < m.tiles[0].length && o.marker.y < m.tiles.length, `${id}.${o.id} marker on the map`);
+    }
 });
 
 test('Old saves: a run still waiting at the shut gate on the old six-favour deal gets the new way north, and its favours count', () => {
@@ -283,7 +290,7 @@ test('Old saves: a run still waiting at the shut gate on the old six-favour deal
     // As a save from before the rework had it: no C1-N02 (reconcile adds it unseen) and the catch-up not yet run.
     const save = JSON.parse(JSON.stringify(g.serialize()));
     const st = save.state.story;
-    delete st.quests['C1-N02']; delete st.quests['C1-N04'];
+    for (const q of ['C1-N02', 'C1-N03', 'C1-N04', 'C1-N05']) delete st.quests[q];
     st.claimed = st.claimed.filter((k) => !/^catchup:broken_oath_route|^quest:C1-N0/.test(k));
     const c = GameEngine.fromSave(save);
     assert.strictEqual(c.questState('C1-N02'), 'active', 'the new way north starts on load');
@@ -293,23 +300,18 @@ test('Old saves: a run still waiting at the shut gate on the old six-favour deal
     talk(s2, 'village_captain');
     assert.ok(has(c, /Open the gate/), 'two favours already done: he vouches');
     say(c, /Open the gate/); c.act({ type: 'dialogue_leave' });
-    assert.ok(c.hasStoryFlag('north_gate_open'));
-    assert.strictEqual(c.questState('C1-N04'), 'active');
+    assert.strictEqual(c.questState('C1-N02'), 'complete');
+    assert.strictEqual(c.questState('C1-N03'), 'active', 'the gate opens after the Festival of the Sun');
 });
 
 test('Old saves: a run already past the gate (on to the Warden) keeps going, and never meets the new quests by mistake', () => {
-    const ctx = toRegister(start('mage', 42));
+    const ctx = throughOrchard(toGate(toRegister(start('mage', 42))), false);
     const { g, s } = ctx;
-    say(g, /find out who forged/); bye(g);
-    storyRouteNorth(g, s, io(g));
-    travel(s, 'orchard');
-    for (const id of ['orchard_east_lookouts', 'orchard_west_lookouts', 'orchard_cultists']) fight(g, s, id);
-    takeExit(s, 'orchard_north');
     for (const id of ['featherwatch_rearguard', 'featherwatch_crows', 'featherwatch_ghoul']) fight(g, s, id);
     // As an older save had it: the gate opened by the old L01, Q06 active, the Broken Oath quests never seen.
     const save = JSON.parse(JSON.stringify(g.serialize()));
     const st = save.state.story;
-    st.quests['C1-N02'] = { state: 'unseen', step: 0 }; st.quests['C1-N04'] = { state: 'unseen', step: 0 };
+    for (const q of ['C1-N02', 'C1-N03', 'C1-N04', 'C1-N05']) st.quests[q] = { state: 'unseen', step: 0 };
     st.quests.L01 = { state: 'complete', step: 2 };
     st.quests.Q06 = { state: 'active', step: 1 };
     st.claimed = st.claimed.filter((k) => !/^catchup:broken_oath_route/.test(k));
@@ -319,4 +321,5 @@ test('Old saves: a run already past the gate (on to the Warden) keeps going, and
     const s2 = new WorldSession(ZONE1, { engine: c, map: 'featherwatch', spawn: 'from_orchard' });
     takeExit(s2, 'featherwatch_north');
     assert.strictEqual(c.currentObjective('Q06').id, 'look', 'the climb counts');
+    assert.ok(!s2.visibleObjects().some((o) => o.id === 'sanctuary_siege'), 'no siege for a run already past it');
 });

@@ -253,7 +253,9 @@
             const next = (id) => { const s = ((quests[id] && quests[id].onComplete) || []).find((e) => e.start); return s ? s.start : null; };
             const asks = (id) => quests[id].objectives.some((o) => o.on && o.on.type === ev.type && o.on.id === ev.id);
             const active = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
-            if (ev.type === 'enter' || !active || asks(active)) return;   // walking somewhere isn't doing a quest's step
+            // Walking somewhere isn't doing a quest's step, and nor is cooking or eating: a meal for a side quest must
+            // not skip a main quest ahead to the Festival of the Sun's cooking lesson (C1-N03).
+            if (ev.type === 'enter' || ev.type === 'craft' || ev.type === 'eat' || !active || asks(active)) return;
             let target = null;
             for (let id = next(active), n = 0; id && quests[id] && quests[id].kind === 'main' && quests[id].xp > 0 && n < 20; id = next(id), n++) {
                 if (asks(id)) { target = id; break; }

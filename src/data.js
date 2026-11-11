@@ -216,6 +216,14 @@
                 critChance: 0.12, critMultiplier: 1.6,
                 skills: [{ name: 'Thrown Spear', base_damage: [8, 11] }, { name: 'Spear Jab', base_damage: [6, 9] }]
             },
+            // Sergeant Kess, the Ash-Marked (Chapter One master brief §3, 2026-11-11): a former Crown sergeant who fights
+            // with measured melee pressure beside one acolyte. An elite, not a second boss. CANDIDATE numbers for Gauge.
+            'oath_sergeant': {
+                name: 'Sergeant Kess',
+                hp: 90, maxHp: 90, xp: 60, atk: 10, def: 4, spd: 9, tier: 'elite',
+                critChance: 0.1, critMultiplier: 1.6,
+                skills: [{ name: 'Measured Cut', base_damage: [9, 13] }, { name: 'Shield Feint', base_damage: [5, 8] }]
+            },
             'wolfbanner_ringleader': {
                 name: 'Ulfrun Grey-Mantle',
                 hp: 120, maxHp: 120, xp: 110, atk: 12, def: 5, spd: 10, tier: 'elite',
@@ -1371,6 +1379,21 @@
                         { name: 'Spear Jab', skill: 'Spear Jab', shape: 'line', reach: 26, width: 8, windupMs: 480, activeMs: 100, recoveryMs: 520, cooldownMs: 1300, blockCost: 10, role: 'blade' }
                     ]
                 },
+                // Sergeant Kess: a feint you can read (the short shield shove) before the heavy two-cut, and never a rush.
+                oath_sergeant: {
+                    speed: 48, detect: 120, alertMs: 900, reach: 24, arcDeg: 110, windupMs: 640, activeMs: 110, recoveryMs: 620, radius: 7, poise: 5, leash: 220,
+                    keepDistance: [0, 22], group: 'direct', frontalShield: { arcDeg: 70, damageTaken: 0.7 },
+                    attacks: [
+                        {
+                            name: 'Measured Cut', skill: 'Measured Cut', shape: 'arc', reach: 24, arcDeg: 110, cooldownMs: 2200, useAt: [0, 26],
+                            combo: [
+                                { windupMs: 640, activeMs: 110, recoveryMs: 260, blockCost: 16 },
+                                { windupMs: 520, activeMs: 110, recoveryMs: 800, blockCost: 20, reverse: true }
+                            ]
+                        },
+                        { name: 'Shield Feint', skill: 'Shield Feint', shape: 'line', reach: 18, width: 14, windupMs: 380, activeMs: 120, recoveryMs: 600, cooldownMs: 3800, blockCost: 14, knockbackPx: 16, staggers: true, useAt: [0, 20] }
+                    ]
+                },
                 wolfbanner_ringleader: {
                     speed: 52, detect: 136, alertMs: 700, reach: 26, arcDeg: 140, windupMs: 650, activeMs: 120, recoveryMs: 650, radius: 8, poise: 6, hyperArmor: true, leash: 240,
                     keepDistance: [0, 24], group: 'direct',
@@ -2308,6 +2331,11 @@
             ],
             "wolfbanner_ringleader": [
                 3,
+                "humanoid",
+                "elite"
+            ],
+            "oath_sergeant": [
+                2,
                 "humanoid",
                 "elite"
             ]

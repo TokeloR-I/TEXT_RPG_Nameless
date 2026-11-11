@@ -22,7 +22,9 @@
  * 20+25+40+30 = 115, plus the strongbox looters on Q05 (40, Tokelo 2026-11-02): total 290 = level 3.
  * The road to the Warden (Tokelo 2026-11-04) adds the climb's gates (68+24) and the orchard lookouts (116):
  * total 498 = level 4. The Broken Crown rework (2026-11-11, CHAPTER_ONE_NARRATIVE_REWORK.md) adds C1-N02 and C1-N04
- * (25 + 20) and keeps the six Shamefield favours optional: total 543 = level 4 (tests/32-chapter-one.test.js traces it).
+ * (25 + 20) and keeps the six Shamefield favours optional: total 543 = level 4. The rest of the master brief adds
+ * C1-N03 and C1-N05 (20 + 15), the festival raid (48), Sergeant Kess (80) and the sanctuary siege (40): total 746,
+ * still level 4 (tests/32-chapter-one.test.js traces it).
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -32,6 +34,8 @@
     // Households that must vouch for you before the Captain opens the north road on the village route (Broken Crown
     // rework 2026-11-11: never all six; two is the doc's working number, a candidate for Gauge).
     const VOUCH = 2;
+    // What Oda's festival meal does, read from the item itself (C1-N03 explains the buff in its own numbers).
+    const FESTIVAL_MEAL = (((isNode ? require('../data.js') : ENSO.data) || {}).itemDefinitions || {})['Leberkäsbrötchen']?.effectText || 'a meal buff';
     // Caelith's five holy weapons and how he names them (Fallen Seraphim; offered at waking since 2026-11-09).
     const HOLY = [['Emberward', 'The greatsword. I guarded the fire with it, once.'], ['Spear of the Altar Fire', 'The spear. It reaches further than you think.'],
         ['Twin Pinions', 'The two feather blades. Quick, like falling.'], ['Censer of Ash', 'The censer staff. Light, given away as smoke.'],
@@ -116,14 +120,53 @@
                     skipIf: { flags: ['village_vouched'] } },
                 { id: 'report', text: 'Bring the Watch Captain proof, or the word of two households you helped', on: { type: 'story', id: 'north_route_cleared' }, marker: { map: 'shamefield', x: 17, y: 4 } }
             ],
-            onComplete: [{ flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'C1-N04' }]
+            // The Captain keeps his word, the day after the festival (C1-N03 opens the gate).
+            onComplete: [{ start: 'C1-N03' }]
+        },
+        // C1-N03 (master brief §3, §4, §11): Oda's cooking lesson, the memorial, and the raid. Protect the people or
+        // chase the roll: both reach Corvin, and Shamefield remembers which you chose. Skipped lesson steps: a run that
+        // already finished A Proper Meal (SF6) has had the lesson. XP and rewards are candidates for Gauge.
+        'C1-N03': {
+            title: 'The Festival in Ash', kind: 'main', xp: 20, candidate: true,
+            summary: 'Shamefield keeps the Festival of the Sun: one year since the heroes broke the old crown. The Captain will open the gate after it. Oda wants a hand at the tables.',
+            objectives: [
+                { id: 'lesson', text: 'Help Oda with the festival tables', on: { type: 'story', id: 'festival_lesson' }, marker: { map: 'village_residential_lane', x: 17, y: 6 },
+                    skipIf: { quests: { SF6: 'complete' } } },
+                { id: 'cook', text: 'Cook a Leberkäsbrötchen at the festival hearth in the square (Pork and a Brötchen)', on: { type: 'craft', id: 'cook_leberkaese' }, marker: { map: 'shamefield', x: 13, y: 10 },
+                    skipIf: { quests: { SF6: 'complete' } } },
+                { id: 'eat', text: 'Eat it (Esc, then Items) and feel the buff', on: { type: 'eat', id: 'Leberkäsbrötchen' }, marker: { map: 'shamefield', x: 13, y: 10 },
+                    skipIf: { quests: { SF6: 'complete' } },
+                    effects: [{ flag: 'festival_fed' }, { say: `(Leberkäsbrötchen: ${FESTIVAL_MEAL}. A meal buff runs out, so eat just before a hard fight.)`, important: true }] },
+                { id: 'memorial', text: 'Join Tamsin at the memorial stone for the names', on: { type: 'story', id: 'raid_choice' }, marker: { map: 'shamefield', x: 15, y: 12 } },
+                { id: 'stalls', text: 'Drive the raiders away from the stalls', on: { type: 'defeat', id: 'festival_raiders' }, marker: { map: 'shamefield', x: 26, y: 10 },
+                    skipIf: { flags: ['festival_pursue'] } },
+                { id: 'thief', text: 'Catch the thief with the memorial roll before the north stair', on: { type: 'defeat', id: 'festival_thief' }, marker: { map: 'shamefield', x: 22, y: 4 },
+                    skipIf: { flags: ['festival_protect'] } },
+                { id: 'captain', text: 'Find the Watch Captain', on: { type: 'story', id: 'festival_debrief' }, marker: { map: 'shamefield', x: 17, y: 4 } }
+            ],
+            onComplete: [
+                { gold: 10, key: 'festival_supplies' },
+                { when: { flags: ['festival_protect'] }, item: 'Bratwurst', key: 'item:festival_greta' },
+                { flag: 'north_gate_open' }, { say: 'Somewhere north, a chain rattles and a gate swings open.' }, { start: 'C1-N04' }]
         },
         'C1-N04': {
             title: 'An Oath in Ash', kind: 'main', xp: 20, candidate: true,
             summary: 'The Broken Oath are moving men and chains up the climb to Featherwatch, where the Warden keeps his seal. Someone is giving the orders.',
             objectives: [
+                // Sergeant Kess, the Ash-Marked (master brief §3): the supply post in the orchard, an elite fight.
+                { id: 'kess', text: 'Break the Broken Oath supply post in the orchard', on: { type: 'defeat', id: 'orchard_kess' }, marker: { map: 'orchard', x: 16, y: 5 } },
                 { id: 'corvin', text: 'Find whoever leads the Broken Oath at the foot of the climb', on: { type: 'talk', id: 'corvin' }, marker: { map: 'featherwatch', x: 11, y: 18 } },
                 { id: 'rearguard', text: 'Break the Oathbound rearguard holding the climb', on: { type: 'defeat', id: 'featherwatch_rearguard' }, marker: { map: 'featherwatch', x: 5, y: 14 } }
+            ],
+            onComplete: [{ start: 'C1-N05' }]
+        },
+        // C1-N05 (master brief §3): the Broken Oath reached the roost first. The Warden is not weakened by it.
+        'C1-N05': {
+            title: 'A Sanctuary Under Siege', kind: 'main', xp: 15, candidate: true,
+            summary: "Corvin's men went up the climb ahead of you. The Warden's sanctuary, and the birds he keeps there, are paying for it.",
+            objectives: [
+                { id: 'siege', text: 'Drive the Oathbound out of the sanctuary', on: { type: 'defeat', id: 'sanctuary_siege' }, marker: { map: 'sanctuary', x: 11, y: 10 } },
+                { id: 'cages', text: 'See what they did to the cages', on: { type: 'inspect', id: 'sanctuary_broken_cages' }, marker: { map: 'sanctuary', x: 16, y: 8 } }
             ],
             onComplete: [{ start: 'Q06' }]
         },
@@ -185,6 +228,9 @@
                 { when: { flags: ['corvin_deceived'] }, say: 'Word comes up from Shamefield: a quartermaster in an old coat is asking after a stranger who claimed to speak for the watch.' },
                 { when: { flags: ['corvin_bargained'] }, say: 'Someone has pushed a note under your new gate: an open circle drawn in ash, and three words. WHERE IS IT?' },
                 { when: { notFlags: ['corvin_challenged', 'corvin_deceived', 'corvin_bargained'] }, say: 'Word comes up from Shamefield: the grey robes have left the causeway, and are asking about a stranger instead.' },
+                // Sergeant Kess, as you left the sergeant in the orchard.
+                { when: { flags: ['kess_captured'] }, say: 'The watch has Sergeant Kess in the tavern cellar. The Captain calls it the best-guarded beer in the vale.' },
+                { when: { flags: ['kess_released'] }, say: 'Nobody has seen Sergeant Kess since the orchard. Somebody left a Crown sergeant\'s badge on the memorial stone.' },
                 // The Sworn Band answer the Warden's death. The Sunbearer stays unnamed in Chapter One (lore bible 4.3).
                 { say: 'Far to the south, in a camp under the sun banner, a rider hands over a report: a Warden dead at Featherwatch, a seal broken, someone living in the old house in the vale.', important: true },
                 { say: 'The Sunbearer reads it twice. "Not the Broken Oath. They would have kept the key." She folds it away. "Send someone to the vale. Quietly."', important: true },
@@ -362,6 +408,12 @@
         { text: 'What do you want with the Warden?', if: { notFlags: ['corvin_gone'] }, to: 'bargain' },
         { text: 'Goodbye.', end: true }
     ];
+    // Sergeant Kess, beaten in the orchard (C1-N04): hand the sergeant to the watch, or let the sergeant go.
+    const KESS = [
+        { text: 'Why follow Corvin?', to: 'why' },
+        { text: 'Tie Kess up for the watch.', effects: [{ flag: 'kess_captured' }, { flag: 'kess_resolved' }], to: 'bound' },
+        { text: "Get up. Go, and don't come back.", effects: [{ flag: 'kess_released' }, { flag: 'kess_resolved' }], to: 'released' }
+    ];
     const shop = (id) => ({ text: 'What have you got?', say: 'What have you got for sale?', stay: true, effects: [{ shop: id }] });
     const met = { event: { type: 'story', id: 'met_shopkeeper' } };
 
@@ -516,6 +568,14 @@
         tamsin: {
             name: 'Tamsin', title: 'Village elder',
             talk: [
+                // C1-N03: the memorial names, once you've eaten (or had Oda's lesson before), then the raid.
+                { if: { quests: { 'C1-N03': 'active' }, notFlags: ['raid_started'], any: [{ flags: ['festival_fed'] }, { quests: { SF6: 'complete' } }] }, node: 'festival' },
+                { if: { quests: { 'C1-N03': 'active' }, notFlags: ['raid_started'] }, node: 'festival_early' },
+                { if: { quests: { 'C1-N03': 'active' }, notFlags: ['raid_over'] }, node: 'festival_raid' },
+                { if: { flags: ['raid_over', 'festival_protect'], notFlags: ['tamsin_festival_after', 'warden_dead'] }, node: 'festival_after_protect' },
+                { if: { flags: ['raid_over'], notFlags: ['tamsin_festival_after', 'warden_dead'] }, node: 'festival_after_pursue' },
+                // Overheard, once (master brief §7.1): before the Warden's death, and never by name.
+                { if: { quests: { Q05: 'complete' }, notFlags: ['warden_dead', 'heard_tamsin_children'], any: [{ flags: ['raid_over'] }, { quests: { 'C1-N03': 'unseen' } }] }, node: 'children' },
                 { if: { flags: ['warden_dead'], notFlags: ['tamsin_mourned'] }, node: 'mourning' },
                 { if: { flags: ['warden_admitted'] }, node: 'after_admit' },
                 { if: { flags: ['warden_dead'] }, node: 'after_other' },
@@ -550,8 +610,64 @@
                     choices: [{ text: 'Mara sent these supplies for the village.', if: { items: ['Village Supply Parcel'], quests: { Q04: 'active' } }, stay: true, effects: [{ removeItem: 'Village Supply Parcel' }, { event: { type: 'story', id: 'village_supplies_delivered' } }, { say: 'Tamsin: Thank you. These will keep our neighbours fed.' }] },
                         { text: 'Why is the village called Shamefield?', to: 'name' }, { text: 'Goodbye.', end: true }]
                 },
+                // C1-N03, the Festival of the Sun (master brief §11). DRAFT lines for Wick.
+                festival_early: {
+                    lines: [['npc', "Not yet. Nobody hears the names hungry: that's the rule."],
+                        ['npc', "Oda's at her oven in the lane. Go and be useful, then come back to the stone."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                festival: {
+                    lines: [
+                        [null, 'Bunting hangs from the raven tree. Somebody has hung a sun banner over the memorial stone, and Fenric has rolled a cask down from the Kloster.'],
+                        ['npc', "The Festival of the Sun. One year since the heroes broke the old crown. We eat, we drink, and then we read the names."],
+                        ['npc', "Elian brought more. People nobody here remembers. That's why they need reading."]
+                    ],
+                    choices: [{ text: 'Read them.', to: 'festival_names' }]
+                },
+                festival_names: {
+                    lines: [
+                        [null, 'Tamsin reads from the memorial roll. Elian stands by the stone and mouths each name a moment before she says it.'],
+                        [null, 'Halfway down the list, the church bell starts ringing the wrong way: fast, and all at once.'],
+                        ['npc', "Ash on their sleeves. They're at the stalls!"],
+                        [null, 'Across the square the Watch Captain drops his mug. "Put that down! Not the mug, the crossbow. Gods, I need a better posting."'],
+                        [null, 'Grey robes are shoving people away from the stalls. One snatches the roll out of Tamsin\'s hands and runs for the north stair.']
+                    ],
+                    choices: [
+                        { text: 'Protect the people at the stalls.', effects: [{ flag: 'raid_started' }, { flag: 'festival_protect' }, { event: { type: 'story', id: 'raid_choice' } }], end: 'interrupt' },
+                        { text: 'Go after the one with the roll.', effects: [{ flag: 'raid_started' }, { flag: 'festival_pursue' }, { event: { type: 'story', id: 'raid_choice' } }], end: 'interrupt' }
+                    ]
+                },
+                festival_raid: {
+                    lines: [['npc', "Don't stand there talking to an old woman. Go!"]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                festival_after_protect: {
+                    lines: [['npc', "We celebrated being free. They chose tonight to remind us what we survived."],
+                        ['npc', "You stood between them and the stalls. People saw. Now go and get our names back."]],
+                    effects: [{ flag: 'tamsin_festival_after' }],
+                    choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
+                        { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
+                        { text: 'Goodbye.', end: true }]
+                },
+                festival_after_pursue: {
+                    lines: [['npc', "We celebrated being free. They chose tonight to remind us what we survived."],
+                        ['npc', "You brought the names back. Greta will forgive you for her stall. Eventually. Maybe."]],
+                    effects: [{ flag: 'tamsin_festival_after' }],
+                    choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
+                        { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
+                        { text: 'Goodbye.', end: true }]
+                },
+                children: {
+                    lines: [[null, 'Tamsin is telling three children to stop throwing crab apples at the raven tree.'],
+                        ['npc', "...and the Warden set your cousin's arm himself, up at the roost, and wouldn't take a coin. So no. He does not eat children."],
+                        [null, 'The smallest child looks deeply disappointed.']],
+                    effects: [{ flag: 'heard_tamsin_children' }],
+                    choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
+                        { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
+                        { text: 'Goodbye.', end: true }]
+                },
                 after: {
-                    lines: [['npc', "The orchard gate's open, I hear. Be careful up there. The Warden is a kind man, but he won't let anyone past the roost."]],
+                    lines: [['npc', "Be careful if you go north. The Warden is a kind man, but he won't let anyone past the roost."]],
                     choices: [{ text: 'Is anything troubling the village?', if: { quests: { SF4: 'available' } }, to: 'sf4_start' },
                         { text: 'The mill is quiet now.', if: { quests: { SF4: 'active' }, flags: ['mill_quiet'] }, effects: [{ event: { type: 'story', id: 'tamsin_mill' } }], to: 'sf4_done' },
                         { text: 'Goodbye.', end: true }]
@@ -701,6 +817,11 @@
                 { if: { flags: ['shane_watch_resolved'], notFlags: ['captain_told_shane'] }, node: 'suspicious' },
                 { if: { quests: { Q05: 'active' }, flags: ['register_carried'] }, node: 'register' },
                 { if: { quests: { Q05: 'active' } }, node: 'gate' },
+                // C1-N03, the Festival of the Sun: he dodges it, then (after the raid) opens the gate as promised.
+                { if: { quests: { 'C1-N03': 'active' }, flags: ['raid_over', 'festival_protect'] }, node: 'debrief_protect' },
+                { if: { quests: { 'C1-N03': 'active' }, flags: ['raid_over'] }, node: 'debrief_pursue' },
+                { if: { quests: { 'C1-N03': 'active' }, flags: ['raid_started'] }, node: 'raid' },
+                { if: { quests: { 'C1-N03': 'active' } }, node: 'festival' },
                 // C1-N02 (Broken Crown rework): the courier's orders are proof. What you did to get them is remembered.
                 { if: { quests: { 'C1-N02': 'active' }, items: ['Ash-Marked Orders'], flags: ['oath_courier_caught'] }, node: 'evidence_caught' },
                 { if: { quests: { 'C1-N02': 'active' }, items: ['Ash-Marked Orders'] }, node: 'evidence_tracked' },
@@ -775,7 +896,7 @@
                         ['npc', "You knocked a man down in my square? People saw. Good: let them talk about it."],
                         [null, 'The Captain reads the orders and, for once, stays sober all the way to the end.'],
                         ['npc', "Corvin Sere. Quartermaster to the old crown. He surrendered at the gates, and they let him walk."],
-                        ['npc', "Now he's moving men and chains up to the roost, and the Warden's alone up there. Fine. The gate's open."]
+                        ['npc', "Now he's moving men and chains up to the roost, and the Warden's alone up there. Fine. I'll open the gate."]
                     ],
                     choices: [{ text: "I'll go north.", effects: [{ removeItem: 'Ash-Marked Orders' }, { event: { type: 'story', id: 'north_route_cleared' } }], to: 'gate_opened' }]
                 },
@@ -784,7 +905,7 @@
                         ['npc', "You let him run and found his drop instead? Sneaky. I'd have just shouted."],
                         [null, 'The Captain reads the orders and, for once, stays sober all the way to the end.'],
                         ['npc', "Corvin Sere. Quartermaster to the old crown. He surrendered at the gates, and they let him walk."],
-                        ['npc', "Now he's moving men and chains up to the roost, and the Warden's alone up there. Fine. The gate's open."]
+                        ['npc', "Now he's moving men and chains up to the roost, and the Warden's alone up there. Fine. I'll open the gate."]
                     ],
                     choices: [{ text: "I'll go north.", effects: [{ removeItem: 'Ash-Marked Orders' }, { event: { type: 'story', id: 'north_route_cleared' } }], to: 'gate_opened' }]
                 },
@@ -795,9 +916,38 @@
                     ],
                     choices: [{ text: 'Open the gate, then.', effects: [{ flag: 'village_vouched' }, { event: { type: 'story', id: 'north_route_cleared' } }], to: 'gate_opened' }]
                 },
+                // The road opens the day after the Festival of the Sun (C1-N03), not before: he has a festival to avoid.
                 gate_opened: {
-                    lines: [['npc', "There. Open. Keep to the path, and if the Warden tells you to turn back, turn back. Now let me sleep."]],
+                    lines: [['npc', "Tomorrow. Today's the Festival of the Sun, and I'm not opening anything but a cask."],
+                        ['npc', "Go and find Oda. She's been asking for you, and she frightens me."]],
                     choices: [{ text: 'Goodbye.', end: true }]
+                },
+                festival: {
+                    lines: [['npc', "Festival security? I inspected the tavern. Thoroughly. Twice."],
+                        ['npc', "The gate opens after the festival. Go and eat something. Tamsin reads the names at the memorial stone."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                raid: {
+                    lines: [['npc', "Why are you talking to me? GO! I've got the crossbow. Mostly the right way round."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                debrief_protect: {
+                    lines: [
+                        [null, 'The Captain is sitting on an upturned barrel with a crossbow across his knees, and nothing in his mug at all.'],
+                        ['npc', "Everyone's breathing. I counted them. Twice, like the tavern."],
+                        ['npc', "The one with the memorial roll went over the wall by the north stair. The tracks run up to the orchard. Corvin's people."],
+                        ['npc', "Fine. FINE. The gate's open. Get our names back, and find out what Corvin wants with the Warden. Somebody bring me a drink."]
+                    ],
+                    choices: [{ text: "I'll go north.", effects: [{ event: { type: 'story', id: 'festival_debrief' } }], end: true }]
+                },
+                debrief_pursue: {
+                    lines: [
+                        [null, 'The Captain is sitting on an upturned barrel with a crossbow across his knees, and nothing in his mug at all.'],
+                        ['npc', "You left my square to chase one man? Greta's stall is kindling, and Mara needed stitches."],
+                        ['npc', "...But you got the roll back, and the orders in his boot. Corvin's people go up to the roost tonight. Tactical. I hate it."],
+                        ['npc', "Fine. FINE. The gate's open. Go, before I sober up and change my mind."]
+                    ],
+                    choices: [{ text: "I'll go north.", effects: [{ event: { type: 'story', id: 'festival_debrief' } }], end: true }]
                 },
                 locals_deal: {
                     lines: [
@@ -831,7 +981,7 @@
                     choices: [{ text: 'I know the locals now.', effects: [{ flag: 'village_vouched' }, { event: { type: 'story', id: 'locals_reported' } }, { event: { type: 'story', id: 'north_route_cleared' } }], to: 'locals_thanks' }]
                 },
                 locals_thanks: {
-                    lines: [['npc', "A deal's a deal. The gate's open, and Bragg has something for you from the whole village. Now let me sleep."]],
+                    lines: [['npc', "A deal's a deal. Bragg has something for you from the whole village. Now let me sleep."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 suspicious: {
@@ -947,6 +1097,16 @@
             nodes: {
                 early: {
                     lines: [['npc', 'You climbed a long way. Look around if you must. Mind the gray one, she bites. Then we will talk.']],
+                    choices: [
+                        // C1-N05: helping earns his thanks and his care journal, never the key (master brief §3).
+                        { text: 'Let me help with the broken cages.', if: { flags: ['siege_broken'], notFlags: ['warden_helped'] }, to: 'mend' },
+                        { text: 'Can I rest here a while?', to: 'rest' }, { text: 'Goodbye.', end: true }]
+                },
+                mend: {
+                    lines: [[null, 'He hands you one end of a bent bar without a word. Together you work it straight, and lash a snapped perch back to its post.'],
+                        ['npc', "They wanted the key. They broke whatever was in the way, and the birds were in the way."],
+                        ['npc', "Thank you. It changes nothing about the key. But thank you."]],
+                    effects: [{ flag: 'warden_helped' }],
                     choices: [{ text: 'Can I rest here a while?', to: 'rest' }, { text: 'Goodbye.', end: true }]
                 },
                 // The Broken Crown rework (Act IV): he offers food and a seat before he ever has to refuse you.
@@ -1236,6 +1396,10 @@
                     lines: [['npc', "Don't touch, it's hot. Everything here is hot. Oda. If you hear a loaf crack from the square, that's mine."]],
                     choices: [
                         { text: 'The Captain says you and Fenric are at it again.', if: { quests: { SF1: 'available' } }, to: 'sf1_start' },
+                        // C1-N03: the festival lesson. One set of ingredients, and one restock if they went astray.
+                        { text: 'Need a hand with the festival tables?', if: { quests: { 'C1-N03': 'active', SF6: 'active' }, notFlags: ['festival_lesson'] }, effects: [{ flag: 'festival_lesson' }, { event: { type: 'story', id: 'festival_lesson' } }], to: 'festival_sf6' },
+                        { text: 'Need a hand with the festival tables?', if: { quests: { 'C1-N03': 'active' }, notFlags: ['festival_lesson'] }, effects: [{ flag: 'festival_lesson' }, { event: { type: 'story', id: 'festival_lesson' } }], to: 'festival_lesson' },
+                        { text: "I've lost the roll and the pork.", if: { quests: { 'C1-N03': 'active' }, flags: ['festival_lesson'], notFlags: ['festival_fed', 'festival_restock'], notAny: ['Leberkäsbrötchen'], any: [{ notAny: ['Pork'] }, { notAny: ['Brötchen'] }] }, effects: [{ flag: 'festival_restock' }], to: 'festival_restock' },
                         { text: 'The Captain says you think I eat like an animal.', if: { quests: { SF6: 'available' } }, to: 'sf6_start' },
                         { text: 'I cooked, and I ate it. Properly.', if: { quests: { SF6: 'active' }, flags: ['sf6_ate'] }, effects: [{ event: { type: 'story', id: 'oda_meal' } }], to: 'sf6_done' },
                         { text: 'Bake a rye loaf (1 Rye Flour, 1 Sourdough Starter)', say: 'May I use your oven?', if: { quests: { SF1: 'active' } }, stay: true, effects: [{ craft: 'bake_rye_loaf' }] },
@@ -1261,6 +1425,24 @@
                     ],
                     effects: [{ start: 'SF6' }, { item: 'Brötchen', key: 'item:sf6_roll' }, { item: 'Pork', key: 'item:sf6_pork' }],
                     choices: [{ text: 'Yes, Oda.', end: true }]
+                },
+                festival_lesson: {
+                    lines: [
+                        ['npc', "A hand? I need ten. Fenric's brought the beer, so somebody has to bring the food, and that somebody is you."],
+                        ['npc', "Here: a roll, and a slice of Greta's pork. There's a hearth by the raven tree for the festival. Cook a Leberkäsbrötchen on it."],
+                        ['npc', "Then eat it, and notice you feel stronger. Food is how this village gets through a winter, and how you'll get through a fight."]
+                    ],
+                    effects: [{ item: 'Brötchen', key: 'item:festival_roll' }, { item: 'Pork', key: 'item:festival_pork' }],
+                    choices: [{ text: 'Yes, Oda.', end: true }]
+                },
+                festival_sf6: {
+                    lines: [['npc', "You've still got my roll and pork? Good. Cook them at the festival hearth by the raven tree, then eat. Two birds, one oven."]],
+                    choices: [{ text: 'Yes, Oda.', end: true }]
+                },
+                festival_restock: {
+                    lines: [['npc', "Lost them. On festival day. ...Here. One more of each, and if you lose these I'm telling Greta."]],
+                    effects: [{ item: 'Brötchen', key: 'item:festival_roll_again' }, { item: 'Pork', key: 'item:festival_pork_again' }],
+                    choices: [{ text: 'Thank you, Oda.', end: true }]
                 },
                 sf6_done: {
                     lines: [['npc', "There. You're standing up straighter already. Take a pretzel for the road, and stop eating bread in the street like a stray."]],
@@ -1648,8 +1830,95 @@
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
-        }
+        },
+
+        // ------------------------------------------------------------- The rest of the master brief (2026-11-11)
+        // The festival hearth by the raven tree (C1-N03): a public hearth, so the cooking lesson needs no trip home.
+        square_hearth: {
+            name: 'Festival hearth', title: 'Shamefield',
+            talk: [{ node: 'hearth' }],
+            nodes: {
+                hearth: {
+                    lines: [[null, 'A trestle, an iron grill and a fire the whole village feeds. Anyone may cook here; Oda keeps an eye on it.']],
+                    choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
+                }
+            }
+        },
+        // Sergeant Kess, the Ash-Marked (C1-N04, master brief §3): beaten, not killed. Custody or release is real.
+        kess: {
+            name: 'Sergeant Kess', title: 'the Ash-Marked',
+            talk: [{ node: 'first' }],
+            nodes: {
+                first: {
+                    lines: [[null, "Kess is down on one knee in the trampled grass, sword out of reach, breathing hard. The ash on the sergeant's sleeve has smeared."],
+                        [null, 'Kess looks at your hand and frowns, like someone trying to place a face from a long way off.'],
+                        ['npc', "Twenty-two years a Crown sergeant. I signed the surrender at the gates with my own hand. Worst thing I ever wrote."],
+                        ['npc', "You want the timetable? Corvin waits at the foot of the climb. The chains go up to the roost at dusk. That's all you get."]],
+                    choices: KESS
+                },
+                why: {
+                    lines: [['npc', "When the crown fell, the heroes went home. Corvin fed us. He says the old order can be put back together."],
+                        ['npc', "Some days I believe him. Today isn't one of them."]],
+                    choices: KESS
+                },
+                bound: {
+                    lines: [['npc', "The Captain? He'll put me in the tavern cellar and forget about me. Fine. It's warm."],
+                        [null, 'You tie Kess to an apple tree for the watch to collect.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                released: {
+                    lines: [['npc', "The last people who let me walk away were the heroes, at the gates. Look how that turned out."],
+                        [null, 'Kess goes off through the trees to the west, and does not look back.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
     };
+
+    // Shamefield talks among itself (master brief §7.1): short scenes you overhear once, the first time you go up to
+    // someone after they happen, then the usual greeting. The overheard node keeps that greeting's choices, so it
+    // never hides a quest. DRAFT lines for Wick.
+    function overheard(npcId, flag, cond, lines, entry) {
+        const npc = npcs[npcId];
+        const from = npc.nodes[entry];
+        npc.nodes[flag] = { lines, effects: [...(from.effects || []), { flag }], choices: from.choices };
+        npc.talk.unshift({ if: { ...cond, notFlags: [...(cond.notFlags || []), flag] }, node: flag });
+    }
+    overheard('bragg', 'heard_bragg_mara', { quests: { Q04: 'complete' } }, [
+        [null, 'Bragg is arguing across the square with Mara, who is not looking up from her ledger.'],
+        ['npc', "Iron's three times what it was. Under the crown a cart came up that road every week, and nobody robbed it."],
+        ['mara', "Under the crown they robbed it before it left, Bragg. They just called it tax."],
+        ['npc', "...Well. At least it arrived."]
+    ], 'default');
+    overheard('oda', 'heard_oda_fenric', { quests: { Q04: 'complete' }, notFlags: ['raid_over'] }, [
+        [null, "Brother Fenric is leaning in at Oda's door with a cask on his shoulder, and both of them are pointing at the same sack of barley."],
+        ['fenric', "It's malting barley. It wants to be beer. You can hear it."],
+        ['npc', "It wants to be bread, and so do the festival tables. Put it down before I bake you."]
+    ], 'hello');
+    overheard('greta', 'heard_greta_captain', { quests: { Q04: 'complete' } }, [
+        [null, 'The Watch Captain has come all the way down the lane, and Greta is making him regret it.'],
+        ['npc', "Pigs over the fence, men in grey on the north road, and you're sitting in the tavern!"],
+        ['watch_captain', "Walking is outside my job description, Greta. I've checked. Twice."]
+    ], 'hello');
+    overheard('iona', 'heard_iona_shane', { flags: ['shane_recruited'] }, [
+        [null, 'Iona is turning a jar of salve over in her hands. The label says SHANE in large, proud letters.'],
+        ['npc', "He sent it down with the carter. It's good. Better than mine, for burns."],
+        ['npc', "I'd still like to know where a man learns to treat that many burns. I sent him willow bark back. We're not friends."]
+    ], 'default');
+    overheard('merrow', 'heard_merrow_elian', { flags: ['elian_in_village'] }, [
+        [null, 'Elian is sitting on the granary step beside Sister Merrow, turning his letter over in his hands.'],
+        ['elian', "Can a bell name someone nobody else remembers? If I'm the last one who knew them?"],
+        ['npc', "A bell doesn't remember anyone, Elian. People do. Ring it, and say the names out loud. Then you won't be the last."]
+    ], 'hello');
+    // After the raid, Greta remembers what you chose (master brief §3, C1-N03: no morality meter, just people).
+    overheard('greta', 'greta_after_protect', { flags: ['raid_over', 'festival_protect'] }, [
+        ['npc', "You stood in front of my stall when the robes came. Didn't even look at the sausages."],
+        ['npc', "There's a Bratwurst with your name on it. Don't argue."]
+    ], 'hello');
+    overheard('greta', 'greta_after_pursue', { flags: ['raid_over', 'festival_pursue'] }, [
+        ['npc', "My stall's firewood. Mara's got six stitches. And you were off chasing a roll of paper."],
+        ['npc', "...Tamsin says the names on it are ours. Fine. You can still buy pork. I'm charging you full price."]
+    ], 'hello');
 
     // Black Flight anchors (Nahemoth design): safe arrival points by story id. The flag 'anchor:<id>' attunes one.
     // The homestead is attuned when the seal opens; others by visiting their marked place (triggers below).
@@ -1674,6 +1943,46 @@
         { id: 'ghoul_name', on: { type: 'defeat', id: 'featherwatch_ghoul' }, effects: [
             { say: "When it falls, the chain goes slack. Under the ritual cuts, round its wrist, is a carter's leather cuff stamped HENNER, TOLLWAY CARTS." },
             { say: 'Somebody was a carter on the south road once. The Broken Oath made him into this.' }
+        ] },
+        // C1-N03, the raid on the Festival of the Sun: what each choice cost, and what it saved.
+        { id: 'raid_protected', on: { type: 'defeat', id: 'festival_raiders' }, effects: [
+            { say: 'The last grey robe goes down among the overturned benches. The stallholders are shaken, but every one of them is standing.' },
+            { say: 'Up at the north stair, the one with the memorial roll is long gone over the wall.' },
+            { flag: 'raid_over' }
+        ] },
+        { id: 'raid_pursued', on: { type: 'defeat', id: 'festival_thief' }, effects: [
+            { say: "You catch him under the chained orchard gate. The memorial roll is safe, and there's a folded order in his boot with an ash circle on it." },
+            { say: "Behind you, down in the square, Greta's stall is on its side and Mara is holding a cloth to her head." },
+            { flag: 'raid_over' }, { flag: 'memorial_roll_saved' }
+        ] },
+        // C1-N04: Sergeant Kess yields (and, if the thief got away at the festival, had the memorial roll).
+        { id: 'kess_beaten', on: { type: 'defeat', id: 'orchard_kess' }, effects: [
+            { say: 'Kess goes down to one knee and stays there. "Enough. Enough."', important: true },
+            { when: { flags: ['festival_protect'] }, say: "In the sergeant's satchel, wrapped in oilcloth: Shamefield's memorial roll, every name still on it." },
+            { when: { flags: ['festival_protect'] }, flag: 'memorial_roll_saved' },
+            { flag: 'kess_beaten' }
+        ] },
+        // C1-N05: the siege broken, and what it left behind.
+        { id: 'siege_broken', on: { type: 'defeat', id: 'sanctuary_siege' }, effects: [
+            { say: 'The last of them runs for the climb. Feathers everywhere, a perch snapped in two, and the cages along the wall pried open with crowbars.' },
+            { flag: 'siege_broken' }
+        ] },
+        // Four exploration secrets (master brief §8): a clue sets a flag, the flag shows the cache, the cache pays once.
+        { id: 'hunter_note', on: { type: 'inspect', id: 'road_hunter_note' }, effects: [{ flag: 'hunter_note_read' }] },
+        { id: 'hunter_cache', on: { type: 'inspect', id: 'road_hunter_cache' }, effects: [
+            { item: 'Pork', key: 'item:hunter_pork' }, { item: 'Rough Hide', key: 'item:hunter_hide' }, { item: 'Padded Jerkin', key: 'item:hunter_jerkin' }
+        ] },
+        { id: 'quartermaster_marks', on: { type: 'inspect', id: 'tollway_quartermaster_marks' }, effects: [{ flag: 'quartermaster_marks_read' }] },
+        { id: 'quartermaster_cache', on: { type: 'inspect', id: 'tollway_supply_cache' }, effects: [
+            { item: 'Scrap Metal', key: 'item:qm_scrap' }, { item: 'Apprentice Charm', key: 'item:qm_charm' }, { flag: 'corvin_invoice_found' }
+        ] },
+        { id: 'miller_note', on: { type: 'inspect', id: 'village_miller_note' }, effects: [{ flag: 'miller_note_read' }] },
+        { id: 'miller_recess', on: { type: 'inspect', id: 'village_mill_recess' }, effects: [
+            { item: 'Flour', key: 'item:hob_flour' }, { item: 'Small Coin Purse', key: 'item:hob_purse' }
+        ] },
+        { id: 'ridge_rope', on: { type: 'inspect', id: 'featherwatch_ridge_rope' }, effects: [{ flag: 'ridge_rope_found' }] },
+        { id: 'ridge_lookout', on: { type: 'inspect', id: 'featherwatch_lookout' }, effects: [
+            { item: 'Bandages', key: 'item:lookout_bandages' }, { item: 'Wild Herbs', key: 'item:lookout_herbs' }
         ] },
         // Get to know the locals: the pigs only stand in the village while SF3 is active, so their first look is the catch.
         { id: 'pig_bridge', on: { type: 'inspect', id: 'stray_pig_bridge' }, if: { quests: { SF3: 'active' } }, effects: [{ flag: 'pig_bridge_home' }, { say: "You mention crusts. The pig considers this, then trots off toward Baker's Lane." }] },

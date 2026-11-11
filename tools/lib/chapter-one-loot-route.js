@@ -5,9 +5,9 @@ const {WorldSession} = require('../../src/world/world');
 const world = require('../../src/world/zone1');
 const H = require('../../tests/world-helpers');
 const {helpLocals} = require('./shamefield-locals-route');
-const {storyRouteNorth, meetCorvin} = require('./broken-oath-route');
+const {storyRouteNorth, playFestival, beatKess, meetCorvin} = require('./broken-oath-route');
 const {choose} = require('../../qa/scripts/smartbot');
-function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment=true,stopBeforeBoss=false,locals=false}={}) {
+function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment=true,stopBeforeBoss=false,locals=false,festival='protect',kess='capture'}={}) {
     const g=new GameEngine({seed});g.start();
     if(!equipment) g.equipStarters=()=>{};
     g.input(cls);
@@ -30,7 +30,7 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     };
     const score=d=>(d.physicalDamage||0)+(d.magicDamage||0)+(d.def||0)*1.5+(d.maxHp||0)*.1+(d.intelligence||0)*.25+(d.strength||0)*.25+(d.critChance||0)*5;
     const fight=id=>{
-        const encounter=H.contact(s,id);if(encounter.type!=='encounter')throw new Error(`No encounter ${id}`);
+        const encounter=H.contact(s,id);if(encounter.type!=="encounter")throw new Error(`No encounter ${id}: ${JSON.stringify(encounter).slice(0,300)} mode=${g.mode}`);
         for(let i=0;i<400&&g.mode==='combat';i++) {
             if(forced)for(const e of g.combat.enemies)if(e.hp>1)e.hp=1;
             const a=g.getAvailableActions();
@@ -60,6 +60,9 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
         catch(err){if(err===lost)return {...result,g,s};throw err;}
     }
     if(g.questState('C1-N02')==='active')storyRouteNorth(g,s,{say,bye:()=>{bye();settle();},settle});
+    // C1-N03 The Festival in Ash: Oda's lesson at the festival hearth, the names, the raid (protect or pursue).
+    const io={say,bye:()=>{bye();settle();},settle,fight:id=>{settle();return fight(id);}};
+    if(g.questState('C1-N03')==='active'&&!playFestival(g,s,io,festival))return {...result,g,s};
     if(buy) {
         H.inspect(s,'village_iona');say(/What have you got/);
         for(const item of ['Healing Herb Bundle','Bandages']) while(g.act({type:'buy',shopId:'iona',item}).ok)result.bought++;
@@ -68,11 +71,16 @@ function runRoute({cls='warrior',seed=1,branch=0,forced=false,buy=true,equipment
     // The road to the Warden (2026-11-04): the orchard lookouts (unskippable in action play), the causeway gate, then
     // the climb's rearguard, crows and ghoul. Level 3 (and the path choice) arrives on the way; fight() makes the choice.
     H.travel(s,'orchard');
-    for(const id of ['orchard_east_lookouts','orchard_west_lookouts','orchard_cultists'])if(!fight(id))return {...result,g,s};
+    for(const id of ['orchard_east_lookouts','orchard_west_lookouts'])if(!fight(id))return {...result,g,s};
+    if(!beatKess(g,s,io,kess))return {...result,g,s};   // C1-N04: Sergeant Kess at the supply post (elite)
+    if(!fight('orchard_cultists'))return {...result,g,s};
     H.takeExit(s,'orchard_north');
     meetCorvin(g,s,{say,bye});   // C1-N04: Corvin Sere at the foot of the climb
     for(const id of ['featherwatch_rearguard','featherwatch_crows','featherwatch_ghoul'])if(!fight(id))return {...result,g,s};
-    H.takeExit(s,'featherwatch_north');H.inspect(s,'sanctuary_journal');H.inspect(s,'sanctuary_warden_npc');
+    H.takeExit(s,'featherwatch_north');
+    // C1-N05 A Sanctuary Under Siege: the cage-breakers, then the cages.
+    if(!fight('sanctuary_siege'))return {...result,g,s};
+    settle();H.inspect(s,'sanctuary_broken_cages');H.inspect(s,'sanctuary_journal');H.inspect(s,'sanctuary_warden_npc');
     result.preWardenGold=g.player.gold;
     let xp=g.player.xp,need=100;for(let level=1;level<g.player.level;level++){xp+=need;need=Math.floor(need*1.5);}result.totalXp=xp;
     if(stopBeforeBoss)return {...result,g,s};

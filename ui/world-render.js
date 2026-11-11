@@ -546,7 +546,9 @@
         // The Broken Crown rework (2026-11-11): the road scavenger, the Broken Oath courier, Corvin Sere's old quartermaster's coat.
         scavenger: { cloak: '#5a5040', hair: '#4a3a2a', belt: '#3a2a20', prop: 'pack', skin: '#c8a888' },
         oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },
-        oath_officer: { cloak: '#4a4e58', hair: '#b8b8b0', belt: '#a08a50', hat: '#2e3038' }
+        oath_officer: { cloak: '#4a4e58', hair: '#b8b8b0', belt: '#a08a50', hat: '#2e3038' },
+        // Sergeant Kess, beaten in the orchard: an old Crown coat with the ash circle on the sleeve.
+        oath_sergeant: { cloak: '#663432', hair: '#9a9a94', belt: '#43505c', scarf: '#3e2224' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -682,7 +684,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
@@ -828,6 +830,11 @@
     };
 
     for (const [key, o] of Object.entries(PEOPLE)) sprites[key] = (g, px, py, T, t) => person(g, px, py, t, o);
+    // Tile painters that also stand alone as objects (the Chapter One brief, 2026-11-11: the festival cask, the supply
+    // crates, the broken cages, the miller's sacks and the wrecked stall). They get the tile context they expect.
+    for (const key of ['crate', 'cask', 'cage', 'sacks', 'rubble']) {
+        if (!sprites[key] && painters[key]) sprites[key] = (g, px, py, T, t) => painters[key](g, px, py, T, { tx: Math.round(px / T), ty: Math.round(py / T), time: t || 0 });
+    }
     sprites.crowd = (g, px, py, T, t) => {
         person(g, px - 8, py + 2, t, { cloak: '#5a4a3a', hair: '#3a2a20' });
         person(g, px + 8, py + 1, t + 300, { cloak: '#4a5a4a', hair: '#8a6a40' });
