@@ -197,7 +197,7 @@ None of them is ever required:
   quest's path.
 - No save-format change; quest ids, objective ids and the three tablet flags are unchanged.
 
-## 7. Open for Tokelo
+## 7. Decisions (approved by Tokelo, 2026-11-11: "All three creative decisions are approved")
 
 1. **The law of twenty winters and the reversal** (Ragnhild asks to bury the dead and Torvald refuses). This is the
    main political idea Hrafnholm will be built on.
