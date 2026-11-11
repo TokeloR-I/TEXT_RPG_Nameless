@@ -117,6 +117,13 @@ A quest objective `{ type: 'quests', ids: [...], count: n }` completes once n of
 (Get to Know the Locals counts the five Shamefield favours this way).
 New tiles: `_` bridge, `+` cobble, `m` stall, `N` notice board, `A` fruit tree, `Z` seal door, `k` cage, `M` memorial, `w` wagon, `C` cart.
 
+## Chapter Two additions
+
+Hrimvald's maps live in `src/world/chapter2-maps.js` and its story in `src/story/chapter2.js` (guide: [CHAPTER_TWO.md](CHAPTER_TWO.md)).
+They use the same format and are merged the same way as Chapter One's. The file's `road` entry turns the Overgrown Road's east
+track from a boundary into a locked exit (`requires: { flags: ['chapter_one_complete'] }`).
+Ambient particles added for the North: `snow`, `mist`.
+
 ## What the validator checks
 
 `validateWorld(world, data)` in `src/world/world.js` covers:

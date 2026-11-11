@@ -394,6 +394,18 @@
         }
     }
 
+    // Chapter Two, Act I (src/world/chapter2-maps.js, loaded before this file in the browser): Hrimvald's first two
+    // maps, and the road's east track opened into the way there once Chapter One is done.
+    const ch2 = isNode ? require('./chapter2-maps.js') : (ENSO.world && ENSO.world.chapter2Maps);
+    if (ch2) {
+        Object.assign(zone1.zones, ch2.zones);
+        Object.assign(maps, ch2.maps);
+        const road = maps.road;
+        road.boundaries = (road.boundaries || []).filter((b) => b.id !== ch2.road.dropBoundary);
+        road.exits.push(ch2.road.exit);
+        Object.assign(road.spawns, ch2.road.spawn);
+    }
+
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;
     if (isNode) module.exports = zone1;
 })(typeof window !== 'undefined' ? window : globalThis);

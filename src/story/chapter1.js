@@ -1329,6 +1329,20 @@
         ]
     };
 
+    // Chapter Two (src/story/chapter2.js, loaded before this file in the browser) joins the same story: one set of
+    // quests, flags and NPCs, so a save carries straight on. Q08 "Ten Seals" stops being a pointer and leads there.
+    const ch2 = isNode ? require('./chapter2.js') : (ENSO.story && ENSO.story.chapter2);
+    if (ch2) {
+        Object.assign(quests, ch2.quests);
+        Object.assign(npcs, ch2.npcs);
+        Object.assign(anchors, ch2.anchors);
+        triggers.push(...ch2.triggers);
+        const q08 = quests.Q08;
+        delete q08.teaser;
+        Object.assign(q08.objectives[0], { text: ch2.q08.objective, marker: ch2.q08.marker });
+        q08.onComplete = [{ start: ch2.q08.start }];
+    }
+
     (ENSO.story || (ENSO.story = {})).chapter1 = chapter1;
     if (isNode) module.exports = chapter1;
 })(typeof window !== 'undefined' ? window : globalThis);

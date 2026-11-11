@@ -535,7 +535,13 @@
         monk: { cloak: '#5a4a38', hood: '#4a3c2c', belt: '#c8b890' },
         steward: { cloak: '#3a3a44', hood: '#e0dccc', belt: '#5a4a38', prop: 'basket' },
         baker: { cloak: '#d8d0c0', hair: '#6a4a2a', belt: '#8a6a3a' },
-        butcher: { cloak: '#7a3a34', hair: '#3a2a20', belt: '#e0dccc', prop: 'hammer', skin: '#d0a888' }
+        butcher: { cloak: '#7a3a34', hair: '#3a2a20', belt: '#e0dccc', prop: 'hammer', skin: '#d0a888' },
+        // Hrimvald (Chapter Two): wool in woad blue, madder and undyed grey; no horned helmets.
+        skald: { cloak: '#3a5a7a', hair: '#c89a4a', scarf: '#c8b890', belt: '#8a6a3a' },
+        carter: { cloak: '#6a6458', hair: '#8a8a88', belt: '#4a3a2a', prop: 'staff' },
+        shipwright: { cloak: '#7a5a34', hair: '#a8582a', belt: '#2a2018', prop: 'hammer', skin: '#d0a888' },
+        fishwife: { cloak: '#5a6a5a', hood: '#d8d0bc', belt: '#8a6a3a', prop: 'basket' },
+        reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -671,7 +677,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
@@ -1165,7 +1171,9 @@
         fireflies: { colour: [200, 255, 150], size: 2, speed: 0.012, drift: 1.6, pulse: 1 },
         embers: { colour: [255, 170, 90], size: 1, speed: 0.02, drift: 0.8, pulse: 0.6, rise: true },
         feathers: { colour: [30, 30, 36], size: 2, speed: 0.01, drift: 1.2, pulse: 0, fall: true },
-        smoke: { colour: [170, 165, 160], size: 2, speed: 0.008, drift: 1, pulse: 0.3, rise: true }   // chimneys and malt steam
+        smoke: { colour: [170, 165, 160], size: 2, speed: 0.008, drift: 1, pulse: 0.3, rise: true },   // chimneys and malt steam
+        snow: { colour: [240, 246, 255], size: 1, speed: 0.016, drift: 1.4, pulse: 0, fall: true },      // Frostspine Pass (Chapter Two)
+        mist: { colour: [210, 222, 230], size: 3, speed: 0.005, drift: 2.2, pulse: 0.25 }                // sea mist off the fjord (Skeldvik)
     };
     function particlesAt(spec, w, h, time) {
         const k = PARTICLES[spec && spec.kind];
