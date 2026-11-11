@@ -6,7 +6,7 @@ const { test, assert, GameEngine, data } = require('./helpers.js');
 const CLASSES = ['warrior', 'rogue', 'mage', 'necromancer'];
 const FORGE = { warrior: 'Tollgate Arming Sword', rogue: "Poacher's Hook-Knife", mage: 'Iron-Shod Ashwood Staff', necromancer: "Sexton's Bone Rod" };
 const THANKS = { warrior: 'Sunbreak', rogue: 'Millrace Tanto', mage: 'Bell-Bronze Staff', necromancer: 'Nameless Stone' };
-const HOLY = ['Doorward', 'Spear of the Cold Door', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];
+const HOLY = ['Emberward', 'Spear of the Altar Fire', 'Twin Pinions', 'Censer of Ash', 'Grey Feather Scythe'];
 
 function game(cls, seed = 97) {
     const g = new GameEngine({ seed, combatMode: 'action' });
@@ -119,15 +119,15 @@ test('The holy weapon: offered when the statue wakes, dormant until every web sk
     choose(g, /anything to carry it in/);
     const offered = g.getAvailableActions().actions.filter((a) => a.type === 'dialogue_choice');
     assert.strictEqual(offered.length, 6, 'five weapons, or not yet');
-    choose(g, /^Doorward/);
+    choose(g, /^Emberward/);
     g.act({ type: 'dialogue_leave' });
-    assert.ok(g.player.inventory.includes('Doorward'));
+    assert.ok(g.player.inventory.includes('Emberward'));
     const str0 = g.player.strength, hp0 = g.player.maxHp;
-    assert.ok(g.act({ type: 'equip', item: 'Doorward' }).ok, 'no level lock: a level 1 warrior wields it');
-    const full = data.itemDefinitions.Doorward.statModifiers, dormant = data.itemDefinitions.Doorward.kindle.dormant;
+    assert.ok(g.act({ type: 'equip', item: 'Emberward' }).ok, 'no level lock: a level 1 warrior wields it');
+    const full = data.itemDefinitions.Emberward.statModifiers, dormant = data.itemDefinitions.Emberward.kindle.dormant;
     assert.strictEqual(g.equipmentDamageBonus('physical'), dormant.physicalDamage);
     assert.strictEqual(g.player.strength, str0 + dormant.strength);
-    assert.ok(/Dormant/.test(g.itemDetails('Doorward')));
+    assert.ok(/Dormant/.test(g.itemDetails('Emberward')));
     // Not offered again.
     g.act({ type: 'talk', npcId: 'seraph_statue' });
     assert.ok(!g.getAvailableActions().actions.some((a) => /anything to carry it in/.test(a.text || '')));
@@ -136,7 +136,7 @@ test('The holy weapon: offered when the statue wakes, dormant until every web sk
     g.applyStoryEffects([{ flag: 'seraph_rank_six' }]);
     assert.strictEqual(g.equipmentDamageBonus('physical'), full.physicalDamage);
     assert.strictEqual(g.player.strength, str0 + full.strength);
-    assert.strictEqual(g.player.def, game('warrior').player.def - 1 + full.def, 'Doorward is two-handed: the shield came off, its DEF with it');
+    assert.strictEqual(g.player.def, game('warrior').player.def - 1 + full.def, 'Emberward is two-handed: the shield came off, its DEF with it');
     g.act({ type: 'talk', npcId: 'seraph_statue' });
     assert.strictEqual(g.story.dialogue.node, 'six_kindle', 'Caelith wakes it instead of offering five more');
     g.act({ type: 'dialogue_leave' });

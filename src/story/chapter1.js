@@ -29,7 +29,7 @@
 
     const LOCALS = ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6'];   // the households Get to Know the Locals counts
     // Caelith's five holy weapons and how he names them (Fallen Seraphim; offered at waking since 2026-11-09).
-    const HOLY = [['Doorward', 'The greatsword. I held the door shut with it, once.'], ['Spear of the Cold Door', 'The spear. It reaches further than you think.'],
+    const HOLY = [['Emberward', 'The greatsword. I guarded the fire with it, once.'], ['Spear of the Altar Fire', 'The spear. It reaches further than you think.'],
         ['Twin Pinions', 'The two feather blades. Quick, like falling.'], ['Censer of Ash', 'The censer staff. Light, given away as smoke.'],
         ['Grey Feather Scythe', 'The scythe. Even the holy have harvests.']];
     // Asked for at the statue until you have one (never after the full-mastery offer has been heard).
@@ -121,7 +121,7 @@
                         // Nahemoth, the first aspect (ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md; Vaelis's DRAFT lines).
                         // Only opening the seal grants it, never the Warden's death alone.
                         { say: 'The seal splits. A flock of ink-black feathers rises from a seam that has no depth. They turn against the wind and fold into a single crow.', important: true },
-                        { say: "Crow: 'You broke a door that was meant to stay shut. Consider me impressed. Or concerned. I haven't decided.'", important: true },
+                        { say: "Crow: 'You broke a seal that was meant to hold. Consider me impressed. Or concerned. I haven't decided.'", important: true },
                         { say: "Crow: 'Give me a place you've been, and I can show you how to return.'" },
                         { say: '(You gained Nahemoth, the First Shell. Black Flight: travel to places you have attuned. Talk to the crow any time.)', important: true },
                         { flag: 'aspect_nahemoth' },
@@ -224,14 +224,14 @@
             ],
             onComplete: []
         },
-        // The Trial of the Cold Door (Fallen Seraphim, Tokelo 2026-11-04): the second half of the legendary web is earned.
-        // Caelith offers it once you are a Watcher; heaven's doorkeeper waits in the courtyard. Winning opens the sealed
+        // The Trial of the Live Coal (Fallen Seraphim, Tokelo 2026-11-04): the second half of the legendary web is earned.
+        // Caelith offers it once you are a Watcher; heaven's altar-warden waits in the courtyard. Winning opens the sealed
         // nodes (skillWeb.legendaryWebs.fallen_seraphim.trial) and with them the capstones and the six wings.
         QS1: {
-            title: 'The Trial of the Cold Door', kind: 'side', xp: 300,
-            summary: 'Caelith says heaven has noticed the light it gave you. Its doorkeeper is coming to take it back. Beat it, and the rest of your wings are yours.',
+            title: 'The Trial of the Live Coal', kind: 'side', xp: 300,
+            summary: 'Caelith says heaven has noticed the light it gave you. Its altar-warden is coming to take it back. Beat it, and the rest of your wings are yours.',
             objectives: [
-                { id: 'face', text: 'Defeat Aurevain, Warden of the Shut Door, in the Kloster courtyard', on: { type: 'defeat', id: 'kloster_trial' }, marker: { map: 'kloster_inner', x: 19, y: 15 } }
+                { id: 'face', text: 'Defeat Aurevain, Warden of the Altar, in the Kloster courtyard', on: { type: 'defeat', id: 'kloster_trial' }, marker: { map: 'kloster_inner', x: 19, y: 15 } }
             ],
             onComplete: [
                 { flag: 'seraph_trial_won' },
@@ -733,14 +733,14 @@
                     choices: [
                         { text: 'What is behind it?', to: 'behind' },
                         { text: "I'll go.", end: true },
-                        { text: 'Stand aside. I want what is behind that door.', to: 'challenge' }
+                        { text: 'Stand aside. I want what is behind that seal.', to: 'challenge' }
                     ]
                 },
                 behind: {
-                    lines: [['npc', 'I was given the key and told never to use it. I never asked why. Some doors you keep shut because you are asked to, and because you love the people down the road.']],
+                    lines: [['npc', 'I was given the key and told never to use it. I never asked why. Some things you keep shut because you are asked to, and because you love the people down the road.']],
                     choices: [
                         { text: "I'll go.", end: true },
-                        { text: 'Stand aside. I want what is behind that door.', to: 'challenge' }
+                        { text: 'Stand aside. I want what is behind that seal.', to: 'challenge' }
                     ]
                 },
                 challenge: {
@@ -761,7 +761,7 @@
                         // DRAFT (Vaelis): Orin came through the fissure when the first seal opened. He wears a mason's
                         // name and works only with plans, materials, labour and Gold.
                         [null, 'A man in a mason\'s apron stands among the old foundations. Black grit still clings to his sleeves, as if he walked out of a chimney.'],
-                        ['npc', "Why am I here? Because a door opened. Because old things hear doors. Orin Vale. Mason, if you need a word for it."],
+                        ['npc', "Why am I here? Because a seal broke. Old things hear that sort of noise. Orin Vale. Mason, if you need a word for it."],
                         ['npc', 'And this place. These foundations are older than the village. Somebody once built something here worth building.']
                     ],
                     choices: [{ text: 'Can it be rebuilt?', to: 'ledger' }]
@@ -1106,7 +1106,7 @@
                     ]
                 },
                 why: {
-                    lines: [['npc', 'I was asked to guard a door and I opened it, because the ones outside were cold. Heaven called that a sin. The ones outside called it spring.']],
+                    lines: [['npc', 'I was asked to guard a fire, and I carried some of it down, because the ones below were cold. Heaven called that a sin. The ones below called it spring.']],
                     choices: [{ text: 'Am I evil?', to: 'evil' }, { text: 'I will carry it.', to: 'carry' }]
                 },
                 evil: {
@@ -1138,23 +1138,23 @@
                     effects: [{ flag: 'seraph_heard_six' }],
                     choices: [{ text: 'Goodbye, Caelith.', end: true }]
                 },
-                watcher: {   // rank 2: its name, and the door
+                watcher: {   // rank 2: its name, and the altar fire
                     lines: [[null, 'The halo brightens as you come close. The stone face turns, very slowly, to follow you.'],
-                        ['npc', 'You are heavier. Good. Then you can carry my name as well: Caelith. I kept the Cold Door.'],
-                        ['npc', 'This hill was a gate once. Behind it, the warm country. In front of it, a winter that did not end.'],
-                        ['npc', 'My orders were to keep the warmth in and the world out. The ones outside knocked for a hundred years.']],
+                        ['npc', 'You are heavier. Good. Then you can carry my name as well: Caelith. I kept the altar fire.'],
+                        ['npc', 'Seraph means the burning one. We kept Heaven\'s fire on its altar. Up there, warmth. Down here, a winter that did not end.'],
+                        ['npc', 'My orders were to keep the fire above and the world below. The ones below froze for a hundred years.']],
                     effects: [{ flag: 'seraph_heard_watcher' }],
-                    choices: [{ text: 'And you opened it.', to: 'opened' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'And you took some down.', to: 'opened' }, { text: 'Goodbye.', end: true }]
                 },
                 opened: {
-                    lines: [['npc', 'I opened it. Spring ran down this hill for the first time. The water at my feet is the last of it.'],
-                        ['npc', 'Then the door was shut behind me, and I fell, and the hill closed over me. Stone is patient. So am I.']],
+                    lines: [['npc', 'One live coal, carried in my hands. Spring ran down this hill for the first time. The water at my feet is the last of it.'],
+                        ['npc', 'Then Heaven threw me down after it, and the hill closed over me. Stone is patient. So am I.']],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
-                trial: {   // after Watcher: the Trial of the Cold Door (QS1), which opens the second half of the web
-                    lines: [[null, 'The halo over the statue flickers, like a candle when a door opens somewhere.'],
+                trial: {   // after Watcher: the Trial of the Live Coal (QS1), which opens the second half of the web
+                    lines: [[null, 'The halo over the statue flickers, like a candle in a draught.'],
                         ['npc', 'They have noticed you. Heaven does not like its light walking about in someone else\'s shoes.'],
-                        ['npc', 'It will send the one who keeps the door now: Aurevain. It will come here, to my courtyard, and ask for the light back.'],
+                        ['npc', 'It will send the one who keeps the altar now: Aurevain. It will come here, to my courtyard, and ask for the light back.'],
                         ['npc', 'Half of my wings I can give you without asking anyone. The other half you will have to keep from it.']],
                     choices: [
                         { text: 'Let it come.', effects: [{ flag: 'seraph_trial_called' }, { start: 'QS1' }], to: 'trial_go' },
@@ -1185,9 +1185,9 @@
                 },
                 unbound: {   // rank 4: all six wings
                     lines: [[null, 'The statue does not move. You do: six wings open behind you, and the courtyard goes quiet.'],
-                        ['npc', 'There. Now you are what I was, before the door. Six wings, and nobody left to tell you where to point them.'],
+                        ['npc', 'There. Now you are what I was, before the fall. Six wings, and nobody left to tell you where to point them.'],
                         ['npc', 'I will not ask what you will do with them. I was asked that once, and the answer took a thousand years.'],
-                        ['npc', 'Go on. Open something.']],
+                        ['npc', 'Go on. Give something away.']],
                     effects: [{ flag: 'seraph_heard_unbound' }],
                     choices: [{ text: 'Goodbye, Caelith.', end: true }]
                 },
@@ -1198,8 +1198,8 @@
                         [null, 'Five shapes rise out of the fountain, dripping and bright: a greatsword, a spear, two feather blades, a censer staff, a scythe.'],
                         ['npc', 'They were mine, when I had hands for them. Take the one that fits yours. The others go back to the water.']],
                     choices: [
-                        { text: 'Doorward: The greatsword. I held the door shut with it, once.', effects: [{ item: 'Doorward', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
-                        { text: 'Spear of the Cold Door: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Cold Door', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Emberward: The greatsword. I guarded the fire with it, once.', effects: [{ item: 'Emberward', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
+                        { text: 'Spear of the Altar Fire: The spear. It reaches further than you think.', effects: [{ item: 'Spear of the Altar Fire', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
                         { text: 'Twin Pinions: The two feather blades. Quick, like falling.', effects: [{ item: 'Twin Pinions', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
                         { text: 'Censer of Ash: The censer staff. Light, given away as smoke.', effects: [{ item: 'Censer of Ash', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },
                         { text: 'Grey Feather Scythe: The scythe. Even the holy have harvests.', effects: [{ item: 'Grey Feather Scythe', key: 'seraph_holy_weapon' }, { flag: 'seraph_weapon_chosen' }, { flag: 'seraph_heard_six' }], to: 'armed' },

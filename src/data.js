@@ -186,17 +186,17 @@
                     { name: 'Chain Lock', base_damage: [10, 12] }
                 ]
             },
-            // The Trial of the Cold Door (Fallen Seraphim, Tokelo 2026-11-04: "a quest with a ridiculously strong boss ... so
-            // that going forward is earned"). Heaven's own doorkeeper comes for the light Caelith gave you. Built to beat a
+            // The Trial of the Live Coal (Fallen Seraphim, Tokelo 2026-11-04: "a quest with a ridiculously strong boss ... so
+            // that going forward is earned"). Heaven's own altar-warden comes for the light Caelith gave you. Built to beat a
             // level 10 character only with the Fallen gifts and a good build (Gauge: docs/design/FALLEN_SERAPHIM.md).
             'heaven_doorwarden': {
-                name: 'Aurevain, Warden of the Shut Door',
+                name: 'Aurevain, Warden of the Altar',
                 id: 'heaven_doorwarden',
                 hp: 3200, maxHp: 3200, xp: 600, atk: 34, def: 10, spd: 12,
                 critChance: 0.15, critMultiplier: 1.8,
                 specialFlags: ['boss'],
                 skills: [
-                    { name: 'Spear of the Shut Door', base_damage: [28, 36] },
+                    { name: 'Spear of the Altar', base_damage: [28, 36] },
                     { name: 'Wingbeat', base_damage: [20, 26] },
                     { name: 'Sentence of Light', base_damage: [16, 22] }
                 ]
@@ -432,7 +432,7 @@
             'Feather Ward': { description: 'A wing folds over you: absorb the next hit.', liveDescription: 'A wing folds over you: absorb the next hit. Lasts 12 s; stacks to 2. 14 s cooldown.', cost: 1, cooldown: 14, resource: 'any', effects: [{ type: 'absorb_hit', duration: 2, say: 'folds a grey wing close against the next hit.' }], target: 'self' },
             'Mercy of the Fallen': { description: 'Heal 25% of your max HP and burn away poison, bleeding and infection.', liveDescription: 'Heal 25% of your max HP and burn away damage over time (poison, bleed, burn, infection). 24 s cooldown.', cost: 2, cooldown: 24, resource: 'any', effects: [{ type: 'heal_percent', value: 0.25 }, { type: 'cleanse', categories: ['dot'] }], target: 'self' },
             'Ashen Communion': { description: 'Ash falls on every enemy: 8–12 radiant dmg each, and you heal for half of it.', liveDescription: 'Ash falls around you (160 px): 8–12 radiant dmg to every enemy, and you heal for half the damage dealt. 16 s cooldown.', cost: 3, cooldown: 16, resource: 'any', base_damage: [8, 12], effects: [{ type: 'heal_from_damage', ratio: 0.5 }], target: 'all_enemies', damage_type: 'radiant' },
-            'The Door Held Open': { description: 'Hold the door, as it once did: take 50% less damage for 3 turns, heal 40% of your max HP, and shed every DoT and debuff.', liveDescription: 'Hold the door: take 50% less damage for 10 s, heal 40% of your max HP, and shed every DoT and debuff. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'damage_reduction', value: 0.5, duration: 3 }, { type: 'heal_percent', value: 0.4 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
+            'The Coal Carried Down': { description: 'Carry the coal down, as Caelith once did: take 50% less damage for 3 turns, heal 40% of your max HP, and shed every DoT and debuff.', liveDescription: 'Carry the coal down: take 50% less damage for 10 s, heal 40% of your max HP, and shed every DoT and debuff. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'damage_reduction', value: 0.5, duration: 3 }, { type: 'heal_percent', value: 0.4 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
             // The Wide Wings (flight)
             'Wingstep': { description: 'Lift off the ground: for 2 turns, every attack on you has a 40% chance to miss.', liveDescription: 'Lift off the ground: for 6 s, every attack on you has a 40% chance to miss. 14 s cooldown. Free: the statue’s gift.', cost: 0, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.4, duration: 2, persistent: true }], target: 'self' },
             'Gale of Pinions': { description: 'One beat of the wide wings: 6–9 radiant dmg to every enemy and slow them by 50% for 2 turns.', liveDescription: 'One beat of the wide wings (160 px): 6–9 radiant dmg to every enemy, slowed by 50% for 6 s. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
@@ -796,7 +796,7 @@
                         { name: 'Fallen', at: 1 },
                         { name: 'Watcher', at: 7, points: 1, flag: 'seraph_rank_watcher', say: 'Six places between your shoulders ache. The statue in the Kloster would know why.' },
                         { name: 'Ashen Seraph', at: 14, points: 1, flag: 'seraph_rank_ashen', say: 'Ash falls when you walk now, and nothing it touches is cold. Go back to the courtyard.' },
-                        { name: 'Seraph Unbound', node: 'fallen_seraphim.unbound', flag: 'seraph_rank_unbound', say: 'All six wings open at once. Somewhere, a door you never saw swings wide.' },
+                        { name: 'Seraph Unbound', node: 'fallen_seraphim.unbound', flag: 'seraph_rank_unbound', say: 'All six wings open at once. Somewhere far above, an altar fire gutters.' },
                         // Tokelo (2026-11-04): every skill learned gives the six wings, red eyes and a holy weapon of your choosing.
                         { name: 'The Six-Winged', all: true, flag: 'seraph_rank_six', say: 'Every feather is yours now. Six wings stand at your back, and your eyes burn red. Caelith is waiting with a gift.' }
                     ],
@@ -808,8 +808,8 @@
                     heartTraits: [{ name: 'Fallen Grace', effect: 'The statue\'s light in you: +35% damage, take 35% less damage.', mods: { damageDealt: 0.35, damageTaken: -0.35 } }],
                     gifts: ['fallen_seraphim.judgement', 'fallen_seraphim.halo_of_ash', 'fallen_seraphim.wingstep'],
                     // Tokelo (2026-11-04): the second half is earned. Nodes marked `trial` (level 10 and up: the late passives, the
-                    // capstones, Seraph Unbound, so the wings too) stay sealed until you win the Trial of the Cold Door (quest QS1).
-                    trial: { flag: 'seraph_trial_won', name: 'the Trial of the Cold Door' },
+                    // capstones, Seraph Unbound, so the wings too) stay sealed until you win the Trial of the Live Coal (quest QS1).
+                    trial: { flag: 'seraph_trial_won', name: 'the Trial of the Live Coal' },
                     nodes: [
                         // The Veiled Face: judgement. Two wings over the eyes, so as not to see what it judged.
                         { id: 'fallen_seraphim.judgement', kind: 'active', skill: 'Fallen Judgement', minLevel: 3, links: ['heart.fallen_seraphim'] },
@@ -827,7 +827,7 @@
                         { id: 'fallen_seraphim.what_is_evil', trial: true, kind: 'passive', minLevel: 10, links: ['fallen_seraphim.mercy', 'fallen_seraphim.wings_of_sorrow', 'fallen_seraphim.grace'],
                             trait: { name: 'What Is Evil?', effect: 'Neither saint nor sinner: take 10% less damage from everything.', mods: { damageTaken: -0.1 } } },
                         { id: 'fallen_seraphim.communion', trial: true, kind: 'active', skill: 'Ashen Communion', minLevel: 12, links: ['fallen_seraphim.what_is_evil'] },
-                        { id: 'fallen_seraphim.door', trial: true, kind: 'active', skill: 'The Door Held Open', minLevel: 14, links: ['fallen_seraphim.communion'] },
+                        { id: 'fallen_seraphim.door', trial: true, kind: 'active', skill: 'The Coal Carried Down', minLevel: 14, links: ['fallen_seraphim.communion'] },
                         // The Wide Wings: flight. The two it flew with, and fell with.
                         { id: 'fallen_seraphim.wingstep', kind: 'active', skill: 'Wingstep', minLevel: 2, links: ['heart.fallen_seraphim'] },
                         { id: 'fallen_seraphim.gale', kind: 'active', skill: 'Gale of Pinions', minLevel: 5, links: ['fallen_seraphim.wingstep'] },
@@ -879,7 +879,7 @@
                 unlockPath: 'Stare at the robed statue in the Kloster courtyard for 2 minutes: a halo, then six wings, then it speaks.',
                 mechanic: 'Grace and ash: radiant power that cuts deepest into the Undead and the Void, and burns brightest as you fall. Three paths, one per pair of wings: the Veiled Face (judgement), the Covered Feet (mercy), the Wide Wings (flight).',
                 signatureSkill: 'Six-Winged Descent',
-                seraph: 'Caelith, Keeper of the Cold Door',
+                seraph: 'Caelith, Keeper of the Altar Fire',
                 ranks: ['Fallen', 'Watcher', 'Ashen Seraph', 'Seraph Unbound', 'The Six-Winged'],
                 mastery: 'Every skill learned: six wings at your back, red eyes, and a holy weapon of your choosing from Caelith.',
                 lore: "Evil is only a good that someone else did not choose. You were called fallen before you ever fell."
@@ -960,7 +960,7 @@
             'Halo of Ash':      { category: 'buff' },     // Fallen Seraphim buffs, so a buff cleanse sees them
             'Feather Ward':     { category: 'buff' },
             'Wingstep':         { category: 'buff' },
-            'The Door Held Open': { category: 'buff' },
+            'The Coal Carried Down': { category: 'buff' },
             'Dragon’s Dominion': { category: 'buff' },     // QA-15: so a buff cleanse sees it, like every other status
             // --- bookkeeping statuses from apply_status (no gameplay effect yet)
             'Channel Cooldown':     { category: 'cooldown' },
@@ -1038,7 +1038,7 @@
                     'Halo of Ash':        { seconds: 9,  maxStacks: 1 },   // 30% damage reduction; 20 s cooldown
                     'Feather Ward':       { seconds: 12, maxStacks: 2 },   // each stack absorbs one hit; 14 s cooldown
                     'Wingstep':           { seconds: 6,  maxStacks: 1 },   // 40% to dodge every attack; 14 s cooldown
-                    'The Door Held Open': { seconds: 10, maxStacks: 1 },   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
+                    'The Coal Carried Down': { seconds: 10, maxStacks: 1 },   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
                     // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
                     'Wrath Ghost':     { seconds: 20, maxStacks: 1 },
                     'Siphon Ghost':    { seconds: 20, maxStacks: 1 },
@@ -1333,17 +1333,17 @@
                     ]
                 },
                 crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' },
-                // The Trial of the Cold Door: four wings, a spear, and every tell readable (first-pass numbers, Gauge).
+                // The Trial of the Live Coal: four wings, a spear, and every tell readable (first-pass numbers, Gauge).
                 heaven_doorwarden: {
                     boss: true, speed: 54, detect: 170, reach: 32, arcDeg: 150, windupMs: 600, activeMs: 140, recoveryMs: 700, radius: 10, poise: 12, hyperArmor: true, leash: 420,
                     giveUpMs: null, keepDistance: [24, 60], group: 'solo',
                     attacks: [
-                        { name: 'Spear Sweep', skill: 'Spear of the Shut Door', shape: 'arc', reach: 32, arcDeg: 160, cooldownMs: 2600, useAt: [0, 34],
+                        { name: 'Spear Sweep', skill: 'Spear of the Altar', shape: 'arc', reach: 32, arcDeg: 160, cooldownMs: 2600, useAt: [0, 34],
                             combo: [
                                 { windupMs: 600, activeMs: 140, recoveryMs: 200, blockCost: 26 },
                                 { windupMs: 420, activeMs: 140, recoveryMs: 900, blockCost: 30, reverse: true }
                             ] },
-                        { name: 'Spear Thrust', skill: 'Spear of the Shut Door', shape: 'line', reach: 60, width: 12, lunge: 28, windupMs: 620, activeMs: 120, recoveryMs: 800, cooldownMs: 2400, blockCost: 28, useAt: [28, 70] },
+                        { name: 'Spear Thrust', skill: 'Spear of the Altar', shape: 'line', reach: 60, width: 12, lunge: 28, windupMs: 620, activeMs: 120, recoveryMs: 800, cooldownMs: 2400, blockCost: 28, useAt: [28, 70] },
                         // Four wings beat once around it: walk out of 60 px or dodge through it (1.2 s to read).
                         { name: 'Wingbeat', skill: 'Wingbeat', shape: 'circle', radius: 60, windupMs: 1200, activeMs: 150, recoveryMs: 1300, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.6, useAt: [0, 56] },
                         // Light falls where you stand: three marked circles, 1 s to step out.
@@ -1439,12 +1439,12 @@
             // them; you take one (story key seraph_holy_weapon). Since 2026-11-09 (Tokelo: "we have yet to see a player use
             // it cause of the level lock") Caelith offers them the moment the statue wakes, dormant at about half strength
             // (`kindle.dormant`); every web skill learned (rank The Six-Winged) wakes the weapon to its full statModifiers.
-            'Doorward': { type: 'weapon', slot: 'mainHand', weaponType: 'two-hand', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+            'Emberward': { type: 'weapon', slot: 'mainHand', weaponType: 'two-hand', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
                 kindle: KINDLE({ physicalDamage: 3, strength: 1 }),
-                statModifiers: { physicalDamage: 6, strength: 2, def: 1 }, description: 'A holy greatsword, as long as a door is tall. Caelith held the Cold Door shut with it, once, and then did not.' },
-            'Spear of the Cold Door': { type: 'weapon', slot: 'mainHand', weaponType: 'spear', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
+                statModifiers: { physicalDamage: 6, strength: 2, def: 1 }, description: 'A holy greatsword, its blade banked like a coal. Caelith guarded Heaven\'s altar fire with it, once, and then did not.' },
+            'Spear of the Altar Fire': { type: 'weapon', slot: 'mainHand', weaponType: 'spear', hands: 2, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
                 kindle: KINDLE({ physicalDamage: 3, agility: 1, critChance: 0.03 }),
-                statModifiers: { physicalDamage: 5, agility: 2, critChance: 0.05 }, description: 'A white-ash spear with a frost-blue head. It is warm to hold.' },
+                statModifiers: { physicalDamage: 5, agility: 2, critChance: 0.05 }, description: 'A white-ash spear whose head glows like a live coal. It is warm to hold.' },
             'Twin Pinions': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', rarity: 'legendary', bound: true, unique: true, sellable: false, holy: true,
                 kindle: KINDLE({ physicalDamage: 2, agility: 2, critChance: 0.04 }),
                 statModifiers: { physicalDamage: 4, agility: 3, critChance: 0.08 }, description: 'Two curved blades, each forged from a single gold-edged feather.' },
@@ -1463,7 +1463,7 @@
             'Tollgate Arming Sword': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['warrior'],
                 itemBaseId: 'Tollgate Arming Sword', itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
                 statModifiers: { physicalDamage: 2, strength: 1, def: 1 },
-                description: 'Bragg forged it from the bars of the old crown\'s tollgate. The iron spent twenty years as a door, and still swings like one.' },
+                description: 'Bragg forged it from the bars of the old crown\'s tollgate. The iron barred the road for twenty years, and still hits like it.' },
             "Poacher's Hook-Knife": { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['rogue'],
                 itemBaseId: "Poacher's Hook-Knife", itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
                 statModifiers: { physicalDamage: 1, agility: 1, critChance: 0.03 },
@@ -1493,7 +1493,7 @@
             'Nameless Stone': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', legalClasses: ['necromancer'],
                 itemBaseId: 'Nameless Stone', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
                 statModifiers: { magicDamage: 2, intelligence: 2, maxHp: 15 },
-                description: 'Shamefield\'s thanks. A blackthorn staff set with a chip of the memorial stone, the one with no names on it. Something under the chip hums when you hold it, like a crowd behind a door.' },
+                description: 'Shamefield\'s thanks. A blackthorn staff set with a chip of the memorial stone, the one with no names on it. Something under the chip hums when you hold it, like a crowd heard through a wall.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },

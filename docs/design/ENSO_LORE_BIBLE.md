@@ -35,17 +35,17 @@ Shipped text is canon: a player has read it. Sources are `src/story/chapter1.js`
 | Shamefield's name is **an old joke**: people shamed for something work the field until they earn their name back. | Tamsin |
 | The Kloster (Briarwell, painted after Kloster Sankt Alban) keeps a charter to brew, bake and keep a granary "for the living, and against the winter", **older than the old crown**. Crosses, psalters, hooded saints whose hands are folded **like the courtyard statue**. | Kloster inspects |
 | The library has a chained book, *On the Six-Winged Ones, and Why They Are Not Spoken Of*. **Most of its pages are cut out.** An armillary ring has been bent back by hand. | `kloster_inner` inspects |
-| The statue is **Caelith**, a seraph who **kept the Cold Door**. Behind it the warm country, in front a winter that did not end. Caelith opened it; spring ran down the hill; Heaven called it a sin, and it fell. The monks built their walls around it. Someone carved **HE FELL FOR US** on the altar step. **Aurevain** keeps the door now. "The answer took a thousand years." | `seraph_statue`, QS1 |
+| The statue is **Caelith**, a seraph ("the burning one") who **kept Heaven's altar fire**. Above, warmth; below, a winter that did not end. Caelith carried **one live coal** down; spring ran down the hill; Heaven called it a sin and threw it after the coal. The monks built their walls around it. Someone carved **HE FELL FOR US** on the altar step. **Aurevain** keeps the altar now. "The answer took a thousand years." *(Renamed 2026-11-11 from "the Cold Door", see 4.8.)* | `seraph_statue`, QS1 |
 | The **Broken Oath** cult wears grey robes, keeps bowls of ash, chants, and scrapes **a circle left open at the top** into stone. One acolyte looks at the player "almost hopeful. Then afraid." The same open circle is "in the cellar, on the dead tree, in the well". They chain ghouls with ritual cuts. | orchard and Featherwatch encounters |
 | The seal is **a ring of black stone, a circle left open at the top**. | `seal_first_echo` |
 | The Warden was **given the key and told never to use it**; he never asked why. His crows saw the player wake "in the old house" and have been afraid since. His cages are **rebuilt from old prison bars**. He mended Tamsin's grandson's arm and took no coin. | Warden, sanctuary inspects, Tamsin |
 | The first memory: a balcony, **a festival street of lanterns**, a calm voice gives an order, the lanterns go out, the street is empty. | B01 |
 | The crow is **Nahemoth, the First Shell**: "the part of the world that remembers where you have stepped". | B01, crow |
-| Orin came through when the seal opened: "Because a door opened. Because old things hear doors." The foundations are older than the village. | Orin |
+| Orin came through when the seal opened: "Because a seal broke. Old things hear that sort of noise." The foundations are older than the village. | Orin |
 | Q08: "The Warden kept one seal. Orin has heard of others." **Follow the crows east** for Chapter Two. | Q08 |
 
 **What the audit shows.** Chapter One's environmental writing is strong and already hints at a coherent world:
-**doors and seals**, **an open circle**, **one year since the fall**, and a holy order that is older than the crown.
+**seals**, **an open circle**, **one year since the fall**, and a holy order that is older than the crown.
 What is missing is the layer *under* it: the team has no shared answer to who the old lord was, who the heroes
 are, who made the seals and how, or what the Broken Oath wants. Writers have been improvising lines one quest at a
 time, and that is how contradictions start.
@@ -56,7 +56,7 @@ time, and that is how contradictions start.
 |---|---|---|
 | C1 | The region is **Blackbriar Vale** in the regional bible, but the Black Flight menu calls it **"Shamefield Vale"** (`anchors.shamefield.region`). | **Blackbriar Vale.** Shamefield is the village, not the valley. Fixed in this PR (anchor text and its test). |
 | C2 | The regional bible says religion is "undecided; don't invent gods". Since then the game shipped a Kloster with crosses and saints, a seraph, and **Heaven** as a speaking power. | The game wins. Section 4.4 sets out the faith so later text stays consistent. |
-| C3 | The foundation doc has Orin as an ordinary mason who tried to reach the Warden's records; the Nahemoth doc makes him something that came through the opened seal. | The game uses the second. **Orin came through the door.** The first version is retired. |
+| C3 | The foundation doc has Orin as an ordinary mason who tried to reach the Warden's records; the Nahemoth doc makes him something that came through the opened seal. | The game uses the second. **Orin came out of the broken seal.** The first version is retired. |
 | C4 | `src/data.js` gives the Warden red eyes and chanting, which read as evil. | Already ruled (foundation doc): the red glow is the seal's weight on him. The **Hex-Eyed Crows** with "the wrong red" eyes are cult-fed birds, never his. Keep the two reds visibly different. |
 | C5 | Boss slot 2 was "Nahemoth" in the first boss table, then Nahemoth moved to slot 1. | Slot 2 stays **unassigned** (the Hearthbound Sentinel is a working name only). |
 | C6 | The studio role briefs in `.claude/agents/` still say "Art is Mana Seed only". Art went original and code-drawn on 2026-10-26/28. | Not a lore question. Flagged for Juniper to correct across all briefs in their own PR. |
@@ -72,7 +72,7 @@ and the game.
    late game hinge on them.
 4. **The seals.** Who made ten seals out of a broken crown, how, and why guardians instead of a vault?
 5. **The Broken Oath.** Their open circle is the strongest mystery in Chapter One and nobody has written who they are.
-6. **Heaven and the Husks.** The seraph side (doors, light) and the Qliphoth side (shells, shadow) sit in one Kloster
+6. **Heaven and the Husks.** The seraph side (fire, light) and the Qliphoth side (shells, shadow) sit in one Kloster
    and one valley with no link between them.
 7. **The Warden** has no name and no past, though his cages hint at one.
 8. **The table set for two.** A strong hook with no owner.
@@ -89,22 +89,22 @@ the midgame reveal, boss 5 or 6) or **[late]**.
 > "But the door just a cold wind??? ... do research on gaming, RPG and anime lore and come back to me with actual
 > good lore." (Tokelo)
 
-The first answer ("behind the door is a cold blank") failed because it was **impersonal**: nothing behind the door
+The first answer ("behind the door is a cold blank") failed because it was **impersonal**: nothing behind it
 mattered to anyone in the game. The research (part 7) points at one rule shared by the lore people remember:
-**what is behind the door has to be about people the player already met, and it has to cost the player something.**
+**what is sealed away has to be people the player already met, and freeing it has to cost the player something.**
 Fullmetal Alchemist's Gate takes the thing you love, Hollow Knight's seal is a living child, Planescape: Torment's
 amnesiac hero finds that the price of his power was paid by others, and Berserk's power comes from sacrificing the
 people closest to you. So:
 
-**Behind every door are the missing.**
+**Inside every seal are the missing.**
 
-**The old lord could open people.** He would draw the open circle (the ensō, the brushstroke) on a person, and the
-circle became a door. Through it he could take what was inside: their life, their memories, their name. He did not
-kill them. He **kept** them, inside himself. Every person he took became part of his power: their strength in his
+**The old lord could close the circle on people.** He would draw the open circle (the ensō, the brushstroke) on a
+person's brow, then finish the stroke. When the circle closed, it closed around everything they were: their life,
+their memories, their name. He did not kill them. He **kept** them, inside himself. Every person he took became part of his power: their strength in his
 arm, their memories in his head, their skills in his hands. His soldiers called them **the Kept**.
 
 **Why he did it (his reason must make sense).** It started with one person. The one he loved fell ill, and he would
-not let them die, so he learned how to open a door in them and keep them. The table in the old house is set for
+not let them die, so he learned how to close the circle on them and keep them. The table in the old house is set for
 two because **that was their house**. Once he knew how, he could not stop: nobody he loved would ever be lost again,
 then nobody he ruled. His law was **"Under the crown, nobody is lost."** He believed he was ending death. To everyone
 else, whole streets simply emptied.
@@ -136,7 +136,7 @@ and that is the moral question of the whole game, put in mechanical terms.
 **The choice the game is built toward.** Every seal opened makes the player stronger because the Kept flow back in.
 Late in the game the player learns they can also **let them go** through the open circle, and each person let go
 is gone from the player's power for good. The beloved is the last one inside. **Enso's Last Stand** (placeholder
-title) is that final door: keep everyone and rule as the old lord did, or open the circle and lose them all,
+title) is that last circle: keep everyone and rule as the old lord did, or open the circle and lose them all,
 including the one he did it for. The Sunbearer's whole quest is to free the Kept; that is what makes the hero right
 without making the player a cartoon. Endings stay Tokelo's call.
 
@@ -149,13 +149,13 @@ was let go.
 
 | When (from now) | What happened | Spoiler |
 |---|---|---|
-| ~1000 years | **The Cold Door.** Heaven keeps its warm country shut behind a door; outside, a winter that does not end. Caelith, its keeper, opens it for the freezing; spring runs down the hill. Caelith falls and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
+| ~1000 years | **The Live Coal.** Heaven keeps its fire on its altar; below, a winter that does not end. Caelith, a seraph of the altar, carries one live coal down to the freezing; spring runs down the hill. Heaven throws Caelith after it and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
 | ~700 years | **Sankt Alban**, a hermit, digs a spring on the hill and finds a hooded stone figure in it. He builds a chapel round it; the brothers who follow him become **the Order of Briarwell**. They take the statue for a nameless saint and copy its folded hands on every saint they carve. Their rule: "for the living, and against the winter". | [Ch1] hints |
-| ~60 years | **The house on the ridge.** Two people live in a small house above Blackbriar Vale. One falls ill. The other finds, in the hill's old doors, a way to keep them. | [late] |
+| ~60 years | **The house on the ridge.** Two people live in a small house above Blackbriar Vale. One falls ill. The other finds, in the hill's old stones, a way to keep them. | [late] |
 | ~50 years | **The rise of the old crown.** The one who kept his beloved learns to keep soldiers' strength, then scholars' knowledge, and conquers with it. Roads, tollways, prison-towers: his. A mason named Orin lays the foundations of a great seat around the little house, and is later kept himself. | [Ch1] ruins; [mid] the seat; [late] Orin |
 | ~25 years | **The Night of Lanterns.** In the capital, a festival street is taken in one night: the first time thousands are kept at once. The first memory fragment. | [Ch1] the image; [mid] the truth |
 | ~25 to 2 years | **"Nobody is lost."** No funerals under the crown, and no one can say where the missing went. Some loved the safety: roads safe, tolls fair, bread cheap. | [Ch1] |
-| ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones*: the seraphim's way to make a door that stays shut. | [mid] |
+| ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones*: the seraphim's way to bind something so it stays bound. | [mid] |
 | 1 year | **The Breaking of the Crown.** The Band cuts the old lord into ten husks at the gates, seals each in his own circle, and gives each seal a keeper. What is left, empty, is laid in the cellar of the house on the ridge, and someone carves a warning and tries to scratch it out. The Kloster bell rings for an hour. | [Ch1] bell, festival; [mid] the husks |
 | now | The Festival of the Sun. Someone wakes in the old house. | [Ch1] |
 
@@ -170,13 +170,13 @@ open to change (Decision D3):
 | Role | Working name | Who they are | Spoiler |
 |---|---|---|---|
 | **The Sunbearer** (the beloved champion, final confrontation) | **Ilsabet Rowe** | A tollkeeper's daughter from the south roads who carried the sun banner through the gates. Genuinely good, tired, and the only one who still doubts the seals will hold. Must stay admirable (foundation doc). | [Ch1] the banner; the name [late] |
-| **The Sealwright** | **Master Odran Quell** | A scholar who learned door-craft from the stolen pages and invented the seals. Chooses the keepers. Carries the guilt of the theft. | [mid] |
+| **The Sealwright** | **Master Odran Quell** | A scholar who learned seal-craft from the stolen pages and invented the seals. Chooses the keepers. Carries the guilt of the theft. | [mid] |
 | **The Shield** | **Sir Hamund Gale** | A former officer of the old crown who turned. Proof that the crown's own people ended it. | [mid] |
 | **The Lantern** | **Sister Wenna of Briarwell** | A Briarwell sister who left the Kloster to march; her name is on the altar step oath. Brother Fenric and Sister Merrow knew her. | [Ch1] a hint at the Kloster |
 | **The Scout** | **Tam Fletch** | A Vale hunter who led the band over the high passes. Harlan Voss's apprentice, if Harlan is built. | [mid] |
 
 **The Keepers.** The ten guardians (the Qliphoth table) are not the Sworn Band. The Sealwright chose people who
-*would not open a door they were told to keep shut*: steady, kind, unambitious. That is why so many of them are good,
+*would not break a seal they were told to keep*: steady, kind, unambitious. That is why so many of them are good,
 and why killing them should hurt.
 
 **The Broken Oath.** Soldiers, clerks and jailers of the old crown who **broke their oath** to him when he fell,
@@ -196,15 +196,16 @@ he closes the orchard road because he has buried people who walked it.
 
 ### 4.4 The cosmology: Heaven, the husks and the Kept
 
-- **Heaven** (the Kloster's One Light) keeps order by keeping doors. Its doorkeepers are the six-winged **seraphim**.
-  Heaven is not evil and not kind: it is *orderly*, and it believes the dead belong behind a door.
-- **Caelith and the old lord are mirror images.** Both learned to open doors. Caelith opened one to **give** (spring
-  to the freezing) and fell for it. The old lord opened people to **keep** them. A player who wakes the Fallen
-  Seraph and breaks the seals carries both kinds of opening, and the web's question "what is evil?" lands on them.
+- **Heaven** (the Kloster's One Light) keeps order by keeping its fire. The six-winged **seraphim** tend it; the word
+  means "the burning ones", and in Isaiah 6 a seraph takes a live coal from the altar with tongs. Heaven is not evil
+  and not kind: it is *orderly*, and it believes its light is not for the world below.
+- **Caelith and the old lord are mirror images.** Caelith took something from Heaven to **give** it away (spring to
+  the freezing) and fell for it. The old lord took people to **keep** them. A player who wakes the Fallen Seraph and
+  breaks the seals carries both kinds of taking, and the web's question "what is evil?" lands on them.
 - **The husks** (the Qliphoth) are the ten pieces the heroes cut him into: shells, each holding a crowd of the Kept
   and one of his powers. Each boss guards one. Nahemoth is the crowd of everyone who was **taken on the road**:
   travellers, carters, tollkeepers. That is why the crow knows every route, and why it took the shape of a road bird.
-- **The seals** are door-craft learned from Heaven's stolen pages, drawn in the old lord's own circle. That is why
+- **The seals** are binding-craft learned from Heaven's stolen pages, drawn in the old lord's own circle. That is why
   Aurevain watches the player.
 - **Orin** was a real mason, kept by the old lord after building his seat. When the first seal opened, he came out
   of it, wearing what is left of himself. He recognises the foundations because **his own hands laid them**. He does
@@ -212,8 +213,9 @@ he closes the orchard road because he has buried people who walked it.
 - **The Broken Oath** know what the circle does. They believe the Kept are alive and happy inside him, and that the
   heroes murdered them all by sealing him. They are wrong about the happy part.
 
-**Lore rule:** a door, gate or seal that matters must have a written answer: who is behind it, and what it costs to
-open. The player can wait for the answer; the team never does.
+**Lore rule:** a seal that matters must have a written answer: who is inside it, and what it costs to break. The
+player can wait for the answer; the team never does. **Doors are not a motif** (Tokelo, 2026-11-11, see 4.8): a door
+in ENSO is just a door.
 
 ### 4.5 People who need a past
 
@@ -237,7 +239,8 @@ These are named so Moss and Cairn can plan around them; none is promised content
 
 - **The Lantern City** (working name): the old crown's capital, east, where the Night of Lanterns happened. Chapter
   Two follows the crows east, so this is the natural long-range destination.
-- **The Cold Door**: the hill under the Kloster. Aurevain came from somewhere; a door should exist to come back to.
+- **The Altar**: Heaven's altar above the Kloster hill. Aurevain came from somewhere and will go back there; this is
+  a place, not a door, and it is [late] at the earliest.
 - **The ridge seat**: what the homestead was. The five homestead stages (regional bible) slowly uncover it; Orin
   recognises a throne room's footings at stage 4.
 
@@ -246,10 +249,10 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | Term | Meaning | Who says it |
 |---|---|---|
 | the old lord, the old crown | the ruler and his realm | everyone |
-| the open circle, the ensō | the old lord's brushstroke; drawn on a person, it opens them | the Broken Oath, scholars |
+| the open circle, the ensō | the old lord's brushstroke; closed on a person, it keeps them | the Broken Oath, scholars |
 | the Kept | the people he took, alive, into himself | his soldiers, the Broken Oath |
 | "Nobody is lost" | the old crown's law | old officials |
-| Enso's Last Stand | placeholder title: the final door, the choice to keep the Kept or let them go | nobody, until [late] |
+| Enso's Last Stand | placeholder title: the last circle, the choice to keep the Kept or let them go | nobody, until [late] |
 | the Keeper | scholars' name for the old lord | scholars, the Sworn Band |
 | the Breaking of the Crown | the victory, one year ago | heroes, festival |
 | the Sworn Band | the five heroes | everyone |
@@ -259,6 +262,27 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | the One Light | Heaven, in the Kloster's prayers | the Order |
 | six-winged ones | seraphim | old books |
 | the Broken Oath | the cult | the watch, villagers |
+
+### 4.8 No door motif (Tokelo, 2026-11-11)
+
+> "I am still not liking this door obsession." (Tokelo)
+
+The first pass of this bible made doors the theme of everything ("everything in ENSO is a door someone was told to
+keep shut"), and Chapter One's text followed it: the Cold Door, Doorward, The Door Held Open, the Warden of the Shut
+Door, a crow line about breaking a door, Orin hearing doors. Tokelo pushed back on 2026-11-08 and again on
+2026-11-11. The ruling:
+
+- **The mystery is carried by the circle and the seals, not by doors.** The old lord *closes* circles on people;
+  the heroes *seal* him; the player *breaks* seals. None of those is a door.
+- **The seraph's story is about fire.** Seraph means "the burning one"; Caelith carried one live coal down from
+  Heaven's altar (Isaiah 6 has a seraph carry a coal from the altar). Renamed in game: the Trial of the Live Coal
+  (QS1), Aurevain, Warden of the Altar, Caelith, Keeper of the Altar Fire, Emberward (greatsword), Spear of the Altar
+  Fire, and The Coal Carried Down (capstone). Old saves are renamed on load (save format 3).
+- **Ordinary doors stay ordinary.** Church doors, cellar doors and cage doors are furniture. Don't give one meaning,
+  don't name a weapon, skill, boss or quest after a door or gate, and don't use "behind the door" as a figure of
+  speech for the mystery. The Captain's orchard gate and the homestead gate are gameplay, not lore, and stay.
+- Internal ids (`heaven_doorwarden`, `fallen_seraphim.door`, the `seal_door` tile) keep their names; players never
+  see them.
 
 ## 5. How the team works on lore from now on
 
@@ -280,8 +304,8 @@ These are named so Moss and Cairn can plan around them; none is promised content
 
 | # | Question | Recommendation |
 |---|---|---|
-| D1 | What is "Enso"? | ENSO stays a placeholder title (Tokelo, 2026-11-08). In-world, the open circle is the old lord's brushstroke and *Enso's Last Stand* is the final door (4.1). |
-| D2 | Adopt **the Keeping** (4.1): behind every door are the missing, kept alive inside the old lord, and the player's power is made of them? | **Approved as the direction** (Tokelo, 2026-11-08: "Yes this is a good start"). It replaces "the Unwritten". The team builds on it and deepens it. |
+| D1 | What is "Enso"? | ENSO stays a placeholder title (Tokelo, 2026-11-08). In-world, the open circle is the old lord's brushstroke and *Enso's Last Stand* is the last circle (4.1). |
+| D2 | Adopt **the Keeping** (4.1): inside every seal are the missing, kept alive inside the old lord, and the player's power is made of them? | **Approved as the direction** (Tokelo, 2026-11-08: "Yes this is a good start"). It replaces "the Unwritten". The team builds on it and deepens it. |
 | D3 | The Sworn Band's five roles and working names (4.3) | Keep the roles; the names are easy to swap. |
 | D4 | The beloved at the table (Maren) is the last of the Kept, and the final choice | Yes; the endings themselves stay open. |
 
@@ -290,9 +314,9 @@ marked [mid] or [late].
 
 ## 7. Research: what the lore people remember has in common (Ashby, Wick, Cairn, 2026-11-08)
 
-| Work | What is behind its "door" | What ENSO takes from it |
+| Work | What is sealed away | What ENSO takes from it |
 |---|---|---|
-| *Fullmetal Alchemist* — the Gate of Truth | Knowledge, paid for with a toll of what you value; each person's Gate looks different | A door must **cost** something personal |
+| *Fullmetal Alchemist* — the Gate of Truth | Knowledge, paid for with a toll of what you value; each person's Gate looks different | Breaking a seal must **cost** something personal |
 | *Hollow Knight* — the Pale King's seal | A forgotten god, sealed inside a living child; the seal fails because the child loved its father | The seal can be a **person**; love breaks seals (the Warden) |
 | *Planescape: Torment* — the Nameless One | An amnesiac immortal whose earlier selves did terrible things; his lost mortality became his enemy | The amnesia is **caused by the crime**, not by accident |
 | *Berserk* — the Sacrificial Ceremony | Power bought by giving up the people dearest to you; they bear the Brand | The power has to be **made of people** |
@@ -335,7 +359,7 @@ Keeping**, so the player sees their own crime from a new side every time.
 
 | Chapter | Culture and myth | How it mirrors the Keeping | Legendary class (working) | Status |
 |---|---|---|---|---|
-| 1 | German lands: Kloster, saints, the Roman-Christian heaven | Caelith opened a door to **give**; the old lord opened people to **keep** | **Fallen Seraphim** (Caelith) | Shipped |
+| 1 | German lands: Kloster, saints, the Roman-Christian heaven | Caelith took fire to **give** it; the old lord took people to **keep** them | **Fallen Seraphim** (Caelith) | Shipped |
 | 2 | **The North**: Norse gods, Valhalla, Hel, the World Ash | Odin also **keeps** the dead (the einherjar in Valhalla, for the last war); and Odin could not bring back his own son Baldr, which the old lord did | **Allfather's Chosen** (Odin): see 9 | Outline below |
 | later | **China**: the Jade Emperor's heaven, the underworld, the Monkey King | Sun Wukong cheated death by **striking names out of the Register of Life and Death**, which is what the Keeping does to its victims; Heaven then sealed him under a mountain for 500 years, just as the heroes sealed the old lord | **Great Sage** (Sun Wukong) | Idea |
 | idea | Egypt: the Duat, the weighing of the heart, the *ren* (a person's name as part of their soul) | Erasing a name is the second death; the Kept have lost theirs | the **Black Pharaoh** (already named in old class notes) | Idea |

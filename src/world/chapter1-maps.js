@@ -407,9 +407,9 @@
             exits: [
                 { id: 'kloster_inner_out', x: 19, y: 22, trigger: 'step', toMap: 'briarwell_cloister_court', toSpawn: 'from_church' }
             ],
-            // The Trial of the Cold Door (quest QS1, Fallen Seraphim): heaven's doorkeeper waits before the fountain.
+            // The Trial of the Live Coal (quest QS1, Fallen Seraphim): heaven's altar-warden waits before the fountain.
             encounters: [
-                { id: 'kloster_trial', x: 19, y: 15, name: 'Aurevain, Warden of the Shut Door', enemies: ['heaven_doorwarden'], trigger: 'contact', sprite: 'warden',
+                { id: 'kloster_trial', x: 19, y: 15, name: 'Aurevain, Warden of the Altar', enemies: ['heaven_doorwarden'], trigger: 'contact', sprite: 'warden',
                     when: { quests: { QS1: 'active' } },
                     text: 'The courtyard goes white. Something in gilded plate stands between you and the fountain, four wings folded, a spear of light across its knees. "Give it back," it says. "It was never yours to carry."' }
             ],
@@ -720,7 +720,7 @@
                 { id: 'sanctuary_south', x: 11, y: 15, trigger: 'step', toMap: 'featherwatch', toSpawn: 'from_sanctuary' },
                 { id: 'sanctuary_seal', x: 11, y: 1, trigger: 'interact', toMap: 'seal_chamber', toSpawn: 'from_sanctuary', prompt: 'Open the seal',
                     requires: { flags: ['crow_warden_memory_key'] },
-                    lockedText: 'A door of black stone with no handle and no keyhole, only a hollow the shape of a feather. It is warm to the touch.',
+                    lockedText: 'A ring of black stone set in the wall, open at the top, with no handle and no keyhole, only a hollow the shape of a feather. It is warm to the touch.',
                     text: 'The key fits the hollow. The stone sighs open, and the crows go quiet.' }
             ],
             encounters: [
