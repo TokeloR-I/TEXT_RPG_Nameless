@@ -511,7 +511,7 @@
         engine = loaded;
         window.enso = engine;
         session = new WorldSession(WORLD, { engine });
-        session.restorePosition(((engine.lastLoad.attachments || {}).world) || null);
+        session.restorePosition(((engine.lastLoad.attachments || {}).world) || null, { revision: (engine.lastLoad.game || {}).revision });
         window.ensoWorld = session;
         runId = (engine.lastLoad.attachments || {}).runId || newRunId();
         actionStart();
