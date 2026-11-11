@@ -110,84 +110,106 @@
         },
 
         // -----------------------------------------------------------------
-        // C2-02 Salt and Silver. The fjord fills the north; the wharf runs along it with three jetties.
+        // C2-02 Salt and Silver. Laid out after Tokelo's reference map (2026-11-11, "Skeldvik Harbor"): the
+        // Upland Trail comes down a stair through the palisade in the north-west, past the memorial stones, to
+        // the Stormtide Inn; the harbour bell stands on a stone terrace in the north-east; the market wharf, the
+        // fish racks and the docks step down to the fjord in the east and south; the shipwright's yard fills the
+        // south-west, and the road to the village and the hinterlands leaves by the south-west corner.
         skeldvik: {
             zoneId: 'hrimvald_skeldvik',
             name: 'Skeldvik Harbor',
             scene: 'skeldvik',                 // painted whole: ui/scene-hrimvald.js
-            ambient: { tint: 'rgba(120, 150, 170, 0.06)', particles: { kind: 'mist', count: 10 },
-                grade: { ambient: 0.94, exposure: 1.03, highlights: [0.02, 0.03, 0.05] } },
+            ambient: { tint: 'rgba(60, 80, 120, 0.08)', particles: { kind: 'snow', count: 14 },
+                grade: { ambient: 0.92, exposure: 1.04, highlights: [0.04, 0.03, 0.0] } },
             legend: {
-                ',': { name: 'grass' }, ':': { name: 'road' }, '~': { name: 'water', solid: true }, '=': { name: 'wharf' }, 'D': { name: 'jetty' },
-                '^': { name: 'cliff', solid: true }, 'T': { name: 'fir', solid: true }, 'o': { name: 'rock', solid: true },
-                'L': { name: 'longship', solid: true }, 'k': { name: 'rowboat', solid: true }, 'Y': { name: 'shipyard', solid: true },
-                'h': { name: 'turf_house', solid: true }, 'V': { name: 'alehouse', solid: true }, 'r': { name: 'fish_rack', solid: true },
-                'm': { name: 'stall', solid: true }, 'n': { name: 'nets', solid: true }, 'b': { name: 'barrel', solid: true }, 'x': { name: 'crate', solid: true },
-                'G': { name: 'harbour_bell', solid: true }, 'K': { name: 'customs_stone', solid: true }, 'M': { name: 'memorial_stone', solid: true },
-                'f': { name: 'fence', solid: true }
+                ',': { name: 'snow' }, ':': { name: 'cobble' }, ';': { name: 'yard' }, '=': { name: 'wharf' }, 'S': { name: 'steps' }, 'B': { name: 'terrace' },
+                '~': { name: 'water', solid: true }, '^': { name: 'cliff', solid: true }, 'T': { name: 'fir', solid: true }, 'o': { name: 'skerry', solid: true },
+                'V': { name: 'waterfall', solid: true }, 'P': { name: 'palisade', solid: true }, 'W': { name: 'terrace_wall', solid: true },
+                'I': { name: 'inn', solid: true }, 'h': { name: 'house', solid: true }, 'Y': { name: 'shipyard_hall', solid: true }, 'H': { name: 'shipyard', solid: true },
+                'G': { name: 'harbour_bell', solid: true }, 'M': { name: 'memorial_stone', solid: true }, 's': { name: 'ring_stone', solid: true },
+                'i': { name: 'brazier', solid: true }, 'F': { name: 'banner', solid: true }, 'K': { name: 'customs_stone', solid: true },
+                'm': { name: 'stall', solid: true }, 'r': { name: 'fish_rack', solid: true }, 'n': { name: 'nets', solid: true }, 'c': { name: 'crane', solid: true },
+                'b': { name: 'barrel', solid: true }, 'x': { name: 'crate', solid: true }, 'l': { name: 'log_pile', solid: true }, 't': { name: 'workbench', solid: true },
+                'f': { name: 'fence', solid: true }, 'L': { name: 'longship', solid: true }, 'k': { name: 'rowboat', solid: true }
             },
             tiles: [
-                '^^^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^',
-                '^^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^',
-                '^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^',
-                '^^~~~~~~D~~~~~~~~D~~~~~~~~D~~~~~~~^^',
-                '^^~~~~~~DLLLL~~~~DLLLL~~~~D~~~~~~~^^',
-                '^~~~~~~~D~~~~~~~~D~~~~~~~~D~~~~~~~~^',
-                '^~~~~~~~D~~~~~~~~D~~~~~~~~D~~~k~~~~^',
-                '^,,===========================,,,,,^',
-                '^,,=rr=mm==G===x=b==nn===YYYY,,k,,,^',
-                '^,,,,,,,,::::::::::::,,,,YYYY,,,,,,^',
-                '^,VVVV,,,:,,hhh,,,,,:,,,,,,,,,,o,,,^',
-                '^,VVVV,,,:,,hhh,,M,,:,,hhhh,,,,,,,^^',
-                '^,VVVV,,,:,,,,,,,,,,:,,hhhh,,,T,,,^^',
-                '^,,,,,,,,::::::::::::,,,,,,,,,TT,,^^',
-                '^^,,hhh,,,,,,,:,,,,,,,,,f,,f,,TTT,^^',
-                '^^,,hhh,,K,,,,:,,,hhh,,,frrf,,TTTT^^',
-                '^^,,,,,,,,,,,,:,,,hhh,,,ffff,TTTTT^^',
-                ':::::::::::::::,,,,,,,,,,,,,,TTTTT^^',
-                '^^,,,,,T,,,,,,:,,,,T,,,,,TTTTTTTTT^^',
-                '^^^,,TTT,,,,,,:,,,TTT,,TTTTTTTTTTT^^',
-                '^^^^TTTTTTT,,,:,,TTTTTTTTTTTTTTTT^^^',
-                '^^^^^^TTTTTTTT:TTTTTTTTTTTTTTTTT^^^^'
+                '^^T^^PSPP^T^T^^^^^^^^^T^^^^^^^^^^T^^^^^^',
+                '^T^T^PSSP^T^^^^^^^^^^^^TT^^^T^^T^^^V^^T^',
+                'T^^PPPSSPPPIIIIIIIIIIIT^^^^^^^^^^^^V^^^^',
+                ',hhh,:::::^IIIIIIIIIIITTBBGBB^T^^^^V^^^^',
+                ',hhh,:::::^IIIIIIIIIII^^BBBBB^^^^^^V^^^^',
+                ',hhh,s:::s^IIIIIIIIIII:SBBBBBT^^~~~~~~~~',
+                ',,,,,:iMi::::bx:::::::::WWWWW^^^~~~~~~~~',
+                'T,,,,:::::::::::::::::::::hhh^^^~~~~~~~~',
+                'T,,,,s:::s::::::F:::::::::hhh:x:~~LLLLL~',
+                ',hhhh:::::hhhhh:::mm:mm:::::::b:~~LLLLL~',
+                ',hhhh:::::hhhhh:::::::::::::::::=====~~~',
+                ',hhhh:::::hhhhh:::mm:mm:::::::::=====~~~',
+                'T,,,,::::F::::::::::::::b:::bi==~~k~~~~~',
+                ',,,YYYYYY:::::::i::::::::x:::==c~~~~~~~~',
+                'T,,YYYYYY::::::ffffSSfffi::b:===~~~~~~~~',
+                ',T,YYYYYY::::::F:::::::Frr:rr===~~~~~~~~',
+                'T,,YYYYYY::::::b============x===~~~~~~~~',
+                ',;xb;;;;;;;l:::====================F~~~~',
+                ',;;;;;HHHH;::::==nn~~~~~~==~~~~~k~nn~~~~',
+                'Tl;;;;HHHH;x:::==~~~~~~~~==~~~~~~k~~~~~~',
+                ',;;t;;;;;;;::::==LLLLLLL~==~~~~~~~~~~~~~',
+                'T;;;t;;;;;;::K:==LLLLLLL~==~~~~~~~~~~~~~',
+                ',;;;;;;;;;F::::==~~~~~~~~==~~~~~~~~~~~~~',
+                ',T,fffff::::::i==~~~~~~~~~~~~~~~~~~~~~~~',
+                ',TTT,,:::=========~~~~~~~~~~~~~~~~~~~~~~',
+                'TTT,,:::ff========~~~~~~~~~~~~~~~~~~~~~~',
+                ',,,::::f,TT^^nn~==~~~~~~~~~~~~o~~~~~o~~~',
+                ':::::,,fTT^^^~~~==~~~~o~~~~~~~~o~~~~~~~~',
+                ':::,,ff,TT^T^~~~~~~~~~~~~~~o~~~~~~~~~~~~',
+                '^^^^TTT^^^^^^~~~~~~~~~~~~~~~~~~~~~~~~~~~'
             ],
-            lights: [{ x: 11, y: 8, radius: 1.6, color: 'rgba(255, 180, 80, 0.2)' }, { x: 5, y: 12, radius: 1.8, color: 'rgba(255, 160, 70, 0.22)' }],
+            lights: [
+                { x: 17, y: 5, radius: 2.2, color: 'rgba(255, 170, 80, 0.22)' }, { x: 7, y: 6, radius: 1.8, color: 'rgba(255, 160, 70, 0.2)' },
+                { x: 26, y: 4, radius: 1.8, color: 'rgba(255, 170, 80, 0.18)' }, { x: 20, y: 10, radius: 2.4, color: 'rgba(255, 180, 90, 0.2)' },
+                { x: 6, y: 16, radius: 2.2, color: 'rgba(255, 150, 60, 0.22)' }, { x: 12, y: 11, radius: 1.6, color: 'rgba(255, 170, 80, 0.18)' }
+            ],
             spawns: {
-                from_pass: { x: 14, y: 20, facing: 'up' },
-                flight_bell: { x: 11, y: 9, facing: 'down' }
+                from_pass: { x: 6, y: 1, facing: 'down' },
+                flight_bell: { x: 26, y: 4, facing: 'up' }
             },
             exits: [
-                { id: 'skeldvik_south', x: 14, y: 21, trigger: 'step', toMap: 'frostspine_pass', toSpawn: 'from_skeldvik' }
+                { id: 'skeldvik_north', x: 6, y: 0, trigger: 'step', toMap: 'frostspine_pass', toSpawn: 'from_skeldvik' }
             ],
             encounters: [],
             interactables: [
-                { id: 'skeldvik_eydis', kind: 'npc', npc: 'eydis', x: 18, y: 11, name: 'Eydis Namesinger', sprite: 'skald', when: { flags: ['eydis_in_skeldvik'] } },
-                { id: 'skeldvik_leif', kind: 'npc', npc: 'leif', x: 24, y: 9, name: 'Leif Ropehand', sprite: 'shipwright' },
-                { id: 'skeldvik_solveig', kind: 'npc', npc: 'solveig', x: 8, y: 9, name: 'Solveig', sprite: 'fishwife' },
-                { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 12, y: 8, name: 'Thora Half-Oar', sprite: 'reeve' },
-                { id: 'skeldvik_bell', kind: 'inspect', x: 11, y: 8, name: 'Harbour bell',
-                    text: 'A bronze bell on a post, green with salt. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
-                { id: 'skeldvik_memorial', kind: 'inspect', x: 17, y: 11, name: 'Memorial stone',
-                    text: 'A standing stone with a wooden board pegged to its face: the names of Skeldvik\'s dead from the Silent Field, cut in rows. Half the board has been split away along the grain, lately, with something sharp. The pale wood underneath has not had time to grey.' },
-                { id: 'skeldvik_customs_stone', kind: 'inspect', x: 9, y: 15, name: 'Customs stone',
+                { id: 'skeldvik_eydis', kind: 'npc', npc: 'eydis', x: 8, y: 7, name: 'Eydis Namesinger', sprite: 'skald', when: { flags: ['eydis_in_skeldvik'] } },
+                { id: 'skeldvik_leif', kind: 'npc', npc: 'leif', x: 8, y: 20, name: 'Leif Ropehand', sprite: 'shipwright' },
+                { id: 'skeldvik_solveig', kind: 'npc', npc: 'solveig', x: 20, y: 10, name: 'Solveig', sprite: 'fishwife' },
+                { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 25, y: 4, name: 'Thora Half-Oar', sprite: 'reeve' },
+                { id: 'skeldvik_bell', kind: 'inspect', x: 26, y: 3, name: 'Harbour bell',
+                    text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
+                { id: 'skeldvik_memorial', kind: 'inspect', x: 7, y: 6, name: 'Memorial stone',
+                    text: 'A standing stone twice your height, cut with knotwork older than the war, in a ring of smaller stones. A wooden board is pegged to its face: the names of Skeldvik\'s dead from the Silent Field, cut in rows. Half the board has been split away along the grain, lately, with something sharp. The pale wood underneath has not had time to grey.' },
+                { id: 'skeldvik_customs_stone', kind: 'inspect', x: 13, y: 21, name: 'Customs stone',
                     text: 'A squat grey stone with a slot cut in the top for coin, and the old Crown\'s mark on the side. Skeldvik paid harbour dues here for six years. Nobody has moved it. Children sit on it. A gull has been using it for something else.' },
-                { id: 'skeldvik_alehouse', kind: 'inspect', x: 5, y: 12, name: 'The Gull and Kettle',
-                    text: 'A long alehouse with a turf roof and smoke coming out of both ends. Through the door: a hearth down the middle, benches along the walls, and a table where two men are playing a board game with a king in the centre and losing patience with each other.' },
-                { id: 'skeldvik_shipyard', kind: 'inspect', x: 26, y: 9, name: 'Ship on the stocks',
+                { id: 'skeldvik_alehouse', kind: 'inspect', x: 17, y: 5, name: 'The Stormtide Inn',
+                    text: 'The Stormtide Inn: a great hall with a steep roof, carved beasts on the gable ends, and smoke coming out of both chimneys. Through the door: a hearth down the middle, benches along the walls, and a table where two men are playing a board game with a king in the centre and losing patience with each other.' },
+                { id: 'skeldvik_shipyard', kind: 'inspect', x: 7, y: 19, name: 'Ship on the stocks',
                     text: 'A hull on the stocks, half planked. Each strake overlaps the one below and is riveted through. You can count the rivets if you have a day. The keel is one piece of oak, and someone has cut a small mark near the stem that is not a shipwright\'s mark.' },
-                { id: 'skeldvik_fish_racks', kind: 'inspect', x: 4, y: 8, name: 'Fish racks',
+                { id: 'skeldvik_fish_racks', kind: 'inspect', x: 25, y: 15, name: 'Fish racks',
                     text: 'Cod split and hung in pairs by the tail, drying in the wind. They will keep until spring and travel as far as anyone will pay for them.' },
-                { id: 'skeldvik_stall', kind: 'inspect', x: 7, y: 8, name: 'Market stall',
+                { id: 'skeldvik_stall', kind: 'inspect', x: 19, y: 9, name: 'Market stall',
                     text: 'Amber beads, whetstones, a walrus-hide rope coiled like a sleeping thing, and combs. A lot of combs.' },
-                { id: 'skeldvik_longship', kind: 'inspect', x: 9, y: 4, name: 'Moored ship',
-                    text: 'A trading ship, broad in the beam, her sail furled along the yard. The men on the next jetty are not traders. Their ship is narrower, there are too many shields along her side, and nobody is unloading anything.' },
-                { id: 'skeldvik_armed_ship', kind: 'inspect', x: 18, y: 4, name: 'Armed ship',
-                    text: 'A narrow ship with shields hung along the rail and a red rag at the masthead. Her crew sit on the jetty sharpening things that are already sharp. One of them watches you read the names on the memorial stone.' },
-                { id: 'skeldvik_nets', kind: 'inspect', x: 20, y: 8, name: 'Nets',
-                    text: 'Nets hung to dry and to mend. A bone needle is still threaded in one, left mid-knot.' }
+                { id: 'skeldvik_longship', kind: 'inspect', x: 35, y: 9, name: 'Moored ship',
+                    text: 'A trading ship, broad in the beam, her sail furled along the yard. The men at the harbour mouth are not traders. Their ship is narrower, there are too many shields along her side, and nobody is unloading anything.' },
+                { id: 'skeldvik_armed_ship', kind: 'inspect', x: 17, y: 20, name: 'Armed ship',
+                    text: 'A narrow ship with shields hung along the rail and her red sail set, though she is going nowhere. Her crew sit on the wharf sharpening things that are already sharp. One of them watched you read the names on the memorial stone.' },
+                { id: 'skeldvik_nets', kind: 'inspect', x: 17, y: 18, name: 'Nets',
+                    text: 'Nets hung from the wharf to dry and to mend. A bone needle is still threaded in one, left mid-knot.' },
+                { id: 'skeldvik_crane', kind: 'inspect', x: 31, y: 13, name: 'Wharf crane',
+                    text: 'A crane of two timbers and a rope, with a net of cod swinging from it. It lifts a catch from a boat to the wharf and has lifted heavier things when asked.' },
+                { id: 'skeldvik_waterfall', kind: 'inspect', x: 32, y: 9, name: 'The fjord',
+                    text: 'Across the water a fall comes off the cliff in one white thread and is lost in mist before it lands. The fjord is so still under it that the gulls look as if they are flying over a second sky.' }
             ],
             boundaries: [
-                { id: 'skeldvik_west_road', x: 0, y: 17, w: 1, h: 1, title: 'The road to Hrafnholm',
-                    text: 'The road climbs west out of the fjord toward Hrafnholm, where the Jarl keeps her hall and the assembly meets. That way is not open yet. (Coming in the next part of Chapter Two.)' }
+                { id: 'skeldvik_west_road', x: 0, y: 27, w: 1, h: 2, title: 'The road to the village and the hinterlands',
+                    text: 'The road leaves the harbour by the south-west, through the village and on into the hinterlands, toward Hrafnholm, where the Jarl keeps her hall and the assembly meets. That way is not open yet. (Coming in the next part of Chapter Two.)' }
             ]
         }
     };

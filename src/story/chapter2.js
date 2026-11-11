@@ -41,11 +41,11 @@
             title: 'Salt and Silver', kind: 'main', xp: 45, candidate: true,
             summary: 'Skeldvik trades with everyone and trusts nobody this season. Eydis says the Birkholt tablet is not the first to be taken. Find out who else has lost their names, and who is buying.',
             objectives: [
-                { id: 'eydis', text: 'Find Eydis at the memorial stone in Skeldvik', on: { type: 'story', id: 'eydis_harbor' }, marker: { map: 'skeldvik', x: 18, y: 11 } },
-                { id: 'memorial', text: "Look at Skeldvik's memorial stone", on: { type: 'inspect', id: 'skeldvik_memorial' }, marker: { map: 'skeldvik', x: 17, y: 11 } },
-                { id: 'leif', text: 'Ask Leif Ropehand the shipwright about the armed crews', on: { type: 'story', id: 'leif_crews' }, marker: { map: 'skeldvik', x: 24, y: 9 } },
-                { id: 'solveig', text: 'Ask Solveig at the fish stalls what she has seen', on: { type: 'story', id: 'solveig_witness' }, marker: { map: 'skeldvik', x: 8, y: 9 } },
-                { id: 'decide', text: 'Tell Eydis what you learned, and decide who keeps the tablet', on: { type: 'story', id: 'tablet_decided' }, marker: { map: 'skeldvik', x: 18, y: 11 } }
+                { id: 'eydis', text: 'Find Eydis at the memorial stone in Skeldvik', on: { type: 'story', id: 'eydis_harbor' }, marker: { map: 'skeldvik', x: 8, y: 7 } },
+                { id: 'memorial', text: "Look at Skeldvik's memorial stone", on: { type: 'inspect', id: 'skeldvik_memorial' }, marker: { map: 'skeldvik', x: 7, y: 6 } },
+                { id: 'leif', text: 'Ask Leif Ropehand the shipwright about the armed crews', on: { type: 'story', id: 'leif_crews' }, marker: { map: 'skeldvik', x: 8, y: 20 } },
+                { id: 'solveig', text: 'Ask Solveig at the fish stalls what she has seen', on: { type: 'story', id: 'solveig_witness' }, marker: { map: 'skeldvik', x: 20, y: 10 } },
+                { id: 'decide', text: 'Tell Eydis what you learned, and decide who keeps the tablet', on: { type: 'story', id: 'tablet_decided' }, marker: { map: 'skeldvik', x: 8, y: 7 } }
             ],
             onComplete: [{ flag: 'skeldvik_evidence' }, { gold: 25, key: 'c202_reward' },
                 { say: 'Three harbours, three boards split off their stones, and one banner at every one of them. Whoever leads the Wolf-Banner wants the names of the six hundred, all of them, and is not asking the families.' },
@@ -55,7 +55,7 @@
             title: 'The Hall of Winter', kind: 'main', xp: 0, teaser: true,
             summary: 'The assembly meets at Hrafnholm, where the Jarl keeps her hall. Eydis means to read the stolen names aloud there, in front of the man she thinks took them.',
             objectives: [
-                { id: 'hrafnholm', text: 'Take the west road to Hrafnholm (the next part of Chapter Two)', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 17 } }
+                { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm (the next part of Chapter Two)', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 28 } }
             ],
             onComplete: []
         }
@@ -313,7 +313,7 @@
                 post: {
                     lines: [['npc', "Harbour law is short. Pay your mooring, keep your steel in its sheath on the wharf, and ring that bell if you see fog before I do. You're on foot, so only two of those apply."]],
                     choices: [
-                        { text: 'There are armed crews on your jetty.', to: 'crews' },
+                        { text: 'There are armed crews on your wharf.', to: 'crews' },
                         { text: 'What is the bell for?', to: 'bell' },
                         { text: 'Goodbye.', end: true }
                     ]
@@ -324,7 +324,7 @@
                 },
                 bell: {
                     lines: [['npc', "Fog. Late ships. And once a year we ring it forty-three times for Skeldvik's share of the six hundred. Put your hand on the rope if you like. Everyone does. It brings you back, they say."]],
-                    choices: [{ text: 'There are armed crews on your jetty.', to: 'crews' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'There are armed crews on your wharf.', to: 'crews' }, { text: 'Goodbye.', end: true }]
                 },
                 keeping: {
                     lines: [['npc', "The Birkholt tablet is in the dues chest under two locks and my bed. If the Jarl asks, I'll tell her I have it. If Redhand asks, I'll tell him the same, and then we'll see what eight guards are worth."]],
