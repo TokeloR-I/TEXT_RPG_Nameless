@@ -85,6 +85,8 @@
             for (const id of cond.notBuilt || []) if (home.built && home.built[id]) return false;
             for (const [id, want] of Object.entries(cond.plots || {})) if (this.plotState(id) !== want) return false;
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
+            // questCount: { ids, min }: at least `min` of those quests complete (two households vouch for you)
+            if (cond.questCount && this.questsDone(cond.questCount) < (cond.questCount.min ?? (cond.questCount.ids || []).length)) return false;
             return true;
         }
         /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock
@@ -105,9 +107,12 @@
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
         //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
+        //   any effect may carry `when` (a condition): it runs only if that holds right now (an ending that remembers
+        //   which choice you made, without a branch node for every combination)
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
             for (const e of effects || []) {
+                if (e.when && !this.storyAllows(e.when)) continue;
                 // A flag can wake a dormant weapon you are wearing (itemDef `kindle`): its new stats are applied here.
                 const worn = (e.flag || e.unflag) && this.player && this.player.equipment && this.equipmentModifiers ? this.equipmentModifiers() : null;
                 if (e.flag && !this.story.flags.includes(e.flag)) this.story.flags.push(e.flag);
@@ -188,9 +193,12 @@
         }
 
         /** Has this objective's event already happened? A `quests` objective ({ type: 'quests', ids, count })
-         *  is met once `count` of those quests are complete ("help five households"). */
+         *  is met once `count` of those quests are complete ("help five households"). An objective with `skipIf`
+         *  counts as met while that condition holds (a second route made the step moot). */
         objectiveMet(o) {
             if (!o || !o.on) return false;
+            // skipIf: another route made this step moot (the village vouched for you, so no evidence is needed).
+            if (o.skipIf && this.storyAllows(o.skipIf)) return true;
             if (o.on.type === 'quests') return this.questsDone(o.on) >= (o.on.count || (o.on.ids || []).length);
             return this.story.seen.includes(`${o.on.type}:${o.on.id}`);
         }
@@ -245,7 +253,9 @@
             const next = (id) => { const s = ((quests[id] && quests[id].onComplete) || []).find((e) => e.start); return s ? s.start : null; };
             const asks = (id) => quests[id].objectives.some((o) => o.on && o.on.type === ev.type && o.on.id === ev.id);
             const active = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
-            if (ev.type === 'enter' || !active || asks(active)) return;   // walking somewhere isn't doing a quest's step
+            // Walking somewhere isn't doing a quest's step, and nor is cooking or eating: a meal for a side quest must
+            // not skip a main quest ahead to the Festival of the Sun's cooking lesson (C1-N03).
+            if (ev.type === 'enter' || ev.type === 'craft' || ev.type === 'eat' || !active || asks(active)) return;
             let target = null;
             for (let id = next(active), n = 0; id && quests[id] && quests[id].kind === 'main' && quests[id].xp > 0 && n < 20; id = next(id), n++) {
                 if (asks(id)) { target = id; break; }
@@ -277,6 +287,11 @@
             for (const id of Object.keys(this.story.quests)) {
                 const o = this.currentObjective(id);
                 if (o && o.on && o.on.type === ev.type && o.on.id === ev.id) { this.advanceQuest(id); this.catchUpQuest(id); }
+            }
+            // A step another route made moot (skipIf) gives way as soon as anything happens.
+            for (const id of Object.keys(this.story.quests)) {
+                const o = this.currentObjective(id);
+                if (o && o.skipIf && this.objectiveMet(o)) this.catchUpQuest(id);
             }
             if (!first) return;
             const triggers = this.storyContent().triggers || [];

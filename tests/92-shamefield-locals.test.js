@@ -68,13 +68,13 @@ test('Locals: returning the register gets a lazy Captain who keeps the gate shut
     assert.ok(!g.hasStoryFlag('north_gate_open'), 'the register alone opens nothing');
     assert.strictEqual(g.questState('L01'), 'unseen', 'nothing starts until you agree');
     const said = g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' ');
-    assert.match(said, /Thanks for the ledger[\s\S]*actually useful/);
+    assert.match(said, /Thanks for the ledger[\s\S]*forged papers[\s\S]*Help a couple of them/);
     say(g, /Just open the gate/);
     assert.strictEqual(g.questState('L01'), 'unseen', 'refusing changes nothing');
     say(g, /I'll help them/);
     assert.match(g.getAvailableActions().dialogue.lines.map((l) => l.text).join(' '), /beer isn't going to drink itself\. \*hic\*/);
     assert.strictEqual(g.questState('L01'), 'active');
-    assert.strictEqual(g.getJournal().quests.find((q) => q.id === 'L01').kind, 'main');
+    assert.strictEqual(g.getJournal().quests.find((q) => q.id === 'L01').kind, 'side', 'optional since the Broken Crown rework');
     for (const id of ['SF1', 'SF2', 'SF3', 'SF4', 'SF5', 'SF6']) assert.strictEqual(g.questState(id), 'available', id);
     const j = g.getJournal().quests.find((q) => q.id === 'L01');
     assert.strictEqual(j.objective.text, 'Help six Shamefield households (0/6)');
@@ -247,8 +247,10 @@ test('Locals: all six favours, in the corners of Shamefield, count toward the Ca
     assert.strictEqual(g.questState('L01'), 'complete');
     assert.strictEqual(g.player.gold, gold + 15);
     assert.ok(g.hasStoryFlag('shamefield_friend'));
-    assert.ok(g.hasStoryFlag('north_gate_open'), 'the gate opens');
-    assert.strictEqual(g.questState('Q06'), 'active', 'and the main road goes on');
+    assert.strictEqual(g.questState('C1-N02'), 'complete', 'the village vouched for you, so no evidence was needed');
+    assert.ok(!g.hasStoryFlag('north_gate_open'), 'the gate opens the day after the festival');
+    assert.strictEqual(g.questState('C1-N03'), 'active', 'and the main road goes on to the Festival of the Sun');
+    assert.strictEqual(g.currentObjective('C1-N03').id, 'memorial', 'A Proper Meal already taught the cooking lesson, so it is skipped');
     talk(s, 'village_captain'); bye(g);
     assert.strictEqual(g.player.gold, gold + 15, 'paid once');
     assert.deepStrictEqual(g.player.inventory.filter((i) => ['Barley', 'Wild Hops', 'Rye Sheaf', 'Rye Flour', 'Sourdough Starter', 'Briarwell Pale', 'Shamefield Rye Loaf', 'Barley Seed'].includes(i)), [], 'every ingredient went into something');
@@ -309,4 +311,34 @@ test('Locals live: the four strongbox looters fight in the world, then the stron
 test('Locals live: the singing shades on the reopened mill falls and the granary rats fight in the world', () => {
     liveFight('shamefield', 'mill_shade', (g) => { g.story.quests.SF4 = { state: 'active', step: 1 }; g.story.flags.push('sf4_heard'); });
     liveFight('briarwell_cloister_court', 'cloister_rat_nest', (g) => { g.story.quests.SF2 = { state: 'active', step: 2 }; g.story.flags.push('sf2_tracks'); });
+});
+
+// The Broken Crown rework (2026-11-11, docs/design/CHAPTER_ONE_NARRATIVE_REWORK.md §5): never all six. Two households
+// vouching for you is the village route north; the four left stay open with their own rewards.
+test('Locals: two households are enough for the Captain to open the road; the other four stay optional', () => {
+    const { g, s } = afterRegister('warrior', 12);
+    say(g, /I'll help them/); bye(g);
+    assert.strictEqual(g.questState('C1-N02'), 'active');
+    talk(s, 'village_tamsin'); say(g, /troubling the village/); bye(g);
+    inspect(s, 'village_mill_bottles'); fight(g, s, 'mill_shade');
+    talk(s, 'village_tamsin'); say(g, /mill is quiet/); bye(g);
+    talk(s, 'village_captain');
+    assert.ok(!has(g, /Open the gate/), 'one household is not enough');
+    bye(g);
+    assert.ok(!g.hasStoryFlag('north_gate_open'));
+    travel(s, 'village_residential_lane'); talk(s, 'lane_greta'); say(g, /lost some pigs/); bye(g);
+    travel(s, 'shamefield');
+    for (const id of ['stray_pig_bridge', 'stray_pig_houses', 'stray_pig_church']) inspect(s, id);
+    travel(s, 'village_residential_lane'); talk(s, 'lane_greta'); say(g, /on their way home/); bye(g);
+    travel(s, 'shamefield');
+    const xp = g.player.xp, lvl = g.player.level;
+    talk(s, 'village_captain'); say(g, /Open the gate/); bye(g);
+    assert.ok(g.hasStoryFlag('village_vouched'), 'two households vouched');
+    assert.strictEqual(g.questState('C1-N02'), 'complete');
+    assert.ok(g.player.xp !== xp || g.player.level !== lvl, 'The Ash on the Register pays its XP once');
+    assert.strictEqual(g.questState('C1-N03'), 'active', 'the Captain opens the gate after the festival');
+    assert.strictEqual(g.currentObjective('C1-N03').id, 'lesson', 'Oda\'s cooking lesson first: A Proper Meal was never done');
+    assert.strictEqual(g.questState('L01'), 'active', 'Get to Know the Locals stays open for the other four');
+    for (const id of ['SF1', 'SF2', 'SF5', 'SF6']) assert.strictEqual(g.questState(id), 'available', `${id} is still there to do`);
+    assert.ok(!s.visibleObjects().some((o) => o.id === 'village_oath_courier'), 'no courier left waiting for a route you no longer need');
 });

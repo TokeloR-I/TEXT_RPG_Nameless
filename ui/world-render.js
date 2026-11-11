@@ -542,7 +542,13 @@
         shipwright: { cloak: '#7a5a34', hair: '#a8582a', belt: '#2a2018', prop: 'hammer', skin: '#d0a888' },
         fishwife: { cloak: '#5a6a5a', hood: '#d8d0bc', belt: '#8a6a3a', prop: 'basket' },
         reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' },
-        wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' }
+        wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' },
+        // The Broken Crown rework (2026-11-11): the road scavenger, the Broken Oath courier, Corvin Sere's old quartermaster's coat.
+        scavenger: { cloak: '#5a5040', hair: '#4a3a2a', belt: '#3a2a20', prop: 'pack', skin: '#c8a888' },
+        oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },
+        oath_officer: { cloak: '#4a4e58', hair: '#b8b8b0', belt: '#a08a50', hat: '#2e3038' },
+        // Sergeant Kess, beaten in the orchard: an old Crown coat with the ash circle on the sleeve.
+        oath_sergeant: { cloak: '#663432', hair: '#9a9a94', belt: '#43505c', scarf: '#3e2224' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -678,7 +684,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
@@ -797,6 +803,23 @@
             rect(g, px + 4, py + 11, 3, 2, '#9a9aa2'); rect(g, px + 4, py + 22, 3, 2, '#9a9aa2');       // new iron hinges
             rect(g, px + 24, py + 16, 4, 3, '#9a9aa2');                                                  // the latch
         },
+        // Bran Ashdown (Broken Crown rework): the fallen Warden with his crows, then the cairn you build over him.
+        fallen_warden(g, px, py, T, t) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 24, 13, 3, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 4, py + 18, 22, 6, '#2a2a32'); rect(g, px + 24, py + 17, 6, 6, '#3a3a42');      // cloak, helm
+            rect(g, px + 2, py + 15, 26, 2, '#5a4a3a'); rect(g, px + 1, py + 14, 4, 4, '#a8a8b0');      // the halberd beside him
+            const hop = Math.sin((t || 0) / 400) > 0.7 ? 1 : 0;
+            for (const [dx, dy] of [[9, 15], [19, 14 - hop]]) { circle(g, px + dx, py + dy, 2.6, '#0a0a0e'); rect(g, px + dx + 2, py + dy - 1, 2, 1, '#0a0a0e'); }
+        },
+        cairn(g, px, py) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 26, 12, 3, 0, 0, Math.PI * 2); g.fill();
+            for (const [x, y, w, h, c] of [[5, 19, 9, 7, '#6a6a68'], [14, 20, 10, 6, '#5a5a58'], [22, 21, 6, 5, '#727270'], [9, 13, 9, 7, '#7a7a76'], [17, 14, 7, 6, '#62625e'], [12, 8, 8, 6, '#828280']]) {
+                rect(g, px + x, py + y, w, h, c); rect(g, px + x, py + y, w, 1, '#9a9a96');
+            }
+            rect(g, px + 14, py + 10, 4, 1, '#3a3a38');                                                 // the scratched name
+            circle(g, px + 18, py + 6, 2.6, '#0a0a0e'); rect(g, px + 20, py + 5, 2, 1, '#0a0a0e');      // a gray crow keeps watch
+            rect(g, px + 16, py + 6, 2, 1, '#5a5a62');
+        },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {
@@ -807,6 +830,11 @@
     };
 
     for (const [key, o] of Object.entries(PEOPLE)) sprites[key] = (g, px, py, T, t) => person(g, px, py, t, o);
+    // Tile painters that also stand alone as objects (the Chapter One brief, 2026-11-11: the festival cask, the supply
+    // crates, the broken cages, the miller's sacks and the wrecked stall). They get the tile context they expect.
+    for (const key of ['crate', 'cask', 'cage', 'sacks', 'rubble']) {
+        if (!sprites[key] && painters[key]) sprites[key] = (g, px, py, T, t) => painters[key](g, px, py, T, { tx: Math.round(px / T), ty: Math.round(py / T), time: t || 0 });
+    }
     sprites.crowd = (g, px, py, T, t) => {
         person(g, px - 8, py + 2, t, { cloak: '#5a4a3a', hair: '#3a2a20' });
         person(g, px + 8, py + 1, t + 300, { cloak: '#4a5a4a', hair: '#8a6a40' });
