@@ -84,66 +84,36 @@ Everything in this part is **proposed canon**. It is built only from what part 1
 without overwriting a shipped line. Spoiler level is marked **[Ch1]** (fine to hint at now), **[mid]** (not before
 the midgame reveal, boss 5 or 6) or **[late]**.
 
-### 4.1 The core: the Keeping (rewritten 2026-11-08 after research; supersedes "the Unwritten")
+### 4.1 The fallen sovereign, the empire and the Keeping (reconciled 2026-11-11)
 
-> "But the door just a cold wind??? ... do research on gaming, RPG and anime lore and come back to me with actual
-> good lore." (Tokelo)
+**Director-approved core:** The player once ruled a vast, feared empire. The Sworn Band genuinely saved kingdoms by defeating that ruler. The former sovereign survives without memories, recovers ten Qliphoth aspects and gradually rebuilds a seat of power from the ruined Homestead. Their true identity remains a **midgame reveal (approximately Guardian Five or Six)**, never a Chapter One or Two explanation.
 
-The first answer ("behind the door is a cold blank") failed because it was **impersonal**: nothing behind it
-mattered to anyone in the game. The research (part 7) points at one rule shared by the lore people remember:
-**what is sealed away has to be people the player already met, and freeing it has to cost the player something.**
-Fullmetal Alchemist's Gate takes the thing you love, Hollow Knight's seal is a living child, Planescape: Torment's
-amnesiac hero finds that the price of his power was paid by others, and Berserk's power comes from sacrificing the
-people closest to you. So:
+**What the empire was:** An actual military and political state. It conquered territories, recruited officers, negotiated surrender, enforced laws, collected taxes, built roads and fortresses, supported trade, and punished resistance. Many subjects suffered enslavement, massacres or disappearances; other families remember stability and safe commerce. Both memories can be sincerely held **without excusing what the empire did**. The Sworn Band are not secret villains, and the old ruler is not a misunderstood saint. Their pride, strategy, hunger for power, decisions and responsibility matter as much as any private pain. The Broken Oath and surviving imperial officers are people with competing agendas, not merely worshippers of a magic symbol.
 
-**Inside every seal are the missing.**
+**The Keeping — approved as a starting direction (8 November), specific mechanisms still reviewable:** The old ruler learned forbidden soul-binding. Finishing an open-circle mark on a living person could bind that person's life, memories, skills and essence into the sovereign's power rather than simply killing them. Those so bound are remembered in the lore proposal as **the Kept**. Some were taken violently, others volunteered or capitulated. The moral and military horror is that the sovereign's growing might depended on people deprived of freedom.
 
-**The old lord could close the circle on people.** He would draw the open circle (the ensō, the brushstroke) on a
-person's brow, then finish the stroke. When the circle closed, it closed around everything they were: their life,
-their memories, their name. He did not kill them. He **kept** them, inside himself. Every person he took became part of his power: their strength in his
-arm, their memories in his head, their skills in his hands. His soldiers called them **the Kept**.
+**Crucial creative distinction:** The Keeping is **one terrible tool of the imperial regime**, and the force behind the protagonists' ten fragments. It is **not** the universal origin of every myth, god, monster, haunting, legendary class or historical event in ENSO. Norse, Chinese, Egyptian, Japanese and other traditions predate the empire and have independent meanings.
 
-**Why he did it (his reason must make sense).** It started with one person. The one he loved fell ill, and he would
-not let them die, so he learned how to close the circle on them and keep them. The table in the old house is set for
-two because **that was their house**. Once he knew how, he could not stop: nobody he loved would ever be lost again,
-then nobody he ruled. His law was **"Under the crown, nobody is lost."** He believed he was ending death. To everyone
-else, whole streets simply emptied.
+**Proposed private history, not sole motive or approved ending:** The table set for two at the Homestead may belong to a person the sovereign loved (working name **Maren**), perhaps the first life bound by the Keeping. Fear of losing that person is a **late-game personal explanation under review**. It must **not** turn fifty years of conquest, oppression and political ambition into an involuntary attempt to save a spouse. The sovereign made deliberate choices. Maren's status, the last Kept, and the final release/keep ending are **not yet locked**.
 
-**What this explains in shipped text (nothing has to be rewritten):**
+**What Chapter One actually hints:**
 
-| Chapter One line | What it really means | Spoiler |
+| Shipped or established clue | Possible future meaning | Spoiler boundary |
 |---|---|---|
-| "Whole streets emptied when he gave the word." | He took them, alive, into himself. | [mid] |
-| Memorial: "No names: the list was too long to carve." | Nobody can *remember* the names. Taking a person takes their name out of other people's memories too. The villagers think they forgot; they were robbed. | [mid] |
-| Elian's letter of people "who never arrived anywhere" | Elian wrote names down on the road before the Night of Lanterns, which is why he still has some. His letter is the only list of the Kept in the world. | [Ch1] the letter; [mid] why it matters |
-| First memory: the lanterns go out one by one | Each lantern is a person being taken. | [Ch1] the image; [mid] the meaning |
-| Glowing hands; "...WHO SLEEPS HERE IS NOT TO BE..." | His hands are where the circle is drawn. The inscription ends "...WOKEN". | [Ch1] |
-| The table set for two | The beloved, the first of the Kept. | [late] |
-| The crows are afraid of him | Animals can hear the Kept. | [mid] |
-| The Warden "was given the key and told never to use it" | His seal holds a tenth of the Kept. Opening it lets them back into the player, and the player gets stronger. | [mid] |
+| Streets emptied under the old Crown | The Keeping may have been used on a large scale | The image [Ch1]; its precise mechanism [mid] |
+| Memorial without a complete list of names | Many victims are missing, some records contradictory; extraordinary memory erasure is **proposed**, not proven | [Ch1] memorial; larger explanation [mid] |
+| Elian's handwritten names and the Night of Lanterns | A surviving human record may contradict official claims | [Ch1] letter; its ultimate importance [mid] |
+| First memory: lanterns extinguish and the street falls silent | An atrocity committed under imperial command, without showing the person's face | [Ch1] image; identity [mid] |
+| Glowing hands, old mark and scratched cellar warning | A connection to older imperial power, not a full identity reveal | [Ch1] signs, [mid] answer |
+| Table set for two | A missing personal bond; Maren explanation remains [late] proposal | [late] |
+| The Warden's ordinary crows recoil | They sense something dangerous, exact reason unconfirmed | [Ch1] behavior; explanation [mid] |
+| Ten Qliphoth fragments protected by guardians | The Sworn Band separated the sovereign's memory and might to prevent return | [Ch1] first fragment; [mid] complete account |
 
-**What the heroes did.** At the gates, the Sworn Band could not kill him without killing everyone inside him. So
-the Sealwright cut him into ten pieces, each piece a **husk** holding part of his power and part of the Kept, and
-locked each behind a seal drawn in his own circle. He lost his memory because **his memories were the Kept**: their
-lives had filled the place where his own should be. Each seal the player opens gives back power and a fragment of
-memory because it gives back a crowd of people.
+**The breaking of the Crown:** The Sworn Band's Sealwright devised bindings to split the sovereign's former power into ten guarded aspects. One working explanation is that killing the ruler outright endangered lives imprisoned through the Keeping. Each recovered aspect restores something the protagonist has lost and attracts political or spiritual consequences. The **Qlipoth/qlippot shell symbolism** is inspiration for ENSO's original magic, not a claim that real-world religions contain this campaign's ten bosses. Precise origins, aspect order and costs belong to individual approved designs.
 
-**Why the Qliphoth fit.** In Kabbalah (Lurianic tradition), the *qlippot* are **shells that trap sparks of light**,
-born when the vessels holding that light shattered; the work of repair is to free the sparks. ENSO borrows that
-shape, not the religion: each husk is a shell holding the Kept. The player can **free the sparks or swallow them**,
-and that is the moral question of the whole game, put in mechanical terms.
+**Future choices:** The player may seek dominion, negotiate loyalty, seize power or surrender stolen souls, but the campaign must not assume one correct "redemption" path. Whether and how releasing bound people affects combat power, the final fate of Maren, and possible empire endings are open creative decisions. Chapter Two proposes the first major decision about the six hundred; do not pre-decide every later ending here.
 
-**The choice the game is built toward.** Every seal opened makes the player stronger because the Kept flow back in.
-Late in the game the player learns they can also **let them go** through the open circle, and each person let go
-is gone from the player's power for good. The beloved is the last one inside. **Enso's Last Stand** (placeholder
-title) is that last circle: keep everyone and rule as the old lord did, or open the circle and lose them all,
-including the one he did it for. The Sunbearer's whole quest is to free the Kept; that is what makes the hero right
-without making the player a cartoon. Endings stay Tokelo's call.
-
-**What the open circle means now.** It is his brushstroke: one stroke, never closed, because there was always one
-more person. Ensō in Zen is the circle of a single breath; his is the circle of a single appetite. The Broken Oath
-scrape it to call him home; the Kloster carves the *closed* circle on its graves, the sign of a life that ended and
-was let go.
+**The open circle:** A mark tied to the ruler's art and to the Broken Oath. It is a symbol and potential working of binding, **not a portal, threshold or metaphysical doorway**. Ordinary buildings have ordinary doors. The game is about a broken Crown and its consequences, not an overarching door allegory.
 
 ### 4.2 A short history of the world
 
@@ -151,10 +121,10 @@ was let go.
 |---|---|---|
 | ~1000 years | **The Live Coal.** Heaven keeps its fire on its altar; below, a winter that does not end. Caelith, a seraph of the altar, carries one live coal down to the freezing; spring runs down the hill. Heaven throws Caelith after it and the hill closes over it. The Vale is green because a seraph disobeyed. | [Ch1] (Caelith says it) |
 | ~700 years | **Sankt Alban**, a hermit, digs a spring on the hill and finds a hooded stone figure in it. He builds a chapel round it; the brothers who follow him become **the Order of Briarwell**. They take the statue for a nameless saint and copy its folded hands on every saint they carve. Their rule: "for the living, and against the winter". | [Ch1] hints |
-| ~60 years | **The house on the ridge.** Two people live in a small house above Blackbriar Vale. One falls ill. The other finds, in the hill's old stones, a way to keep them. | [late] |
-| ~50 years | **The rise of the old crown.** The one who kept his beloved learns to keep soldiers' strength, then scholars' knowledge, and conquers with it. Roads, tollways, prison-towers: his. A mason named Orin lays the foundations of a great seat around the little house, and is later kept himself. | [Ch1] ruins; [mid] the seat; [late] Orin |
+| ~60 years | **The house on the ridge.** An old domestic history remains beneath the future imperial seat. A loved one's illness and an early Keeping experiment are **late-game proposals**, not confirmed causes of the empire's rise. | [late] |
+| ~50 years | **The rise of the old crown.** A brilliant and ruthless ruler unifies and conquers territories through armies, diplomacy, administration and forbidden power. Roads, tollways, supply stations and prison-towers are built. Orin's work on the future imperial seat and later binding remain proposed late reveals. | [Ch1] ruins; [mid] empire and seat; [late] Orin |
 | ~25 years | **The Night of Lanterns.** In the capital, a festival street is taken in one night: the first time thousands are kept at once. The first memory fragment. | [Ch1] the image; [mid] the truth |
-| ~25 to 2 years | **"Nobody is lost."** No funerals under the crown, and no one can say where the missing went. Some loved the safety: roads safe, tolls fair, bread cheap. | [Ch1] |
+| ~25 to 2 years | **Imperial rule and resistance.** The Crown imposes roads, levies, military administration and harsh punishments; whole communities disappear. Some inhabitants remember stability and cheap provisions, others massacres and forced service. The slogan **"Under the Crown, nobody is lost"** is a proposed imperial justification for the Keeping, not proof it solved death. | [Ch1] contested memories; [mid] source of power |
 | ~2 years | **The Sworn Band** forms (4.3). The Sealwright steals the cut pages of *On the Six-Winged Ones*: the seraphim's way to bind something so it stays bound. | [mid] |
 | 1 year | **The Breaking of the Crown.** The Band cuts the old lord into ten husks at the gates, seals each in his own circle, and gives each seal a keeper. What is left, empty, is laid in the cellar of the house on the ridge, and someone carves a warning and tries to scratch it out. The Kloster bell rings for an hour. | [Ch1] bell, festival; [mid] the husks |
 | now | The Festival of the Sun. Someone wakes in the old house. | [Ch1] |
@@ -199,9 +169,7 @@ he closes the orchard road because he has buried people who walked it.
 - **Heaven** (the Kloster's One Light) keeps order by keeping its fire. The six-winged **seraphim** tend it; the word
   means "the burning ones", and in Isaiah 6 a seraph takes a live coal from the altar with tongs. Heaven is not evil
   and not kind: it is *orderly*, and it believes its light is not for the world below.
-- **Caelith and the old lord are mirror images.** Caelith took something from Heaven to **give** it away (spring to
-  the freezing) and fell for it. The old lord took people to **keep** them. A player who wakes the Fallen Seraph and
-  breaks the seals carries both kinds of taking, and the web's question "what is evil?" lands on them.
+- **Caelith's mythology stands independently.** He carried a live coal from Heaven's altar to warm freezing people; the Kloster and Vale remember the consequences of his defiance long before the empire existed. Players may compare sacrifice, care or power to the sovereign's choices, but **Caelith is not a coded retelling of the Keeping** and no universal mythic analogy is mandated.
 - **The husks** (the Qliphoth) are the ten pieces the heroes cut him into: shells, each holding a crowd of the Kept
   and one of his powers. Each boss guards one. Nahemoth is the crowd of everyone who was **taken on the road**:
   travellers, carters, tollkeepers. That is why the crow knows every route, and why it took the shape of a road bird.
@@ -210,8 +178,7 @@ he closes the orchard road because he has buried people who walked it.
 - **Orin** was a real mason, kept by the old lord after building his seat. When the first seal opened, he came out
   of it, wearing what is left of himself. He recognises the foundations because **his own hands laid them**. He does
   not know that yet.
-- **The Broken Oath** know what the circle does. They believe the Kept are alive and happy inside him, and that the
-  heroes murdered them all by sealing him. They are wrong about the happy part.
+- **The Broken Oath** are divided in motives. Some believe the Kept endure within the Crown and romanticize its return; other surviving officers care about renewed political control. They are not reliable witnesses about whether bound people are happy.
 
 **Lore rule:** a seal that matters must have a written answer: who is inside it, and what it costs to break. The
 player can wait for the answer; the team never does. **Doors are not a motif** (Tokelo, 2026-11-11, see 4.8): a door
@@ -224,9 +191,7 @@ in ENSO is just a door.
   stayed behind to feed the crows that had always roosted on the walls. The Sealwright chose him for that. His cages
   are the old cells' bars. His name should appear for the first time **on his grave or in Tamsin's mourning line**,
   never before the fight: the player kills "the Warden" and buries Bran.
-- **The table set for two.** [late] Answered in 4.1: the beloved, the first of the Kept, who is still inside the
-  player at the end. Working name **Maren**. Whoever laid the empty sleeper in the cellar (most likely the Sunbearer
-  or the Sealwright) carved the warning, then tried to scratch it out so nobody would come looking.
+- **The table set for two.** [late] May point to a lost loved one, working name **Maren**, possibly the first Kept. **Unapproved late-game proposal**, not a required answer or the sovereign's only motive. Who laid the body in the cellar and carved the scratched warning remains an open mystery.
 - **The crow.** It refuses a name until the second seal opens, then picks one it likes ([mid]; suggested: **Mourn**).
 - **Shane the Shamed.** He ran the old crown's field hospital in the Vale, which is why his medicines work and why the
   watch has a file on him. He has never told anyone. His farewell stays exactly **"Suffer!"**.
@@ -237,8 +202,7 @@ in ENSO is just a door.
 
 These are named so Moss and Cairn can plan around them; none is promised content.
 
-- **The Lantern City** (working name): the old crown's capital, east, where the Night of Lanterns happened. Chapter
-  Two follows the crows east, so this is the natural long-range destination.
+- **The Lantern City** (working name): old Crown capital associated with the Night of Lanterns, a **future** major destination. Chapter Two first follows the eastward route over Frostspine Pass into **Hrimvald**, the Norse-inspired north; the capital need not be Chapter Two's endpoint.
 - **The Altar**: Heaven's altar above the Kloster hill. Aurevain came from somewhere and will go back there; this is
   a place, not a door, and it is [late] at the earliest.
 - **The ridge seat**: what the homestead was. The five homestead stages (regional bible) slowly uncover it; Orin
@@ -252,7 +216,7 @@ These are named so Moss and Cairn can plan around them; none is promised content
 | the open circle, the ensō | the old lord's brushstroke; closed on a person, it keeps them | the Broken Oath, scholars |
 | the Kept | the people he took, alive, into himself | his soldiers, the Broken Oath |
 | "Nobody is lost" | the old crown's law | old officials |
-| Enso's Last Stand | placeholder title: the last circle, the choice to keep the Kept or let them go | nobody, until [late] |
+| Enso's Last Stand | working game title; possible in-world "last circle" meaning is a **late-game proposal**, not established canon | nobody, until approved |
 | the Keeper | scholars' name for the old lord | scholars, the Sworn Band |
 | the Breaking of the Crown | the victory, one year ago | heroes, festival |
 | the Sworn Band | the five heroes | everyone |
@@ -286,19 +250,12 @@ Door, a crow line about breaking a door, Orin hearing doors. Tokelo pushed back 
 
 ## 5. How the team works on lore from now on
 
-- **Ashby** owns this file. Any PR that adds story, dialogue, item text or map text checks it first and adds new facts
-  to part 1 (shipped) or part 4 (proposed) in the same PR.
-- **Wick** writes the in-game text and keeps voice: short sentences, concrete things, dry humour, no exposition dumps.
+- **Ownership follows the current AGENTS.md.** Historical named narrative authors may no longer be active; the current narrative owner or assigned studio reviews lore changes. Any PR that adds story, dialogue, item text or map text checks this Bible and updates the appropriate shipped-fact or proposed-lore section without conflating them.
+- **The assigned narrative/dialogue writer** keeps voice: short sentences, concrete things, dry humour, no exposition dumps.
   Lore is found in objects (a ledger, a ribbon, a ring of dust) more than told by NPCs.
-- **Cairn** checks every new place against 4.2 and 4.6 and keeps maps' inspect text in the same world.
-- **Tally** adds a lore check to content QA: no spoiler before its marked level, no name the doc doesn't know.
-- Next lore work, in order, once part 6 is answered:
-  1. **In-game lore pass on Chapter One** (Wick): Bran's grave and name, one Broken Oath note on the Featherwatch
-     climb, one line from Fenric or Merrow about Sister Wenna, the cut-out pages noted as stolen "two winters ago".
-     Spoiler-safe, text only, no new mechanics.
-  2. **A Lore page in the Journal** (Pixie, Wren): collects inspected texts the player has read, so the world's story
-     can be re-read. Needs a small UI brief.
-  3. **Chapter Two story outline** (Ashby): the road east, the second Keeper, and what the second fragment shows.
+- **The assigned worldbuilder** checks each new location against world geography and keeps map inspection text in continuity.
+- **The assigned QA owner** checks spoiler levels, name consistency, quest routing and whether proposed text is inadvertently marked as shipped.
+- **Current chapter briefs:** [Chapter One Development Master Brief](CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md) and [Chapter Two Hrimvald Lore](CHAPTER_TWO_LORE.md) replace this document's older three-item task list. Review their open implementation requirements separately. Any newly shipped fact must be added to the audit in part 1 after verifying source code, not merely because a design PR was merged.
 
 ## 6. Decisions for Tokelo
 
@@ -307,7 +264,7 @@ Door, a crow line about breaking a door, Orin hearing doors. Tokelo pushed back 
 | D1 | What is "Enso"? | ENSO stays a placeholder title (Tokelo, 2026-11-08). In-world, the open circle is the old lord's brushstroke and *Enso's Last Stand* is the last circle (4.1). |
 | D2 | Adopt **the Keeping** (4.1): inside every seal are the missing, kept alive inside the old lord, and the player's power is made of them? | **Approved as the direction** (Tokelo, 2026-11-08: "Yes this is a good start"). It replaces "the Unwritten". The team builds on it and deepens it. |
 | D3 | The Sworn Band's five roles and working names (4.3) | Keep the roles; the names are easy to swap. |
-| D4 | The beloved at the table (Maren) is the last of the Kept, and the final choice | Yes; the endings themselves stay open. |
+| D4 | The beloved at the table (Maren) is the last of the Kept, and the final choice | **Unapproved late-game possibility.** Do not make this the sole motive for conquest or preselect a redemption ending. |
 
 Until these are answered, the team builds on the recommendations and keeps them out of shipped text where they are
 marked [mid] or [late].
@@ -326,6 +283,8 @@ marked [mid] or [late].
 | *Frieren* | The story starts after the heroes have won; the hero's statues stand while his memory fades | A post-victory world where remembering is the theme |
 | Kabbalah (Lurianic), *qlippot* | Shells that trap sparks of light after the vessels shattered; repair means freeing the sparks | The husks hold the Kept; free them or swallow them |
 
+**Research-history note:** The comparison table above records inspirations considered in the earlier lore research; it is **not** a rule requiring every chapter to be about souls, sacrifice, circles or seals. The regional mythologies stand independently.
+
 **Rules for good reveals** (Jane Friedman, "When and why reveals don't work"): the audience must care about the
 characters first; the reveal needs stakes; it must be grounded in clues laid earlier; and it should change what
 those earlier clues meant. The Keeping is built to do the last one: it gives a second meaning to the memorial, Elian's
@@ -340,83 +299,81 @@ Sources: [FMA Wiki: The Gate](https://fma.fandom.com/wiki/The_Gate) ·
 [UESP: Elder Scrolls](https://app.uesp.net/wiki/Lore:Elder_Scrolls) ·
 [Jane Friedman: when and why reveals don't work](https://janefriedman.com/when-and-why-reveals-dont-work/)
 
-## 8. One mythology per chapter (roadmap; Tokelo, 2026-11-09)
+## 8. One mythology per chapter — independent worlds, not Keeping allegories
 
-> "I want the game to have a mix of culture and lore and especially the mythology ... for Germany I chose a legendary
-> Angel because of the roman influence ... so I want each area or perhaps chapter to be able to incorporate different
-> lore and Powers as a culmination of getting powerful ... Nordic ... Norse gods that can provide a new legendary
-> class ... an area with a Chinese theme and have a legendary class based on the monkey king ... the geography can
-> look however I want it to look." (Tokelo)
+**Creative Director's direction (9 and 11 November):** Each major land draws on a recognisable cultural and mythological tradition, with distinct characters, local conflicts, architecture, food, worship, monsters, craft, politics, equipment and an optional hidden legendary class. Geography is free to serve the game. The world's actual link across chapters is the **player's return as a former sovereign**, ten guarded Qliphoth aspects and the lasting human/political consequences of the empire's expansion and fall.
 
-**The rule.** Each chapter is a land shaped by one real culture and its mythology, and each has a hidden legendary
-class granted by that mythology's powers, the way Caelith grants the Fallen Seraphim in Chapter One. Geography is
-free: lands sit where the story needs them, joined by roads, passes and seas.
+**Critical correction:** Do **NOT** make every pantheon another version of the Keeping. Odin, Freyja and Hel are not defined by the old ruler's victims. Sun Wukong's defiance of Heaven is not secretly an interpretation of the ensō. Egypt's divine judgment is not a code for imperial soul-binding. Japanese mythic stories of Yomi are not mandatory "letting go" lessons for the protagonist. Mythic worlds may react to the sovereign **when they genuinely intersect with the chapter's events**, but have histories and motives of their own.
 
-**What ties them together: every mythology has its own answer to death, and the old lord broke all of them.** The
-Keeping (4.1) means the people he took never reached *any* afterlife. So in every land, some power is missing its
-dead and has a reason to care about the player. Each chapter's myth is also chosen because it **mirrors the
-Keeping**, so the player sees their own crime from a new side every time.
-
-| Chapter | Culture and myth | How it mirrors the Keeping | Legendary class (working) | Status |
+| Chapter/region | Independent world and mythic conflict | Relation to fallen empire | Legendary progression | Status |
 |---|---|---|---|---|
-| 1 | German lands: Kloster, saints, the Roman-Christian heaven | Caelith took fire to **give** it; the old lord took people to **keep** them | **Fallen Seraphim** (Caelith) | Shipped |
-| 2 | **The North**: Norse gods, Valhalla, Hel, the World Ash | Odin also **keeps** the dead (the einherjar in Valhalla, for the last war); and Odin could not bring back his own son Baldr, which the old lord did | **Allfather's Chosen** (Odin): see 9 | Outline below |
-| later | **China**: the Jade Emperor's heaven, the underworld, the Monkey King | Sun Wukong cheated death by **striking names out of the Register of Life and Death**, which is what the Keeping does to its victims; Heaven then sealed him under a mountain for 500 years, just as the heroes sealed the old lord | **Great Sage** (Sun Wukong) | Idea |
-| idea | Egypt: the Duat, the weighing of the heart, the *ren* (a person's name as part of their soul) | Erasing a name is the second death; the Kept have lost theirs | the **Black Pharaoh** (already named in old class notes) | Idea |
-| idea | Japan: Izanagi goes into Yomi to bring back his dead wife Izanami, and seals the way with a boulder | The same story as the old lord and his beloved, but Izanagi let go | open | Idea |
+| **1: Blackbriar Vale** | Germanic village life, Briarwell Kloster, **Caelith's Live Coal**, faith, food and trade | Shamefield remembers both order and disappearances; Broken Oath pursues the first fragment; Warden protects it | **Fallen Seraphim**, existing hidden web | Caelith and much of Ch1 shipped; expansion [proposed] |
+| **2: Hrimvald / the North** | Norse-inspired fjords, families, assemblies, feuds, skalds; Odin, Freyja, Hel, draugar and jötnar have distinct roles | The Silent Field lost six hundred to the Keeping; Hallvard protects the second fragment; regional politics continue independently | **Allfather's Chosen** [proposed] | Full [chapter design](CHAPTER_TWO_LORE.md), only implemented elements verified in code count as shipped |
+| **Later: Chinese-inspired region** | The celestial bureaucracy, local kingdoms, rival schools, Sun Wukong and other myths have their own stakes | Former Crown officials/forces may reach or oppose it; define a specific plot rather than forcing a Keeping reflection | **Great Sage** [proposed] | Broad concept only |
+| **Later: Egyptian-inspired region** | Duat, divine kingship, ancestral beliefs, deserts, trade, judgment and independent factions | Imperial campaigns or alliances are one possible source of conflict | **Black Pharaoh** [proposed; already appears in class concepts] | Broad concept only |
+| **Later: Japanese-inspired region** | Yomi, kami, local courtly and martial traditions, distinct histories and spirit stories | Establish a natural political or personal link if the campaign visits | To design | Broad concept only |
 
-**Ground rules for the team.** Research the real myth before writing (part 7's method); keep gods and figures
-respectful and recognisable rather than renamed copies; each legendary is hidden, found by an act that fits its
-myth (Caelith: *looking* for two minutes); and each legendary is **as strong as Fallen Seraphim at unlock and gated
-by a trial** (Gauge's benchmark in FALLEN_SERAPHIM.md). Thorne and Gauge own the mechanics, Ashby and Wick the story.
+**Mythology writing rule:** Start with **what the region's people want, fear, trade, worship, celebrate, disagree about and remember**, then build the conflicts. Only afterwards ask how the player's actions and Qliphoth hunt interrupt their lives. Do not invent ten similar rulers, ten identical tragic guardians or ten magical corridors. Keep legendary classes independently attractive to every base class, with unlocks appropriate to the local myth and trial/balance checks.
 
-## 9. Chapter Two outline: the North (proposal)
+**Historical and cultural note:** Research the real traditions; ENSO remains original fiction and should not present flattened game mechanics as authoritative religious history. See Chapter Two lore §3 and §13 for the Norse research guardrails.
 
-**Getting there.** Q08 already says "follow the crows east". The road east climbs out of Blackbriar Vale over the
-passes, and the land turns to pine, snow and fjords: **the North** (working region name **Hrimvald**, "frost
-holds"). The crow is uneasy here: "Big birds in this country. They work for someone."
+## 9. Chapter Two — Hrimvald / The Feast of Empty Seats (current design reference)
 
-**The land.** Longhouses, mead halls, rune stones, ship burials, skalds who sing the sagas, and a jarl whose word is
-law. Two powers watch over the dead: **Odin**, whose valkyries choose warriors who die in battle for his hall,
-Valhalla, where they feast and fight until the last war; and **Hel**, who keeps everyone else. Both have been
-cheated.
+**The full proposed Chapter Two story is [CHAPTER_TWO_LORE.md](CHAPTER_TWO_LORE.md).** It supersedes the older one-boss outline previously stored here. This is a lore-bible **summary of proposed narrative**, not a declaration that 14 quests, six bosses and all locations are already playable. Consult current world, quest and test files for the subset that has shipped.
 
-**The wound.** Twenty years ago the old crown marched north. At the battle the North calls **the Silent Field**, a
-whole northern host fell, and not one of them reached Valhalla or Hel. The valkyries found the field empty. The old
-lord had kept them all. Valhalla's benches are short six hundred warriors, and Odin wants them back.
+**Arrival:** Following Nahemoth east after Q08, the player crosses Frostspine Pass into the Norse-inspired Hrimvald, arriving near **Skeldvik Harbor**. Odin's two ravens begin observing the stranger, but Nahemoth is not their subordinate.
 
-**The Keeper (boss 2).** **Hallvard the One-Handed**, an old skald and the only man who walked off the Silent Field.
-The Sealwright gave him the second seal because he would never open it: his sons are inside. He guards it in the
-barrow of the Silent Field, and Odin's two ravens sit on the barrow roof. Like the Warden he is good, he warns the
-player off, and he loses. Qliphoth aspect: **A'arab Zaraq**, "the ravens of dispersion", fitting a land of ravens.
+**The North is alive:** Hrimvald has independent fjord trade, fishing fleets, farms, smithies, burial customs, law assemblies, feasting, poetry and unresolved kinship disputes. The core places are **Skeldvik**, **Hrafnholm** (jarl's hall), **Birkholt**, **Járnmyr**, **Gullstrand Coast**, **Rúnadal**, **Nine-Winds Ash**, **the Silent Field** and **Hallvard's Barrow**. These people have their own quarrels and histories, including older supernatural threats unrelated to the old Crown.
 
-**The crowd.** The six hundred of the Silent Field: the northern host, Hallvard's sons among them. Opening the seal
-gives the player their strength in battle (the second aspect's power, Thorne's call) and the **second memory**: the
-old lord on the Silent Field, drawing the circle in the snow, and a host going quiet.
+**The principal human conflict:** **Jarl Ragnhild Frostmark** tries to hold regional stability while **Torvald Redhand**, grieving his brother and craving military power, courts aggressive factions and Broken Oath remnants. **Eydis Namesinger** collects the names of the vanished; **Yrsa Thornstaff** is a seeress, not an infallible exposition machine; **Runa** is Hallvard's surviving daughter. A regional assembly and a memorial feast become the chapter's political and emotional center.
 
-**The first real choice.** After the seal, Odin's ravens come to the player. The Allfather offers a bargain: **let
-the six hundred go to Valhalla, and Odin will give you something in return.** This is the first time the game asks
-the player to let any of the Kept go, and to pay for it: releasing them gives up that seal's power for good. The
-player can refuse, keep the host, and keep its strength. Hel makes her own quieter offer for the ones who weren't
-warriors. Either way the North remembers what the player chose.
+**The imperial wound:** At the **Silent Field**, twenty years earlier, the former sovereign's forces bound **six hundred northern warriors**. Their losses upset families, current succession politics and the expected afterlives. The central mystery concerns their missing souls, but not every barrow, draugr or god in Hrimvald is caused by the Keeping.
 
-**The legendary: Allfather's Chosen (working name).** Granted by Odin, hidden like Caelith, and found by an act from
-his myth: Odin **hung himself on the World Ash for nine nights** to win the runes, and **gave an eye** at Mimir's
-well for wisdom. Proposal: at the great ash above the fjord, the player hangs from it for nine nights (rest nine
-times at its foot) and gives something up for good to win the runes. Two paths for Thorne to shape: **Valkyrie**
-(choose who falls, call the chosen dead to fight) and **Rune-hanged** (runes carved into the air as spells). Its trial
-boss: a valkyrie sent to collect the player. Unlocking it does **not** require releasing the six hundred, but Odin's
-voice changes depending on whether the player did.
+**The second guardian:** **Hallvard the One-Handed**, a respected skald and survivor, was entrusted with the second fragment and resists the player. He bears grief and a secret: he tried to negotiate a surrender that failed to save his men. Unlike Chapter One's Bran, he is proud, compromised and burdened by shame. He is genuinely motivated to protect others; his role is not another identical kind Warden.
 
-**Baldr, the foreshadowing.** In a mead hall, a skald tells how Odin's son Baldr died and Hel agreed to send him back
-if every thing in the world wept for him. Everything did, except one giantess in a cave, and Baldr stayed dead. The
-crow says only: "He asked. Your kind of person doesn't ask." It is the first time the game hints that the old lord
-brought someone back. [late] meaning; [Ch2] the story.
+**Act structure, 14 proposed main quests:** (I) Frostspine and Skeldvik, (II) political confrontation at Hrafnholm and the Járnmyr burial mound, (III) **the Feast of Empty Seats** and Broken Oath raid, (IV) the Silent Field, Torvald confrontation and Hallvard's Barrow, (V) the fate of the six hundred, Hrimvald's political aftermath and a Sunbearer epilogue. The design targets **ten substantial side quests**, three main combat bosses (**Bjarki, Torvald, Hallvard**) and three optional/legendary bosses (**Hrimhild, Skögul, the Salt-Dead Captain**).
 
-**Open for Tokelo:** the region name, Hallvard, the bargain with Odin (letting the Kept go costs power), and the
-legendary's unlock act and two paths.
+**Independent Norse myth:** **Odin, Freyja and Hel** do not form one identical afterlife system; each responds from their own traditions. Odin's ravens, a seeress, jötnar, draugar and skalds belong to Hrimvald's own world, not an imperial symbolic apparatus. The optional **Allfather's Chosen** legendary web proposes nine varied trials with genuine sacrifice, not nine identical rest actions. Its exact mechanics are pending review.
+
+**The first large branching consequence proposed:** The player may retain the power of the bound six hundred, angering local families and gods; or release them to different appropriate fates at genuine cost and gain a distinct blessing. **A separate political outcome** determines who rules and how Hrimvald will relate to the player. These must remain independent choices, not one simplistic good/evil slider. Aspect Two's working name is **A'arab Zaraq**; neither exact power, permanent loss numbers nor subsequent aspects are finalized here.
+
+**Identity rule:** Chapter Two must NOT reveal the player was the former emperor. The recovered memory may show the crime and hint at familiarity, but cannot unambiguously show the player issuing the order.
+
+**Sequel consequence:** The Sunbearer investigates evidence that guardians are dying and the ruined Homestead is stirring. This is the continuing story of the Crown's possible return, not the revelation that every northern god was secretly guarding one metaphor.
+
+**Status note:** All new personal names, settlements, political branches, quest counts and regional boss additions listed here derive from the **Director-requested Chapter Two design** and remain **proposed until approved/implemented**. Existing shipped first-stage route and world updates must be verified in the repository before moving their facts to Part 1.
 
 Sources for 8 and 9: [Wikipedia: Einherjar](https://en.wikipedia.org/wiki/Einherjar) ·
 [Wikipedia: Þökk](https://en.wikipedia.org/wiki/%C3%9E%C3%B6kk) ·
 [Journey to the West Research: the register of births and deaths](https://journeytothewestresearch.com/tag/underworld/) ·
 [World History Edu: Sun Wukong](https://worldhistoryedu.com/sun-wukong-in-chinese-mythology-origin-story-powers-abilities-importance/)
+
+
+## 10. Chapter One — Ashes Beneath the Sun (director-requested development direction)
+
+**Full reference:** [Chapter One Narrative Rework](CHAPTER_ONE_NARRATIVE_REWORK.md) and [Chapter One Development Master Brief](CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md). The current shipped route remains the separate [Chapter One implementation guide](../CHAPTER_ONE.md). A merged design document is **not evidence that the quest or dialogue is live**.
+
+**Dramatic spine proposed:** A stranger wakes at a recently searched Homestead; imperial salvagers and a missing toll register point to a **Broken Oath** operation. **Shamefield** is a working German-inspired village whose people disagree honestly about the old Crown. A **Festival of the Sun** celebration and memorial become the stage for a cult attack on records and people. The player investigates, confronts an ex-imperial supply officer, reaches Featherwatch, then knowingly defeats a genuinely protective Warden for the first aspect.
+
+**Character additions / continuity:** **Corvin Sere** is the proposed cult organizer (former logistics officer who surrendered and now seeks restored authority); **Sergeant Kess, the Ash-Marked** is a proposed named lieutenant. Neither knows the player's identity. The **Watch Captain remains drunk, lazy and frequently aggravating**, while taking genuine road safety and village defense seriously at crisis points. **Shane** stays optional, medically skilled and darkly comic: his normal farewell remains **"Suffer!"**. Tamsin remembers the Warden's kindness; Elian remembers ordinary victims. Bran's personal name is first revealed **after death**, and ordinary crows mourn him.
+
+**Five new proposed quest layers:** The Price of the Ruins; The Ash on the Register; The Festival in Ash; An Oath in Ash; A Sanctuary Under Siege. With the existing nine named main entries, this is **14 proposed entries**, **not 14 newly shipped quests**. The festival is both culture and a meaningful attack with protect-people versus pursue-courier consequences.
+
+**Cooking / economy principle:** Keep **all six SF1–SF6** household favors, farming, baking, brewing, food buffs and Gold/XP opportunities. A **short practical food-buff tutorial** belongs in the story; the longer household arcs should be optional, not a mandatory six-step barrier to Featherwatch. The current meal example is **Leberkäsbrötchen**, crafted from Pork and Brötchen; exact live values belong to game data. A story-investigation route and optional village-trust route should open the orchard, with mandatory XP, class survival, save migration and old SF6 state tested before implementation.
+
+**Other approved design areas (not yet shipped by this Bible):** Readable quest objectives and reliable inspection events; combat encounters teaching distinct counterplay; short NPC-to-NPC scenes; four optional exploration secrets with genuine loot; visible Homestead rebuilding, conditional Shane stall, Orin's growing presence and future visitors. The first Homestead gate repair remains **free**.
+
+**End of Chapter One:** The Warden is dead; the first seal was opened, triggering Nahemoth/Black Flight; Orin begins rebuilding; Shamefield, the Broken Oath and the Sunbearer respond; Q08 sends the player east toward Hrimvald. The player's former identity remains hidden.
+
+## 11. Cross-chapter rules and canon status (11 November 2026)
+
+1. **Central throughline:** Fall and possible return of the sovereign, the empire's legacy, the ten aspects and their guardians, human and divine repercussions, alliances, ambition and the cost of power.
+2. **Independent places and mythology:** Every realm existed before this character and will exist afterward. Caelith, Norse gods and future Chinese/Japanese/Egyptian figures are not alternate masks of a single Keeping/door story.
+3. **Canon layers:** Part 1 of this Bible records verified shipped dialogue/quest facts; part 4 and §§8–10 include proposals and director-endorsed design directions. Do not move an event into shipped canon merely because its design PR merged. Verify code and tests.
+4. **Spoiler thresholds:** [Ch1] = currently safe to hint, [Ch2] = safe to discuss in the North; [mid] = first unambiguous ruler reveal at Guardian Five/Six; [late] = personal origin / Maren / final decisions. No earlier quest, NPC or UI tooltip may disclose a later reveal.
+5. **Political agency:** Helping civilians, rebuilding a base and entering faction bargains can all be tools of a future dark ruler. The protagonist is not required to seek redemption, and heroes are not retroactively made monsters.
+6. **Guardian variety:** Bran is compassionate, Hallvard grieving and compromised; later guardians need different personalities, obligations and reasons to resist.
+7. **Continuity ownership:** Check active AGENTS.md, source code and merged PRs; historical agents named in this lore bible may no longer own live work.
+8. **No door allegory:** §4.8 remains controlling. Ordinary doors and gates are just architecture; art, equipment, quests and myth should not reintroduce universal threshold metaphysics.
+
+**Current source documents:** [CHAPTER_ONE_NARRATIVE_REWORK.md](CHAPTER_ONE_NARRATIVE_REWORK.md) · [CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md](CHAPTER_ONE_DEVELOPMENT_MASTER_BRIEF.md) · [CHAPTER_TWO_LORE.md](CHAPTER_TWO_LORE.md).
