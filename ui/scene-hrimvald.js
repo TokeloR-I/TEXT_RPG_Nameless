@@ -461,9 +461,10 @@
         const idAt = (b) => { const o = (map.interactables || []).find((q) => q.x >= b.x0 && q.x <= b.x1 && q.y >= b.y0 && q.y <= b.y1 && q.kind === 'inspect'); return o ? o.id : ''; };
         const seen = new Set(), FX = { flames, smoke, glows };
         const BLOCKS = {
-            inn: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 77, anyBehind(b), FX, { gw: 64, wallH: 32, depth: 80, chimneys: 2, sign: 'inn', banner: true, carved: true, lantern: true }) }),
-            house: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), FX, { chimneys: hash(b.x0, b.y0, seed) < 0.6 ? 1 : 0, banner: b.x1 - b.x0 >= 4 }) }),
-            shipyard_hall: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 31, anyBehind(b), FX, { gw: 68, wallH: 36, depth: 54, open: true, sign: 'axes' }) }),
+            // Built at z 2 (playtest 2026-11-11): Baker's Lane proportions, so a person stands a head below the eaves.
+            inn: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 77, anyBehind(b), FX, { z: 2, gw: 64, wallH: 32, depth: 80, chimneys: 2, sign: 'inn', banner: true, carved: true, lantern: true }) }),
+            house: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), FX, { z: 2, chimneys: hash(b.x0, b.y0, seed) < 0.6 ? 1 : 0, banner: b.x1 - b.x0 >= 4 }) }),
+            shipyard_hall: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + 31, anyBehind(b), FX, { z: 2, gw: 68, wallH: 36, depth: 54, open: true, sign: 'axes' }) }),
             shipyard: (b) => ({ y: b.y1 + 0.9, draw: () => shipyard(L, b, seed, anyBehind(b)) }),
             longship: (b) => ({ y: b.y1 + 0.3, draw: () => { const armed = /armed/.test(idAt(b)); ship(L, b, seed + b.x0, { sail: armed, shields: armed }); } }),
             fish_rack: (b) => ({ y: b.y1 + 0.6, draw: () => fishRack(L, b, seed + b.x0, anyBehind(b)) }),
@@ -556,78 +557,83 @@
      *  The inn is the same house built large, with a sign, a banner and two chimneys; the shipwright's hall has
      *  its whole front open on the fire inside. */
     function building(L, b, seed, overhead, FX, o = {}) {
+        // `z`: how big the house is built. 1 is the old scale; Skeldvik's rebuild (playtest 2026-11-11) uses 2, so walls,
+        // doors and windows stand at Baker's Lane proportions next to a 32 px person (a door taller than you).
+        const z = o.z || 1, Z = (v) => Math.round(v * z);
         const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, Y0 = b.y0 * C, B = (b.y1 + 1) * C - 3, W = X1 - X0, mx = Math.round(X0 + W / 2);
-        const wallH = o.wallH || 26, gw = Math.round(Math.min(o.gw || 46, W / 2 - 1)), rise = Math.round(gw * 0.74), wallTop = B - wallH, apex = wallTop - rise;
-        const depth = Math.max(8, Math.min(o.depth || 70, apex - (Y0 - 14))), wings = W / 2 - gw > 10, eave = (gw + 6);
-        tall(L, [X0 - 16, apex - depth - 40, X1 + 16, B + 8], Y0 + 8, overhead, (S) => {
-            shadow(S, mx + 6, B + 3, W / 2 + 10, 7, 0.55);
+        const wallH = Z(o.wallH || 26), gw = Math.round(Math.min(Z(o.gw || 46), W / 2 - 1)), rise = Math.round(gw * 0.74), wallTop = B - wallH, apex = wallTop - rise;
+        const depth = Math.max(8, Math.min(Z(o.depth || 70), apex - (Y0 - 14))), wings = W / 2 - gw > Z(10), eave = (gw + Z(6));
+        tall(L, [X0 - Z(16), apex - depth - Z(40), X1 + Z(16), B + 8], Y0 + 8, overhead, (S) => {
+            shadow(S, mx + Z(6), B + 3, W / 2 + Z(10), Z(7), 0.55);
             if (wings) {
-                const wt = B - wallH + 4, ridge = Math.max(Y0 + 2, wt - 76);
-                for (let py = wt; py < B; py++) for (let px = X0; px < X1; px++) timberPx(S, px, py, X0, seed + 3, py < wt + 5 ? 0.25 : 0.05);
-                RK.blocks(S, X0, B - 4, W, 4, seed + 1, NP.rock);
+                const wt = B - wallH + Z(4), ridge = Math.max(Y0 + 2, wt - Z(76));
+                for (let py = wt; py < B; py++) for (let px = X0; px < X1; px++) timberPx(S, px, py, X0, seed + 3, py < wt + Z(5) ? 0.25 : 0.05);
+                RK.blocks(S, X0, B - Z(4), W, Z(4), seed + 1, NP.rock);
                 for (let px = X0; px < X1; px++) put(S, px, B, NP.rock[0]);
-                for (const side of [-1, 1]) { const wx = side < 0 ? Math.round((X0 + mx - gw) / 2) : Math.round((X1 + mx + gw) / 2); if (Math.abs(wx - mx) - gw > 9) windowLit(S, wx - 4, wt + 7, 8, 8, FX); }
+                for (const side of [-1, 1]) { const wx = side < 0 ? Math.round((X0 + mx - gw) / 2) : Math.round((X1 + mx + gw) / 2); if (Math.abs(wx - mx) - gw > Z(9)) windowLit(S, wx - Z(4), wt + Z(7), Z(8), Z(8), FX); }
                 for (let py = ridge; py <= wt + 2; py++) {
-                    const f = (py - ridge) / (wt + 2 - ridge), xa = X0 + 3 - f * 8, xb = X1 - 3 + f * 8;
-                    for (let px = Math.round(xa); px < xb; px++) roofPx(S, px, py, 0.72 - f * 0.45, 1.0 - f * 0.95, seed + 11, (py - ridge) % 6 === 5 || (hash(Math.floor((py - ridge) / 6), 0, seed) * 40 + px) % 23 < 1);
+                    const f = (py - ridge) / (wt + 2 - ridge), xa = X0 + 3 - f * Z(8), xb = X1 - 3 + f * Z(8);
+                    for (let px = Math.round(xa); px < xb; px++) roofPx(S, px, py, 0.72 - f * 0.45, 1.0 - f * 0.95, seed + 11, (py - ridge) % Z(6) === Z(6) - 1 || (hash(Math.floor((py - ridge) / Z(6)), 0, seed) * 40 + px) % 23 < 1);
                     put(S, Math.round(xa) - 1, py, ROOF[0]); put(S, Math.round(xb), py, ROOF[0]);
                 }
-                for (let px = X0 - 5; px < X1 + 5; px++) { put(S, px, wt + 3, ROOF[0]); put(S, px, wt + 4, NP.shadow, 0.5); put(S, px, ridge - 1, NP.snow[6]); }
+                for (let px = X0 - Z(5); px < X1 + Z(5); px++) { put(S, px, wt + 3, ROOF[0]); put(S, px, wt + 4, NP.shadow, 0.5); put(S, px, ridge - 1, NP.snow[6]); }
             }
             // The two roof planes running back from the gable.
             for (let u = 0; u <= eave; u++) for (const side of [-1, 1]) {
                 if (u === 0 && side > 0) continue;
                 const px = mx + side * u, yf = apex - 3 + (u * (wallTop + 5 - apex)) / eave;
-                for (let py = Math.round(yf - depth); py <= yf; py++) roofPx(S, px, py, (side < 0 ? 0.72 : 0.5) - (u / eave) * 0.22, 0.95 - (u / eave) * 0.85 + ((yf - py) / depth) * 0.2, seed + 13, u % 6 === 5 || (hash(Math.floor(u / 6), side, seed) * 30 + py) % 19 < 1);
+                for (let py = Math.round(yf - depth); py <= yf; py++) roofPx(S, px, py, (side < 0 ? 0.72 : 0.5) - (u / eave) * 0.22, 0.95 - (u / eave) * 0.85 + ((yf - py) / depth) * 0.2, seed + 13, u % Z(6) === Z(6) - 1 || (hash(Math.floor(u / Z(6)), side, seed) * 30 + py) % 19 < 1);
                 put(S, px, Math.round(yf - depth) - 1, ROOF[0]);
                 if (u === eave) for (let py = Math.round(yf - depth); py <= yf; py++) put(S, px + side, py, ROOF[0]);
             }
             for (let py = apex - 3 - depth; py <= apex - 3; py++) { put(S, mx, py, NP.snow[6]); put(S, mx - 1, py, NP.snow[5]); }
             // The gable wall.
             const face = shape(); poly(face, S, [[mx - gw, B], [mx - gw, wallTop], [mx, apex], [mx + gw, wallTop], [mx + gw, B]], 0);
-            for (const [i] of face.px) { const px = i % S.w, py = (i / S.w) | 0, under = py - (apex + (Math.abs(px - mx) * (wallTop - apex)) / gw); timberPx(S, px, py, mx - gw, seed, under < 7 ? 0.28 - under * 0.03 : 0); }
+            for (const [i] of face.px) { const px = i % S.w, py = (i / S.w) | 0, under = py - (apex + (Math.abs(px - mx) * (wallTop - apex)) / gw); timberPx(S, px, py, mx - gw, seed, under < Z(7) ? 0.28 - under * 0.03 / z : 0); }
             for (let px = mx - gw; px <= mx + gw; px++) { put(S, px, wallTop, NP.oak[5]); put(S, px, wallTop + 1, NP.oak[2]); put(S, px, wallTop + 2, NP.oak[0]); }
-            for (const px of [mx - gw, mx + gw - 3]) for (let py = wallTop; py < B; py++) { rectFill(S, px, py, 3, 1, NP.oak[3]); put(S, px, py, NP.oak[5]); put(S, px + 3, py, NP.oak[0]); }
-            RK.blocks(S, mx - gw, B - 4, gw * 2, 5, seed + 1, NP.rock);
-            for (let px = mx - gw; px <= mx + gw; px++) { put(S, px, B + 1, NP.rock[0]); if (hash(px, 2, seed) < 0.45) put(S, px, B - 5, NP.snow[5]); }
+            for (const px of [mx - gw, mx + gw - Z(3)]) for (let py = wallTop; py < B; py++) { rectFill(S, px, py, Z(3), 1, NP.oak[3]); put(S, px, py, NP.oak[5]); put(S, px + Z(3), py, NP.oak[0]); }
+            if (z > 1) for (let py = wallTop + Z(10); py < B - Z(6); py += Z(12)) for (let px = mx - gw + Z(3); px < mx + gw - Z(3); px++) { put(S, px, py, NP.oak[1]); put(S, px, py + 1, NP.oak[4], 0.5); }   // a sill beam or two across a big wall
+            RK.blocks(S, mx - gw, B - Z(4), gw * 2, Z(5), seed + 1, NP.rock);
+            for (let px = mx - gw; px <= mx + gw; px++) { put(S, px, B + 1, NP.rock[0]); if (hash(px, 2, seed) < 0.45) put(S, px, B - Z(5), NP.snow[5]); }
             if (o.open) {                                              // the shipwright's hall: the whole front open on the work inside
-                const dw = Math.round(gw * 0.62), dh = wallH + 8;
+                const dw = Math.round(gw * 0.62), dh = wallH + Z(8);
                 for (let py = B - dh; py < B - 1; py++) for (let px = mx - dw; px <= mx + dw; px++) { const f = (py - (B - dh)) / dh; put(S, px, py, [26 + f * 150, 14 + f * 78, 8 + f * 24]); }
                 for (let px = mx - dw - 2; px <= mx + dw + 2; px++) { put(S, px, B - dh - 1, NP.oak[5]); put(S, px, B - dh - 2, NP.oak[3]); put(S, px, B - dh, NP.oak[0]); }
-                for (const px of [mx - dw - 3, mx + dw + 1]) for (let py = B - dh; py < B; py++) { rectFill(S, px, py, 3, 1, NP.oak[3]); put(S, px, py, NP.oak[5]); }
-                for (const px of [mx - dw + 10, mx + dw - 14]) { rectFill(S, px, B - 16, 5, 15, [30, 18, 10]); rectFill(S, px - 2, B - 18, 9, 3, [30, 18, 10]); }                     // trestles against the light
-                FX.glows.push({ x: mx, y: B - 6, r: 78, a: 0.75 }); FX.flames.push({ x: mx - 6, y: B - 8 });
+                for (const px of [mx - dw - Z(3), mx + dw + 1]) for (let py = B - dh; py < B; py++) { rectFill(S, px, py, Z(3), 1, NP.oak[3]); put(S, px, py, NP.oak[5]); }
+                for (const px of [mx - dw + Z(10), mx + dw - Z(14)]) { rectFill(S, px, B - Z(16), Z(5), Z(15), [30, 18, 10]); rectFill(S, px - Z(2), B - Z(18), Z(9), Z(3), [30, 18, 10]); }                     // trestles against the light
+                FX.glows.push({ x: mx, y: B - Z(6), r: Z(78), a: 0.75 }); FX.flames.push({ x: mx - Z(6), y: B - Z(8) });
             } else {
-                rectFill(S, mx - 9, B - 24, 18, 23, NP.oak[0]);
-                RK.planks(S, mx - 7, B - 22, 14, 21, seed + 9, NP.oak.slice(1), true);
-                rectFill(S, mx - 10, B - 26, 20, 2, NP.oak[5]); put(S, mx + 4, B - 11, PAL.iron[4]); put(S, mx + 4, B - 10, PAL.iron[2]);
-                for (const side of [-1, 1]) if (gw > 34) windowLit(S, mx + side * Math.round(gw * 0.58) - 4, wallTop + 8, 8, 9, FX);
-                for (let px = mx - 12; px <= mx + 12; px++) { put(S, px, B + 1, NP.cliff[4]); put(S, px, B + 2, NP.cliff[5]); put(S, px, B + 3, NP.cliff[2]); }                       // the door stone
-                FX.glows.push({ x: mx, y: B + 4, r: 26, a: 0.28 });
+                const dw2 = Z(9), dh2 = Z(24);                           // the door: a person's height and a bit
+                rectFill(S, mx - dw2, B - dh2, dw2 * 2, dh2 - 1, NP.oak[0]);
+                RK.planks(S, mx - dw2 + 2, B - dh2 + 2, dw2 * 2 - 4, dh2 - 3, seed + 9, NP.oak.slice(1), true);
+                rectFill(S, mx - dw2 - 1, B - dh2 - 2, dw2 * 2 + 2, Z(2), NP.oak[5]); rectFill(S, mx + Z(4), B - Z(11), z, z, PAL.iron[4]); rectFill(S, mx + Z(4), B - Z(10), z, z, PAL.iron[2]);
+                for (const side of [-1, 1]) if (gw > Z(34)) windowLit(S, mx + side * Math.round(gw * 0.58) - Z(4), wallTop + Z(8), Z(8), Z(9), FX);
+                for (let px = mx - dw2 - Z(3); px <= mx + dw2 + Z(3); px++) { put(S, px, B + 1, NP.cliff[4]); put(S, px, B + 2, NP.cliff[5]); put(S, px, B + 3, NP.cliff[2]); }                       // the door stone
+                FX.glows.push({ x: mx, y: B + 4, r: Z(26), a: 0.28 });
             }
-            if (rise > 30 && o.sign !== 'axes') windowLit(S, mx - 4, apex + Math.round(rise * 0.5), 8, 8, FX);
+            if (rise > Z(30) && o.sign !== 'axes') windowLit(S, mx - Z(4), apex + Math.round(rise * 0.5), Z(8), Z(8), FX);
             if (o.sign === 'axes') {                                   // crossed axes on a board in the gable
                 const sy = apex + Math.round(rise * 0.55);
-                rectFill(S, mx - 13, sy - 9, 26, 18, NP.oak[1]); rectFill(S, mx - 12, sy - 8, 24, 16, NP.oak[3]);
-                const ax = shape(); thick(ax, S, mx - 8, sy + 6, mx + 8, sy - 6, 0.8); thick(ax, S, mx + 8, sy + 6, mx - 8, sy - 6, 0.8); fill(S, ax, NP.wool.slice(3), { edge: false });
-                rectFill(S, mx + 5, sy - 8, 5, 5, PAL.iron[4]); rectFill(S, mx - 10, sy - 8, 5, 5, PAL.iron[4]);
+                rectFill(S, mx - Z(13), sy - Z(9), Z(26), Z(18), NP.oak[1]); rectFill(S, mx - Z(12), sy - Z(8), Z(24), Z(16), NP.oak[3]);
+                const ax = shape(); thick(ax, S, mx - Z(8), sy + Z(6), mx + Z(8), sy - Z(6), 0.8 * z); thick(ax, S, mx + Z(8), sy + Z(6), mx - Z(8), sy - Z(6), 0.8 * z); fill(S, ax, NP.wool.slice(3), { edge: false });
+                rectFill(S, mx + Z(5), sy - Z(8), Z(5), Z(5), PAL.iron[4]); rectFill(S, mx - Z(10), sy - Z(8), Z(5), Z(5), PAL.iron[4]);
             }
             if (o.sign === 'inn') {                                    // a painted board over the door and a hanging sign with a mug on it
-                rectFill(S, mx - 22, B - 40, 44, 11, NP.oak[0]); rectFill(S, mx - 21, B - 39, 42, 9, [22, 22, 26]);
-                for (let k = 0; k < 9; k++) rectFill(S, mx - 17 + k * 4, B - 36 + (k % 3 === 1 ? 1 : 0), 2, 3 + (k % 2), [214, 204, 178]);
-                const hx = mx + 26; rectFill(S, hx, B - 34, 12, 1, PAL.iron[2]); rectFill(S, hx + 2, B - 33, 9, 11, NP.oak[1]); rectFill(S, hx + 3, B - 32, 7, 9, NP.oak[4]);
-                rectFill(S, hx + 4, B - 30, 4, 6, [232, 190, 80]); rectFill(S, hx + 4, B - 31, 4, 1, [244, 240, 226]); put(S, hx + 8, B - 28, [232, 190, 80]); put(S, hx + 8, B - 27, [232, 190, 80]);
+                rectFill(S, mx - Z(22), B - Z(40), Z(44), Z(11), NP.oak[0]); rectFill(S, mx - Z(21), B - Z(39), Z(42), Z(9), [22, 22, 26]);
+                for (let k = 0; k < 9; k++) rectFill(S, mx - Z(17) + k * Z(4), B - Z(36) + (k % 3 === 1 ? z : 0), Z(2), Z(3) + (k % 2) * z, [214, 204, 178]);
+                const hx = mx + Z(26); rectFill(S, hx, B - Z(34), Z(12), z, PAL.iron[2]); rectFill(S, hx + Z(2), B - Z(33), Z(9), Z(11), NP.oak[1]); rectFill(S, hx + Z(3), B - Z(32), Z(7), Z(9), NP.oak[4]);
+                rectFill(S, hx + Z(4), B - Z(30), Z(4), Z(6), [232, 190, 80]); rectFill(S, hx + Z(4), B - Z(31), Z(4), z, [244, 240, 226]); rectFill(S, hx + Z(8), B - Z(28), z, Z(2), [232, 190, 80]);
             }
-            if (o.lantern) for (const side of [-1, 1]) { const lx = mx + side * 14; rectFill(S, lx - 1, B - 22, 3, 5, PAL.iron[1]); rectFill(S, lx - 1, B - 21, 3, 3, NP.glow[4]); FX.flames.push({ x: lx, y: B - 20 }); FX.glows.push({ x: lx, y: B - 14, r: 34, a: 0.5 }); }
-            if (o.banner) clothBanner(S, mx - Math.round(gw * 0.58) - (gw > 34 ? 16 : -6), wallTop + 5, 11, 26, seed);
+            if (o.lantern) for (const side of [-1, 1]) { const lx = mx + side * Z(14); rectFill(S, lx - 1, B - Z(22), 3, 5, PAL.iron[1]); rectFill(S, lx - 1, B - Z(21), 3, 3, NP.glow[4]); FX.flames.push({ x: lx, y: B - Z(20) }); FX.glows.push({ x: lx, y: B - Z(14), r: 34, a: 0.5 }); }
+            if (o.banner) clothBanner(S, mx - Math.round(gw * 0.58) - (gw > Z(34) ? Z(16) : -Z(6)), wallTop + Z(5), Z(11), Z(26), seed);
             // Bargeboards, crossed past the ridge; the inn's end in carved beasts' heads.
             for (const side of [-1, 1]) {
-                const bb = shape(); thick(bb, S, mx + side * (eave + 2), wallTop + 7, mx - side * 7, apex - 12, 1.8);
+                const bb = shape(); thick(bb, S, mx + side * (eave + Z(2)), wallTop + Z(7), mx - side * Z(7), apex - Z(12), 1.8 * z);
                 fill(S, bb, NP.plank.slice(3), { outline: NP.oak[0] });
                 for (const [i] of bb.px) if (!bb.px.has(i - S.w)) { const px = i % S.w, py = (i / S.w) | 0; put(S, px, py - 1, NP.snow[6]); if (hash(px, py, seed) < 0.5) put(S, px, py - 2, NP.snow[5]); }
-                if (o.carved) { const hx = mx - side * 8, hy = apex - 14; rectFill(S, hx - (side > 0 ? 5 : 0), hy - 4, 6, 4, NP.plank[5]); put(S, hx - side * 5, hy - 2, NP.plank[6]); put(S, hx - side * 2, hy - 3, [20, 14, 10]); put(S, hx, hy - 5, NP.plank[6]); }
+                if (o.carved) { const hx = mx - side * Z(8), hy = apex - Z(14); rectFill(S, hx - (side > 0 ? Z(5) : 0), hy - Z(4), Z(6), Z(4), NP.plank[5]); rectFill(S, hx - side * Z(5), hy - Z(2), z, z, NP.plank[6]); rectFill(S, hx - side * Z(2), hy - Z(3), z, z, [20, 14, 10]); rectFill(S, hx, hy - Z(5), z, z, NP.plank[6]); }
             }
-            for (let k = 0; k < (o.chimneys || 0); k++) chimney(S, mx + (k ? -1 : 1) * (wings ? gw + Math.round((W / 2 - gw) * 0.5) : Math.round(gw * 0.55)), wings ? Math.max(Y0 + 8, B - wallH - 36) : apex - depth + 22 + Math.round(gw * 0.3), seed + k, FX);
+            for (let k = 0; k < (o.chimneys || 0); k++) chimney(S, mx + (k ? -1 : 1) * (wings ? gw + Math.round((W / 2 - gw) * 0.5) : Math.round(gw * 0.55)), wings ? Math.max(Y0 + 8, B - wallH - Z(36)) : apex - depth + Z(22) + Math.round(gw * 0.3), seed + k, FX);
         });
     }
     /** Skeldvik's banner: madder red with a pale branching mark. */

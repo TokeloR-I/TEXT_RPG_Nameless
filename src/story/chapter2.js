@@ -44,11 +44,11 @@
             title: 'Salt and Silver', kind: 'main', xp: 45, candidate: true,
             summary: 'Skeldvik trades with everyone and trusts nobody this season. Eydis says the Birkholt tablet is not the first to be taken. Find out who else has lost their names, and who is buying.',
             objectives: [
-                { id: 'eydis', text: 'Find Eydis at the memorial stone in Skeldvik', on: { type: 'story', id: 'eydis_harbor' }, marker: { map: 'skeldvik', x: 8, y: 7 } },
-                { id: 'memorial', text: "Look at Skeldvik's memorial stone", on: { type: 'inspect', id: 'skeldvik_memorial' }, marker: { map: 'skeldvik', x: 7, y: 6 } },
-                { id: 'leif', text: 'Ask Leif Ropehand the shipwright about the armed crews', on: { type: 'story', id: 'leif_crews' }, marker: { map: 'skeldvik', x: 8, y: 20 } },
-                { id: 'solveig', text: 'Ask Solveig at the fish stalls what she has seen', on: { type: 'story', id: 'solveig_witness' }, marker: { map: 'skeldvik', x: 20, y: 10 } },
-                { id: 'decide', text: 'Tell Eydis what you learned, and decide who keeps the tablet', on: { type: 'story', id: 'tablet_decided' }, marker: { map: 'skeldvik', x: 8, y: 7 } }
+                { id: 'eydis', text: 'Find Eydis at the memorial stone in Skeldvik', on: { type: 'story', id: 'eydis_harbor' }, marker: { map: 'skeldvik', x: 11, y: 10 } },
+                { id: 'memorial', text: "Look at Skeldvik's memorial stone", on: { type: 'inspect', id: 'skeldvik_memorial' }, marker: { map: 'skeldvik', x: 12, y: 8 } },
+                { id: 'leif', text: 'Ask Leif Ropehand the shipwright about the armed crews', on: { type: 'story', id: 'leif_crews' }, marker: { map: 'skeldvik', x: 8, y: 28 } },
+                { id: 'solveig', text: 'Ask Solveig at the fish stalls what she has seen', on: { type: 'story', id: 'solveig_witness' }, marker: { map: 'skeldvik', x: 28, y: 15 } },
+                { id: 'decide', text: 'Tell Eydis what you learned, and decide who keeps the tablet', on: { type: 'story', id: 'tablet_decided' }, marker: { map: 'skeldvik', x: 11, y: 10 } }
             ],
             onComplete: [{ flag: 'skeldvik_evidence' }, { gold: 25, key: 'c202_reward' },
                 { say: "Four boards since midsummer: two up the coast, Asta's on the road, Skeldvik's off its stone, and the running wolf at every one. Whoever leads the Wolf-Banner wants all six hundred names, and is not asking the families." },
@@ -58,7 +58,7 @@
             title: 'The Hall of Winter', kind: 'main', xp: 0, teaser: true,
             summary: 'The assembly meets at Hrafnholm, where the Jarl keeps her hall. Eydis means to read the stolen names aloud there, in front of the man she thinks took them.',
             objectives: [
-                { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm (the next part of Chapter Two)', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 28 } }
+                { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm (the next part of Chapter Two)', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 36 } }
             ],
             onComplete: []
         }

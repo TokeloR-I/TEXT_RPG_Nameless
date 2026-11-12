@@ -531,6 +531,9 @@
             interactables: [
                 { id: 'lane_oda', kind: 'npc', npc: 'oda', x: 17, y: 6, name: 'Oda of the Oven', sprite: 'baker' },
                 { id: 'lane_greta', kind: 'npc', npc: 'greta', x: 24, y: 5, name: 'Greta Rusk', sprite: 'butcher' },
+                // A public cooking hearth by Oda's oven (Tokelo, playtest 2026-11-11: cooking only at home made no sense
+                // when the village's bakery lane is right here). Always open; SF6's lesson points here first.
+                { id: 'lane_hearth', kind: 'station', station: 'lane_hearth', verb: 'Cook at', x: 20, y: 7, name: 'Lane hearth', sprite: 'cookfire' },
                 { id: 'lane_oven', kind: 'inspect', x: 16, y: 5, name: 'Bread oven',
                     text: 'A domed oven of blackened brick, still warm. Dark rye loaves cool on a board beside it. The crust cracks when you so much as look at it.' },
                 { id: 'lane_smokehouse', kind: 'inspect', x: 25, y: 4, name: 'Smokehouse',

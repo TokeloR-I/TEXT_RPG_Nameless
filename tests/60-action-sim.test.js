@@ -272,3 +272,22 @@ test('Sim: the orchard gate opens the moment the Captain takes the register, wit
     for (let i = 0; i < 180 && r.s.mapId === 'shamefield'; i++) r.sim.update(1000 / 60, north);
     assert.strictEqual(r.s.mapId, 'orchard', 'walked straight through to the orchard (the cultists)');
 });
+
+test('Sim: kill one, let the group give up, engage again: every enemy is back and killing them clears the group (playtest 2026-11-11)', () => {
+    const r = near(run('warrior', 66));
+    r.g.player.hp = r.g.player.maxHp = 9999;
+    const g = r.sim.groups.grounds_weed_rats;
+    r.sim.engageGroup(g);
+    const [first] = ratsOf(r.sim);
+    r.g.actionRun(() => { r.g.combat.enemies.find((e) => e.id === first.engineId).hp = 0; });
+    r.sim.syncFromEngine();
+    assert.ok(first.dead, 'one rat is down');
+    r.sim.leash(g);
+    assert.strictEqual(r.g.mode, 'explore');
+    assert.ok(ratsOf(r.sim).every((a) => !a.dead && !a.engineId), 'the whole group stands at home again, as the engine will rebuild it');
+    r.sim.now = g.reengageAt + 1;
+    assert.ok(r.sim.engageGroup(g));
+    assert.ok(ratsOf(r.sim).every((a) => a.engineId), 'every engine enemy has a body in the world');
+    r.g.actionRun(() => { for (const e of r.g.combat.enemies) e.hp = 0; r.g.actionCheckEnd(); });
+    assert.ok(r.g.isDefeated('grounds_weed_rats'), 'the group clears');
+});

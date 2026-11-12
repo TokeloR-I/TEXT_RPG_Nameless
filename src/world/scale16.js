@@ -37,6 +37,12 @@
             if (o.w > 1 || o.h > 1) return { ...o, x: bx, y: by, w: (o.w || 1) * 2, h: (o.h || 1) * 2 };
             // An object on open ground takes its whole block, so it blocks, talks and fights from all of it (QA-33/34).
             if (!solid(bx, by) || !Object.keys(tileset).length) return { ...o, x: bx, y: by, w: 2, h: 2 };
+            // On a solid tile the whole block is the thing too, so E works from any open side of it. Before, it went
+            // to one cell (the first with open ground beside it), and the harbour bell only answered from its left,
+            // never from the terrace in front of it (Tokelo, playtest 2026-11-11).
+            const sameTile = BLOCK.every(([dx, dy]) => out.tiles[by + dy] && out.tiles[by + dy][bx + dx] === out.tiles[by][bx]);
+            const reachable = BLOCK.some(([dx, dy]) => { const x = bx + dx, y = by + dy; return [[x, y + 1], [x, y - 1], [x - 1, y], [x + 1, y]].some(([nx, ny]) => (nx < bx || nx > bx + 1 || ny < by || ny > by + 1) && !solid(nx, ny)); });
+            if (sameTile && reachable) return { ...o, x: bx, y: by, w: 2, h: 2 };
             for (const [dx, dy] of BLOCK) {
                 const x = bx + dx, y = by + dy;
                 const open = [[x, y + 1], [x, y - 1], [x - 1, y], [x + 1, y]].some(([nx, ny]) => (nx < bx || nx > bx + 1 || ny < by || ny > by + 1) && !solid(nx, ny));

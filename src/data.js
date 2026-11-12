@@ -1798,7 +1798,9 @@
                 ]
             },
             "guardian": {
-                "gold": 0,
+                // Tokelo, playtest 2026-11-11: "killing the first boss gave me zero gold". A guardian boss now carries a
+                // purse (L3 Warden: 13-22 Gold on the ground where he falls), on top of the seal's 20 Gold treasury.
+                "gold": 0.5,
                 "material": 0.25,
                 "equipment": 0,
                 "consumable": 0,

@@ -88,7 +88,9 @@ Commit messages: `area: what changed`, e.g. `statuses: add Soul Chain link`, `qa
   to the save layout bumps `FORMAT_VERSION` and adds a step to `MIGRATIONS`; never edit an old step. New content
   (quests, rooms, player fields, gear slots) is filled in on load by `reconcileSave()`. New story reached by a
   one-shot effect an old save already passed (e.g. Chapter 1's last `onComplete`) also needs a `catchUp` entry in
-  the story data. Never rename the browser save key `enso.world.save.v1`, or players lose their save.
+  the story data. Never rename the browser save key `enso.world.save.v1`, or players lose their save. A PR that adds
+  or removes story content (quests, NPCs, items, maps) bumps `CONTENT_REVISION` in `src/engine/save.js`, so a save
+  carried back to an older copy of the game is reported as newer.
 
 ## 4. Design authority
 - **Approved design lives in `docs/design/`.** Implement what it says. If code and design disagree, the design wins.
