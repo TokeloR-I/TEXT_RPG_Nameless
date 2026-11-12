@@ -109,15 +109,37 @@ test('Sim: enemies wind up before they hit (telegraph), and a timed dodge or gua
     assert.ok(text.some((t) => /on your guard|parry/i.test(t)), 'guarding blocks blows');
 });
 
-test('Sim: run far enough and the group gives up and goes home (leash); the fight ends without a victory', () => {
-    const r = near(run('warrior', 64));
+test('Sim: no stop-chase leash: kite far from their home and the fight goes on, the group keeps pursuing (Tokelo, 2026-11-12)', () => {
+    const r = near(run('mage', 64));
     r.g.player.hp = r.g.player.maxHp = 9999;
-    r.sim.engageGroup(r.sim.groups.grounds_weed_rats);
-    for (const a of ratsOf(r.sim)) a.prof = { ...a.prof, leash: 40 };
-    // teleport the player away (as if they ran) and let the rats chase
+    const g = r.sim.groups.grounds_weed_rats;
+    r.sim.engageGroup(g);
+    // a ranged class backs off for room: far beyond the old 150 px rat leash from their home
     const [fx, fy] = freeNear(r.s, 20, 4);
     r.sim.player.x = (fx + 0.5) * T; r.sim.player.y = (fy + 0.5) * T;
-    for (let i = 0; i < 60 * 10 && r.g.mode === 'combat'; i++) r.sim.update(1000 / 60, {});
+    const gap = () => Math.min(...ratsOf(r.sim).filter((a) => !a.dead).map((a) => Math.hypot(a.x - r.sim.player.x, a.y - r.sim.player.y)));
+    const d0 = gap();
+    assert.ok(d0 > 150, `kited ${Math.round(d0)} px away`);
+    frames(r.sim, 60 * 4);
+    assert.strictEqual(r.g.mode, 'combat', 'still in the fight');
+    assert.ok(g.engaged && ratsOf(r.sim).every((a) => a.engineId), 'the group is still engaged');
+    assert.ok(gap() < d0 - 60, `they come after you (${Math.round(d0)} -> ${Math.round(gap())} px)`);
+});
+
+test('Sim: a group that cannot reach the player at all gives up after combat.reset.unreachableMs; the fight ends without a victory', () => {
+    const r = near(run('warrior', 64));
+    r.g.player.hp = r.g.player.maxHp = 9999;
+    const g = r.sim.groups.grounds_weed_rats;
+    r.sim.engageGroup(g);
+    const [fx, fy] = freeNear(r.s, 20, 4);
+    r.sim.player.x = (fx + 0.5) * T; r.sim.player.y = (fy + 0.5) * T;
+    // as if the player stood across water: no path and no line of sight
+    r.sim.findPath = () => null;
+    r.sim.lineOfSight = () => false;
+    const ms = r.g.data.actionRules.combat.reset.unreachableMs;
+    frames(r.sim, Math.floor(ms / 1000 * 60) - 30);
+    assert.strictEqual(r.g.mode, 'combat', 'not before the give-up time');
+    for (let i = 0; i < 60 * 2 && r.g.mode === 'combat'; i++) r.sim.update(1000 / 60, {});
     assert.strictEqual(r.g.mode, 'explore');
     assert.ok(!r.g.isDefeated('grounds_weed_rats'));
     assert.ok(ratsOf(r.sim).every((a) => !a.engineId), 'the rats reset');
@@ -271,4 +293,23 @@ test('Sim: the orchard gate opens the moment the Captain takes the register, wit
     r.g.story.flags.push('north_gate_open');           // what Q05 sets when the register is handed over
     for (let i = 0; i < 180 && r.s.mapId === 'shamefield'; i++) r.sim.update(1000 / 60, north);
     assert.strictEqual(r.s.mapId, 'orchard', 'walked straight through to the orchard (the cultists)');
+});
+
+test('Sim: kill one, let the group give up, engage again: every enemy is back and killing them clears the group (playtest 2026-11-11)', () => {
+    const r = near(run('warrior', 66));
+    r.g.player.hp = r.g.player.maxHp = 9999;
+    const g = r.sim.groups.grounds_weed_rats;
+    r.sim.engageGroup(g);
+    const [first] = ratsOf(r.sim);
+    r.g.actionRun(() => { r.g.combat.enemies.find((e) => e.id === first.engineId).hp = 0; });
+    r.sim.syncFromEngine();
+    assert.ok(first.dead, 'one rat is down');
+    r.sim.leash(g);
+    assert.strictEqual(r.g.mode, 'explore');
+    assert.ok(ratsOf(r.sim).every((a) => !a.dead && !a.engineId), 'the whole group stands at home again, as the engine will rebuild it');
+    r.sim.now = g.reengageAt + 1;
+    assert.ok(r.sim.engageGroup(g));
+    assert.ok(ratsOf(r.sim).every((a) => a.engineId), 'every engine enemy has a body in the world');
+    r.g.actionRun(() => { for (const e of r.g.combat.enemies) e.hp = 0; r.g.actionCheckEnd(); });
+    assert.ok(r.g.isDefeated('grounds_weed_rats'), 'the group clears');
 });

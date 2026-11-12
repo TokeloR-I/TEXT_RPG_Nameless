@@ -633,7 +633,8 @@
     const faceShift = (k, facing) => (facing === 'down' ? (k.turn || 0) * 3 : 0);
 
     // Hair: drawn round the head centre. `front` is everything over the face/head; `back` goes behind the body.
-    const drawHairBack = inHead(function drawHairBack(grid, k, style, facing) {
+    // `onlyOver` (mats): paint only onto pixels already of those materials (the nape, below).
+    const drawHairBack = inHead(function drawHairBack(grid, k, style, facing, { onlyOver = null } = {}) {
         const [hx, hy] = k.head, back = facing === 'up', side = facing === 'right';
         const p = part(), sw = k.swH || [0, 0];
         const q = (x, y, g) => [x + sw[0] * g, y + sw[1] * g * 0.6];
@@ -654,6 +655,7 @@
             if (side) ellipse(p, ...q(hx - 4.4, hy + 3, 0.5), 3.2, 3.6);
             if (back) ellipse(p, ...q(hx, hy + 3, 0.4), 7.4, 4.6);
         }
+        if (onlyOver) for (const i of [...p.keys()]) if (!onlyOver.includes(grid.mat[i])) p.delete(i);
         if (p.size) paint(grid, p, 'hair');
     });
     const drawHairFront = inHead(function drawHairFront(grid, k, style, facing, hat) {
@@ -917,6 +919,8 @@
         }
     }
 
+    const BACK_COVERS_NAPE = new Set([2, 5, 8]);   // bob, long loose, curls: a full mass of hair at the back
+    const BACK_GATHERED = new Set([1, 3]);           // tied tail, braid
     /** Draw one frame. Returns the frame's rows of roles ('.' = transparent). */
     function drawFrame(shape, facing, pose) {
         const k = skeleton(facing, pose);
@@ -973,6 +977,11 @@
             if (!hidden(k.dR) && !raised(k.haR)) armR(false);
             drawHairBack(g, k, hair, facing);
             head();
+            // Hair that hangs down the back covers the nape too. Without this the back of the head showed a band of
+            // bare skin between the crown and the hair (Tokelo, playtest 2026-11-11: "long haired sprites are bald").
+            // A tail or braid is gathered at the crown: drawn over the nape whole, so it hangs from the hair, not the neck.
+            if (BACK_COVERS_NAPE.has(hair) && hat !== 4) drawHairBack(g, k, hair, facing, { onlyOver: ['skin'] });
+            else if (BACK_GATHERED.has(hair) && hat !== 4) drawHairBack(g, k, hair, facing);
             if (raised(k.haL)) armL(false);
             if (hasShield && k.parry) drawShield(g, k, shield, 'up');
             drawTrail(g, k, weapon);

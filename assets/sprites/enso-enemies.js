@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -52,7 +52,9 @@
         // spear-thrower in undyed wool, and Ulfrun Grey-Mantle under a wolf pelt. No horned helmets.
         wolfbanner_raider: {kind:'watch', body:'metal', coat:'wolfred', tall:38, wide:9},
         wolfbanner_skirmisher: {kind:'watch', body:'leather', coat:'undyed', tall:36, wide:7},
-        wolfbanner_ringleader: {kind:'knight', body:'metal', coat:'pelt', tall:40, wide:10}
+        wolfbanner_ringleader: {kind:'knight', body:'metal', coat:'pelt', tall:40, wide:10},
+        // Sergeant Kess, the Ash-Marked (Chapter One): an old Crown sergeant's mail under the Broken Oath's ash-red.
+        oath_sergeant: {kind:'watch', body:'metal', coat:'ash', tall:39, wide:9}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

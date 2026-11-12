@@ -1081,3 +1081,39 @@ body {
     .dialog.paged { max-height: 52%; }
     .notices { max-width: 60cqw; }
 }
+
+/* Meal and beer buffs show a bowl or a beer mug instead of the dish's name (Tokelo, playtest 2026-11-11). */
+.ahud-chip.food-chip { align-items: center; }
+.ahud-chip.food-chip i { display: inline-flex; line-height: 0; }
+.ahud-chip.food-chip .n:empty { display: none; }
+
+/* ---------- cooking menu (hearths; playtest 2026-11-11): bag | pot | recipes ---------- */
+.dialog.kitchen { top: 6%; max-height: 88%; display: flex; flex-direction: column; min-height: 0; }
+.kitchen-grid { display: grid; grid-template-columns: 1fr 1.05fr 1.2fr; gap: 0.8em; min-height: 0; flex: 1 1 auto; }
+.kitchen-grid > section { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--edge); padding: 0.4em; background: rgba(0, 0, 0, 0.18); }
+.kitchen-head { color: var(--c-gold); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3em; }
+.kitchen-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5em, 1fr)); gap: 0.35em; overflow-y: auto; min-height: 0; align-content: start; }
+.pot-slots { grid-template-columns: repeat(2, 1fr); }
+.k-slot { font: inherit; font-size: 0.85em; color: var(--ink); background: var(--c-win-hi); border: 2px solid var(--edge); min-height: 3.2em;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.2em; cursor: pointer; image-rendering: pixelated; }
+.k-slot:hover, .k-slot:focus-visible { border-color: var(--accent); outline: none; }
+.k-item { cursor: grab; }
+.k-item.used { opacity: 0.45; }
+.k-pot.empty { border-style: dashed; background: rgba(0, 0, 0, 0.25); cursor: default; }
+.k-pot.filled { border-color: var(--c-frame-hi); }
+.kitchen-pot.drop .k-pot.empty { border-color: var(--accent); }
+.k-name { overflow-wrap: anywhere; line-height: 1.2; }
+.k-qty { color: var(--c-gold); font-size: 0.9em; }
+.kitchen-result { margin: 0.5em 0 0.3em; min-height: 2.4em; color: var(--ink-dim); }
+.kitchen-result.ready { color: var(--ink); }
+.kitchen-result.ready b { color: var(--c-gold); }
+.kitchen-result.blocked b { color: var(--c-ink-mute); }
+.k-desc { display: block; font-size: 0.8em; color: var(--ink-dim); }
+.kitchen-actions { display: flex; gap: 0.5em; margin-top: auto; }
+.k-btn { font: inherit; color: var(--ink); background: var(--c-win-hi); border: 2px solid var(--c-frame); padding: 0.25em 0.9em; cursor: pointer; }
+.k-btn.k-cook:not(:disabled) { border-color: var(--c-gold); color: var(--c-gold); }
+.k-btn:disabled { color: var(--c-ink-mute); border-color: var(--edge); cursor: default; }
+.kitchen-book .kitchen-recipes { overflow-y: auto; min-height: 0; margin: 0; }
+.kitchen-recipes .m-sub { display: block; color: var(--ink-dim); font-size: 0.8em; }
+.kitchen-empty { color: var(--ink-dim); font-size: 0.85em; }
+@media (max-aspect-ratio: 4/3) { .kitchen-grid { grid-template-columns: 1fr 1fr; } .kitchen-book { grid-column: 1 / -1; } }

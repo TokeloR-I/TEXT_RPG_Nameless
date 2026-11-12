@@ -85,6 +85,8 @@
             for (const id of cond.notBuilt || []) if (home.built && home.built[id]) return false;
             for (const [id, want] of Object.entries(cond.plots || {})) if (this.plotState(id) !== want) return false;
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
+            // questCount: { ids, min }: at least `min` of those quests complete (two households vouch for you)
+            if (cond.questCount && this.questsDone(cond.questCount) < (cond.questCount.min ?? (cond.questCount.ids || []).length)) return false;
             return true;
         }
         /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock
@@ -105,9 +107,12 @@
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
         //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
+        //   any effect may carry `when` (a condition): it runs only if that holds right now (an ending that remembers
+        //   which choice you made, without a branch node for every combination)
         // =====================================================================
         applyStoryEffects(effects, opts = {}) {
             for (const e of effects || []) {
+                if (e.when && !this.storyAllows(e.when)) continue;
                 // A flag can wake a dormant weapon you are wearing (itemDef `kindle`): its new stats are applied here.
                 const worn = (e.flag || e.unflag) && this.player && this.player.equipment && this.equipmentModifiers ? this.equipmentModifiers() : null;
                 if (e.flag && !this.story.flags.includes(e.flag)) this.story.flags.push(e.flag);
@@ -188,9 +193,12 @@
         }
 
         /** Has this objective's event already happened? A `quests` objective ({ type: 'quests', ids, count })
-         *  is met once `count` of those quests are complete ("help five households"). */
+         *  is met once `count` of those quests are complete ("help five households"). An objective with `skipIf`
+         *  counts as met while that condition holds (a second route made the step moot). */
         objectiveMet(o) {
             if (!o || !o.on) return false;
+            // skipIf: another route made this step moot (the village vouched for you, so no evidence is needed).
+            if (o.skipIf && this.storyAllows(o.skipIf)) return true;
             if (o.on.type === 'quests') return this.questsDone(o.on) >= (o.on.count || (o.on.ids || []).length);
             return this.story.seen.includes(`${o.on.type}:${o.on.id}`);
         }
@@ -245,7 +253,9 @@
             const next = (id) => { const s = ((quests[id] && quests[id].onComplete) || []).find((e) => e.start); return s ? s.start : null; };
             const asks = (id) => quests[id].objectives.some((o) => o.on && o.on.type === ev.type && o.on.id === ev.id);
             const active = Object.keys(this.story.quests).find((id) => quests[id] && quests[id].kind === 'main' && this.story.quests[id].state === 'active');
-            if (ev.type === 'enter' || !active || asks(active)) return;   // walking somewhere isn't doing a quest's step
+            // Walking somewhere isn't doing a quest's step, and nor is cooking or eating: a meal for a side quest must
+            // not skip a main quest ahead to the Festival of the Sun's cooking lesson (C1-N03).
+            if (ev.type === 'enter' || ev.type === 'craft' || ev.type === 'eat' || !active || asks(active)) return;
             let target = null;
             for (let id = next(active), n = 0; id && quests[id] && quests[id].kind === 'main' && quests[id].xp > 0 && n < 20; id = next(id), n++) {
                 if (asks(id)) { target = id; break; }
@@ -277,6 +287,11 @@
             for (const id of Object.keys(this.story.quests)) {
                 const o = this.currentObjective(id);
                 if (o && o.on && o.on.type === ev.type && o.on.id === ev.id) { this.advanceQuest(id); this.catchUpQuest(id); }
+            }
+            // A step another route made moot (skipIf) gives way as soon as anything happens.
+            for (const id of Object.keys(this.story.quests)) {
+                const o = this.currentObjective(id);
+                if (o && o.skipIf && this.objectiveMet(o)) this.catchUpQuest(id);
             }
             if (!first) return;
             const triggers = this.storyContent().triggers || [];
@@ -451,6 +466,7 @@
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
                 if (a.type === 'sell' && a.shopId === s.dialogue.shopId) { this.sellItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
+                if (a.type === 'cook') { this.cookAtStation(String(a.recipeId || '')); return true; }   // the cooking menu (kitchen)
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
                 this.showDialogueChoices();
@@ -470,6 +486,49 @@
                 case 'dialogue_choice': case 'dialogue_leave': this.refuse('WRONG_MODE', "You aren't talking to anyone."); return true;
                 default: return false;
             }
+        }
+
+        /**
+         * Pure. The cooking menu of the station you're talking to (a story npc with `kitchen: '<station>'`, e.g. a
+         * hearth), or null: its recipes with what each needs and has, and the ingredients you carry for them.
+         * The front end shows it as slots; cookAtStation() runs the same check (playtest 2026-11-11: a real menu).
+         */
+        kitchenView() {
+            const d = this.story && this.story.dialogue;
+            const npc = d && this.npcDef(d.npcId);
+            if (!npc || !npc.kitchen) return null;
+            const inv = this.player.inventory;
+            const count = (item) => inv.filter((x) => x === item).length;
+            const recipes = Object.entries(this.data.recipeDefinitions || {}).filter(([, r]) => r.station === npc.kitchen).map(([id, r]) => {
+                const reason = this.cookBlock(id, npc.kitchen);
+                return { id, output: r.output, yield: Number.isSafeInteger(r.yield) && r.yield > 1 ? r.yield : 1, verb: r.verb || 'Made',
+                    ingredients: Object.entries(r.ingredients || {}).map(([item, qty]) => ({ item, qty, have: count(item) })),
+                    description: (this.itemDef(r.output) || {}).description || '', enabled: !reason, ...(reason ? { reason } : {}) };
+            });
+            const used = [...new Set(recipes.flatMap((r) => r.ingredients.map((x) => x.item)))];
+            const pantry = used.filter((item) => count(item) > 0).map((item) => ({ item, owned: count(item), description: (this.itemDef(item) || {}).description || '' }));
+            return { station: npc.kitchen, name: npc.name, recipes, pantry };
+        }
+
+        /** Pure. Why this recipe can't be cooked here now, or null. */
+        cookBlock(recipeId, station) {
+            const r = (this.data.recipeDefinitions || {})[recipeId];
+            if (!r || r.station !== station) return { code: 'WRONG_STATION', message: "That isn't made here." };
+            if (r.requiresUpgrade && !this.player.homestead?.built?.[r.requiresUpgrade]) return { code: 'RECIPE_LOCKED', message: 'This recipe or station is unavailable.' };
+            const inv = this.player.inventory;
+            const short = Object.entries(r.ingredients || {}).filter(([item, qty]) => inv.filter((x) => x === item).length < qty).map(([item]) => item);
+            if (short.length) return { code: 'MISSING_INGREDIENTS', message: `You need ${short.join(', ')}.` };
+            return null;
+        }
+
+        /** The cooking menu's Cook button: one recipe at the station you're talking to. */
+        cookAtStation(recipeId) {
+            const d = this.story.dialogue;
+            const npc = this.npcDef(d.npcId);
+            if (!npc || !npc.kitchen) { this.refuse('WRONG_STATION', 'There is nothing to cook on here.'); return; }
+            const block = this.cookBlock(recipeId, npc.kitchen);
+            if (block) { this.refuse(block.code, block.message); return; }
+            this.craftRecipe(recipeId);
         }
 
         /** Availability while talking (pure). */
@@ -496,8 +555,11 @@
                     owned: this.player.inventory.filter(id => id === item).length, description: this.itemDetails(item), enabled: !reason, ...(reason ? { reason } : {}) };
             }) : [];
             actions.push(...goods, ...selling);
+            const kitchen = this.kitchenView();
+            if (kitchen) actions.push(...kitchen.recipes.map((r) => ({ type: 'cook', recipeId: r.id, enabled: r.enabled, ...(r.reason ? { reason: r.reason } : {}) })));
             return {
                 shop: shop ? { shopId, gold: this.player.gold, goods, selling } : null,
+                kitchen,
                 dialogue: {
                     npcId: d.npcId, name: npc.name, title: npc.title || null,
                     lines: (node.lines || []).map((l) => {

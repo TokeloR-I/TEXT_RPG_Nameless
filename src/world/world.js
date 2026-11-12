@@ -458,8 +458,11 @@
 
         /** Put the player back where a save says (getState() shape). Anything that doesn't fit the map
          *  (unknown map, out of bounds, in a wall, on an exit) falls back to the world's start. */
-        restorePosition(st) {
+        restorePosition(st, { revision = null } = {}) {
             const map = st && this.world.maps[st.map];
+            // A map re-laid since the save was made (map.relaid > the save's content revision): the old spot means
+            // nothing now, so the player starts at the map's first spawn instead of in a wall or back at the start.
+            if (map && map.relaid && (revision || 0) < map.relaid && map.spawns) { this.place(st.map, Object.keys(map.spawns)[0]); return false; }
             const k = map ? (map.tileSize || 32) / (st.tile || 32) : 1;          // a save from 32 px tiles, loaded on 16 px tiles
             if (map && k !== 1 && Number.isInteger(st.x) && Number.isInteger(st.y)) st = { ...st, x: Math.floor(st.x / k), y: Math.floor(st.y / k), tile: map.tileSize || 32 };
             const ok = map && Number.isInteger(st.x) && Number.isInteger(st.y) && inBounds(map, st.x, st.y)

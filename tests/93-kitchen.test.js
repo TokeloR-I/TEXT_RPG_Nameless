@@ -417,3 +417,26 @@ test('Goulash: rats and wolves always drop meat, which cooks into low-tier goula
     assert.ok(eat(g, 'Rattengulasch').ok);
     assert.strictEqual(g.player.hp, 22);
 });
+
+test("Playtest 2026-11-11: a public hearth in Baker's Lane, and every hearth has a cooking menu the engine checks", () => {
+    const { g, s } = world();
+    s.place('village_residential_lane', 'from_village');
+    const r = inspect(s, 'lane_hearth');
+    assert.strictEqual(r.type, 'talk', 'the lane hearth answers E');
+    let k = g.getAvailableActions().kitchen;
+    assert.ok(k && k.station === 'hearth', 'it is a kitchen');
+    const leber = k.recipes.find((x) => x.id === 'cook_leberkaese');
+    assert.ok(leber && !leber.enabled && leber.reason.code === 'MISSING_INGREDIENTS');
+    assert.ok(!g.act({ type: 'cook', recipeId: 'cook_leberkaese' }).ok, 'refused without the pork and roll');
+    assert.ok(!g.act({ type: 'cook', recipeId: 'bake_broetchen' }).ok, "the oven's recipes aren't cooked at a hearth");
+    give(g, 'Pork'); give(g, 'Brötchen');
+    k = g.getAvailableActions().kitchen;
+    assert.deepStrictEqual(k.pantry.map((p) => p.item).sort(), ['Brötchen', 'Pork']);
+    const opt = g.getAvailableActions().actions.find((a) => a.type === 'cook' && a.recipeId === 'cook_leberkaese');
+    assert.ok(opt.enabled, 'availability agrees with the rule');
+    assert.ok(g.act({ type: 'cook', recipeId: 'cook_leberkaese' }).ok);
+    assert.strictEqual(count(g, 'Leberkäsbrötchen'), 1);
+    assert.strictEqual(g.getAvailableActions().awaiting, 'dialogue', 'you stay at the hearth');
+    g.act({ type: 'dialogue_leave' });
+    for (const id of ['grounds_hearth']) { s.place('grounds', Object.keys(s.world.maps.grounds.spawns)[0]); inspect(s, id); assert.ok(g.getAvailableActions().kitchen, `${id} has the menu`); g.act({ type: 'dialogue_leave' }); }
+});

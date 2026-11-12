@@ -19,7 +19,8 @@
  * the attack state machine (startup → active → recovery), hit tests (arc,
  * cone, circle, line, projectiles), dodge i-frames, guard arc, parry window,
  * stamina, and enemy AI (idle/wander → detect with range + line of sight →
- * engage → chase with grid pathfinding → wind up → strike → recover; leash home),
+ * engage → chase with grid pathfinding → wind up → strike → recover; no distance leash,
+ * they give up only when you leave the map or they can't reach you at all),
  * and the player's minions (Raise Skeleton): a body that rises where you aim,
  * follows you, fights enemies near you, and draws their attacks.
  * What it tells the engine: engage, cast, resolve, cancel, windup, strike,
@@ -344,7 +345,11 @@
             g.engaged = false;
             g.reengageAt = this.now + 1500;
             this.actors = this.actors.filter((x) => !(x.illusionOf && x.encounterId === g.encounterId));   // the false Wardens are gone
-            for (const a of this.actors) if (a.encounterId === g.encounterId && !a.dead) {
+            for (const a of this.actors) if (a.encounterId === g.encounterId) {
+                // The engine brings the whole group back next time (actionEngage builds every enemy again), so the ones
+                // you killed before it gave up stand up too. Left dead here, they'd be invisible engine enemies the
+                // group can never clear without, and the chest they guard stays shut (Tokelo's toll register, playtest 2026-11-11).
+                if (a.dead) Object.assign(a, { dead: false, deadAt: 0, x: a.homeX, y: a.homeY, hurtUntil: 0 });
                 Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
             }
         }
@@ -762,7 +767,7 @@
             if (!r.ok) { if (r.error && r.error.code === 'ALREADY_DEFEATED') this.groupCleared(g.encounterId); return false; }
             g.engaged = true;
             const members = this.actors.filter((a) => a.encounterId === g.encounterId);
-            members.forEach((a, i) => { a.engineId = r.ids[i]; a.state = 'chase'; a.attackReadyAt = this.now + 400 + this.rng() * 500; a.hp = null; });
+            members.forEach((a, i) => { a.engineId = r.ids[i]; a.state = 'chase'; a.attackReadyAt = this.now + 400 + this.rng() * 500; a.hp = null; a.lostSince = null; });
             this.fx.push({ type: 'engage', encounterId: g.encounterId, name: g.name });
             return true;
         }
@@ -799,9 +804,11 @@
             if (a.stunned && a.state !== 'windup' && a.state !== 'active') { a.state = 'stunned'; return; }
             if (a.state === 'stunned') a.state = 'chase';
             if (a.state === 'stagger') { if (this.now >= a.stateEnd) a.state = 'chase'; return; }
-            // leash: far from home and the player is far too → the whole group gives up
-            const home = { x: a.homeX, y: a.homeY };
-            if (dist(a, home) > (pr.leash || 200) && dist(p, home) > (pr.leash || 200)) { this.leash(g); return; }
+            // No distance leash (Tokelo, 2026-11-12): a live fight goes on while you kite for room, and the group keeps
+            // pursuing. It only gives up when you leave the map with nobody on you (playerTile), or when no member has
+            // been able to reach you at all (no path, no line of sight) for `combat.reset.unreachableMs`, so a group
+            // stuck behind a wall can't hold you in combat forever.
+            if (this.groupLost(g)) { this.leash(g); return; }
             if (a.state === 'windup') {
                 if (a.windup.mark && !a.windup.mark.locked) this.trackMark(a);
                 if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, this.liveBody(a.windup.foe) || p);   // tracks, then locks (Thorne §4)
@@ -817,14 +824,24 @@
             // chase: pick an attack that fits the distance, else close in (or keep the preferred distance)
             a.angle = angleTo(a, t);
             const atk = this.now >= a.attackReadyAt && this.attackers() < ((this.rules.combat || {}).maxSimultaneousAttackers || 2) ? this.pickAttack(a, dt2, t) : null;
-            if (atk) { this.enemyWindup(a, atk); return; }
+            if (atk) { a.lostSince = null; this.enemyWindup(a, atk); return; }
             const [kmin, kmax] = this.keepRange(a);
             if (dt2 < kmin - 2) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
             if (dt2 > kmax + t.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, t))) this.chase(a, dt, t);
+            else a.lostSince = null;   // in its range: it has you
         }
 
         attackers() { return this.actors.filter((x) => !x.dead && (x.state === 'windup' || x.state === 'active')).length; }
 
+        /** Every living member of an engaged group has had no way to reach the player for the give-up time. */
+        groupLost(g) {
+            const ms = ((this.rules.combat || {}).reset || {}).unreachableMs;
+            if (!ms) return false;
+            const live = this.actors.filter((x) => x.encounterId === g.encounterId && !x.dead && x.engineId && !x.illusionOf);
+            return live.length > 0 && live.every((x) => x.lostSince != null && this.now - x.lostSince >= ms);
+        }
+
+        /** The group leaves the fight unbeaten (you slipped away, or they can't reach you): back home, reset. */
         leash(g) {
             this.collect(this.engine.actionDisengage(g.encounterId).events);
             this.resetGroup(g);
@@ -1195,15 +1212,16 @@
 
         /** Chase the player: straight when the way is clear, else follow a grid path (refreshed every 250 ms). */
         chase(a, dt, p = this.player) {
-            if (this.lineOfSight(a, p, true)) { a.path = null; this.walkTo(a, p, dt); return; }
+            if (this.lineOfSight(a, p, true)) { a.path = null; a.lostSince = null; this.walkTo(a, p, dt); return; }
             if (!a.path || this.now >= a.repathAt) { a.path = this.findPath(a, p); a.repathAt = this.now + 250 + this.rng() * 100; }
-            if (!a.path || !a.path.length) return;
+            if (!a.path || !a.path.length) { if (a.lostSince == null) a.lostSince = this.now; return; }   // can't reach: see groupLost
+            a.lostSince = null;
             const next = a.path[0];
             if (dist(a, next) < 3) { a.path.shift(); return; }
             this.walkTo(a, next, dt);
         }
 
-        /** BFS over walkable cells (8-way, no corner cutting), capped. Returns tile centres to walk, or null. */
+        /** BFS over walkable cells (8-way, no corner cutting) of the whole map. Returns tile centres to walk, or null (no way there). */
         findPath(a, target) {
             const T = this.T, W = this.w, H = this.h;
             const sx = Math.floor(a.x / T), sy = Math.floor(a.y / T), tx = Math.floor(target.x / T), ty = Math.floor(target.y / T);
@@ -1214,7 +1232,7 @@
             prev[start] = start;
             const q = [start];
             let found = false;
-            for (let qi = 0; qi < q.length && qi < 2000; qi++) {
+            for (let qi = 0; qi < q.length; qi++) {   // the whole map (≤ ~8k cells): no path means truly unreachable
                 const c = q[qi];
                 if (c === goal) { found = true; break; }
                 const cx = c % W, cy = (c - cx) / W;

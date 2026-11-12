@@ -23,7 +23,7 @@ ui/action-fx.js                         damage, skills, resources, cooldowns, st
 - **`src/action/sim.js` owns space and time** for the current map: positions in map pixels (sub-tile), a fixed 60 Hz
   step that doesn't depend on frame rate, collision against the map's tiles and solid objects, attack state machines
   (startup → active → recovery), hit tests (arcs, circles, projectiles), dodge, guard/parry, stamina, and enemy AI
-  (idle/wander, detect with range + line of sight, pursue with grid pathfinding, wind up, strike, recover, leash home).
+  (idle/wander, detect with range + line of sight, pursue with grid pathfinding, wind up, strike, recover; no distance leash, see "Giving up" below).
   Headless: no DOM, no timers. Deterministic: its own seeded RNG, fixed step. `sim.update(ms, input)` → events.
 - **The engine owns rules.** It never sees coordinates. The sim tells it *who* was hit by *what*; the engine resolves
   damage, effects, statuses, resources, cooldowns, XP, loot and quests through the same functions turn-based and v2
@@ -57,7 +57,7 @@ All return `{ ok, events, error? }` like `act()` and run as transactions.
 | `actionSkillPreview(name)` → `{ ok, skill, shape, summon }` | Pure. A skill pressed out of a fight: the sim plays its real shape (bolt, cast glyph, arc, dash) with nothing to hit and nothing spent, never a weapon swing (Tokelo, 2026-10-31). |
 | `actionSummonFollower(name)` → `{ ok, id }` | A summon skill out of a fight: pays its cost (same cap) and the minion joins `world.followers` at once (it then follows the linger rule above). Refused in a fight (`IN_COMBAT`). |
 | `actionPrebuff(name)` → `{ ok }` / `actionPrebuffProblem(name)` / `actionCalmTick(ms)` | Pre-buffing (Tokelo, 2026-10-31). Out of a fight a self buff is cast for real: same cost, same effects (`castSkill`), same duration as in a fight, timed on the calm clock `world.calm.now` that the sim advances with `actionCalmTick` (cooldowns run on it too). Only effect types that touch the caster (statuses, own HP/resource) run out of a fight; any other (Haste's extra turn) gives `FIGHT_ONLY` and the sim just plays the cast. Buffs still running when `actionEngage` starts a fight come into it with the time they had left; the fight's end clears them as before. |
-| `actionDisengage(encounterId)` | The group gave up (leash). Its enemies leave the fight and reset. |
+| `actionDisengage(encounterId)` | The group gave up (you left the map with nobody on you, or it couldn't reach you). Its enemies leave the fight and reset. |
 | `actionView()` | Pure. Per engaged enemy `{ id, encounterId, key, name, hp, maxHp, stunned, speedMult, statuses, windup }`, minions (`{ id, name, summonType, hp, maxHp, stunned, speedMult, statuses, taunting }`, plus `minionFocusId` for Grave Command), the player's stun/slow/statuses, casts in flight, and `getRealtimeState()`. |
 | `canSave()` | Pure. `{ ok: false, error: { code: 'IN_COMBAT' } }` while a group is engaged. |
 | `tick(ms)` | v2's clock: DoT ticks, status expiry, the resource pulse, cooldowns. The sim calls it every step while in combat. |
@@ -103,6 +103,8 @@ collected once; reloading, retreating or re-entering a map never duplicates it.
 ## Enemy patterns (the sim)
 
 Gates and exits: an enemy never steps out of the cells the player can reach, except into the near face of its own gate, so gate guards fight from the gateway and can always be hit there. A map exit is barred mid-fight only while an engaged enemy is within `actionRules.combat.exitBlockPx` (default 96 px); with nobody that close, the groups give up (no victory) and the player leaves.
+
+Giving up (Tokelo, 2026-11-12): there is **no stop-chase leash**. Moving away from a group, however far from its home, never ends the fight: a ranged class can back off for room and the group keeps pursuing (pathfinding covers the whole map). A group gives up only (1) when the player leaves the map with no engaged enemy within `exitBlockPx`, or (2) when every living member has had no path and no line of sight to the player for `actionRules.combat.reset.unreachableMs` (3000 ms: across water, behind a wall), so nothing can hold the player in combat forever. Either way it resets as before: home, whole, re-engageable after `reengageAt`. The per-enemy `leash` values in `actionRules.enemies` are no longer read.
 
 Action-only tuning (Gauge) lives in the tables, not the engine: `bosses[key].hpMult` multiplies a boss's HP when an action fight engages it (the Warden ×2.5), and an attack's `damageMult` scales that blow (Summon Crows ×3, Murder of Crows ×6). `defence.minDamageShare` (0.35) is a floor on blows that land on the player: DEF never blocks more than 65% of one, so Chapter One trash still hurts a DEF 8 Warrior (applied in `rollDamage`, before guard). Turn and v2 fights never read any of them.
 

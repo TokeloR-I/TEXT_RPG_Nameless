@@ -146,7 +146,7 @@ test('C2-01: a player who fights straight through still gets the Roll from Eydis
     takeExit(s, 'frostspine_north');
     assert.strictEqual(g.questState('C201'), 'active', 'the tablet and the skald are still owed');
     talk(s, 'skeldvik_eydis'); say(g, /ask around/);
-    takeExit(s, 'skeldvik_south');
+    takeExit(s, 'skeldvik_north');
     inspect(s, 'frostspine_tablet');
     settle(g);
     assert.strictEqual(g.questState('C201'), 'complete');
@@ -182,6 +182,44 @@ for (const [choice, flag, keeps] of [[/belongs with the Roll/, 'tablet_with_eydi
     });
 }
 
+test('Chapter Two dialogue (Wick review): every spoken line fits one page of the dialogue box', () => {
+    const DP = require('../ui/dialogue-pages.js');
+    for (const [nid, npc] of Object.entries(CH2.npcs)) for (const [k, node] of Object.entries(npc.nodes)) for (const [, line] of node.lines || []) {
+        assert.ok(DP.splitSentences(line).length <= 2, `${nid}.${k}: more than two sentences: ${line}`);
+        assert.strictEqual(DP.paginate(line).length, 1, `${nid}.${k}: longer than one page: ${line}`);
+    }
+});
+
+test('Skeldvik seeds Hrafnholm: the succession, the Wolf-Banner\'s own case and the southern silver, none of it required', () => {
+    const { g, s } = run();
+    frostspine(g, s);
+    // Thora: whose law, and why the high seat is in question.
+    talk(s, 'skeldvik_thora'); let r = say(g, /Whose law/);
+    assert.ok(/Ragnhild Frostmark/.test(text(r)) && /grave-ale/.test(text(r)));
+    assert.ok(g.hasStoryFlag('heard_of_succession'));
+    say(g, /Goodbye/);
+    // Geir speaks for Torvald; the silver question only once Leif has named it.
+    talk(s, 'skeldvik_geir');
+    assert.ok(!(g.getAvailableActions().actions || []).some((a) => /silver/.test(a.text || '')));
+    r = say(g, /Who are you people/);
+    assert.ok(/Arni/.test(text(r)) && g.hasStoryFlag('wolfbanner_heard'));
+    say(g, /Goodbye/);
+    talk(s, 'skeldvik_eydis'); say(g, /ask around/);
+    talk(s, 'skeldvik_leif'); say(g, /armed crews/); r = say(g, /took it anyway/);
+    assert.ok(/Osric Vane/.test(text(r)));
+    say(g, /Goodbye/);
+    talk(s, 'skeldvik_geir'); say(g, /silver/); say(g, /Goodbye/);
+    assert.ok(g.hasStoryFlag('southern_friends_heard'));
+    // Eydis: the Silent Field names Hallvard, and asking about him is then offered.
+    talk(s, 'skeldvik_eydis'); r = say(g, /Silent Field/);
+    assert.ok(/Hallvard/.test(text(r)) && g.hasStoryFlag('heard_of_hallvard'));
+    r = say(g, /Who is Hallvard/);
+    assert.ok(/Runa/.test(text(r)));
+    // None of it is on the quest's path.
+    assert.strictEqual(g.questState('C202'), 'active');
+    for (const o of CH2.quests.C202.objectives) assert.ok(!['heard_of_succession', 'wolfbanner_heard', 'heard_of_hallvard'].includes(o.on.id));
+});
+
 test('Skeldvik: the harbour bell attunes a Black Flight anchor, and the crow can bring you back to it', () => {
     const { g, s } = run();
     frostspine(g, s);
@@ -194,7 +232,7 @@ test('Skeldvik: the harbour bell attunes a Black Flight anchor, and the crow can
     assert.ok(opt && opt.enabled && opt.region === 'Hrimvald');
     s.blackFlight('skeldvik');
     assert.strictEqual(s.mapId, 'skeldvik');
-    assert.deepStrictEqual([s.x, s.y], [11, 9]);
+    assert.deepStrictEqual([s.x, s.y], [39, 5]);
 });
 
 test('Saves: a save from before Chapter Two existed loads, gets the new quests, and walks east into the pass', () => {
@@ -241,8 +279,9 @@ test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every
     const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
     const painted = {
         frostspine_pass: ['ground', 'road', 'fir', 'crag', 'rock', 'watch_post', 'mile_marker', 'caravan', 'bier', 'campfire', 'crate', 'wolf_banner', 'cairn', 'log'],
-        skeldvik: ['grass', 'road', 'water', 'wharf', 'jetty', 'cliff', 'fir', 'rock', 'longship', 'rowboat', 'shipyard', 'turf_house', 'alehouse', 'fish_rack', 'stall', 'nets',
-            'barrel', 'crate', 'harbour_bell', 'customs_stone', 'memorial_stone', 'fence']
+        skeldvik: ['snow', 'cobble', 'yard', 'wharf', 'steps', 'terrace', 'water', 'cliff', 'fir', 'skerry', 'waterfall', 'palisade', 'terrace_wall', 'inn', 'house',
+            'shipyard_hall', 'shipyard', 'harbour_bell', 'memorial_stone', 'ring_stone', 'brazier', 'banner', 'customs_stone', 'stall', 'fish_rack', 'nets', 'crane',
+            'barrel', 'crate', 'log_pile', 'workbench', 'fence', 'longship', 'rowboat']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];
@@ -259,4 +298,35 @@ test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every
         for (const [id, sp] of Object.entries(map.spawns)) assert.ok(a.over[((sp.y * 32 + 16) * a.w + sp.x * 32 + 16) * 4 + 3] < 60, `${mapId}: open over spawn ${id}`);
         assert.strictEqual(typeof a.animate, 'function');
     }
+});
+
+test('Playtest 2026-11-11 (16 px world): the harbour bell answers E from the terrace in front of it, and the stair opens onto the town', () => {
+    const { doubleWorld } = require('../src/world/scale16.js');
+    const { pathTo } = require('./world-helpers.js');
+    const W16 = doubleWorld(ZONE1);
+    const { g } = run();
+    const s = new WorldSession(W16, { engine: g });
+    s.place('skeldvik', 'flight_bell');
+    assert.strictEqual(s.facing, 'up');
+    const r = s.interact();
+    assert.strictEqual(r.type, 'message', 'arriving by crow you face the bell, and E rings true');
+    assert.strictEqual(r.id, 'skeldvik_bell');
+    // Down the Upland stair: straight on to the alehouse door across the square, past the memorial without a detour.
+    s.place('skeldvik', 'from_pass');
+    const steps = pathTo(s, 24 * 2, 10 * 2).length;
+    assert.ok(steps <= 60, `the alehouse door is ${steps} steps from the foot of the stair (it was 112 to the old inn, the long way round)`);
+});
+
+test('Skeldvik re-laid at full scale: a save standing in the old harbour starts at the stair, a new one keeps its spot', () => {
+    const { doubleWorld } = require('../src/world/scale16.js');
+    const W16 = doubleWorld(ZONE1);
+    const { g } = run();
+    const s = new WorldSession(W16, { engine: g });
+    const old = { map: 'skeldvik', x: 60, y: 30, facing: 'left', tile: 16 };
+    assert.strictEqual(s.restorePosition(old, { revision: 1 }), false);
+    assert.deepStrictEqual([s.mapId, s.x, s.y], ['skeldvik', W16.maps.skeldvik.spawns.from_pass.x, W16.maps.skeldvik.spawns.from_pass.y]);
+    s.place('skeldvik', 'flight_bell');
+    const here = { map: 'skeldvik', x: s.x, y: s.y + 2, facing: 'down', tile: 16 };
+    assert.strictEqual(s.restorePosition(here, { revision: 2 }), true);
+    assert.deepStrictEqual([s.x, s.y], [here.x, here.y]);
 });

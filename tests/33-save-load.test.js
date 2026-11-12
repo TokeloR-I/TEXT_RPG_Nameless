@@ -15,7 +15,7 @@ test('Save: a SaveGame v1 is plain JSON with the spec header, and the engine ver
     assert.deepStrictEqual(roundTrip(save), save, 'JSON-safe');
     assert.strictEqual(save.format, 'enso-save');
     assert.strictEqual(save.formatVersion, SaveMethods.FORMAT_VERSION);
-    assert.deepStrictEqual(save.game, { version: save.engine.version, chapter: null });
+    assert.deepStrictEqual(save.game, { version: save.engine.version, revision: SaveMethods.CONTENT_REVISION, chapter: null });
     assert.strictEqual(save.engine.version, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version);
     assert.deepStrictEqual(save.meta, { label: 'Hallway', createdAt: '2026-10-23T20:00:00Z' });
     assert.strictEqual(save.rng.seed, 42);
@@ -138,7 +138,7 @@ test('Save updates: a save from this version loads unchanged (no reconciling, no
     const copy = GameEngine.fromSave(roundTrip(g.serialize()));
     assert.strictEqual(copy.snapshot().json, g.snapshot().json);
     assert.deepStrictEqual(copy.lastLoad.warnings, []);
-    assert.deepStrictEqual(copy.lastLoad.game, { version: SaveMethods.ENGINE_VERSION, chapter: CHAPTER1.id });
+    assert.deepStrictEqual(copy.lastLoad.game, { version: SaveMethods.ENGINE_VERSION, revision: SaveMethods.CONTENT_REVISION, chapter: CHAPTER1.id });
 });
 
 test('Save updates: a format 1 save is migrated (input untouched) and loads with an UPGRADED note', () => {
@@ -238,4 +238,25 @@ test('Save updates: story catch-up runs once for older saves that already passed
     early.start(); early.act({ type: 'choose_class', classId: 'mage' }); early.act({ type: 'set_identity', name: 'E', appearance: 0 }); early.act({ type: 'enter_world' });
     const e2 = GameEngine.fromSave(roundTrip(early.serialize()), { storyData: story });
     assert.strictEqual(e2.questState('C2Q01'), 'unseen');
+});
+
+test('Playtest 2026-11-11: a save carried back to an older copy of the game says it is newer, and its quests come back later', () => {
+    const { GameEngine } = require('./helpers.js');
+    const g = new GameEngine({ seed: 7 });
+    g.start(); g.input('warrior');
+    const save = JSON.parse(JSON.stringify(g.serialize()));
+    assert.strictEqual(save.game.revision, SaveMethods.CONTENT_REVISION);
+    const plain = new GameEngine({ seed: 1 }).load(JSON.parse(JSON.stringify(save)));
+    assert.ok(!plain.warnings.some((w) => w.code === 'NEWER_SAVE'), 'a save from this version is not newer');
+    // What a newer version's save looks like here: a later content release, a quest and an item this build doesn't have.
+    const newer = JSON.parse(JSON.stringify(save));
+    newer.game.revision = 999;
+    if (newer.state.story) newer.state.story.quests.FUTURE_Q = { state: 'active', step: 1 };
+    newer.state.player.inventory.push('Item From The Future');
+    const h = new GameEngine({ seed: 1 });
+    const r = h.load(newer);
+    assert.ok(r.ok);
+    const w = r.warnings.find((x) => x.code === 'NEWER_SAVE');
+    assert.ok(w && /newer version/.test(w.message), JSON.stringify(r.warnings));
+    assert.ok(w.details.some((d) => /item/.test(d)));
 });
