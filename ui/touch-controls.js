@@ -3,6 +3,7 @@
  * The on-screen controls for touch screens (coarse pointers only; desktop never sees them):
  *
  *   - a virtual joystick in place of the old four-button D-pad, with eight directions (diagonals too);
+ *     pushed to the edge it sprints (holds Shift);
  *   - the skill bar as big touch buttons (basic attack + the six engine slots), with the same icons,
  *     cooldowns and ready states as the HUD bar, because they are painted from the same view model;
  *   - Dash (the dodge, Space), Guard (held, Q), Quick heal (H), Interact (E), Menu (Esc) and Full screen.
@@ -19,6 +20,8 @@
 
     /** Share of the stick's radius that is dead centre (no movement). */
     const DEAD_ZONE = 0.28;
+    /** Share of the stick's reach past which a push sprints (holds Shift), like a run on a game pad. */
+    const SPRINT_AT = 0.9;
     /** Eight 45° sectors, clockwise from east (screen y points down). */
     const SECTORS = [
         ['ArrowRight'], ['ArrowDown', 'ArrowRight'], ['ArrowDown'], ['ArrowDown', 'ArrowLeft'],
@@ -33,6 +36,11 @@
         if (!(radius > 0) || r < radius * DEAD_ZONE) return [];
         const sector = ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8;
         return SECTORS[sector].slice();
+    }
+
+    /** Whether a stick pushed by (dx, dy) sprints: pushed to the edge of its reach. */
+    function stickSprints(dx, dy, radius) {
+        return radius > 0 && Math.hypot(dx, dy) >= radius * SPRINT_AT;
     }
 
     function secondsText(ms) {
@@ -65,12 +73,15 @@
             const len = Math.hypot(dx, dy), max = radius * 0.62;
             if (len > max) { dx *= max / len; dy *= max / len; }
             knob.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), calc(-50% + ${dy.toFixed(1)}px))`;
-            setKeys(stickKeys(dx, dy, max));
+            const keys = stickKeys(dx, dy, max);
+            const run = keys.length > 0 && stickSprints(dx, dy, max);
+            stick.classList.toggle('sprint', run);
+            setKeys(run ? ['Shift', ...keys] : keys);
         };
         const releaseStick = () => {
             stickId = null;
             knob.style.transform = '';
-            stick.classList.remove('active');
+            stick.classList.remove('active', 'sprint');
             setKeys([]);
         };
         stick.addEventListener('pointerdown', (e) => {
@@ -177,7 +188,7 @@
         return { update, release, el: pad };
     }
 
-    const api = { create, stickKeys, DEAD_ZONE, SLOT_KEYS };
+    const api = { create, stickKeys, stickSprints, DEAD_ZONE, SPRINT_AT, SLOT_KEYS };
     ENSO.touchControls = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

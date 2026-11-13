@@ -149,6 +149,8 @@ body {
     border: 2px solid var(--c-frame-hi); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); pointer-events: none;
 }
 .tc-stick.active .tc-knob { border-color: var(--c-accent); }
+.tc-stick.sprint { border-color: var(--c-gold); }
+.tc-stick.sprint .tc-knob { border-color: var(--c-gold); box-shadow: 0 0 10px rgba(232, 200, 96, 0.6); }
 .tc-buttons {
     display: grid; gap: 6px; grid-template-columns: repeat(4, var(--tc)); grid-template-rows: repeat(4, var(--tc));
     grid-template-areas: "s0 s1 s2 menu" "s3 s4 s5 use" "heal guard atk atk" "dash full atk atk";

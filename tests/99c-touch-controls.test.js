@@ -20,6 +20,13 @@ test('Touch stick: a small push is dead zone, and a mostly-straight push stays s
     assert.deepStrictEqual(T.stickKeys(40, 25, 50).sort(), ['ArrowDown', 'ArrowRight']);   // 32°: south-east
 });
 
+test('Touch stick: pushed to the edge it sprints, a partial push walks', () => {
+    assert.ok(T.stickSprints(50, 0, 50));
+    assert.ok(T.stickSprints(32, 32, 50));             // a full diagonal push
+    assert.ok(!T.stickSprints(30, 0, 50));
+    assert.ok(!T.stickSprints(0, 0, 0));
+});
+
 test('Touch skill buttons use the same keys as the HUD skill bar', () => {
     assert.deepStrictEqual(T.SLOT_KEYS, HUD.SLOT_KEYS);
     T.SLOT_KEYS.forEach((k, i) => assert.strictEqual(HUD.slotForKey({ key: k }), i));
