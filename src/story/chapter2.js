@@ -86,8 +86,67 @@
                 { id: 'thing', text: 'Wait for the Thing to sit (the next part of Chapter Two)', on: { type: 'story', id: 'thing_sits' }, marker: { map: 'hrafnholm', x: 25, y: 23 } }
             ],
             onComplete: []
+        },
+        // ----- A Fire of Your Own (Tokelo, 2026-11-13: "a portable hearth... someone on the road teaches the player").
+        // Hakon the carter, wrist broken on the Frostspine Road, gives you his spare camp kit once you fetch the tinder.
+        C2S2: {
+            title: 'A Fire of Your Own', kind: 'side', xp: 15, candidate: true,
+            summary: "Hakon has camped on every road from Birkholt to the sea and never waited for an inn. He'll give you his spare camp kit, if you fetch the tinder he can't reach with one good hand.",
+            objectives: [
+                { id: 'juniper', text: 'Gather juniper on the slope above the pass and bring it to Hakon', on: { type: 'story', id: 'hakon_camp' }, marker: { map: 'frostspine_pass', x: 7, y: 2 } }
+            ],
+            onComplete: [{ item: 'Camp Kit', key: 'item:c2s2_camp_kit' },
+                { say: 'Use the Camp Kit from Esc, then Items, anywhere out of a fight: it opens a hearth that cooks the food of the region you are in.', notice: 'quest' }]
+        },
+        // ----- Sour Herring (Tokelo, 2026-11-13: "a prank quest for surströmming"; docs/design/NORSE_KITCHEN.md).
+        // Comic relief in a grieving harbour: Solveig can't fight sixty oars, but she can make their ship stink until
+        // midwinter. Nobody is hurt. Geir, who did not split the board, gets a mead out of it.
+        C2S1: {
+            title: 'Sour Herring', kind: 'side', xp: 30, candidate: true,
+            summary: "Solveig can't fight sixty oars. She does have a cask of herring that has been souring since last spring, and she would like the Wolf-Banner ship to have it.",
+            objectives: [
+                { id: 'awl', text: "Borrow a cooper's awl from Leif Ropehand to tap the cask", on: { type: 'story', id: 'leif_awl' }, marker: { map: 'skeldvik', x: 8, y: 28 } },
+                { id: 'geir', text: 'Get Geir the steersman off the gangplank (a Mead might do it)', on: { type: 'story', id: 'geir_distracted' }, marker: { map: 'skeldvik', x: 24, y: 23 } },
+                { id: 'tap', text: 'Slip aboard the narrow ship and tap the cask under the rowing benches', on: { type: 'story', id: 'herring_tapped' }, marker: { map: 'skeldvik', x: 18, y: 28 } },
+                { id: 'tell', text: 'Tell Solveig how it went', on: { type: 'story', id: 'solveig_prank_done' }, marker: { map: 'skeldvik', x: 28, y: 15 } }
+            ],
+            onComplete: [{ gold: 15, key: 'c2s1_reward' }, { item: 'Surströmming', key: 'item:c2s1_herring_1' }, { item: 'Surströmming', key: 'item:c2s1_herring_2' },
+                { item: 'Gravlax', key: 'item:c2s1_gravlax' }]
         }
     };
+
+    // ------------------------------------------------------------- The Hrimvald kitchen (Tokelo, 2026-11-13)
+    // Station menus are built from the data (recipeDefinitions in src/data.js), as in Chapter One: a recipe shows up
+    // while you carry its ingredients, and "What can I make here?" lists them all.
+    const DATA = isNode ? require('../data.js') : ENSO.data;
+    const amount = (ings) => Object.entries(ings).map(([n, q]) => (q > 1 ? `${q} ${n}` : n)).join(', ');
+    const STATION_VERB = { hearth: 'Cook', meadery: 'Brew' };
+    // Regional cooking (Tokelo, 2026-11-13): Hrimvald's hearths cook Hrimvald's dishes, plus rat goulash (region 'any');
+    // the home hearth in Chapter One cooks every region's. `region: 'here'` (the camp kit) cooks where you stand.
+    const HOME = (DATA.foodRules || {}).homeRegion;
+    const regionOf = (r) => r.region || HOME;
+    const recipesAt = (station, region) => Object.entries(DATA.recipeDefinitions)
+        .filter(([, r]) => r.station === station && (!region || region === 'here' || r.region === 'any' || regionOf(r) === region));
+    const cook = (station, region) => recipesAt(station, region).map(([id, r]) => ({
+        text: `${STATION_VERB[station] || 'Make'} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output} (${amount(r.ingredients)})`,
+        if: { has: r.ingredients, ...(region === 'here' && r.region !== 'any' ? { inRegion: regionOf(r) } : {}) }, stay: true, effects: [{ craft: id }]
+    }));
+    const recipeBook = (station, region) => (region === 'here'
+        ? Object.keys((DATA.foodRules || {}).regions || {}).concat(HOME).map((reg) => ({
+            text: 'What can I make here?', if: { inRegion: reg }, stay: true,
+            effects: [{ say: recipesAt(station, reg).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+        }))
+        : [{
+            text: 'What can I make here?', stay: true,
+            effects: [{ say: recipesAt(station, region).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+        }]);
+    const shop = (id) => ({ text: 'What have you got?', say: 'What have you got for sale?', stay: true, effects: [{ shop: id }] });
+    /** A hearth: a public one cooks its region's dishes; region 'here' (a camp) cooks the region you stand in. */
+    const hearth = (name, title, look, region) => ({
+        name, title, kitchen: 'hearth', region,
+        talk: [{ node: 'hearth' }],
+        nodes: { hearth: { lines: [[null, look]], choices: [...cook('hearth', region), ...recipeBook('hearth', region), { text: 'Leave it.', end: true }] } }
+    });
 
     // Each line below is one page of the dialogue box (docs/ui/DIALOGUE_BOX.md: at most two sentences, ~160
     // characters); tests/98-chapter-two.test.js checks it. Voices (Wick): Eydis exact and dry, Hakon plain,
@@ -279,8 +338,28 @@
                     choices: [
                         { text: 'Who was she?', to: 'asta' },
                         { text: 'Did you know the raiders?', to: 'raiders' },
+                        // A Fire of Your Own (C2S2, Tokelo 2026-11-13): a carter teaches you to cook on the road.
+                        { text: "How do you eat out here, with no hearth?", if: { quests: { C2S2: 'unseen' } }, to: 'camp_offer' },
+                        { text: 'Juniper, for your tinder.', if: { quests: { C2S2: 'active' }, items: ['Juniper Berries'] },
+                            effects: [{ removeItem: 'Juniper Berries' }, { event: { type: 'story', id: 'hakon_camp' } }], to: 'camp_done' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                camp_offer: {
+                    lines: [
+                        ['npc', "Forty years on the roads, and I've never once waited for an inn. A carter carries his own hearth."],
+                        ['npc', "Fire-pot, tripod, flint. I've a spare, but my wrist can't show you, so you'll fetch the tinder yourself."],
+                        ['npc', "Juniper, from the bush up the slope. It catches wet, and it makes everything smell like smoked fish."]
+                    ],
+                    effects: [{ start: 'C2S2' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                camp_done: {
+                    lines: [
+                        [null, 'Hakon talks you through it one-handed: pot, coals, tripod, the juniper teased out thin. The spark takes the second time.'],
+                        ['npc', "There: it's yours, so cook wherever you stop. It'll cook what the land around you cooks, mind; a pot has a sense of place."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 asta: {
                     lines: [
@@ -309,10 +388,20 @@
                     choices: [
                         { text: 'Eydis sent me. Who are the armed crews in the harbour?', if: { flags: ['eydis_harbor_met'], notFlags: ['leif_told'] }, to: 'crews' },
                         { text: 'Tell me about the crews again.', if: { flags: ['leif_told'] }, to: 'crews_again' },
+                        { text: "Solveig says you owe her for cod. She wants your cooper's awl.", if: { quests: { C2S1: 'active' }, notFlags: ['leif_awl_lent'] }, to: 'awl' },
                         { text: 'What are you building?', to: 'ship' },
                         { text: 'There is a mark on the keel.', to: 'mark' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                awl: {
+                    lines: [
+                        [null, 'Leif looks at the cask under your arm, then at the narrow ship, then at the sky to see where the wind sits.'],
+                        ['npc', "Wind's off the land tonight, so it'll blow out over the fjord and not up my yard. Here, take the awl."],
+                        ['npc', "I never saw you, and I'll want it back without herring on it."]
+                    ],
+                    effects: [{ flag: 'leif_awl_lent' }, { event: { type: 'story', id: 'leif_awl' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crews: {
                     lines: [
@@ -361,6 +450,11 @@
                     choices: [
                         { text: 'Eydis says you miss nothing. Who split the memorial board?', if: { flags: ['eydis_harbor_met'], notFlags: ['solveig_told'] }, to: 'witness' },
                         { text: 'Tell me again what you saw.', if: { flags: ['solveig_told'] }, to: 'witness_again' },
+                        shop('solveig'),
+                        // Sour Herring (C2S1): offered once she has told you about the board.
+                        { text: "You're smiling at that narrow ship. Why?", if: { flags: ['solveig_told'], quests: { C2S1: 'unseen' } }, to: 'prank_offer' },
+                        { text: 'The cask is open. Their whole ship is weeping.', if: { quests: { C2S1: 'active' }, flags: ['herring_tapped'] }, to: 'prank_done' },
+                        { text: 'What is that smell on your hands?', if: { quests: { C2S1: 'complete' } }, to: 'prank_after' },
                         { text: 'An opinion, then.', to: 'opinion' },
                         { text: 'Goodbye.', end: true }
                     ]
@@ -383,6 +477,37 @@
                 },
                 thora: {
                     lines: [['npc', "I told her, and she wrote it down. She has eight guards and they have sixty oars; writing it down is what she can do."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_offer: {
+                    lines: [
+                        ['npc', "I can't fight sixty oars, and Thora can't either. But I've a cask of herring that's been souring since last spring."],
+                        ['npc', "Surströmming, my mother called it. Tap it under their rowing benches, and they'll smell it until midwinter."],
+                        ['npc', "Nobody gets hurt. Their pride, maybe, and their noses."]
+                    ],
+                    choices: [
+                        { text: "Give me the cask.", effects: [{ start: 'C2S1' }, { item: 'Cask of Surströmming', key: 'item:c2s1_cask' }], to: 'prank_go' },
+                        { text: 'Not today.', end: true }
+                    ]
+                },
+                prank_go: {
+                    lines: [
+                        ['npc', "Don't open it here. You'll need an awl to tap it quietly: Leif has one, and he owes me for a winter of cod."],
+                        ['npc', "Geir sits on the gangplank all day like a gull on a post. Get him off it somehow."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_done: {
+                    lines: [
+                        [null, 'Solveig listens with her eyes shut, as if to music. Down the wharf, a man in a red cloak is being sick off the stern.'],
+                        ['npc', "Ha! That's the first time I've laughed since midsummer."],
+                        ['npc', "Here, take some for yourself, and some gravlax for the shock. It's good, I swear it."]
+                    ],
+                    effects: [{ event: { type: 'story', id: 'solveig_prank_done' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_after: {
+                    lines: [['npc', "Herring, and joy. Their crew have slept on the wharf for three nights, and Thora says there's no law against a smell."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 opinion: {
@@ -408,8 +533,16 @@
                         { text: 'There are armed crews on your wharf.', to: 'crews' },
                         { text: 'Whose law is it?', to: 'law' },
                         { text: 'What is the bell for?', to: 'bell' },
+                        { text: 'What is that smell on the wharf?', if: { flags: ['herring_tapped'] }, to: 'smell' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                smell: {
+                    lines: [
+                        ['npc', "Someone opened a cask of sour herring in the hold of the Wolf-Banner ship. Their crew sleep on the wharf now."],
+                        ['npc', "There is no law against a smell; I checked, twice. I'm not looking for whoever did it, and I hope you aren't either."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crews: {
                     lines: [
@@ -460,8 +593,25 @@
                         { text: 'Who are you people?', to: 'who' },
                         { text: "Your crew split Skeldvik's memorial board.", to: 'board' },
                         { text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' },
+                        // Sour Herring (C2S1): a mead and an honest toast, or a lie about the reeve.
+                        { text: 'Drink with me. A mead, to the six hundred.', if: { quests: { C2S1: 'active' }, items: ['Mead'], notFlags: ['geir_distracted'] },
+                            effects: [{ removeItem: 'Mead' }, { flag: 'geir_distracted' }, { flag: 'geir_toasted' }, { event: { type: 'story', id: 'geir_distracted' } }], to: 'toast' },
+                        { text: 'Thora wants your mooring dues counted again. Now.', if: { quests: { C2S1: 'active' }, notFlags: ['geir_distracted'] },
+                            effects: [{ flag: 'geir_distracted' }, { event: { type: 'story', id: 'geir_distracted' } }], to: 'dues' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                toast: {
+                    lines: [
+                        [null, 'Geir takes the horn and looks at it a long moment. Then he stands, and lifts it toward the memorial stone.'],
+                        ['npc', "To the six hundred. And to my brother, whose name I can still say."],
+                        ['npc', "That wasn't my wedge on your board, stranger; I steer. I'll drink this at the stern, out of the wind."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                dues: {
+                    lines: [['npc', "Again? We paid her on the nail, but fine, I'll go and count it twice."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 who: {
                     lines: [
@@ -498,6 +648,102 @@
                     ],
                     effects: [{ flag: 'wolfbanner_heard' }, { flag: 'southern_friends_heard' }],
                     choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+
+        // ============================================================= The Hrimvald kitchen (Tokelo, 2026-11-13)
+        // Aslaug keeps the bar at the Stormtide Inn: mead to buy, and mead to brew with her. She stands at the inn door
+        // until the inn's own hall is built (thread "Add an enterable meeting hall in Skeldvik"), then moves inside.
+        aslaug: {
+            name: 'Aslaug', title: 'Alewife of the Stormtide Inn',
+            talk: [{ node: 'bar' }],
+            nodes: {
+                bar: {
+                    lines: [['npc', "Mead, ale, or a seat by the fire? The mead's from my own casks; the fire's free, and so is the gossip."]],
+                    choices: [
+                        shop('aslaug'),
+                        ...cook('meadery'), ...recipeBook('meadery'),
+                        { text: 'How do you make mead?', to: 'mead' },
+                        { text: "What's good to eat around here?", to: 'food' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                mead: {
+                    lines: [
+                        ['npc', "Honey, water and time. Bring me two crocks of honey and I'll brew it with you."],
+                        ['npc', "Lingonberries make it red, and sharper."],
+                        ['npc', "Barley and juniper make ale. Mind yourself: five horns inside an hour and the floor starts to tilt."]
+                    ],
+                    choices: [{ text: "What's good to eat around here?", to: 'food' }, { text: 'Goodbye.', end: true }]
+                },
+                food: {
+                    lines: [
+                        ['npc', "Solveig's fish, smoked or cured. Gudrun up at Hrafnholm sells mutton and skyr."],
+                        ['npc', "Lingonberries grow on every fell and juniper in the pass. Cloudberries hide on the high bogs, if you can find them."],
+                        ['npc', "The harbour cookfire by the racks is anyone's. Don't let Solveig talk you into the sour herring indoors."]
+                    ],
+                    choices: [{ text: 'How do you make mead?', to: 'mead' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // Gudrun sells from the market stalls in Hrafnholm: her own mutton, dairy, flour and roots.
+        gudrun: {
+            name: 'Gudrun', title: 'Sheep-farmer',
+            talk: [{ node: 'stall' }],
+            nodes: {
+                stall: {
+                    lines: [['npc', "Mutton from my own fell, skyr from my own cows, and I came down for the Thing like everyone. Buy something, so the walk was worth it."]],
+                    choices: [
+                        shop('gudrun'),
+                        { text: 'What do people cook here?', to: 'cook' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                cook: {
+                    lines: [
+                        ['npc', "Fårikål: mutton and cabbage, a fistful of pepper, and all day in the pot. Roast mutton under lingonberries, for a feast."],
+                        ['npc', "And rømmegrøt when it's cold, which is always. The feast fire by the tables cooks anything, if you ask it nicely."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        harbour_cookfire: hearth('Harbour cookfire', 'Skeldvik',
+            'A fire pit by the fish racks, ringed with stones, a pot on a chain and juniper on the coals for smoking. Anyone may cook here.', 'hrimvald'),
+        feast_fire: hearth('Feast fire', 'Hrafnholm',
+            'The fire beside the feast tables, fed day and night while the households are in for the Thing. The cooks wave you to it.', 'hrimvald'),
+        // Hakon's camp kit (C2S2): opened by using the Camp Kit item. It cooks the dishes of the region you stand in.
+        camp_hearth: { ...hearth('Your camp', 'Camp kit',
+            "A fire-pot on the ground, Hakon's tripod over it and the pot on its chain. It cooks what the land around you cooks.", 'here'), portable: true },
+        // Sour Herring (C2S1): the narrow ship's gangplank, once Geir has left it.
+        herring_hatch: {
+            name: 'Gangplank', title: 'The Wolf-Banner ship',
+            talk: [{ if: { flags: ['herring_tapped'] }, node: 'after' }, { if: { notFlags: ['geir_distracted'] }, node: 'watched' }, { node: 'plank' }],
+            nodes: {
+                watched: {
+                    lines: [[null, 'Geir sits on the plank with his boots across it, whittling. Nobody is getting past him without being seen.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                plank: {
+                    lines: [[null, "The plank is clear. Below the rowing benches, out of the wind, there's room for one small cask."]],
+                    choices: [
+                        { text: 'Tap the cask and leave it under the benches.', if: { items: ['Cask of Surströmming'], flags: ['leif_awl_lent'] },
+                            effects: [{ removeItem: 'Cask of Surströmming' }, { flag: 'herring_tapped' }, { event: { type: 'story', id: 'herring_tapped' } }], to: 'tapped' },
+                        { text: "You'd need an awl to tap it quietly.", if: { notFlags: ['leif_awl_lent'] }, stay: true, effects: [{ say: 'Leif Ropehand has one. Solveig says he owes her.' }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                },
+                tapped: {
+                    lines: [
+                        [null, 'The awl goes in with a soft pop. The smell comes out like something that has been waiting a year to be let out.'],
+                        [null, 'You are back on the wharf before your eyes stop watering. Behind you: a shout, a splash, and a great deal of coughing.']
+                    ],
+                    choices: [{ text: 'Walk away. Do not run.', end: true }]
+                },
+                after: {
+                    lines: [[null, 'The crew have hung their bedrolls on the wharf rail and sleep in the open; nobody goes below.'], [null, 'A gull lands on the rail, thinks better of it, and leaves.']],
+                    choices: [{ text: 'Leave it.', end: true }]
                 }
             }
         },
@@ -959,6 +1205,7 @@
     ];
 
     const chapter2 = { id: 'ch2', title: 'Chapter Two: The Feast of Empty Seats', quests, npcs, triggers, anchors,
+        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun' },
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' } };
 

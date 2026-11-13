@@ -551,6 +551,9 @@
         shieldmaiden: { cloak: '#5a5a54', hair: '#4a3220', helm: '#8a8a92', belt: '#2a2018', prop: 'halberd' },
         lawspeaker: { cloak: '#9a907a', hair: '#e8e8e4', belt: '#5a4a38', prop: 'staff' },
         factor: { cloak: '#3a3638', hat: '#24222a', belt: '#c8a050', scarf: '#6a2a3a' },
+        // The Hrimvald kitchen (2026-11-13): Aslaug of the Stormtide Inn, apron and a mead basket; Gudrun the sheep-farmer.
+        alewife: { cloak: '#7a4a2a', hair: '#d0a050', scarf: '#e0d8c0', belt: '#4a3020', prop: 'basket' },
+        shepherd: { cloak: '#8a8478', hood: '#5a6a4a', belt: '#4a3a2a', prop: 'staff' },
         // The Broken Crown rework (2026-11-11): the road scavenger, the Broken Oath courier, Corvin Sere's old quartermaster's coat.
         scavenger: { cloak: '#5a5040', hair: '#4a3a2a', belt: '#3a2a20', prop: 'pack', skin: '#c8a888' },
         oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },
@@ -793,6 +796,22 @@
                 circle(g, px + x, py + 26 - h, 2, x % 2 ? '#e8e0b0' : '#8a6ac0');
                 rect(g, px + x - 2, py + 24 - h / 2, 2, 1, '#5a9a4a'); rect(g, px + x + 1, py + 22 - h / 2, 2, 1, '#5a9a4a');
             }
+        },
+        // The Hrimvald kitchen (2026-11-13): berries and juniper on the fells.
+        lingonberries(g, px, py) {
+            for (const [x, y] of [[8, 22], [14, 20], [20, 23], [25, 21], [11, 26], [22, 26]]) { rect(g, px + x - 3, py + y + 1, 6, 2, '#2e5a32'); rect(g, px + x - 2, py + y, 4, 1, '#3e7a42'); }
+            for (const [x, y] of [[8, 20], [10, 21], [15, 19], [20, 21], [22, 22], [25, 19], [12, 24], [23, 24]]) circle(g, px + x, py + y, 1.5, '#c8202a');
+        },
+        cloudberries(g, px, py) {
+            for (const [x, y] of [[10, 20], [17, 22], [23, 19]]) {
+                rect(g, px + x, py + y + 2, 1, 6, '#4a6a34'); rect(g, px + x - 4, py + y + 5, 4, 2, '#5a8a40'); rect(g, px + x + 1, py + y + 6, 4, 2, '#5a8a40');
+                circle(g, px + x, py + y, 2.6, '#e8a03a'); rect(g, px + x - 1, py + y - 1, 1, 1, '#f8d080');
+            }
+        },
+        juniper(g, px, py) {
+            g.fillStyle = '#2a4a3a'; g.beginPath(); g.ellipse(px + 16, py + 21, 12, 7, 0, 0, Math.PI * 2); g.fill();
+            g.fillStyle = '#3a5e48'; g.beginPath(); g.ellipse(px + 14, py + 19, 8, 4, 0, 0, Math.PI * 2); g.fill();
+            for (const [x, y] of [[9, 20], [13, 23], [18, 18], [22, 22], [16, 25], [24, 19]]) circle(g, px + x, py + y, 1.4, '#3a4a7a');
         },
         // The homestead gate (Tokelo, 2026-11-03): hanging off its hinges, then mended once Orin's first job is built.
         broken_gate(g, px, py) {
