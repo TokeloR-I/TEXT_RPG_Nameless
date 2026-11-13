@@ -498,7 +498,7 @@
         if (o.prop === 'staff') { rect(g, cx + 8, top + 2, 2, 28, '#7a6044'); rect(g, cx + 8, top + 2, 1, 28, '#9a8064'); }
         if (o.prop === 'pack') { rect(g, cx - 11, top + 14, 5, 9, '#6a5440'); rect(g, cx - 11, top + 14, 5, 1, '#8a7460'); }
         if (o.prop === 'hammer') { rect(g, cx + 8, top + 15, 2, 12, '#7a6044'); rect(g, cx + 6, top + 13, 6, 3, '#9a9aa2'); }
-        if (o.prop === 'lute') { circle(g, cx + 9, base - 10, 4, '#a8743a'); circle(g, cx + 9, base - 10, 1.4, '#3a2410'); rect(g, cx + 10, base - 24, 2, 12, '#6a4a2a'); }
+        if (o.prop === 'lute') { circle(g, cx + 9, top + 20, 4, '#a8743a'); circle(g, cx + 9, top + 20, 1.4, '#3a2410'); rect(g, cx + 10, top + 6, 2, 12, '#6a4a2a'); }   // top is 30 px above the feet
         if (o.prop === 'basket') { rect(g, cx + 6, top + 21, 7, 5, '#8a6a3a'); rect(g, cx + 7, top + 19, 5, 2, '#5a8a4a'); }
         if (o.prop === 'halberd') { rect(g, cx + 9, top - 2, 2, 31, '#5a4a3a'); rect(g, cx + 7, top - 3, 7, 5, '#a8a8b0'); }
         if (o.crows) for (const [dx, dy] of [[-9, 10], [9, 6]]) { circle(g, cx + dx, top + dy, 2.6, '#0a0a0e'); rect(g, cx + dx + 2, top + dy - 1, 2, 1, '#0a0a0e'); }
@@ -557,6 +557,9 @@
         // The Hrimvald kitchen (2026-11-13): Aslaug of the Stormtide Inn, apron and a mead basket; Gudrun the sheep-farmer.
         alewife: { cloak: '#7a4a2a', hair: '#d0a050', scarf: '#e0d8c0', belt: '#4a3020', prop: 'basket' },
         shepherd: { cloak: '#8a8478', hood: '#5a6a4a', belt: '#4a3a2a', prop: 'staff' },
+        // The Stormtide Inn's tafl players (2026-11-13): fur collars over woad and madder, one fair, one dark.
+        tafl_fair: { cloak: '#3e5468', hair: '#d8b060', scarf: '#d8d0bc', belt: '#4a3a2a' },
+        tafl_dark: { cloak: '#7a3a2e', hair: '#3a2a20', scarf: '#d8d0bc', belt: '#2a2018', skin: '#d0a888' },
         // The Broken Crown rework (2026-11-11): the road scavenger, the Broken Oath courier, Corvin Sere's old quartermaster's coat.
         scavenger: { cloak: '#5a5040', hair: '#4a3a2a', belt: '#3a2a20', prop: 'pack', skin: '#c8a888' },
         oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },

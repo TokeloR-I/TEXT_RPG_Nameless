@@ -13,6 +13,9 @@
  *                     clinker-built ships, fish racks and market stalls on the wharf, Leif's shipyard, turf-roofed
  *                     houses, the old Crown's customs stone, a memorial stone someone has been at with a chisel.
  *                     The harbour bell is a Black Flight anchor.
+ *   stormtide_inn     Inside the Stormtide Inn, Skeldvik's meeting hall, after Tokelo's interior picture (2026-11-13):
+ *                     Aslaug's bar and casks, the kitchen corner, the long fire with its spit and cauldron, four feast
+ *                     tables, the tafl players, benches along the walls.
  *   hrafnholm         C2-03, the seat of the Jarl, after Tokelo's reference map (2026-11-13): the Great Hall, the Thing,
  *                     the noble houses, Guild Lane, the Training Yard, the War Memorial; up the south-west road from
  *                     Skeldvik. The north-east track to the Silent Field is a boundary until Tokelo sends its picture.
@@ -28,7 +31,7 @@
 
     const zones = {
         hrimvald_frostspine: { name: 'Frostspine Pass', mapIds: ['frostspine_pass'] },
-        hrimvald_skeldvik: { name: 'Skeldvik', mapIds: ['skeldvik'] },
+        hrimvald_skeldvik: { name: 'Skeldvik', mapIds: ['skeldvik', 'stormtide_inn'] },
         hrimvald_hrafnholm: { name: 'Hrafnholm', mapIds: ['hrafnholm', 'hall_of_winter'] },
         hrimvald_gullstrand: { name: 'Gullstrand Coast', mapIds: ['gullstrand_coast'] }
     };
@@ -203,7 +206,9 @@
                 flight_bell: { x: 39, y: 5, facing: 'up' },
                 from_hrafnholm: { x: 1, y: 36, facing: 'right' },
                 from_hrafnholm_2: { x: 1, y: 37, facing: 'right' },
-                from_gullstrand: { x: 1, y: 4, facing: 'right' }
+                from_gullstrand: { x: 1, y: 4, facing: 'right' },
+                from_inn: { x: 24, y: 10, facing: 'down' },
+                from_inn_2: { x: 25, y: 10, facing: 'down' }
             },
             exits: [
                 { id: 'skeldvik_north', x: 9, y: 0, trigger: 'step', toMap: 'frostspine_pass', toSpawn: 'from_skeldvik' },
@@ -214,7 +219,12 @@
                 { id: 'skeldvik_west_road', x: 0, y: 36, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_skeldvik',
                     text: 'The road leaves the harbour by the south-west, through a village of turf roofs and on up into the hinterlands. By evening there is a palisade on the ridge ahead, smoke over it, and a great roof above the smoke.' },
                 { id: 'skeldvik_west_road_2', x: 0, y: 37, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_skeldvik_2',
-                    text: 'The road leaves the harbour by the south-west, through a village of turf roofs and on up into the hinterlands. By evening there is a palisade on the ridge ahead, smoke over it, and a great roof above the smoke.' }
+                    text: 'The road leaves the harbour by the south-west, through a village of turf roofs and on up into the hinterlands. By evening there is a palisade on the ridge ahead, smoke over it, and a great roof above the smoke.' },
+                // The Stormtide Inn, Skeldvik's meeting hall (Tokelo, 2026-11-13): go in under the sign.
+                { id: 'skeldvik_inn_entry', x: 24, y: 9, trigger: 'interact', prompt: 'Go into the Stormtide Inn', toMap: 'stormtide_inn', toSpawn: 'from_skeldvik',
+                    text: 'The Stormtide Inn: warmth, woodsmoke and the smell of roasting pork. A long fire down the middle of the hall, casks along one wall, and every bench taken by somebody with an opinion.' },
+                { id: 'skeldvik_inn_entry_2', x: 25, y: 9, trigger: 'interact', prompt: 'Go into the Stormtide Inn', toMap: 'stormtide_inn', toSpawn: 'from_skeldvik_2',
+                    text: 'The Stormtide Inn: warmth, woodsmoke and the smell of roasting pork. A long fire down the middle of the hall, casks along one wall, and every bench taken by somebody with an opinion.' }
             ],
             encounters: [],
             interactables: [
@@ -233,8 +243,6 @@
                     text: 'A board nailed to the palisade where the cliff path leaves the town: GULLSTRAND, and an arrow west along the cliffs. Under it someone has cut two small wolves, one with a sun over it and one with a moon, and a line through both.' },
                 { id: 'skeldvik_customs_stone', kind: 'inspect', x: 10, y: 36, name: 'Customs stone',
                     text: 'A squat grey stone with a slot cut in the top for coin, and the old Crown\'s mark on the side. Skeldvik paid harbour dues here for six years. Nobody has moved it. Children sit on it. A gull has been using it for something else.' },
-                { id: 'skeldvik_alehouse', kind: 'inspect', x: 24, y: 9, name: 'The Stormtide Inn',
-                    text: 'The Stormtide Inn: a great hall with a steep roof, carved beasts on the gable ends, and smoke coming out of both chimneys. Through the door: a hearth down the middle, benches along the walls, and a table where two men are playing a board game with a king in the centre and losing patience with each other.' },
                 { id: 'skeldvik_shipyard', kind: 'inspect', x: 6, y: 30, name: 'Ship on the stocks',
                     text: 'A hull on the stocks, half planked. Each strake overlaps the one below and is riveted through. You can count the rivets if you have a day. The keel is one piece of oak, and someone has cut a small mark near the stem that is not a shipwright\'s mark.' },
                 { id: 'skeldvik_fish_racks', kind: 'inspect', x: 36, y: 20, name: 'Fish racks',
@@ -249,9 +257,8 @@
                     text: 'Nets hung from the wharf to dry and to mend. A bone needle is still threaded in one, left mid-knot.' },
                 { id: 'skeldvik_crane', kind: 'inspect', x: 43, y: 13, name: 'Wharf crane',
                     text: 'A crane of two timbers and a rope, with a net of cod swinging from it. It lifts a catch from a boat to the wharf and has lifted heavier things when asked.' },
-                // The Hrimvald kitchen (Tokelo, 2026-11-13). Aslaug keeps the Stormtide's bar; she waits at the inn door until
-                // the inn's hall is built, then moves inside. The harbour cookfire is a public hearth by the fish racks.
-                { id: 'skeldvik_aslaug', kind: 'npc', npc: 'aslaug', x: 27, y: 10, name: 'Aslaug', sprite: 'alewife' },
+                // The Hrimvald kitchen (Tokelo, 2026-11-13). Aslaug keeps the Stormtide's bar (inside, stormtide_inn).
+                // The harbour cookfire is a public hearth by the fish racks.
                 { id: 'skeldvik_cookfire', kind: 'station', station: 'harbour_cookfire', verb: 'Cook at', x: 35, y: 18, name: 'Harbour cookfire', sprite: 'cookfire' },
                 { id: 'skeldvik_lingonberries', kind: 'forage', forage: 'lingonberries', x: 3, y: 20, name: 'Lingonberries', sprite: 'lingonberries',
                     text: 'Lingonberries in the snow by the road, red as sparks.' },
@@ -260,6 +267,88 @@
                     when: { quests: { C2S1: 'active' } } },
                 { id: 'skeldvik_waterfall', kind: 'inspect', x: 44, y: 11, name: 'The fjord',
                     text: 'Across the water a fall comes off the cliff in one white thread and is lost in mist before it lands. The fjord is so still under it that the gulls look as if they are flying over a second sky.' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Inside the Stormtide Inn, Skeldvik's meeting hall (Tokelo, 2026-11-13: "a hall or something people can meet up";
+        // laid out after Tokelo's interior picture): a long timber hall under a steep roof with two great posts; the
+        // kitchen corner at the back on the west (shelves of pots, fish and hams hanging, a prep table, sacks and crocks);
+        // Aslaug's bar down the west wall with the casks behind it and stools in front; the long fire in the middle, a
+        // pig on the spit and a cauldron on its frame; two feast tables either side; the tafl players at the back on
+        // the east; a long bench under the back windows and benches along the east wall; the way out in the middle of
+        // the south wall, with a torch either side.
+        stormtide_inn: {
+            zoneId: 'hrimvald_skeldvik',
+            name: 'The Stormtide Inn',
+            scene: 'stormtide_inn',            // painted whole: ui/scene-hrimvald.js
+            ambient: { darkness: 0.18, lantern: 6, particles: { kind: 'embers', count: 10 } },
+            legend: {
+                '=': { name: 'planks' },
+                'X': { name: 'wall', solid: true }, 'Y': { name: 'post', solid: true },
+                'k': { name: 'kitchen_shelf', solid: true }, 'g': { name: 'pantry', solid: true }, 'w': { name: 'prep_table', solid: true },
+                'R': { name: 'cask_rack', solid: true }, 'Q': { name: 'bar_counter', solid: true }, 'o': { name: 'stool' },
+                'O': { name: 'long_fire', solid: true }, 't': { name: 'feast_table', solid: true }, 'b': { name: 'bench', solid: true },
+                'G': { name: 'tafl_table', solid: true }, 'c': { name: 'barrel', solid: true }
+            },
+            tiles: [
+                'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'XXkkkkkkkkkk==ggg=====================XX',
+                'XX====================bbbbbbbbbb======XX',
+                'XXc=====wwwww=========================XX',
+                'XX====================================XX',
+                'XXRRR========================GGGG=====XX',
+                'XXRRR==Q=====================GGGG=====XX',
+                'XXRRR==Q=o========OOOO================XX',
+                'XXRRR==Q=====Y====OOOO====Y=========b=XX',
+                'XXRRR==Q=o========OOOO==============b=XX',
+                'XXRRR==Q===ttttt==OOOO==ttttt=======b=XX',
+                'XXRRR==Q=o=ttttt==OOOO==ttttt=======b=XX',
+                'XXRRR==Q==========OOOO==============b=XX',
+                'XXRRR==Q=o========OOOO==============b=XX',
+                'XX=====Q==============================XX',
+                'XXQQQQQQ==============================XX',
+                'XX=========tttttt=======tttttt========XX',
+                'XX=========tttttt=======tttttt========XX',
+                'XX=================================c==XX',
+                'XX====================================XX',
+                'XX====================================XX',
+                'XXXXXXXXXXXXXXXXXXX==XXXXXXXXXXXXXXXXXXX',
+                'XXXXXXXXXXXXXXXXXXX==XXXXXXXXXXXXXXXXXXX'
+            ],
+            lights: [
+                { x: 20, y: 12, radius: 5, color: 'rgba(255, 150, 60, 0.3)' }, { x: 5, y: 11, radius: 3, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 31, y: 8, radius: 2.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 7, y: 4, radius: 2.4, color: 'rgba(255, 170, 80, 0.18)' },
+                { x: 17, y: 22, radius: 2, color: 'rgba(255, 170, 80, 0.22)' }, { x: 22, y: 22, radius: 2, color: 'rgba(255, 170, 80, 0.22)' }
+            ],
+            spawns: {
+                from_skeldvik: { x: 19, y: 23, facing: 'up' },
+                from_skeldvik_2: { x: 20, y: 23, facing: 'up' }
+            },
+            exits: [
+                { id: 'stormtide_out', x: 19, y: 24, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_inn' },
+                { id: 'stormtide_out_2', x: 20, y: 24, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_inn_2' }
+            ],
+            encounters: [],
+            interactables: [
+                // Aslaug behind her bar. Two cells wide, so you talk to her across the counter (Norse kitchen, PR #260).
+                { id: 'skeldvik_aslaug', kind: 'npc', npc: 'aslaug', x: 6, y: 11, w: 2, name: 'Aslaug', sprite: 'alewife' },
+                // The long fire is the inn's hearth: Hrimvald's dishes, like the harbour cookfire (regional cooking).
+                { id: 'stormtide_hearth', kind: 'station', station: 'stormtide_hearth', verb: 'Cook at', x: 19, y: 15, w: 2, name: 'The long fire' },
+                { id: 'stormtide_orm', kind: 'npc', npc: 'orm', x: 28, y: 7, name: 'Orm', sprite: 'tafl_fair' },
+                { id: 'stormtide_sveinn', kind: 'npc', npc: 'sveinn', x: 33, y: 7, name: 'Sveinn', sprite: 'tafl_dark' },
+                { id: 'stormtide_tafl', kind: 'inspect', x: 31, y: 8, name: 'The tafl board',
+                    text: 'A board of thirteen by thirteen squares, cut into the tabletop itself. The king stands in the middle, his guard around him, and the attackers wait along every edge. Someone has scratched a tally of games in the wood, two columns, and one column is much longer.' },
+                { id: 'stormtide_spit', kind: 'inspect', x: 20, y: 9, name: 'The spit',
+                    text: 'A whole pig turning over the coals on an iron spit, basted from a pot of butter and juniper. Whoever passes gives the handle a turn. It is the one rule of the house that everybody keeps.' },
+                { id: 'stormtide_kitchen', kind: 'inspect', x: 6, y: 3, name: 'The kitchen corner',
+                    text: 'Shelves of bowls and pots, hams and sausages hanging from a beam, and cod split and dried like the ones on the wharf. On the table, carrots, onions and a fish someone is halfway through cleaning.' },
+                { id: 'stormtide_casks', kind: 'inspect', x: 3, y: 15, name: 'The casks',
+                    text: 'Six casks on their stands, each with a brass tap and a chalk mark: mead, red mead, ale, ale, ale, and one marked with a cross that Aslaug says is not for sale.' },
+                { id: 'stormtide_bench', kind: 'inspect', x: 26, y: 4, name: 'The long bench',
+                    text: 'A bench the length of the back wall, under the windows. Old men sit here in the afternoons to watch the harbour through the glass and say the ships were bigger once.' }
             ]
         },
 

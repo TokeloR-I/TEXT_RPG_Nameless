@@ -24,6 +24,8 @@
  *                      house banners, Guild Lane's forge and wool stall, the Training Yard's butts, dummies and spear
  *                      racks, the War Memorial's three boards under a turf roof, the feast tables, the palisade and the
  *                      south arch with ravens carved on its posts. Turf roofs, no horned helmets.
+ *   'stormtide_inn'    Inside the Stormtide Inn, Skeldvik's meeting hall, after Tokelo's interior picture (2026-11-13): the bar and
+ *                      casks, the kitchen corner, the long fire with the spit and cauldron, the feast tables, the tafl table.
  *   'hall_of_winter'   Inside the Great Hall, after Tokelo's interior picture (2026-11-13): the empty high seat and the
  *                      empty step below it, red hangings, house banners, the fire pit with three cauldrons, the feast
  *                      tables, the red runner, the skald's corner, the Lawspeaker's table, the Six Hundred Remembered.
@@ -1519,6 +1521,241 @@
     }
 
     // ---------------------------------------------------------------------
+    // The Stormtide Inn, inside (after Tokelo's interior picture, 2026-11-13): Skeldvik's meeting hall. Warm timber
+    // everywhere, a floor of wide boards, the bar and casks down the west wall, the kitchen corner, the long fire.
+    // ---------------------------------------------------------------------
+    const BOARD = R(['#1f1009', '#2e180d', '#3e2112', '#4f2b17', '#61361d', '#734224', '#864f2b', '#9a5d33']);
+    const SKY = R(['#1a2a44', '#26395a', '#334c72', '#46628c', '#6380a6', '#8aa4c4']);
+    function stormtideInn(map, nameAt) {
+        const cw = map.tiles[0].length, ch = map.tiles.length, L = layersFor(map), seed = 2027, img = L.base;
+        const N = (x, y) => nameAt(map, x, y);
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows };
+        // Floor: wide boards running east-west, butt joints staggered, worn paler down the middle of the room.
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const row = Math.floor(y / 9), fy = y - row * 9, u = x + Math.floor(hash(row, 1, seed) * 90), len = 70 + Math.floor(hash(row, 2, seed) * 40), col = Math.floor(u / len), fx = u - col * len;
+            let t = 0.48 + (hash(col, row, seed + 3) - 0.5) * 0.22 + (vnoise(u / 14, row, seed) - 0.5) * 0.16;
+            if (fy === 0) t = 0.04; else if (fy === 1) t += 0.1; else if (fy === 8) t -= 0.12;
+            if (fx === 0) t = 0.08;
+            const wear = Math.max(0, 1 - Math.abs(x / img.w - 0.5) * 2.6) * 0.08;
+            put(img, x, y, pick(BOARD, t + wear));
+            if (hash(x, y, seed + 9) < 0.006) put(img, x, y, BOARD[1]);                                                      // knots and nail heads
+        }
+        // Walls: timber, the back wall shows its face (three cells tall) with posts, a beam and tall narrow windows.
+        const wall = (x, y) => N(x, y) === 'wall';
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            if (!wall(x, y)) continue;
+            const X0 = x * C, Y0 = y * C, face = !wall(x, y + 1) && y > 0 && y + 1 < ch;
+            for (let j = 0; j < C; j++) for (let i = 0; i < C; i++) { const px = X0 + i, py = Y0 + j, bq = Math.floor(px / 7), u = px % 7; put(img, px, py, u === 0 ? BOARD[0] : pick(BOARD, (y < 3 ? 0.42 : 0.24) + (hash(bq, y < 3 ? 1 : 2, seed) - 0.5) * 0.2 + (vnoise(bq * 3.1, py / 11, seed) - 0.5) * 0.16 + (u === 1 ? 0.08 : 0))); }
+            if (face) { RK.blocks(img, X0, Y0 + C - 8, C, 8, seed + x, NP.cliff); for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 8, NP.cliff[6]); for (let k = 0; k < 6; k++) put(img, X0 + i, Y0 + C + k, NP.shadow, 0.5 - k * 0.08); } }
+            if (!wall(x, y - 1) && y > 0) for (let i = 0; i < C; i++) { put(img, X0 + i, Y0, NP.oak[6]); put(img, X0 + i, Y0 + 1, NP.oak[3]); put(img, X0 + i, Y0 - 1, NP.shadow, 0.4); }
+            for (const [dx, ex] of [[-1, 0], [1, C - 1]]) if (!wall(x + dx, y) && x + dx >= 0 && x + dx < cw) for (let j = 0; j < C; j++) { put(img, X0 + ex, Y0 + j, NP.oak[0]); put(img, X0 + ex + (dx < 0 ? -1 : 1), Y0 + j, NP.shadow, 0.5); }
+        }
+        const BW = 3 * C;
+        for (let px = 2 * C; px < (cw - 2) * C; px++) { put(img, px, 22, NP.oak[1]); put(img, px, 23, NP.oak[5]); put(img, px, 24, NP.oak[3]); put(img, px, 25, NP.oak[1]); }   // the wall plate
+        for (const wx of [17.5, 21.5, 29.5, 33.5]) {                                                                        // tall windows, snow and dusk outside
+            const x = Math.round(wx * C) - 6, y0 = 30, h = 50;
+            rectFill(img, x - 2, y0 - 2, 16, h + 4, NP.oak[0]);
+            for (let j = 0; j < h; j++) for (let i = 0; i < 12; i++) { if (j < 6 && Math.hypot(i - 5.5, j - 6) > 6.5) continue; put(img, x + i, y0 + j, pick(SKY, 0.2 + (j / h) * 0.7)); if (j > h - 10 && hash(i, j, seed) < 0.5) put(img, x + i, y0 + j, NP.snow[4]); }
+            rectFill(img, x + 5, y0, 2, h, NP.oak[1]); for (let j = 14; j < h; j += 14) rectFill(img, x, y0 + j, 12, 1, NP.oak[1]);
+            glows.push({ x: x + 6, y: y0 + h + 10, r: 22, a: 0.15 });
+        }
+        for (const px of [2 * C, 13 * C + 16, 26 * C + 16, (cw - 2) * C]) { const p = shape(); box(p, img, px - 6, 0, 12, BW - 4, 0); for (const [i] of p.px) p.px.set(i, (((i % img.w) - px) / 6) * -0.6); fill(img, p, NP.oak, { tex: 0.3, seed: seed + px, outline: NP.oak[0] }); for (let k = 0; k < 3; k++) rectFill(img, px - 7, 60 + k * 3, 14, 1, NP.wool[2]); }
+        // Utensils on a rail in the middle of the back wall: ladles, a skimmer, a pan.
+        for (let k = 0; k < 6; k++) { const ux = 15 * C + 8 + k * 9; rectFill(img, ux, 40, 1, 22, PAL.iron[2]); const h = shape(); ellipse(h, img, ux, 64, 3 + (k % 2), 3); fill(img, h, PAL.iron, { outline: PAL.iron[0] }); }
+        rectFill(img, 15 * C + 2, 38, 60, 2, NP.oak[1]);
+        const seen = new Set();
+        const BLOCKS = {
+            kitchen_shelf: (b) => ({ y: b.y1 + 0.3, draw: () => kitchenShelf(L, b, seed) }),
+            pantry: (b) => ({ y: b.y1 + 0.5, draw: () => pantry(L, b, seed) }),
+            prep_table: (b) => ({ y: b.y1 + 0.6, draw: () => prepTable(L, b, seed) }),
+            cask_rack: (b) => ({ y: b.y1 + 0.4, draw: () => caskRack(L, b, seed) }),
+            bar_counter: (b) => ({ y: b.y1 + 0.6, draw: () => barCounter(L, b, seed, N, FX) }),
+            long_fire: (b) => ({ y: b.y1 + 0.6, draw: () => longFire(L, b, seed, FX) }),
+            feast_table: (b) => ({ y: b.y1 + 0.6, draw: () => hallTable(L, b, seed + b.x0 + b.y0 * 7, FX) }),
+            bench: (b) => ({ y: b.y1 + 0.5, draw: () => innBench(L, b, seed + b.x0) }),
+            tafl_table: (b) => ({ y: b.y1 + 0.6, draw: () => taflTable(L, b, seed, FX) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P2 = {
+                post: () => tall(L, [cx - 16, 0, cx + 16, gy + 6], 0, false, (S) => { shadow(S, cx + 4, gy, 14, 5, 0.5); const p = shape(); box(p, S, cx - 9, BW - 6, 18, gy - BW + 6, 0); for (const [i] of p.px) p.px.set(i, (((i % S.w) - cx) / 9) * -0.7 + (vnoise((i % S.w) / 2, ((i / S.w) | 0) / 14, seed) - 0.5) * 0.3); fill(S, p, NP.oak, { tex: 0.3, seed: seed + x, outline: NP.oak[0] }); for (let k2 = 0; k2 < 4; k2++) rectFill(S, cx - 10, gy - 150 + k2 * 3, 20, 2, NP.wool[3 - (k2 % 2)]); rectFill(S, cx - 12, gy - 8, 24, 8, NP.oak[2]); }),
+                stool: () => { const s = shape(); ellipse(s, img, cx, gy - 10, 8, 4); fill(img, s, BOARD.slice(3), { outline: BOARD[0] }); for (const dx of [-5, 4]) rectFill(img, cx + dx, gy - 7, 2, 8, BOARD[1]); shadow(img, cx + 2, gy + 1, 8, 3, 0.35); },
+                barrel: () => barrel(L, cx, gy, seed + x)
+            }[n];
+            if (P2) items.push({ x, y: y + 0.5, draw: P2 });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // Torches either side of the way out, and sconces on the side walls.
+        for (const tx of [17 * C + 8, 23 * C - 8]) { const ty = 23 * C + 6; rectFill(img, tx - 2, ty, 4, 10, PAL.iron[1]); rectFill(img, tx - 3, ty - 3, 6, 4, NP.glow[4]); flames.push({ x: tx, y: ty - 3, big: true }); glows.push({ x: tx, y: ty - 8, r: 60, a: 0.7 }); }
+        for (let y = 6; y < ch - 3; y += 6) for (const x of [(cw - 2) * C - 4]) { rectFill(img, x - 1, y * C, 3, 6, PAL.iron[1]); rectFill(img, x - 1, y * C - 3, 3, 3, NP.glow[4]); flames.push({ x, y: y * C - 2 }); glows.push({ x, y: y * C + 8, r: 44, a: 0.55 }); }
+        // Lamplight: warm everywhere a flame is, darker toward the walls.
+        for (const im of [img, L.over]) { const d = im.data; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { d[i] = d[i] * 0.84 + 4; d[i + 1] = d[i + 1] * 0.8 + 3; d[i + 2] = d[i + 2] * 0.8 + 4; } }
+        for (const g of glows) {
+            const r = g.r, a = g.a == null ? 0.5 : g.a;
+            for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
+                const x = Math.round(g.x) + xx, y = Math.round(g.y) + yy, dd = Math.hypot(xx, yy) / r;
+                if (dd >= 1 || x < 0 || y < 0 || x >= img.w || y >= img.h) continue;
+                const w = (1 - dd) * (1 - dd) * a;
+                for (const im of [img, L.over]) { const i = (y * im.w + x) * 4, d = im.data; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] = Math.min(255, d[i + j] + WARM[j] * w * 0.45 + (WARM[j] - d[i + j]) * w * 0.2); }
+            }
+        }
+        edgeShade(img, 18, 0.35);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water: [], animate: animator(flames, smoke) };
+    }
+    /** Shelves of bowls and pots against the back wall, and above them a beam hung with cod, hams and sausages. */
+    function kitchenShelf(L, b, seed) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+        tall(L, [X0 - 4, 20, X1 + 4, B + 6], 0, false, (S) => {
+            for (let px = X0 + 6; px < X1 - 6; px++) { put(S, px, 30, NP.oak[1]); put(S, px, 31, NP.oak[4]); put(S, px, 32, NP.oak[1]); }   // the beam
+            for (let k = 0; k < 12; k++) {
+                const hx = X0 + 18 + k * ((W - 36) / 11), kind = k % 4, top = 33;
+                for (let j = 0; j < 6; j++) put(S, hx, top + j, NP.wool[3]);
+                if (kind === 0 || kind === 2) { const f = shape(); poly(f, S, [[hx - 3, top + 6], [hx + 3, top + 6], [hx + 4, top + 26], [hx, top + 32], [hx - 4, top + 26]], (px) => ((px - hx) / 4) * -0.5); fill(S, f, [[70, 76, 84], [110, 120, 130], [160, 170, 178], [200, 206, 210]], { outline: [30, 34, 40] }); }
+                else if (kind === 1) { const h = shape(); ellipse(h, S, hx, top + 18, 6, 11); fill(S, h, NP.madder.map((c) => [c[0] + 30, c[1] + 10, c[2]]), { outline: NP.madder[0] }); rectFill(S, hx - 2, top + 28, 4, 3, [220, 200, 170]); }
+                else for (let j = 0; j < 4; j++) { const s2 = shape(); ellipse(s2, S, hx + (j % 2) * 2 - 1, top + 9 + j * 6, 2.5, 3.5); fill(S, s2, NP.madder.slice(1), { outline: NP.madder[0] }); }
+            }
+            // the shelves: two boards on brackets, crocks, bowls and copper pots
+            for (const sy of [B - 24, B - 8]) {
+                const sh = shape(); box(sh, S, X0 + 4, sy, W - 8, 5, 0.3); fill(S, sh, NP.oak.slice(2), { outline: NP.oak[0] });
+                for (let k = 0; k < Math.floor((W - 16) / 14); k++) {
+                    const px = X0 + 12 + k * 14, r = hash(k, sy, seed);
+                    if (r < 0.35) { const p = shape(); ellipse(p, S, px, sy - 5, 6, 5); fill(S, p, [[60, 30, 14], [120, 64, 30], [180, 100, 50], [220, 150, 90]], { outline: [40, 20, 10] }); }
+                    else if (r < 0.7) { const p = shape(); ellipse(p, S, px, sy - 3, 6, 3); fill(S, p, NP.oak.slice(3), { outline: NP.oak[0] }); }
+                    else { const p = shape(); box(p, S, px - 4, sy - 10, 8, 10, 0.3); fill(S, p, [[90, 80, 70], [140, 126, 110], [190, 176, 156]], { outline: [50, 44, 40] }); }
+                }
+            }
+            for (const px of [X0 + 8, X1 - 10]) rectFill(S, px, B - 26, 3, 26, NP.oak[1]);
+        });
+    }
+    /** Sacks of grain and flour, crocks and a basket of potatoes by the back wall. */
+    function pantry(L, b, seed) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, B = (b.y1 + 1) * C - 4;
+        tall(L, [X0 - 6, B - 50, X1 + 6, B + 8], 0, false, (S) => {
+            shadow(S, (X0 + X1) / 2 + 3, B + 1, (X1 - X0) / 2, 5, 0.45);
+            for (let k = 0; k < 4; k++) {
+                const px = X0 + 12 + k * ((X1 - X0 - 24) / 3), r = hash(k, 1, seed);
+                if (r < 0.6) { const s = shape(); poly(s, S, [[px - 10, B], [px - 11, B - 20], [px - 6, B - 30], [px + 6, B - 30], [px + 11, B - 20], [px + 10, B]], (x) => ((x - px) / 11) * -0.5); fill(S, s, NP.wool.slice(1), { tex: 0.4, seed: seed + k, outline: NP.wool[0] }); rectFill(S, px - 5, B - 32, 10, 3, NP.wool[1]); }
+                else { const s = shape(); ellipse(s, S, px, B - 12, 9, 12); fill(S, s, [[70, 50, 30], [120, 90, 56], [170, 130, 86], [200, 166, 120]], { outline: [40, 28, 16] }); }
+            }
+            const bk = shape(); ellipse(bk, S, X1 - 10, B - 6, 10, 6); fill(S, bk, NP.oak.slice(3), { outline: NP.oak[0] });
+            for (let k = 0; k < 7; k++) { const p = shape(); ellipse(p, S, X1 - 16 + (k % 4) * 4, B - 10 - Math.floor(k / 4) * 3, 2.5, 2); fill(S, p, [[120, 90, 40], [170, 130, 70], [200, 166, 100]], { edge: false }); }
+        });
+    }
+    /** The prep table: carrots, onions, a cod half cleaned, a knife. */
+    function prepTable(L, b, seed) {
+        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+        tall(L, [X0 - 6, B - 50, X1 + 6, B + 8], 0, false, (S) => {
+            shadow(S, X0 + W / 2 + 3, B + 1, W / 2 + 4, 5, 0.45);
+            const tb = shape(); box(tb, S, X0, B - 34, W, 18, 0.3); fill(S, tb, NP.oak.slice(2), { tex: 0.3, seed, outline: NP.oak[0] });
+            for (const px of [X0 + 4, X1 - 8]) rectFill(S, px, B - 16, 4, 16, NP.oak[1]);
+            for (let k = 0; k < 6; k++) { const cx = X0 + 12 + k * 5; const c = shape(); poly(c, S, [[cx - 2, B - 30], [cx + 2, B - 30], [cx + 7, B - 20], [cx + 6, B - 19]], 0); fill(S, c, [[160, 70, 10], [220, 110, 30], [250, 150, 60]], { edge: false }); rectFill(S, cx - 3, B - 33, 3, 3, [70, 130, 50]); }
+            for (let k = 0; k < 3; k++) { const o = shape(); ellipse(o, S, X0 + 50 + k * 8, B - 26, 4, 3.5); fill(S, o, [[150, 110, 60], [200, 160, 100], [230, 200, 150]], { outline: [90, 60, 30] }); }
+            const f = shape(); ellipse(f, S, X1 - 34, B - 26, 18, 5); fill(S, f, [[70, 76, 84], [120, 130, 140], [170, 178, 186], [210, 214, 218]], { outline: [30, 34, 40] });
+            rectFill(S, X1 - 14, B - 28, 10, 2, PAL.iron[4]); rectFill(S, X1 - 18, B - 28, 4, 2, NP.oak[2]);
+        });
+    }
+    /** Casks on their stands along the west wall, lying on their sides, a brass tap in each end. */
+    function caskRack(L, b, seed) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, Y1 = (b.y1 + 1) * C, n = 6, step = (Y1 - Y0) / n;
+        tall(L, [X0 - 4, Y0 - 30, X1 + 8, Y1 + 8], 0, false, (S) => {
+            for (let k = 0; k < n; k++) {
+                const gy = Math.round(Y0 + (k + 1) * step) - 4, cy = gy - 20, r = 19;
+                rectFill(S, X0 + 8, gy - 6, X1 - X0 - 16, 6, NP.oak[1]); for (const px of [X0 + 10, X1 - 14]) rectFill(S, px, gy - 8, 4, 8, NP.oak[2]);   // the stand
+                const s = shape(); box(s, S, X0 + 6, cy - r, X1 - X0 - 22, r * 2, 0); for (const [i] of s.px) { const py = (i / S.w) | 0; s.px.set(i, ((cy - py) / r) * 0.8 + (hash((i % S.w) >> 2, 1, seed + k) - 0.5) * 0.1); }
+                fill(S, s, PAL.wood.slice(1, 7), { tex: 0.25, seed: seed + k, outline: PAL.wood[0] });
+                for (const hx of [X0 + 14, X0 + 30, X1 - 30]) for (let py = cy - r + 1; py < cy + r; py++) { put(S, hx, py, PAL.iron[2]); put(S, hx + 1, py, PAL.iron[3]); }
+                const end = shape(); ellipse(end, S, X1 - 16, cy, 8, r); fill(S, end, PAL.wood.slice(2, 7), { tex: 0.3, seed: seed + k + 5, outline: PAL.wood[0] });
+                for (let py = cy - r + 2; py < cy + r - 1; py++) put(S, X1 - 16 + Math.round(Math.sqrt(Math.max(0, 1 - ((py - cy) / r) ** 2)) * 7), py, PAL.iron[3]);
+                rectFill(S, X1 - 14, cy + 2, 8, 3, [200, 160, 60]); rectFill(S, X1 - 8, cy + 3, 3, 7, [220, 180, 80]); put(S, X1 - 7, cy + 10, [250, 220, 140]);   // the tap
+                rectFill(S, X1 - 22, cy - 8, 6, 4, [230, 226, 214]);                                                                                   // the chalk mark
+            }
+        });
+    }
+    /** The bar: a heavy oak counter, its top worn pale, set with mugs, drinking horns, a jug and candles. */
+    function barCounter(L, b, seed, N, FX) {
+        tall(L, [b.x0 * C - 6, b.y0 * C - 40, (b.x1 + 1) * C + 10, (b.y1 + 1) * C + 10], 0, false, (S) => {
+            for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) {
+                if (N(x, y) !== 'bar_counter') continue;
+                const X = x * C, Y = y * C - 14, down = N(x, y + 1) !== 'bar_counter', east = N(x + 1, y) !== 'bar_counter';
+                for (let j = 0; j < C; j++) for (let i = 0; i < C; i++) put(S, X + i, Y + j, pick(BOARD, 0.66 + (hash(Math.floor((X + i) / 7), 3, seed) - 0.5) * 0.2 + (vnoise((Y + j) / 9, (X + i) / 7, seed) - 0.5) * 0.12 + (i === 0 || i === C - 1 ? -0.3 : 0)));
+                if (east) { for (let j = 0; j < C + 14; j++) for (let i = 0; i < 6; i++) put(S, X + C + i, Y + 4 + j, pick(BOARD, 0.32 - i * 0.03)); for (let j = 0; j < C + 14; j += 10) for (let i = 0; i < 6; i++) put(S, X + C + i, Y + 4 + j, BOARD[1]); }
+                if (down) { for (let j = 0; j < 16; j++) for (let i = 0; i < C; i++) put(S, X + i, Y + C + j, pick(BOARD, 0.36 - j * 0.012 + ((i % 8) === 0 ? -0.15 : 0))); for (let i = 0; i < C; i++) put(S, X + i, Y + C, BOARD[6]); }
+                const r = hash(x, y, seed + 4);                                                                         // what stands on it
+                if (r < 0.3) for (const dx of [8, 20]) { rectFill(S, X + dx - 3, Y + 8, 7, 9, NP.oak[3]); rectFill(S, X + dx - 3, Y + 8, 7, 2, [236, 226, 196]); rectFill(S, X + dx + 4, Y + 10, 2, 5, NP.oak[1]); }
+                else if (r < 0.5) { const h = shape(); thick(h, S, X + 6, Y + 18, X + 24, Y + 8, 2.2); fill(S, h, [[120, 100, 70], [200, 180, 140], [236, 222, 190]], { outline: [70, 56, 36] }); }
+                else if (r < 0.65) { const j = shape(); ellipse(j, S, X + 16, Y + 12, 6, 8); fill(S, j, [[80, 36, 20], [140, 70, 40], [190, 110, 70]], { outline: [50, 20, 10] }); }
+                else if (r < 0.8) { rectFill(S, X + 15, Y + 4, 3, 9, [236, 228, 204]); put(S, X + 16, Y + 2, NP.glow[NP.glow.length - 1]); FX.flames.push({ x: X + 16, y: Y + 2 }); FX.glows.push({ x: X + 16, y: Y + 12, r: 34, a: 0.5 }); }
+            }
+            // a checked cloth hanging over the corner
+            const cx = (b.x0 + 4) * C + 6, cy = b.y1 * C - 8;
+            for (let j = 0; j < 22; j++) for (let i = 0; i < 14; i++) put(S, cx + i + Math.round(j * 0.1), cy + j, ((i >> 2) + (j >> 2)) % 2 ? [200, 60, 50] : [226, 214, 196]);
+        });
+    }
+    /** The long fire: a stone hearth the length of four tables, a pig turning on the spit at the north end, the
+     *  cauldron on its iron frame over the coals at the south end. */
+    function longFire(L, b, seed, FX) {
+        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, Y0 = b.y0 * C, B = (b.y1 + 1) * C - 4, mx = Math.round((X0 + X1) / 2);
+        tall(L, [X0 - 10, Y0 - 60, X1 + 10, B + 10], 0, false, (S) => {
+            for (let yy = Y0 - 20; yy < B + 20; yy++) for (let xx = X0 - 30; xx < X1 + 30; xx++) { const d = Math.hypot((xx - mx) / ((X1 - X0) / 2 + 30), (yy - (Y0 + B) / 2) / ((B - Y0) / 2 + 20)); if (d < 1) put(S, xx, yy, NP.glow[3], (1 - d) * 0.18); }
+            // the kerb: fitted stones all round
+            for (let y = Y0; y < B; y += 13) for (const x of [X0, X1 - 14]) { const st = shape(); box(st, S, x, y, 14, 12, 0.5); fill(S, st, NP.cliff.slice(2), { tex: 0.4, seed: seed + y + x, outline: NP.cliff[0] }); }
+            for (let x = X0; x < X1; x += 15) for (const y of [Y0, B - 14]) { const st = shape(); box(st, S, x, y, 15, 14, 0.5); fill(S, st, NP.cliff.slice(2), { tex: 0.4, seed: seed + y + x * 3, outline: NP.cliff[0] }); }
+            // the coals
+            for (let y = Y0 + 14; y < B - 14; y++) for (let x = X0 + 14; x < X1 - 14; x++) { const h = vnoise(x / 4, y / 4, seed); const d = Math.abs(x - mx) / ((X1 - X0) / 2 - 14); put(S, x, y, h - d * 0.18 > 0.7 ? [255, 180, 70] : h - d * 0.18 > 0.58 ? [190, 70, 22] : h > 0.46 ? [86, 30, 14] : h > 0.3 ? [40, 24, 18] : [26, 22, 22]); }
+            // flames along the middle
+            const fy = Y0 + Math.round((B - Y0) * 0.62);
+            for (const dx of [-12, 0, 12]) { const f = shape(); ellipse(f, S, mx + dx, fy - 8, 8, 14); fill(S, f, NP.glow.slice(1), { edge: false }); const f2 = shape(); ellipse(f2, S, mx + dx, fy - 4, 4, 7); fill(S, f2, NP.glow.slice(4), { edge: false }); FX.flames.push({ x: mx + dx, y: fy - 14, big: true }); }
+            // the spit: two forked irons and a pig
+            const sy = Y0 + 10;
+            const fr = shape(); for (const sg of [-1, 1]) { thick(fr, S, mx + sg * 34, sy + 18, mx + sg * 34, sy - 22, 1.6); thick(fr, S, mx + sg * 34, sy - 22, mx + sg * 30, sy - 28, 1); thick(fr, S, mx + sg * 34, sy - 22, mx + sg * 38, sy - 28, 1); }
+            fill(S, fr, PAL.iron, { outline: PAL.iron[0] });
+            for (let px = mx - 42; px < mx + 44; px++) { put(S, px, sy - 22, PAL.iron[3]); put(S, px, sy - 21, PAL.iron[1]); }
+            rectFill(S, mx + 42, sy - 26, 2, 8, PAL.iron[3]); rectFill(S, mx + 42, sy - 26, 6, 2, PAL.iron[3]);                          // the crank
+            const pig = shape(); ellipse(pig, S, mx, sy - 22, 24, 11); ellipse(pig, S, mx + 24, sy - 24, 7, 6);
+            for (const [i, v] of pig.px) pig.px.set(i, v + ((sy - 22 - ((i / S.w) | 0)) / 11) * 0.5);
+            fill(S, pig, [[70, 26, 10], [120, 50, 18], [170, 84, 34], [210, 120, 56], [236, 160, 90]], { outline: [44, 16, 6] });
+            for (let k = 0; k < 4; k++) rectFill(S, mx - 16 + k * 9, sy - 30 + (k % 2), 2, 14, [100, 40, 14]);
+            // the cauldron on its frame
+            const cy = B - 34;
+            const cf = shape(); for (const sg of [-1, 1]) thick(cf, S, mx + sg * 30, B - 16, mx + sg * 30, cy - 34, 1.6); thick(cf, S, mx - 32, cy - 34, mx + 32, cy - 34, 1.4); fill(S, cf, PAL.iron, { outline: PAL.iron[0] });
+            for (let j = cy - 33; j < cy - 14; j++) put(S, mx, j, PAL.iron[2]);
+            const pot = shape(); ellipse(pot, S, mx, cy - 2, 16, 13); fill(S, pot, PAL.iron, { outline: PAL.iron[0] });
+            const brim = shape(); ellipse(brim, S, mx, cy - 12, 14, 4); fill(S, brim, [[90, 70, 30], [140, 110, 50], [180, 150, 80]], { edge: false });
+            FX.smoke.push({ x: mx - 6, y: cy - 20 }); FX.smoke.push({ x: mx, y: sy - 36 });
+            FX.glows.push({ x: mx, y: (Y0 + B) / 2, r: 170, a: 0.6 });
+        });
+    }
+    /** A plank bench, set along a wall: the long one under the back windows, the short ones down the east side. */
+    function innBench(L, b, seed) {
+        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, Y0 = b.y0 * C + 4, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+        tall(L, [X0 - 4, Y0 - 20, X1 + 6, B + 8], 0, false, (S) => {
+            shadow(S, X0 + W / 2 + 3, B + 1, W / 2 + 2, 4, 0.4);
+            const st = shape(); box(st, S, X0, Y0 - 6, W, B - Y0 - 6, 0.4); fill(S, st, NP.oak.slice(2), { tex: 0.3, seed, outline: NP.oak[0] });
+            for (let px = X0 + 1; px < X1 - 1; px++) put(S, px, Y0 - 5, NP.oak[6]);
+            const fr = shape(); box(fr, S, X0, B - 12, W, 6, 0); fill(S, fr, NP.oak.slice(1, 4), { outline: NP.oak[0] });
+            for (const px of [X0 + 4, X1 - 8]) rectFill(S, px, B - 8, 4, 8, NP.oak[1]);
+        });
+    }
+    /** The tafl table: a heavy board cut into the tabletop, the king in the middle, the pieces mid-game, a candle. */
+    function taflTable(L, b, seed, FX) {
+        const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+        tall(L, [X0 - 8, B - 70, X1 + 8, B + 8], 0, false, (S) => {
+            shadow(S, X0 + W / 2 + 4, B + 2, W / 2 + 6, 6, 0.5);
+            const tb = shape(); box(tb, S, X0, B - 52, W, 30, 0.3); fill(S, tb, NP.oak.slice(2), { tex: 0.3, seed, outline: NP.oak[0] });
+            for (const px of [X0 + 6, X1 - 10]) rectFill(S, px, B - 22, 4, 22, NP.oak[1]);
+            const bx = X0 + W / 2 - 22, by = B - 50, sq = 44 / 11;
+            rectFill(S, bx - 2, by - 2, 48, 30, NP.oak[0]);
+            for (let j = 0; j < 7; j++) for (let i = 0; i < 11; i++) rectFill(S, Math.round(bx + i * sq), by + j * 4, Math.ceil(sq), 4, (i + j) % 2 ? NP.oak[5] : NP.oak[4]);
+            for (let k = 0; k < 16; k++) { const i = Math.floor(hash(k, 1, seed) * 11), j = Math.floor(hash(k, 2, seed) * 7); rectFill(S, Math.round(bx + i * sq) + 1, by + j * 4 + 1, 2, 2, k < 9 ? [24, 20, 18] : [226, 216, 190]); }
+            rectFill(S, bx + 21, by + 10, 3, 6, [230, 196, 90]); put(S, bx + 22, by + 9, [255, 230, 140]);                                   // the king
+            rectFill(S, X1 - 14, B - 64, 3, 8, [234, 224, 196]); put(S, X1 - 13, B - 66, NP.glow[NP.glow.length - 1]); FX.flames.push({ x: X1 - 13, y: B - 66 }); FX.glows.push({ x: X1 - 13, y: B - 54, r: 44, a: 0.5 });
+            for (const [dx, ramp] of [[10, NP.oak], [W - 30, NP.oak]]) { const m = shape(); box(m, S, X0 + dx, B - 60, 8, 9, 0.3); fill(S, m, ramp.slice(3), { outline: ramp[0] }); rectFill(S, X0 + dx, B - 60, 8, 2, [236, 226, 196]); }
+        });
+    }
+
+    // ---------------------------------------------------------------------
     // Gullstrand Coast and the Wolf's Wake (after Tokelo's picture, 2026-11-13): a fishing village on green cliffs
     // under a storm, and above it the carved shrine of the two wolves (Fenrir's Heir, quest CL1).
     // ---------------------------------------------------------------------
@@ -1892,6 +2129,6 @@
         tinted.push({ x: cx - 6, y: gy - 20, r: 26, a: 0.35, c: SUN_LIGHT }); tinted.push({ x: cx + 6, y: gy - 20, r: 26, a: 0.35, c: MOON_LIGHT });
     }
 
-    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand });
-    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand };
+    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, stormtide_inn: stormtideInn, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand });
+    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, stormtide_inn: stormtideInn, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand };
 })(typeof window !== 'undefined' ? window : globalThis);
