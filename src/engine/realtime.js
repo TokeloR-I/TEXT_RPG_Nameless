@@ -208,6 +208,7 @@
             if (!this.rtActive()) return this.flush();
             const step = clamp(Number(ms) || 0, 0, this.rtRules().maxStepMs || 1000);
             if (step <= 0) return this.flush();
+            this.stanceAccrue(step);   // stance bond grows with fight time (stance.js); plain state, so no transaction needed
             if (this.rtQuietUntil(step)) { this.combat.rt.now += step; return this.flush(); }   // nothing due: skip the transaction (60 Hz callers)
             return this.transact(() => this.rtAdvance(step));
         }

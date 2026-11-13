@@ -62,7 +62,9 @@
         // Skill Web (src/engine/skill-web.js)
         web: () => ({ type: 'describe', subject: 'skill_web' }), skills: () => ({ type: 'describe', subject: 'skill_web' }),
         learn: (arg) => ({ type: 'learn_node', nodeId: arg }), unlearn: (arg) => ({ type: 'unlearn_node', nodeId: arg }),
-        specialize: (arg) => ({ type: 'set_specialization', branchId: arg }), guide: (arg) => ({ type: 'set_web_guide', branchId: arg })
+        specialize: (arg) => ({ type: 'set_specialization', branchId: arg }), guide: (arg) => ({ type: 'set_web_guide', branchId: arg }),
+        stance: (arg) => ({ type: 'switch_stance', stance: arg }),   // legendary stances (src/engine/stance.js)
+        awaken_fenrir: (arg) => ({ type: 'cheat', cheat: 'awaken_fenrir', amount: arg })
     };
 
     class GameEngine {
@@ -338,7 +340,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

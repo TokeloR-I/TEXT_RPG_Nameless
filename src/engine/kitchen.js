@@ -128,7 +128,7 @@
         controlsInverted() { return !!this.player && this.player.statusEffects.some((s) => s.type === 'drunk'); }
 
         /** Pure. The player's walking speed multiplier from food. */
-        playerMoveMult() { return 1 + this.foodMod(this.player, 'speed'); }
+        playerMoveMult() { return (1 + this.foodMod(this.player, 'speed')) * (1 + (this.stanceMod ? this.stanceMod(this.player, 'speed') : 0)); }   // meals, stance bond
 
         /** Food regeneration for `ms` of time (fight pulses, calm ticks). Quiet; fractions carry on the player. */
         foodRegen(ms) {

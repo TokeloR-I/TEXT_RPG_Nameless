@@ -268,7 +268,7 @@ test('Chapter One: content integrity: every objective marker, npc and condition 
     const placed = new Set(Object.values(ZONE1.maps).flatMap((m) => [...(m.interactables || []), ...(m.encounters || [])]).map((o) => o.id));
     const npcsOnMaps = new Set(Object.values(ZONE1.maps).flatMap((m) => (m.interactables || []).filter((o) => o.kind === 'npc').map((o) => o.npc)));
     for (const [id, q] of Object.entries(STORY.quests)) {
-        for (const o of q.objectives) {
+        for (const o of q.awaitsArea ? [] : q.objectives) {   // awaitsArea: waiting on Tokelo's picture of its area (tests/100)
             if (o.marker) assert.ok(ZONE1.maps[o.marker.map], `${id}.${o.id}: marker map ${o.marker.map}`);
             if (['inspect', 'defeat', 'pickup'].includes(o.on.type)) assert.ok(placed.has(o.on.id), `${id}.${o.id}: nothing called ${o.on.id} on any map`);
             if (o.on.type === 'enter') assert.ok(ZONE1.maps[o.on.id], `${id}.${o.id}: no map ${o.on.id}`);

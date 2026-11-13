@@ -239,7 +239,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul', carrion_crow: 'crow',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', heaven_doorwarden: 'constable',   // Aurevain (Fallen Seraphim trial): an armoured knight until it has its own painter
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', heaven_doorwarden: 'constable',   // Aurevain (Fallen Seraphim trial): an armoured knight until it has its own painter
         skeleton: 'skeleton', skeleton_champion: 'skeleton', ghoul: 'ghoul'   // the necromancer's summons (minionDefinitions keys)
     };
     /** Draw a foe into a canvas of any size (the painters work in a 64 x 64 box). */

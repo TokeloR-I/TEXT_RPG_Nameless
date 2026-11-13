@@ -23,7 +23,7 @@ Sources to preserve:
 2. The player must **not** learn that they personally were the fallen ruler in Chapter Two. Fragment Two can implicate a figure on the Silent Field, reveal a terrible act, and cause recognition by witnesses, but it cannot confirm the player's pre-fall identity.
 3. The six hundred are **people**, not generic souls or an expendable army. Norse gods and families have different interests; no single faction automatically owns all of them.
 4. Hallvard is **Guardian Two**, not an ordinary optional boss. **A'arab Zaraq** is the **proposed** second Qliphoth aspect, not locked canonical order. Its mechanics require separate design and QA.
-5. **Allfather's Chosen** is a **proposed** optional legendary class, additive to normal class progression and comparable to the already implemented Fallen Seraphim. Thorne and Gauge own precise skill effects/numbers.
+5. **Fenrir's Heir** is Chapter Two's optional legendary class (Tokelo, 2026-11-13: it **replaces** Allfather's Chosen; see [FENRIRS_HEIR.md](FENRIRS_HEIR.md)). It is additive to normal class progression and comparable to the Fallen Seraphim. **Allfather's Chosen is shelved** (§9 is kept for reference only).
 6. The many settlements, supporting characters, bosses, political choices and quest IDs below are **new proposals**; do not overwrite shipped Chapter One dialogue or announce them as shipped.
 7. Each region has a living culture independent of the protagonist and an ongoing future after the player leaves.
 
@@ -299,7 +299,7 @@ Historically inspired occupations and activities:
 **Encounter concept:** Large-scale ice/stone attacks, fissures and terrain hazards.  
 **Reward:** Rare materials for victory **or** a distinct blessing for peaceful settlement; never force the player to kill her for plot progression.
 
-### 6.5 Skögul, Chooser of the Slain — Optional Legendary Trial
+### 6.5 Skögul, Chooser of the Slain — Optional Legendary Trial (shelved with Allfather's Chosen, 2026-11-13)
 **Role:** Valkyrie who tests a worthy aspirant to Allfather's Chosen.  
 **Encounter concept:** Aerial spear strikes, marked zones, phantom riders, endurance.  
 **Result:** Defeated in a formal contest but **not killed**. Unlocks advanced legendary progression after earlier discovery/unlock.  
@@ -329,7 +329,7 @@ Historically inspired occupations and activities:
 | C2-S06 | **The Bride of the Mound** / Birkholt | Investigate burial haunting and family heirloom | Restored burial or cursed relic |
 | C2-S07 | **The Winter Hunt** / uplands | Track dangerous predator threatening livestock; lethal and nonlethal resolutions | Hunter standing, food/hide or living-animal consequence |
 | C2-S08 | **The Names We Carry** / all settlements | Recover missing names, household records and battlefield witnesses | Full Eydis memorial, changed Hallvard and post-seal dialogue |
-| C2-S09 | **The Raven's Wager** / Nine-Winds Ash | Discover Odin's disguised presence and begin nine tests of worthiness | Unlock initial Allfather's Chosen web |
+| ~~C2-S09~~ | ~~**The Raven's Wager** / Nine-Winds Ash~~ | Shelved 2026-11-13 with Allfather's Chosen | Replaced by **The Hunt of Sun and Moon** (Gullstrand, quest CL1): Fenrir's Heir |
 | C2-S10 | **The Ship That Never Returned** / Gullstrand | Explore wreck and defeat Salt-Dead Captain | Salvage and maritime named equipment |
 
 ### 7.1 Signature side quest — The Names We Carry
@@ -395,9 +395,9 @@ Bog Iron, Grave-Silver, Hardened Leather, Amber, Bone, Rowan Timber, Wool, Charc
 
 ---
 
-## 9. Hidden legendary class — Allfather's Chosen
+## 9. Hidden legendary class — Allfather's Chosen (shelved)
 
-**Status:** Proposed; **not** a finished skill web. Existing Fallen Seraphim remains the technical benchmark for additive legendary progression.
+**Status (Tokelo, 2026-11-13):** **Shelved.** Fenrir's Heir replaces it as Chapter Two's legendary class ([FENRIRS_HEIR.md](FENRIRS_HEIR.md)). Kept below for reference only; build nothing from it. Earlier status: proposed; **not** a finished skill web. Existing Fallen Seraphim remains the technical benchmark for additive legendary progression.
 
 ### 9.1 Discovery — The Nine Vows
 

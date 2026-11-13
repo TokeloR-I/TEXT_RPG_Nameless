@@ -701,6 +701,8 @@
             if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
             hits.sort((a, b) => dist(p, a) - dist(p, b));
             this.resolve(at.castId, hits);
+            // Hati's darkness (Black Maw, Devour the Moon): drag each enemy it touched toward you, never through you. Bosses hold.
+            if (s.pullPx) for (const a of hits) if (!a.dead && !a.prof.boss) this.knock(a, angleTo(a, p), Math.min(s.pullPx, Math.max(0, dist(p, a) - a.r - p.r)));
         }
 
         resolve(castId, hits) {

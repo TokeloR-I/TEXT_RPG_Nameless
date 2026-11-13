@@ -17,7 +17,8 @@
  * Nothing here decides rules: castability and refusal reasons come from getAvailableActions(), every
  * timer from getRealtimeState(), positions and stamina from the sim.
  *
- * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5, H = quick heal.
+ * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5, H = quick heal,
+ * T = next stance (Fenrir's Heir, shown only with a stance web).
  * slotForKey(ev) gives the same mapping to the input code, so the HUD's key hints never disagree.
  * ========================================================================= */
 (function (global) {
@@ -137,6 +138,24 @@
             title: o.enabled ? `${HEAL_KEY} · Quick heal: ${o.item}${count > 1 ? ` (${count})` : ''}` : `${HEAL_KEY} · Quick heal: ${(o.reason && o.reason.message) || 'not now'}` };
     }
 
+    /** The stance cell (T): Fenrir's Heir's wolves (engine.getStance(), src/engine/stance.js). Hidden without a stance web.
+     *  T cycles Sköll -> Hati -> Fenrir; the cell shows the wolf you stand in, its bond and the switch cooldown. */
+    const STANCE_KEY = 'T';
+    const STANCE_GLYPH = { skoll: '☀', hati: '☾', fenrir: '⛓' };
+    function stanceCell(engine) {
+        const v = engine && typeof engine.getStance === 'function' ? engine.getStance() : null;
+        if (!v) return null;
+        const list = v.stances;
+        const i = list.findIndex((s) => s.active);
+        const cur = list[i] || list[0];
+        const next = list[(i + 1) % list.length];
+        const wait = next && !next.enabled && next.reason && next.reason.code === 'STANCE_COOLDOWN' ? next.readyInMs || 0 : 0;
+        const bond = cur.bonded ? ` · bond ${cur.bond}%` : '';
+        return { id: cur.id, next: next ? next.id : null, glyph: STANCE_GLYPH[cur.id] || '◈', bond: cur.bonded ? cur.bond : null, readyInMs: wait,
+            enabled: !!(next && next.enabled),
+            title: `${STANCE_KEY} · ${cur.name}${cur.title ? `, ${cur.title}` : ''}${bond}${next ? ` · next: ${next.name}${wait ? ` in ${secondsText(wait)}s` : ''}` : ''}` };
+    }
+
     function viewModel(engine, simView, now = 0) {
         const st = engine.getState();
         const p = st.player || {};
@@ -226,6 +245,7 @@
             stamina,
             dodgeReadyInMs: num(sim.dodgeReadyInMs) ? sim.dodgeReadyInMs : 0,
             heal: healCell(avail, p),
+            stance: stanceCell(engine),
             guarding: !!sim.guarding,
             statuses: statusChips(p.statusEffects, defs, fightNow),
             basic,
@@ -363,6 +383,12 @@
         h('span', 'glyph', healEl, '✚'); const healN = h('span', 'secs', healEl); h('span', 'key', healEl, HEAL_KEY);
         const healFns = [];
         healEl.addEventListener('pointerdown', (e) => { stop(e); healFns.forEach((f) => f()); });
+        // Fenrir's Heir: T or a click changes wolf (Sköll -> Hati -> Fenrir).
+        const stanceEl = h('div', 'ahud-slot dodge stance', barEl);
+        stanceEl.setAttribute('role', 'button');
+        const stanceG = h('span', 'glyph', stanceEl, '☀'); const stanceN = h('span', 'secs', stanceEl); h('span', 'key', stanceEl, STANCE_KEY);
+        const stanceFns = [];
+        stanceEl.addEventListener('pointerdown', (e) => { stop(e); stanceFns.forEach((f) => f()); });
 
         root.appendChild(box);
         if (opts.className) box.classList.add(opts.className);
@@ -494,6 +520,13 @@
                 attr(healEl, 'title', m.heal.title); attr(healEl, 'aria-label', m.heal.title);
                 text(healN, m.heal.count > 1 ? `×${m.heal.count}` : '');
             }
+            show(stanceEl, !!m.stance);
+            if (m.stance) {
+                text(stanceG, m.stance.glyph); text(stanceN, m.stance.readyInMs ? secondsText(m.stance.readyInMs) : m.stance.bond != null ? `${m.stance.bond}` : '');
+                cls(stanceEl, 'is-ready', m.stance.enabled); cls(stanceEl, 'is-disabled', !m.stance.enabled);
+                stanceEl.dataset.stance = m.stance.id;
+                attr(stanceEl, 'title', m.stance.title); attr(stanceEl, 'aria-label', m.stance.title);
+            }
             // a refusal that blocks the whole bar (stunned, silenced…) is said once, above it
             show(note, !!m.barNote); text(note, m.barNote ? `✖ ${m.barNote}` : '');
             // prompt
@@ -536,11 +569,12 @@
             onSlot(fn) { if (typeof fn === 'function') slotFns.push(fn); },
             onAttack(fn) { if (typeof fn === 'function') attackFns.push(fn); },
             onHeal(fn) { if (typeof fn === 'function') healFns.push(fn); },
-            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; healFns.length = 0; chipEls.clear(); noticeEls.clear(); }
+            onStance(fn) { if (typeof fn === 'function') stanceFns.push(fn); },
+            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; healFns.length = 0; stanceFns.length = 0; chipEls.clear(); noticeEls.clear(); }
         };
     }
 
-    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, NOTICE_MS };
+    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, stanceCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, STANCE_KEY, NOTICE_MS };
     ENSO.actionHud = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

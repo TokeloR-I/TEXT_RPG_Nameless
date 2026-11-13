@@ -201,6 +201,21 @@
                     { name: 'Sentence of Light', base_damage: [16, 22] }
                 ]
             },
+            // The Binding Echo (Fenrir's Heir unlock, docs/design/FENRIRS_HEIR.md): what is left of Gleipnir's binding at the
+            // Wolf's Wake, not Fenrir himself. Sun pressure, then consuming dark. Gauge's first numbers: a level 5-6 character
+            // with any starter class wins it in about a minute; losing only resets the trial (retry any time).
+            'binding_echo': {
+                name: 'The Binding Echo',
+                id: 'binding_echo',
+                hp: 420, maxHp: 420, xp: 180, atk: 15, def: 5, spd: 11,
+                critChance: 0.1, critMultiplier: 1.6,
+                specialFlags: ['boss', 'spirit'],
+                skills: [
+                    { name: 'Chain Lash', base_damage: [12, 16] },
+                    { name: 'Sunbrand', base_damage: [10, 14] },
+                    { name: 'Moonless Drag', base_damage: [8, 12] }
+                ]
+            },
             // Chapter Two, Act I (docs/design/CHAPTER_TWO_LORE.md, C2-01 The Frostspine Road; Tokelo 2026-11-11 "start
             // building the world for chapter 2"). Torvald Redhand's Wolf-Banner raiders, hunting the name tablets of the six
             // hundred. CANDIDATE kits for Gauge: a step above the Broken Oath zealot, for a level 4-5 character after the Warden.
@@ -248,6 +263,12 @@
                 name: 'Shadow Hound', hp: 16, maxHp: 16, atk: 3, def: 1, spd: 14, critChance: 0.05, critMultiplier: 1.5,
                 resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
                 skills: [{ name: 'Shadow Bite', description: 'Deals 2-4 damage through armour.', base_damage: [2, 4], target: 'enemy_single', damage_type: 'physical', effects: [{ type: 'ignore_armor' }] }]
+            },
+            // Fenrir's Heir: Call of the Pack. Spectral wolves, half sun and half moon; they fade with the fight.
+            'spectral_wolf': {
+                name: 'Spectral Wolf', hp: 20, maxHp: 20, atk: 4, def: 1, spd: 15, critChance: 0.1, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['spirit'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
+                skills: [{ name: 'Spirit Bite', description: 'Deals 3-5 damage.', base_damage: [3, 5], target: 'enemy_single', damage_type: 'physical' }]
             },
             'shadow_stag': {
                 name: 'Shadow Stag', hp: 40, maxHp: 40, atk: 6, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
@@ -468,6 +489,26 @@
             'Gale of Pinions': { description: 'One beat of the wide wings: 6–9 radiant dmg to every enemy and slow them by 50% for 2 turns.', liveDescription: 'One beat of the wide wings (160 px): 6–9 radiant dmg to every enemy, slowed by 50% for 6 s. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
             'Judgement from Above': { description: 'Rise and strike down: 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Rise and strike down (160 px): 12–16 radiant dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown.', cost: 3, cooldown: 20, resource: 'any', base_damage: [12, 16], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'all_enemies', damage_type: 'radiant' },
             
+            // Fenrir's Heir (Tokelo 2026-11-13, docs/design/FENRIRS_HEIR.md): Chapter Two's legendary class. `stance` = the
+            // wolf you must stand in to use it (src/engine/stance.js); no stance = Fenrir's own, usable in every stance.
+            // Paid from your own class resource ('any'). Thorne picked the roster from the design's candidates; Gauge's first numbers.
+            // Sköll, the Sun Chaser: fire and offense
+            'Solar Fang': { description: 'A wolf\'s head of sunfire lunges at one enemy: 20–26 fire dmg. Sköll only.', liveDescription: 'A wolf\'s head of sunfire leaps at one enemy: 20–26 fire dmg. 3 s cooldown. Sköll stance. Free: Fenrir\'s gift.', cost: 0, cooldown: 3, resource: 'any', stance: 'skoll', base_damage: [20, 26], target: 'enemy_single', damage_type: 'fire' },
+            'Firehowl': { description: 'Sköll howls through you: +25% damage for 3 turns. Sköll only.', liveDescription: 'Sköll howls through you: +25% damage for 9 s. 20 s cooldown. Sköll stance.', cost: 1, cooldown: 20, resource: 'any', stance: 'skoll', effects: [{ type: 'self_buff', name: 'Firehowl', status_type: 'damage_boost', value: 0.25, duration: 3 }], target: 'self' },
+            'Sunfang Rush': { description: 'Run with the burning wolf: 14–20 fire dmg to every enemy in your path. Sköll only.', liveDescription: 'Dash ahead as a burning wolf, then rake everything in front of you: 14–20 fire dmg each. 10 s cooldown. Sköll stance.', cost: 2, cooldown: 10, resource: 'any', stance: 'skoll', base_damage: [14, 20], target: 'enemy_aoe', damage_type: 'fire' },
+            'Firestorm': { description: 'The sun falls in sparks: 8–12 fire dmg to every enemy and Burn (3 dmg/turn) for 2 turns. Sköll only.', liveDescription: 'Call a storm of sunfire where you aim (44 px): 8–12 fire dmg to every enemy in it, burning for 3 a pulse for 6 s. 14 s cooldown. Sköll stance.', cost: 3, cooldown: 14, resource: 'any', stance: 'skoll', base_damage: [8, 12], effects: [{ type: 'dot', dot_type: 'burn', value: 3, duration: 2 }], target: 'enemy_aoe', damage_type: 'fire' },
+            'Devour the Sun': { description: 'Sköll swallows the sun through you: 36–46 fire dmg to one enemy, doubled under 30% HP, and Burn for 3 turns. Sköll only.', liveDescription: 'Sköll swallows the sun through you: 36–46 fire dmg to one enemy, doubled against one under 30% HP, then Burn for 9 s. Once per fight. Sköll stance.', cost: 'all', resource: 'any', oncePerFight: true, stance: 'skoll', base_damage: [36, 46], effects: [{ type: 'execute_bonus', threshold: 0.3, value: 1 }, { type: 'dot', dot_type: 'burn', value: 4, duration: 3 }], target: 'enemy_single', damage_type: 'fire' },
+            // Hati, the Moon Chaser: consuming darkness, speed and defence
+            'Black Maw': { description: 'Darkness opens and drags: 9–13 shadow dmg to every enemy and slow them 50% for 2 turns. Hati only.', liveDescription: 'Darkness opens around you (64 px) and drags enemies in: 9–13 shadow dmg each, slowed 50% for 6 s. 8 s cooldown. Hati stance. Free: Fenrir\'s gift.', cost: 0, cooldown: 8, resource: 'any', stance: 'hati', base_damage: [9, 13], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+            'Darkhowl': { description: 'Hati\'s howl swallows the light: every enemy misses 30% of attacks for 2 turns. Hati only.', liveDescription: 'Hati\'s howl swallows the light around you (96 px): enemies miss 30% of their attacks for 6 s. 18 s cooldown. Hati stance.', cost: 1, cooldown: 18, resource: 'any', stance: 'hati', effects: [{ type: 'blind', value: 0.3, duration: 2, seconds: 6 }], target: 'enemy_aoe' },
+            'Moonless Grasp': { description: 'Jaws of shadow close on one enemy: 10–14 shadow dmg and stun it for 1 turn. Hati only.', liveDescription: 'Jaws of shadow close on one enemy: 10–14 shadow dmg, stunned for 3 s (bosses resist repeats). 12 s cooldown. Hati stance.', cost: 2, cooldown: 12, resource: 'any', stance: 'hati', base_damage: [10, 14], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_single', damage_type: 'shadow' },
+            'Night\'s Dominion': { description: 'The dark feeds on them: 10–14 shadow dmg to every enemy, and you heal for 30% of it. Hati only.', liveDescription: 'The dark around you (80 px) feeds: 10–14 shadow dmg to every enemy, and you heal for 30% of the damage. 16 s cooldown. Hati stance.', cost: 3, cooldown: 16, resource: 'any', stance: 'hati', base_damage: [10, 14], effects: [{ type: 'heal_from_damage', ratio: 0.3 }], target: 'enemy_aoe', damage_type: 'shadow' },
+            'Devour the Moon': { description: 'Hati swallows the moon and everything near it: 22–30 true dmg to every enemy and stun them for 1 turn. Hati only.', liveDescription: 'Hati swallows the moon (120 px): every enemy is dragged in, takes 22–30 true dmg and is stunned for 3 s. Once per fight. Hati stance.', cost: 'all', resource: 'any', oncePerFight: true, stance: 'hati', base_damage: [22, 30], effects: [{ type: 'true_damage' }, { type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'shadow' },
+            // Fenrir: shared, in every stance (the neutral Fenrir stance uses only these)
+            'Call of the Pack': { description: 'Two spectral wolves run beside you for 5 turns.', liveDescription: 'Two spectral wolves run beside you for 15 s (20 HP each). Each bites for 3–5 about once a second, and enemies may go for them instead of you. 24 s cooldown. Free: Fenrir\'s gift.', cost: 0, cooldown: 24, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'spectral_wolf', count: 2 }], target: 'self' },
+            'Gleipnir\'s Bane': { description: 'Break the chain: shed every stun, slow and debuff, and the next hit on you is absorbed.', liveDescription: 'Break the chain: shed every stun, slow and debuff, and absorb the next hit (12 s). 18 s cooldown.', cost: 1, cooldown: 18, resource: 'any', effects: [{ type: 'cleanse', categories: ['control', 'debuff'] }, { type: 'absorb_hit', duration: 2, say: 'breaks the chain, and the broken links hang round you like armour.' }], target: 'self' },
+            'Twin Eclipse': { description: 'Sun and moon go dark at once: 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Sun and moon go dark at once around you (100 px): 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown. Any stance.', cost: 3, cooldown: 20, resource: 'any', base_damage: [14, 20], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+
             'Eternal Lich Unmake': { description: 'Eternal Lich erases one non-boss enemy from this fight.', cost: 5, resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'eternal_lich_unmake' }], target: 'enemy_single', damage_type: 'true' },
 
             // Hollow King Skills
@@ -872,6 +913,68 @@
                             trait: { name: 'Seraph Unbound', effect: 'All six wings open: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
                 },
+                // Fenrir's Heir (Tokelo 2026-11-13, PR #256): Chapter Two's legendary class, replacing Allfather's Chosen. It opens
+                // at the end of the Hunt of Sun and Moon (Gullstrand Coast, the Wolf's Wake). Three stances: Sköll (sun, fire,
+                // offense), Hati (moon, consuming dark, speed and defence) and the neutral Fenrir stance (Tokelo 2026-11-13:
+                // neither wolf). Spec and numbers: docs/design/FENRIRS_HEIR.md; rules: src/engine/stance.js.
+                fenrirs_heir: {
+                    requires: { stages: [], flag: 'fenrir_heir_awakened', event: 'the wolves wake at the Wolf\'s Wake' },
+                    ranks: [
+                        { name: 'Heir of the Wolf', at: 1 },
+                        { name: 'Sun-and-Moon Hunter', at: 8, points: 1, flag: 'fenrir_rank_hunter', say: 'Two shadows run beside yours now, one warm and one cold.' },
+                        { name: 'Fenrir Unbound', node: 'fenrirs_heir.unbound', flag: 'fenrir_rank_unbound', say: 'The last link of Gleipnir breaks. Far away, something enormous lifts its head and howls with you.' }
+                    ],
+                    // Gauge: Fenrir's Blood is a little under Fallen Grace (35%) because the bond adds up to +20% damage (Sköll) or +12%
+                    // speed and defence (Hati) on top. Measured with qa/scripts/legendary_power.js --fenrir (docs/design/FENRIRS_HEIR.md).
+                    heartTraits: [{ name: 'Fenrir\'s Blood', effect: 'The wolf\'s inheritance: +30% damage, take 30% less damage.', mods: { damageDealt: 0.3, damageTaken: -0.3 } }],
+                    gifts: ['fenrirs_heir.solar_fang', 'fenrirs_heir.black_maw', 'fenrirs_heir.call_of_the_pack'],
+                    // The stances (src/engine/stance.js). Bond 0-100 per wolf: +25 per 15 s of fighting in that wolf's stance
+                    // (100 after 60 s); the other wolf fades 0.5 a second while it grows, so loyalty pays and both can't sit
+                    // at 100. The Fenrir stance grows and fades neither. Bond persists between fights and in the save.
+                    stances: {
+                        first: 'skoll',
+                        switchCooldownSeconds: 8, switchCooldownTurns: 3,
+                        bond: { max: 100, gainPerSecond: 25 / 15, fadePerSecond: 0.5 },
+                        list: {
+                            fenrir: { name: 'Fenrir', title: 'the Bound Wolf', bond: false, say: 'You hold both wolves at heel. Neither runs; neither fades.' },
+                            skoll: { name: 'Sköll', title: 'the Sun Chaser', bond: true, say: 'Sköll runs ahead of you, trailing sunfire.',
+                                tiers: [{ at: 25, mods: { damage: 0.05 }, text: '+5% damage.' }, { at: 50, mods: { damage: 0.1 }, text: '+10% damage.' },
+                                    { at: 75, mods: { damage: 0.15 }, text: '+15% damage.' }, { at: 100, mods: { damage: 0.2 }, text: '+20% damage.' }] },
+                            hati: { name: 'Hati', title: 'the Moon Chaser', bond: true, say: 'Hati closes round you like a moonless night.',
+                                tiers: [{ at: 25, mods: { speed: 0.03, defence: 0.03 }, text: '+3% speed, 3% less damage taken.' },
+                                    { at: 50, mods: { speed: 0.06, defence: 0.06 }, text: '+6% speed, 6% less damage taken.' },
+                                    { at: 75, mods: { speed: 0.09, defence: 0.09 }, text: '+9% speed, 9% less damage taken.' },
+                                    { at: 100, mods: { speed: 0.12, defence: 0.12 }, text: '+12% speed, 12% less damage taken.' }] }
+                        }
+                    },
+                    nodes: [
+                        // Sköll, the Sun Chaser
+                        { id: 'fenrirs_heir.solar_fang', kind: 'active', skill: 'Solar Fang', links: ['heart.fenrirs_heir'] },
+                        { id: 'fenrirs_heir.firehowl', kind: 'active', skill: 'Firehowl', minLevel: 4, links: ['fenrirs_heir.solar_fang'] },
+                        { id: 'fenrirs_heir.sunfang_rush', kind: 'active', skill: 'Sunfang Rush', minLevel: 6, links: ['fenrirs_heir.firehowl'] },
+                        { id: 'fenrirs_heir.firestorm', kind: 'active', skill: 'Firestorm', minLevel: 9, links: ['fenrirs_heir.sunfang_rush'] },
+                        { id: 'fenrirs_heir.ember_blood', kind: 'passive', minLevel: 11, links: ['fenrirs_heir.firestorm'],
+                            trait: { name: 'Ember Blood', effect: 'The sun runs hot in you: +10% damage.', mods: { damageDealt: 0.1 } } },
+                        { id: 'fenrirs_heir.devour_the_sun', kind: 'active', skill: 'Devour the Sun', minLevel: 14, links: ['fenrirs_heir.ember_blood'] },
+                        // Hati, the Moon Chaser
+                        { id: 'fenrirs_heir.black_maw', kind: 'active', skill: 'Black Maw', links: ['heart.fenrirs_heir'] },
+                        { id: 'fenrirs_heir.darkhowl', kind: 'active', skill: 'Darkhowl', minLevel: 4, links: ['fenrirs_heir.black_maw'] },
+                        { id: 'fenrirs_heir.moonless_grasp', kind: 'active', skill: 'Moonless Grasp', minLevel: 6, links: ['fenrirs_heir.darkhowl'] },
+                        { id: 'fenrirs_heir.nights_dominion', kind: 'active', skill: 'Night\'s Dominion', minLevel: 9, links: ['fenrirs_heir.moonless_grasp'] },
+                        { id: 'fenrirs_heir.moonhide', kind: 'passive', minLevel: 11, links: ['fenrirs_heir.nights_dominion'],
+                            trait: { name: 'Moonhide', effect: 'Night sits on your skin like a pelt: take 10% less damage.', mods: { damageTaken: -0.1 } } },
+                        { id: 'fenrirs_heir.devour_the_moon', kind: 'active', skill: 'Devour the Moon', minLevel: 14, links: ['fenrirs_heir.moonhide'] },
+                        // Fenrir, shared by every stance
+                        { id: 'fenrirs_heir.call_of_the_pack', kind: 'active', skill: 'Call of the Pack', links: ['heart.fenrirs_heir'] },
+                        { id: 'fenrirs_heir.predators_instinct', kind: 'passive', minLevel: 5, links: ['fenrirs_heir.call_of_the_pack'],
+                            trait: { name: 'Predator\'s Instinct', effect: 'The wolves know you: bond grows 50% faster.', mods: { bondRate: 0.5 } } },
+                        { id: 'fenrirs_heir.gleipnirs_bane', kind: 'active', skill: 'Gleipnir\'s Bane', minLevel: 8, links: ['fenrirs_heir.predators_instinct'] },
+                        { id: 'fenrirs_heir.twin_eclipse', kind: 'active', skill: 'Twin Eclipse', minLevel: 12, links: ['fenrirs_heir.gleipnirs_bane', 'fenrirs_heir.firestorm', 'fenrirs_heir.nights_dominion'] },
+                        { id: 'fenrirs_heir.unbound', kind: 'passive', minLevel: 18, needs: ['fenrirs_heir.devour_the_sun', 'fenrirs_heir.devour_the_moon'],
+                            links: ['fenrirs_heir.devour_the_sun', 'fenrirs_heir.devour_the_moon', 'fenrirs_heir.twin_eclipse'],
+                            trait: { name: 'Fenrir Unbound', effect: 'Gleipnir is broken: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
+                    ]
+                },
                 // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
                 reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
             }
@@ -913,6 +1016,15 @@
                 ranks: ['Fallen', 'Watcher', 'Ashen Seraph', 'Seraph Unbound', 'The Six-Winged'],
                 mastery: 'Every skill learned: six wings at your back, red eyes, and a holy weapon of your choosing from Caelith.',
                 lore: "Evil is only a good that someone else did not choose. You were called fallen before you ever fell."
+            },
+            'fenrirs_heir': {
+                name: 'Fenrir\'s Heir',
+                description: 'The bound wolf\'s inheritance: Sköll who chases the sun, Hati who chases the moon, and the chain between them.',
+                unlockPath: 'Gullstrand Coast: follow the two howls, take the Sun Fang and the Moon Fang, and survive the Binding Echo at the Wolf\'s Wake.',
+                mechanic: 'Three stances: Sköll (fire, offense), Hati (consuming dark, speed and defence) and Fenrir (neither). Stay with one wolf and its bond grows; switching has an 8 s cooldown.',
+                signatureSkill: 'Twin Eclipse',
+                ranks: ['Heir of the Wolf', 'Sun-and-Moon Hunter', 'Fenrir Unbound'],
+                lore: 'Not his child. His heir: the one who picked up what he left when the chain went on.'
             },
             'reality_breaker': {
                 name: 'Reality Breaker',
@@ -1068,7 +1180,9 @@
                     'Halo of Ash':        { seconds: 9,  maxStacks: 1 },   // 30% damage reduction; 20 s cooldown
                     'Feather Ward':       { seconds: 12, maxStacks: 2 },   // each stack absorbs one hit; 14 s cooldown
                     'Wingstep':           { seconds: 6,  maxStacks: 1 },   // 40% to dodge every attack; 14 s cooldown
-                    'The Coal Carried Down': { seconds: 10, maxStacks: 1 },   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
+                    'The Coal Carried Down': { seconds: 10, maxStacks: 1 },
+                    // Fenrir's Heir (docs/design/FENRIRS_HEIR.md)
+                    'Firehowl':           { seconds: 9,  maxStacks: 1 },   // +25% damage; 20 s cooldown   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
                     // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
                     'Wrath Ghost':     { seconds: 20, maxStacks: 1 },
                     'Siphon Ghost':    { seconds: 20, maxStacks: 1 },
@@ -1260,6 +1374,17 @@
                     'Brand of the Watcher': { shape: 'projectile', range: 150, speed: 320, radius: 5, castMs: 200 },
                     'Rain of Feathers':  { shape: 'projectile', range: 150, speed: 280, radius: 6, castMs: 260 },
                     'Verdict of Ash':    { shape: 'line', reach: 60, width: 14, castMs: 500, maxTargets: 1 },
+                    // Fenrir's Heir: Sköll throws and charges; Hati's darkness pulls (pullPx drags each enemy hit toward you).
+                    'Solar Fang':        { shape: 'projectile', range: 160, speed: 300, radius: 7, castMs: 260, projectile: 'fire' },
+                    'Sunfang Rush':      { shape: 'dash', dashPx: 48, dashMs: 160, reach: 28, arcDeg: 120, castMs: 120 },
+                    'Firestorm':         { shape: 'ground', range: 130, radius: 44, castMs: 450 },
+                    'Devour the Sun':    { shape: 'projectile', range: 170, speed: 260, radius: 10, castMs: 500, projectile: 'fire' },
+                    'Black Maw':         { shape: 'circle', radius: 64, castMs: 300, pullPx: 22 },
+                    'Darkhowl':          { shape: 'circle', radius: 96, castMs: 300 },
+                    'Moonless Grasp':    { shape: 'projectile', range: 140, speed: 280, radius: 7, castMs: 280 },
+                    'Night\'s Dominion': { shape: 'circle', radius: 80, castMs: 400 },
+                    'Devour the Moon':   { shape: 'circle', radius: 120, castMs: 600, pullPx: 48 },
+                    'Twin Eclipse':      { shape: 'circle', radius: 100, castMs: 450 },
                     'mirrorImage':       { shape: 'self', castMs: 200, decoyMs: 3000 },
                     'haste':             { shape: 'self', castMs: 200 },
                     'Whirlwind':         { shape: 'circle', radius: 30, castMs: 200 }
@@ -1410,6 +1535,21 @@
                     ]
                 },
                 crow_touched_warden: { boss: true, speed: 46, detect: 150, reach: 36, windupMs: 700, arcDeg: 150, radius: 10, leash: 400, poise: 10, hyperArmor: true, see: 'bosses.crow_touched_warden' },
+                // Fenrir's Heir trial: a coil of broken chain that alternates the two wolves (design §4: telegraphed, walkable).
+                // Sun: burning ground where you stand. Moon: a dark that drags you in. Every tell is readable; bosses hold still for pulls.
+                binding_echo: {
+                    boss: true, speed: 44, detect: 160, reach: 30, arcDeg: 140, windupMs: 620, activeMs: 130, recoveryMs: 700, radius: 10, poise: 8, hyperArmor: true, leash: 400,
+                    giveUpMs: null, keepDistance: [20, 56], group: 'solo',
+                    attacks: [
+                        { name: 'Chain Lash', skill: 'Chain Lash', shape: 'arc', reach: 30, arcDeg: 140, windupMs: 620, activeMs: 130, recoveryMs: 700, cooldownMs: 2400, blockCost: 18, useAt: [0, 34] },
+                        // Sköll's half: sunfire falls where you stand. Three marked circles, a full second to step out.
+                        { name: 'Sunbrand', skill: 'Sunbrand', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.5, useAt: [30, 160] },
+                        // Hati's half: a chain of darkness that drags you to it (like the Warden's Chain Lock).
+                        { name: 'Moonless Drag', skill: 'Moonless Drag', shape: 'projectile', reach: 130, width: 10, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6000, blockCost: 16, parryable: false, onHit: { status: 'Rooted', ms: 800, pullPx: 28 }, useAt: [50, 130] },
+                        // Both at once: the broken chain whips round it. Walk out of 56 px or dodge through (1.1 s to read).
+                        { name: 'Gleipnir Recoils', skill: 'Chain Lash', shape: 'circle', radius: 56, windupMs: 1100, activeMs: 140, recoveryMs: 1200, cooldownMs: 10000, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 50] }
+                    ]
+                },
                 // The Trial of the Live Coal: four wings, a spear, and every tell readable (first-pass numbers, Gauge).
                 heaven_doorwarden: {
                     boss: true, speed: 54, detect: 170, reach: 32, arcDeg: 150, windupMs: 600, activeMs: 140, recoveryMs: 700, radius: 10, poise: 12, hyperArmor: true, leash: 420,
@@ -1943,6 +2083,9 @@
                 "sellable": false,
                 "description": "Mara’s supplies for Tamsin."
             },
+            // Fenrir's Heir: the Hunt of Sun and Moon (quest CL1, docs/design/FENRIRS_HEIR.md). Laid on the stone at the Wolf's Wake.
+            "Sun Fang": { "type": "quest", "bound": true, "unique": true, "sellable": false, "description": "A wolf's tooth the size of your hand, warm as a stone left in the sun. It smells of smoke." },
+            "Moon Fang": { "type": "quest", "bound": true, "unique": true, "sellable": false, "description": "A wolf's tooth the size of your hand, so cold it aches to hold. In the dark it is darker than the dark." },
             "Birkholt Name Tablet": {
                 "type": "quest",
                 "bound": true,

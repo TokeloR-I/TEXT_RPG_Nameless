@@ -106,6 +106,7 @@
         //   { plant: { plot, seed } } { tend: plot } { harvest: plot } { craft: recipeId }: run the homestead
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
         //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
+        //   { stance: id }: stand in that stance of your legendary web (Fenrir's Heir's first wolf, src/engine/stance.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
         //   any effect may carry `when` (a condition): it runs only if that holds right now (an ending that remembers
         //   which choice you made, without a branch node for every combination)
@@ -134,6 +135,7 @@
                 if (e.stash && this.story.dialogue) this.story.dialogue.stash = true;
                 if (e.start) this.startQuest(e.start, opts);
                 if (e.legend) this.awakenLegend(String(e.legend));
+                if (e.stance) this.setStance(String(e.stance));   // the first stance a legendary web gives you (stance.js)
                 if (e.event) this.storyEvent(e.event);
             }
         }

@@ -1183,3 +1183,9 @@ body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%,
 .kitchen-recipes .m-sub { display: block; color: var(--ink-dim); font-size: 0.8em; }
 .kitchen-empty { color: var(--ink-dim); font-size: 0.85em; }
 @media (max-aspect-ratio: 4/3) { .kitchen-grid { grid-template-columns: 1fr 1fr; } .kitchen-book { grid-column: 1 / -1; } }
+/* Fenrir's Heir stance cell (T): sun gold, moon violet, chain grey */
+.ahud-slot.stance { cursor: pointer; }
+.ahud-slot.stance .glyph { font-size: 1.05em; line-height: 1; top: 0; z-index: 3; color: #c8c0b0; }
+.ahud-slot.stance[data-stance="skoll"] .glyph { color: #ffb040; }
+.ahud-slot.stance[data-stance="hati"] .glyph { color: #a080e0; }
+.ahud-slot.stance .secs { position: absolute; right: calc(var(--ap) * 1); top: 0; font-size: clamp(9px, calc(var(--ap) * 4.5), 11px); color: var(--c-ink-dim); }

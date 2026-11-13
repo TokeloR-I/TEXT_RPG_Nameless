@@ -38,6 +38,7 @@
             }
             if (command === 'quickheal' || command === 'qh') { this.quickHeal(); return; }
             if (command === 'flee') { this.doFlee(); return; }
+            if (command === 'stance' || command.startsWith('stance ')) { this.switchStance(command.slice(6).trim()); return; }   // legendary stances (stance.js): no turn used
 
             const skillName = command === 'attack' ? this.basicAttackName() : this.resolveSkillName(command);
             if (!skillName || (!p.skills.includes(skillName) && skillName !== this.basicAttackName())) {
