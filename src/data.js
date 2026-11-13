@@ -99,6 +99,20 @@
                 critChance: 0.1, critMultiplier: 1.5,
                 skills: [{ name: 'Bite', base_damage: [4, 7] }]
             },
+            // Fenrir's Heir (CL1, Gullstrand Coast): the coast wolves that the two hunts have turned. Sun-mad ones lie across
+            // the bright cave and bite hot; the moonless ones come out of the dark hollow after you. Chapter Two pack wolves.
+            'sunscorched_wolf': {
+                name: 'Sun-Mad Wolf',
+                hp: 40, maxHp: 40, xp: 32, atk: 9, def: 3, spd: 13,
+                critChance: 0.12, critMultiplier: 1.6,
+                skills: [{ name: 'Scorching Bite', base_damage: [7, 10] }]
+            },
+            'moonless_wolf': {
+                name: 'Moonless Wolf',
+                hp: 34, maxHp: 34, xp: 32, atk: 9, def: 2, spd: 14,
+                critChance: 0.18, critMultiplier: 1.6,
+                skills: [{ name: 'Night Bite', base_damage: [6, 10] }]
+            },
             'shackled_ghoul': {
                 name: 'Shackled Ghoul',
                 hp: 20, maxHp: 20, xp: 15, atk: 8, def: 1, spd: 14,
@@ -1418,6 +1432,24 @@
                         { name: 'Snap', skill: 'Bite', shape: 'arc', reach: 14, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1100, blockCost: 6, useAt: [0, 18] }
                     ]
                 },
+                // Gullstrand's turned wolves (CL1): the pack wolf's kit at Chapter Two weight. The sun-mad ones press in close;
+                // the moonless ones circle wider and lunge from further out.
+                sunscorched_wolf: {
+                    speed: 86, detect: 120, smellRadius: 40, reach: 38, shape: 'line', width: 10, lunge: 38, windupMs: 480, activeMs: 200, recoveryMs: 600, radius: 6, poise: 2, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [30, 46], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Scorching Bite', shape: 'line', reach: 38, width: 10, lunge: 38, windupMs: 480, activeMs: 200, recoveryMs: 600, cooldownMs: 2400, blockCost: 10, useAt: [22, 52] },
+                        { name: 'Snap', skill: 'Scorching Bite', shape: 'arc', reach: 16, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1000, blockCost: 7, useAt: [0, 20] }
+                    ]
+                },
+                moonless_wolf: {
+                    speed: 92, detect: 120, smellRadius: 40, reach: 44, shape: 'line', width: 9, lunge: 44, windupMs: 520, activeMs: 200, recoveryMs: 650, radius: 5, poise: 1, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [44, 60], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Night Bite', shape: 'line', reach: 44, width: 9, lunge: 44, windupMs: 520, activeMs: 200, recoveryMs: 650, cooldownMs: 2600, blockCost: 10, useAt: [26, 60] },
+                        { name: 'Snap', skill: 'Night Bite', shape: 'arc', reach: 14, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1100, blockCost: 6, useAt: [0, 18] }
+                    ]
+                },
                 weak_goblin: {
                     speed: 52, detect: 96, alertMs: 400, reach: 18, arcDeg: 90, windupMs: 480, activeMs: 100, recoveryMs: 450, radius: 5, poise: 1, leash: 180,
                     keepDistance: [14, 18], group: 'flank', flee: { belowHpPct: 0.25, ms: 2000 }, hopBackAfterHits: 2, hopBackPx: 20,
@@ -2484,6 +2516,16 @@
                 2,
                 "humanoid",
                 "elite"
+            ],
+            "sunscorched_wolf": [
+                3,
+                "beast",
+                "common"
+            ],
+            "moonless_wolf": [
+                3,
+                "beast",
+                "common"
             ]
         };
         for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
@@ -2491,7 +2533,7 @@
         enemies.crow_touched_warden.materialDrops = false;
         // Meat for the pot (the kitchen, Tokelo 2026-11-02): rats and wolves always leave some. Goulash, not glory.
         for (const id of ['rust_rat', 'cellar_vermin']) enemies[id].foodDrops = [{ item: 'Rat Meat' }];
-        for (const id of ['hungry_wolf', 'pack_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
+        for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
             if (d.use !== 'meal' && d.use !== 'drink') continue;

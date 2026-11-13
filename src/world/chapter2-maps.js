@@ -17,6 +17,9 @@
  *                     the noble houses, Guild Lane, the Training Yard, the War Memorial; up the south-west road from
  *                     Skeldvik. The north-east track to the Silent Field is a boundary until Tokelo sends its picture.
  *   hall_of_winter    Inside the Great Hall, after Tokelo's interior picture (2026-11-13): the empty high seat.
+ *   gullstrand_coast  Fenrir's Heir (CL1), after Tokelo's picture (2026-11-13): a fishing village and harbour under a carved
+ *                     headland, the Wolf's Wake (the wolf-carving, the bright and dark caves, the binding stone and the ring),
+ *                     a wrecked longship on the beach. West of Skeldvik by the cliff path.
  * Every map is painted whole by ui/scene-hrimvald.js (no tile art; tests/63 requires a scene on every map).
  * ========================================================================= */
 (function (global) {
@@ -26,7 +29,8 @@
     const zones = {
         hrimvald_frostspine: { name: 'Frostspine Pass', mapIds: ['frostspine_pass'] },
         hrimvald_skeldvik: { name: 'Skeldvik', mapIds: ['skeldvik'] },
-        hrimvald_hrafnholm: { name: 'Hrafnholm', mapIds: ['hrafnholm', 'hall_of_winter'] }
+        hrimvald_hrafnholm: { name: 'Hrafnholm', mapIds: ['hrafnholm', 'hall_of_winter'] },
+        hrimvald_gullstrand: { name: 'Gullstrand Coast', mapIds: ['gullstrand_coast'] }
     };
 
     const maps = {
@@ -191,11 +195,15 @@
                 from_pass: { x: 9, y: 1, facing: 'down' },
                 flight_bell: { x: 39, y: 5, facing: 'up' },
                 from_hrafnholm: { x: 1, y: 36, facing: 'right' },
-                from_hrafnholm_2: { x: 1, y: 37, facing: 'right' }
+                from_hrafnholm_2: { x: 1, y: 37, facing: 'right' },
+                from_gullstrand: { x: 1, y: 4, facing: 'right' }
             },
             exits: [
                 { id: 'skeldvik_north', x: 9, y: 0, trigger: 'step', toMap: 'frostspine_pass', toSpawn: 'from_skeldvik' },
                 // The road to the village and the hinterlands, and on up to Hrafnholm (C2-03; it was a boundary until Hrafnholm was built).
+                // The cliff path west over the headland to Gullstrand Coast and the Wolf's Wake (Fenrir's Heir, CL1).
+                { id: 'skeldvik_gullstrand', x: 0, y: 4, trigger: 'step', toMap: 'gullstrand_coast', toSpawn: 'from_skeldvik',
+                    text: 'The cliff path goes west out of Skeldvik, over a headland of wind-bent firs, and down to a fishing village under a great grey rock. Every house in it has its back turned to the rock.' },
                 { id: 'skeldvik_west_road', x: 0, y: 36, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_skeldvik',
                     text: 'The road leaves the harbour by the south-west, through a village of turf roofs and on up into the hinterlands. By evening there is a palisade on the ridge ahead, smoke over it, and a great roof above the smoke.' },
                 { id: 'skeldvik_west_road_2', x: 0, y: 37, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_skeldvik_2',
@@ -212,6 +220,8 @@
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 12, y: 8, name: 'Memorial stone',
                     text: 'A standing stone twice your height, cut with knotwork older than the war, in a ring of smaller stones. A wooden board is pegged to its face: the names of Skeldvik\'s dead from the Silent Field, cut in rows. Half the board has been split away along the grain, lately, with something sharp. The pale wood underneath has not had time to grey.' },
+                { id: 'skeldvik_gullstrand_post', kind: 'inspect', x: 3, y: 3, name: 'Waymark',
+                    text: 'A board nailed to the palisade where the cliff path leaves the town: GULLSTRAND, and an arrow west along the cliffs. Under it someone has cut two small wolves, one with a sun over it and one with a moon, and a line through both.' },
                 { id: 'skeldvik_customs_stone', kind: 'inspect', x: 10, y: 36, name: 'Customs stone',
                     text: 'A squat grey stone with a slot cut in the top for coin, and the old Crown\'s mark on the side. Skeldvik paid harbour dues here for six years. Nobody has moved it. Children sit on it. A gull has been using it for something else.' },
                 { id: 'skeldvik_alehouse', kind: 'inspect', x: 24, y: 9, name: 'The Stormtide Inn',
@@ -439,6 +449,114 @@
                     text: 'Spears in a rack, round shields painted half and half, a chest under a fur. The hall\'s men keep their gear here. There is room on the rack for a great many more spears than there are.' },
                 { id: 'hall_tables', kind: 'inspect', x: 8, y: 10, name: 'Feast table',
                     text: 'Bowls, a jug, candles burning down in their own wax, a runner of red-and-white weave down the middle. Places are laid all down the bench, more places than there are people in the hall.' }
+            ]
+        },
+        // -----------------------------------------------------------------
+        // Gullstrand Coast and the Wolf's Wake (Fenrir's Heir, quest CL1). Laid out after Tokelo's picture
+        // (2026-11-13, "Gullstrand Coast, Wolf's Wake"): the cliff path comes down from Skeldvik in the north-west
+        // into a fishing village of thatched houses, fish racks and a canvas awning; the quay, the pier, the
+        // rowboats and the net shed sit in the harbour in the south-west. A path runs east under the headland; a
+        // winding stair climbs it to the Wolf's Wake: a ring of flagstones before a cliff carved with a sun, a
+        // running golden wolf, a broken chain, a running dark wolf and a crescent moon, a bright cave on the sun's
+        // side and a dark one on the moon's. East, the path drops to a pebble beach and a wrecked longship;
+        // sea stacks and a stormy sea fill the east and south.
+        gullstrand_coast: {
+            zoneId: 'hrimvald_gullstrand',
+            name: 'Gullstrand Coast',
+            scene: 'gullstrand_coast',         // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(70, 80, 110, 0.1)', particles: { kind: 'dust', count: 10 },
+                grade: { ambient: 0.9, exposure: 1.02, highlights: [0.0, 0.02, 0.05] } },
+            legend: {
+                ',': { name: 'grass' }, ':': { name: 'path' }, 'B': { name: 'flagstones' }, 'S': { name: 'steps' }, '.': { name: 'shingle' }, '=': { name: 'wharf' },
+                '~': { name: 'water', solid: true }, '^': { name: 'cliff', solid: true }, 'T': { name: 'fir', solid: true }, 'o': { name: 'rock', solid: true },
+                'C': { name: 'wolf_carving', solid: true }, 'g': { name: 'sun_cave', solid: true }, 'v': { name: 'moon_cave', solid: true }, 'Z': { name: 'binding_stone', solid: true },
+                'h': { name: 'house', solid: true }, 'a': { name: 'awning', solid: true }, 'n': { name: 'net_shed', solid: true }, 'r': { name: 'fish_rack', solid: true },
+                'f': { name: 'fence', solid: true }, 'b': { name: 'barrel', solid: true }, 'x': { name: 'crate', solid: true }, 'k': { name: 'rowboat', solid: true },
+                'L': { name: 'wreck', solid: true }
+            },
+            tiles: [
+                '^^^^^^^^^^^^:^^^^^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~',
+                '^^^^^^^^^^^^:^^^^^^CCCCCCCCCCCCCCCCCC^^^^^~~~~~~~~~~~~~~',
+                ',T,T,,,,,,,,:,,,^^^CCCCCCCCCCCCCCCCCC^^^^^~~~~~~~~~~~~~~',
+                ',,,,,T,,,,,,:,,,^^^CCCCCCCCCCCCCCCCCC^^^^^~~~~~~~~~~~~~~',
+                'T,,,,,,,,,,,:,,,^^^CgggCCCCCCCCCCCvvv^^^^^~~~~~~~~~~~~~~',
+                ',hhhhhh,,,,:,,,T^^^CgggCCCCCCCCCCCvvv^^^^^~~~~~~~~~~~~~~',
+                ',hhhhhh,,x,:,,,,^^^^BBBBBBBBBBBBZBBB^^^^^^~~~~~~~~~~~~~~',
+                ',hhhhhh,,,,:,,,,^^^BBBBBBBBBBBBBBBBBB^^^^^....LLLLLL.~~~',
+                ',hhhhhh,,,:,,,,,^^^BBBBBBBBBBBBBBBBBB^^^^.....LLLLLLL~~~',
+                ',hhhhhhb,:,,,,,,^^^BBBBBBBBBBBBBBBBBB^^^......LLLLLLL~~~',
+                'x,:::::::,,,hhhhhh^oBBBBBBBBBBBBBBBBo^^^......LLLLLLL~~~',
+                ',,T,,,,,:,,,hhhhhh^^^^^^^^^SS^^^^^^^^^^.........LLLL.~~~',
+                'Tffffff,:,,,hhhhhh^^^^^^^^^SS^^^^^^^^^^......o.......~~~',
+                ',,,,,,,,:,,,hhhhhh^^^^^^^^SS^^^^^^^^^^::............o~~~',
+                'hhhhhh,,,:,,,ff,,,^^^^^^^^SS^^^^^^^^^::..o.o.........~~~',
+                'hhhhhhaa,:,,,,,rr,^^^^^^^SS^^^^^^^^^::^^~~~~~~~~~~~~~~~~',
+                'hhhhhhaa,,:rr,,,,b^^^^^^^SS^^^^^^^^::^^^~~~~~~~~~~~~~~~~',
+                'hhhhhh,,,,::,,,,,,o,,,o,,SS,,,,,,,,:^^^^~~o~~~~~~~~~~~~~',
+                'hhhhhhbx,,,::::::::::::::::::::::::,^^^^~~~~~~~~~~~~~~~~',
+                ',,,,,,,,,:::,nnnn,,,,,,,,^^^^^^^^^^^^^^^~~~~~~o~~~~~~~~~',
+                ',,xb,,,::::,,nnnn^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~',
+                ',,,,:::::::xxnnnn^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~',
+                ',,,=============,^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~o~~~~~',
+                '~~~=============~^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~',
+                '~~~~~~~~~~~~==~~~^^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~',
+                '~~~~~k~k~~~~==~~~^^^^^^^^^^^^^^^^^^^^^^^~~~~o~~~~~~~~~~~',
+                '^^~~~~~~~~~~==~~~^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~~~~',
+                '^^~~~~~~=========^^^^^^^^^^^^^^^^^^^^^^~~~~~~~~~~~~~~o~~',
+                '^^~~~~~~=========^^^^^^^^^^^^^~~~o~~~~~~~o~~~~~~~~~~~~~~',
+                '^^^^~~~~~~~~~~~~~^^^^^^^^^^^^^~~~~~~~~~~~~~~~~~~o~~~~~~~',
+                '^^^^~~~~~k~k~~~~~^^^^^^^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+                '^^^^~~~~~~~~~~~~~^^^^^^^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+            ],
+            lights: [
+                { x: 21, y: 5, radius: 3.2, color: 'rgba(255, 190, 80, 0.32)' }, { x: 35, y: 5, radius: 3.2, color: 'rgba(170, 110, 255, 0.3)' },
+                { x: 3, y: 9, radius: 2.2, color: 'rgba(255, 170, 80, 0.2)' }, { x: 14, y: 13, radius: 2.2, color: 'rgba(255, 170, 80, 0.2)' },
+                { x: 3, y: 18, radius: 2.4, color: 'rgba(255, 170, 80, 0.22)' }, { x: 15, y: 21, radius: 1.8, color: 'rgba(255, 170, 80, 0.18)' }
+            ],
+            spawns: {
+                from_skeldvik: { x: 12, y: 1, facing: 'down' }
+            },
+            exits: [
+                { id: 'gullstrand_north', x: 12, y: 0, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_gullstrand',
+                    text: 'The cliff path climbs over the headland, through the firs, and comes down by the palisade into Skeldvik.' }
+            ],
+            encounters: [
+                // The sun hunt (CL1): coast wolves gone wrong in a heat that isn't there, lying across the bright cave. They wake with the carving.
+                { id: 'gullstrand_sun_hunt', x: 21, y: 7, name: 'Sun-Mad Wolves', enemies: ['sunscorched_wolf', 'sunscorched_wolf', 'sunscorched_wolf'], trigger: 'contact', sprite: 'wolf',
+                    detect: 120, when: { flags: ['fenrir_quest_discovered'] },
+                    text: 'Three grey coast wolves lie across the mouth of the bright cave, panting as if it were midsummer. Their fur is singed white along the back. When they lift their heads their eyes are the colour of noon.' },
+                // The moon hunt: what comes out of the dark hollow once you've taken what it kept.
+                { id: 'gullstrand_moon_hunt', x: 35, y: 8, name: 'Moonless Wolves', enemies: ['moonless_wolf', 'moonless_wolf', 'moonless_wolf'], trigger: 'contact', sprite: 'wolf',
+                    detect: 120, when: { flags: ['fenrir_moon_fang'] },
+                    text: 'The dark follows you out of the hollow, and has teeth. Three wolves with no light in them at all, only the shape of wolves cut out of the evening.' },
+                // The Broken Binding: lay both fangs in the stone and what held Fenrir wakes on the ring.
+                { id: 'wolfs_wake_trial', x: 28, y: 8, name: 'The Binding Echo', enemies: ['binding_echo'], trigger: 'contact', sprite: 'shade',
+                    when: { flags: ['fenrir_trial_called'], notFlags: ['fenrir_trial_cleared'] },
+                    text: 'A coil of chain turns slowly over the ring, links of sunlight and links of no light at all, wound into something with no face. It is not a wolf. It is the thing that held one.' }
+            ],
+            interactables: [
+                { id: 'gullstrand_brynja', kind: 'npc', npc: 'brynja', x: 12, y: 20, name: 'Brynja Net-Mender', sprite: 'netmender' },
+                { id: 'gullstrand_wolf_carving', kind: 'inspect', x: 28, y: 5, name: 'The wolf-carving',
+                    text: 'The whole cliff face has been cut back flat and carved. On the left a sun, rayed like a wheel, and a wolf running at it with its jaws open. On the right a crescent moon and a second wolf, darker, running the other way. A chain crosses the rock between them, link by link, and breaks in the middle.' },
+                { id: 'gullstrand_sun_cairn', kind: 'npc', npc: 'sun_marker', x: 21, y: 5, name: 'The bright cave',
+                    guardedBy: 'gullstrand_sun_hunt',
+                    guardedText: 'The wolves are lying across the cave mouth, and they are not asleep. Whatever is in the bright cave, you will have to go through them.' },
+                { id: 'gullstrand_moon_hollow', kind: 'npc', npc: 'moon_hollow', x: 35, y: 5, name: 'The dark hollow' },
+                { id: 'gullstrand_binding_stone', kind: 'npc', npc: 'wolfs_wake_stone', x: 32, y: 6, name: 'The binding stone' },
+                { id: 'gullstrand_longhouse', kind: 'inspect', x: 3, y: 18, name: 'Longhouse',
+                    text: 'The biggest house in Gullstrand, thatched in sea-grass weighted with stones on ropes against the wind. Every house in the village turns its back on the headland. You notice it here first.' },
+                { id: 'gullstrand_fish_racks', kind: 'inspect', x: 11, y: 16, name: 'Fish racks',
+                    text: 'Split cod hung by the tail in pairs. A gull sits on the top rail, considering its chances.' },
+                { id: 'gullstrand_net_shed', kind: 'inspect', x: 15, y: 21, name: 'Net shed',
+                    text: 'Nets in heaps, floats of cork and glass, a bone needle on every hook. Someone has nailed a horseshoe over the lintel the wrong way up, so that the luck runs out toward the headland.' },
+                { id: 'gullstrand_wreck', kind: 'inspect', x: 48, y: 11, name: 'Wrecked longship',
+                    text: 'A longship on her side on the pebbles, her back broken, the sail in red rags on a mast that has snapped twice. Nobody has stripped her for timber. The villagers say she came ashore on a night when there was no moon and no wind, and her crew went up the stair.' },
+                { id: 'gullstrand_sea_stacks', kind: 'inspect', x: 45, y: 12, name: 'Sea stacks',
+                    text: 'Pillars of grey rock standing out in the surf, green on top where the gulls nest. The sea goes white round every one of them.' },
+                { id: 'gullstrand_stair', kind: 'inspect', x: 22, y: 17, name: 'Old boulder',
+                    text: 'A stone at the foot of the stair, worn into a seat. Someone has scratched two small wolves on it, the way a child draws them, and then scratched them out.' },
+                { id: 'gullstrand_herbs', kind: 'forage', forage: 'wild_herbs', x: 4, y: 3, name: 'Wild herbs', sprite: 'herbs',
+                    text: 'Thyme and sea-pink in the turf above the village, where the wind keeps the grass short.' }
             ]
         }
 

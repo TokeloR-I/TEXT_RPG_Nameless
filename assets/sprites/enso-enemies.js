@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -30,7 +30,9 @@
         wolfred: ['#24100f','#4a1c18','#7a2c22','#a8482f','#d08a5c'],    // Wolf-Banner madder-red wool (Chapter Two)
         pelt: ['#1a1b1f','#34363c','#5a5c60','#8c8c88','#c8c6ba'],       // a grey wolf pelt over the shoulders
         undyed: ['#2a2620','#544a3a','#84765a','#b4a580','#ddd2b0'],     // undyed northern wool
-        chainlight: ['#120f1e','#32284a','#5e4a6a','#c89a48','#f6e2a0']   // the Binding Echo: moon-dark links lit sun-gold
+        chainlight: ['#120f1e','#32284a','#5e4a6a','#c89a48','#f6e2a0'],  // the Binding Echo: moon-dark links lit sun-gold
+        sunsinged: ['#2a1a12','#5a3a24','#8e6a44','#c8a466','#f2dc9c'],  // Gullstrand's sun-mad wolves: grey fur singed pale gold
+        moonless: ['#0a0a14','#161628','#262640','#3c3a5e','#6a6094']    // the moonless wolves: shapes cut out of the evening
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -57,7 +59,10 @@
         // Sergeant Kess, the Ash-Marked (Chapter One): an old Crown sergeant's mail under the Broken Oath's ash-red.
         oath_sergeant: {kind:'watch', body:'metal', coat:'ash', tall:39, wide:9},
         // Fenrir's Heir trial: what is left of the binding, a faceless coil of chain, half sun and half moon (not Fenrir).
-        binding_echo: {kind:'shade', body:'chainlight', tall:42, wide:11}
+        binding_echo: {kind:'shade', body:'chainlight', tall:42, wide:11},
+        // Gullstrand's turned coast wolves (CL1's two hunts).
+        sunscorched_wolf: {kind:'wolf', body:'sunsinged'},
+        moonless_wolf: {kind:'wolf', body:'moonless', small:true}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

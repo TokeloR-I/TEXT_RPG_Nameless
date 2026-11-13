@@ -2,12 +2,14 @@
 
 **Owner:** Thorne (mechanics), Gauge (numbers), Ashby and Wick (words). **Requested by:** Tokelo, 2026-11-13
 (creative handoff: [FENRIRS_HEIR_LEGENDARY_CLASS_DESIGN.md](FENRIRS_HEIR_LEGENDARY_CLASS_DESIGN.md), PR #256).
-**Status:** built: the web, the stances and bond, the skills, the unlock quest, its talks and its trial fight. **Not yet
-placed:** Gullstrand Coast and the Wolf's Wake have no maps. They wait on Tokelo's design pictures (no area is built
-without one), so the quest can't be found in play yet. The dev cheat `awaken_fenrir [skoll|hati|fenrir]` opens it.
+**Status:** built and placed. Gullstrand Coast and the Wolf's Wake are one map, `gullstrand_coast`, laid out after
+Tokelo's picture (2026-11-13) and reached by the cliff path west out of Skeldvik (a waymark on the palisade points to it).
+The dev cheat `awaken_fenrir [skoll|hati|fenrir]` still opens the web directly.
 
 Data: `skillWeb.legendaryWebs.fenrirs_heir` and the skills in `skillDefinitions` (`src/data.js`); rules:
-`src/engine/stance.js`; quest `CL1` and its talks: `src/story/chapter2.js`; tests: `tests/100-fenrirs-heir.test.js`.
+`src/engine/stance.js`; quest `CL1` and its talks: `src/story/chapter2.js`; map: `gullstrand_coast` in
+`src/world/chapter2-maps.js`, painted by `ui/scene-hrimvald.js`; tests: `tests/100-fenrirs-heir.test.js` and the Gullstrand
+playthrough in `tests/98-chapter-two.test.js`.
 
 ## Director's answers (Tokelo, 2026-11-13)
 
@@ -111,28 +113,38 @@ before touching its numbers.
 
 ## Unlock: The Hunt of Sun and Moon (quest CL1)
 
-Optional, any class, any Chapter Two choice. Flags follow the handoff.
+Optional, any class, any Chapter Two choice. Flags follow the handoff. Every step has a map marker once the quest starts.
 
-| Step | Where | What happens | Data |
+| Step | Where on `gullstrand_coast` | What happens | Data |
 |---|---|---|---|
-| 1. The First Howl | Gullstrand cliffs | Read the wolf-carving: the verse, and the quest starts | inspect `gullstrand_wolf_carving`, flag `fenrir_quest_discovered` |
-| 2. Two Hunts | a sun-scorched cairn, a moon-dark hollow | Take the **Sun Fang** and the **Moon Fang**, either order | talks `sun_marker`, `moon_hollow`; flags `fenrir_sun_fang`, `fenrir_moon_fang`, `fenrir_fangs_both` |
-| 3. The Broken Binding | the Wolf's Wake | Lay both fangs in the stone; **the Binding Echo** wakes. Losing only resets it | talk `wolfs_wake_stone`; flag `fenrir_trial_called`; encounter `wolfs_wake_trial` |
-| 4. The Choice of the Hunt | the Wolf's Wake | Sköll, Hati, or "Neither yet" (Fenrir): the web opens with that stance | flags `fenrir_trial_cleared`, `fenrir_heir_awakened`; effects `legend`, `stance` |
+| 0. The First Howl | coming down into the village | Two howls off the headland. **Brynja Net-Mender** at the net shed tells why every house turns its back on the rock, and (once the hunt is on) how to take each fang | trigger `cl1_arrive`; npc `brynja` |
+| 1. The carving | the carved cliff above the stair (28,5) | Read it: the verse, the quest starts, and the sun-mad wolves at the bright cave wake | inspect `gullstrand_wolf_carving`, flag `fenrir_quest_discovered` |
+| 2a. The sun hunt | the bright cave (21,5) | Three **Sun-Mad Wolves** lie across the cave (the cave is guarded until they're beaten); then take the **Sun Fang** from the black cairn | encounter `gullstrand_sun_hunt`; talk `sun_marker`; flag `fenrir_sun_fang` |
+| 2b. The moon hunt | the dark hollow (35,5) | A light is no use (you are put outside again); reaching in finds nothing; **putting your light out and waiting** gives the **Moon Fang**, and three **Moonless Wolves** follow you out | talk `moon_hollow`; flag `fenrir_moon_fang`; encounter `gullstrand_moon_hunt` |
+| 3. The Broken Binding | the binding stone at the ring's edge (32,6) | Lay both fangs in it; **the Binding Echo** wakes on the ring. Losing only resets it | talk `wolfs_wake_stone`; flag `fenrir_trial_called`; encounter `wolfs_wake_trial` (28,8) |
+| 4. The Choice of the Hunt | the same stone | Sköll, Hati, or "Neither yet" (Fenrir): the web opens with that stance | flags `fenrir_trial_cleared`, `fenrir_heir_awakened`; effects `legend`, `stance` |
 | 5. The First Bond | the same talk | The wolves explain the bond and the switch; the quest's end names the T key | flag `fenrir_first_bond_tutorial_done` |
+
+The two hunts go in either order: the quest's `sun` and `moon` steps each give way (`skipIf`) once you hold that fang.
+
+**Sun-Mad Wolf** (`sunscorched_wolf`, 40 HP, Scorching Bite 7–10, drops Wolf Meat) and **Moonless Wolf** (`moonless_wolf`,
+34 HP, Night Bite 6–10, lunges from further out, leaves no meat): Chapter Two pack wolves with the pack wolf's live kit.
+Candidates for Gauge's next balance pass.
 
 **The Binding Echo** (`binding_echo`): the broken binding, not Fenrir. 420 HP (turn stats), boss. Chain Lash (arc),
 **Sunbrand** (three burning circles, 1 s to step out), **Moonless Drag** (a dark chain that roots and pulls 28 px) and
 **Gleipnir Recoils** (a 56 px whip, 1.1 s tell). Every tell is 0.6 s or longer. Code-drawn art in
 `assets/sprites/enso-enemies.js`.
 
-### Placing it (when Tokelo's pictures arrive)
+### The map (after Tokelo's picture)
 
-Content marked `awaitsArea: 'gullstrand_coast'` (quest CL1 and the three talks) is skipped by the map-placement checks
-until then; `tests/100-fenrirs-heir.test.js` lists exactly what waits. To place it: build the maps from Tokelo's
-pictures, put the inspectable `gullstrand_wolf_carving`, the two talks and `wolfs_wake_stone` on them, add the
-`wolfs_wake_trial` encounter (`enemies: ['binding_echo']`, `when: { flags: ['fenrir_trial_called'], notFlags: ['fenrir_trial_cleared'] }`),
-add objective markers, and remove `awaitsArea`.
+The cliff path from Skeldvik comes down in the north-west into a village of three thatched houses, fish racks and a canvas
+awning; the quay, the pier, the rowboats and the net shed are in the harbour in the south-west. A path runs east under the
+headland; a winding stone stair climbs to the Wolf's Wake: a ring of flagstones with one crack through it, before a cliff
+carved with a rayed sun and Sköll in gold, a broken chain, and Hati and a crescent moon in violet, with the bright cave
+under the sun and the dark one under the moon. East, the path drops to a pebble beach and a wrecked longship; sea stacks
+and a storm sea fill the east and south. Painted whole by code (`gullstrand_coast` in `ui/scene-hrimvald.js`); preview:
+`node tools/preview-scene.js gullstrand_coast out.png 1`.
 
 ## Open for later
 
