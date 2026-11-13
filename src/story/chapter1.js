@@ -424,14 +424,18 @@
     const DATA = isNode ? require('../data.js') : ENSO.data;
     const amount = (ings) => Object.entries(ings).map(([n, q]) => (q > 1 ? `${q} ${n}` : n)).join(', ');
     const STATION_VERB = { hearth: 'Cook', oven: 'Bake', mill: 'Grind', brewery: 'Brew' };
-    const recipesAt = (station) => Object.entries(DATA.recipeDefinitions).filter(([, r]) => r.station === station);
-    const cook = (station, when) => recipesAt(station).map(([id, r]) => ({
+    // Regional cooking (Tokelo, 2026-11-13): a public hearth in a region cooks that region's dishes (and rat goulash,
+    // region 'any'); the home hearth cooks every region's. foodRules.homeRegion is Chapter One's.
+    const HOME = (DATA.foodRules || {}).homeRegion;
+    const ofRegion = (r, region) => !region || r.region === 'any' || (r.region || HOME) === region;
+    const recipesAt = (station, region) => Object.entries(DATA.recipeDefinitions).filter(([, r]) => r.station === station && ofRegion(r, region));
+    const cook = (station, when, region) => recipesAt(station, region).map(([id, r]) => ({
         text: `${STATION_VERB[station] || 'Make'} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output} (${amount(r.ingredients)})`,
         if: { ...(when || {}), has: r.ingredients }, stay: true, effects: [{ craft: id }]
     }));
-    const recipeBook = (station, when) => ({
+    const recipeBook = (station, when, region) => ({
         text: 'What can I make here?', ...(when ? { if: when } : {}), stay: true,
-        effects: [{ say: recipesAt(station).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+        effects: [{ say: recipesAt(station, region).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
     });
     // Crops ripen on the clock in the world (farmingRules, Tokelo 2026-11-04): watering and weeding hurries them once.
     const FARM = DATA.farmingRules || {};
@@ -1580,7 +1584,7 @@
             talk: [{ node: 'hearth' }],
             nodes: {
                 hearth: {
-                    lines: [[null, 'A ring of stones, an iron hook and a blackened pot. Whatever you carry, it will cook.']],
+                    lines: [[null, "A ring of stones, an iron hook and a blackened pot. Whatever you carry, from wherever you've been, it will cook."]],
                     choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
                 }
             }
@@ -1835,24 +1839,24 @@
 
         // The public hearth in Baker's Lane, beside Oda's oven (playtest 2026-11-11): cook in the village, not only at home.
         lane_hearth: {
-            name: 'Lane hearth', title: "Baker's Lane", kitchen: 'hearth',
+            name: 'Lane hearth', title: "Baker's Lane", kitchen: 'hearth', region: HOME,
             talk: [{ node: 'hearth' }],
             nodes: {
                 hearth: {
                     lines: [[null, "A brick hearth under the bakery eaves, fed from Oda's woodpile. A slate by it reads: COOK WHAT YOU LIKE. CLEAN THE POT. — O."]],
-                    choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
+                    choices: [...cook('hearth', null, HOME), recipeBook('hearth', null, HOME), { text: 'Leave it.', end: true }]
                 }
             }
         },
         // ------------------------------------------------------------- The rest of the master brief (2026-11-11)
         // The festival hearth by the raven tree (C1-N03): a public hearth, so the cooking lesson needs no trip home.
         square_hearth: {
-            name: 'Festival hearth', title: 'Shamefield', kitchen: 'hearth',
+            name: 'Festival hearth', title: 'Shamefield', kitchen: 'hearth', region: HOME,
             talk: [{ node: 'hearth' }],
             nodes: {
                 hearth: {
                     lines: [[null, 'A trestle, an iron grill and a fire the whole village feeds. Anyone may cook here; Oda keeps an eye on it.']],
-                    choices: [...cook('hearth'), recipeBook('hearth'), { text: 'Leave it.', end: true }]
+                    choices: [...cook('hearth', null, HOME), recipeBook('hearth', null, HOME), { text: 'Leave it.', end: true }]
                 }
             }
         },
@@ -2047,6 +2051,7 @@
         Object.assign(quests, ch2.quests);
         Object.assign(npcs, ch2.npcs);
         Object.assign(anchors, ch2.anchors);
+        Object.assign(chapter1.merchants, ch2.merchants || {});
         triggers.push(...ch2.triggers);
         const q08 = quests.Q08;
         delete q08.teaser;

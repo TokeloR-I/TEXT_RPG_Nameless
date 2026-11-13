@@ -39,6 +39,7 @@
     const TRACK_MAX = 4;                              // quests on the HUD tracker at once (Tokelo, 2026-11-04)
     const UNREACHABLE = 'The crow cannot reach that perch yet.';
     const NAME_MAX = 24;
+    const NOT_HERE_TEXT = "That isn't cooked in these parts. Your home hearth knows every region's recipes.";   // regional cooking (Tokelo 2026-11-13)
 
     class StoryMethods {
         // =====================================================================
@@ -86,6 +87,8 @@
             for (const [id, want] of Object.entries(cond.plots || {})) if (this.plotState(id) !== want) return false;
             if (cond.any && !cond.any.some((c) => this.storyAllows(c))) return false;
             // questCount: { ids, min }: at least `min` of those quests complete (two households vouch for you)
+            // inRegion: the food region of the map you're on (foodRules.regions; the camp kit's menu)
+            if (cond.inRegion && this.foodRegion() !== cond.inRegion) return false;
             if (cond.questCount && this.questsDone(cond.questCount) < (cond.questCount.min ?? (cond.questCount.ids || []).length)) return false;
             return true;
         }
@@ -130,7 +133,11 @@
                 if (e.plant) this.plantCrop(String(e.plant.plot), String(e.plant.seed));
                 if (e.tend) this.tendPlot(String(e.tend));
                 if (e.harvest) this.harvestPlot(String(e.harvest));
-                if (e.craft) this.craftRecipe(String(e.craft));
+                if (e.craft) {   // at a hearth, only what that hearth cooks (regional cooking, src/engine/kitchen.js)
+                    const dn = this.story.dialogue && this.npcDef(this.story.dialogue.npcId), r = (this.data.recipeDefinitions || {})[e.craft];
+                    if (dn && dn.kitchen && !this.hearthCooks(dn, r)) this.refuse('NOT_COOKED_HERE', NOT_HERE_TEXT);
+                    else this.craftRecipe(String(e.craft));
+                }
                 if (e.rest) this.restAtHome();
                 if (e.stash && this.story.dialogue) this.story.dialogue.stash = true;
                 if (e.start) this.startQuest(e.start, opts);
@@ -501,8 +508,8 @@
             if (!npc || !npc.kitchen) return null;
             const inv = this.player.inventory;
             const count = (item) => inv.filter((x) => x === item).length;
-            const recipes = Object.entries(this.data.recipeDefinitions || {}).filter(([, r]) => r.station === npc.kitchen).map(([id, r]) => {
-                const reason = this.cookBlock(id, npc.kitchen);
+            const recipes = Object.entries(this.data.recipeDefinitions || {}).filter(([, r]) => r.station === npc.kitchen && this.hearthCooks(npc, r)).map(([id, r]) => {
+                const reason = this.cookBlock(id, npc.kitchen, npc);
                 return { id, output: r.output, yield: Number.isSafeInteger(r.yield) && r.yield > 1 ? r.yield : 1, verb: r.verb || 'Made',
                     ingredients: Object.entries(r.ingredients || {}).map(([item, qty]) => ({ item, qty, have: count(item) })),
                     description: (this.itemDef(r.output) || {}).description || '', enabled: !reason, ...(reason ? { reason } : {}) };
@@ -513,9 +520,10 @@
         }
 
         /** Pure. Why this recipe can't be cooked here now, or null. */
-        cookBlock(recipeId, station) {
+        cookBlock(recipeId, station, npc) {
             const r = (this.data.recipeDefinitions || {})[recipeId];
             if (!r || r.station !== station) return { code: 'WRONG_STATION', message: "That isn't made here." };
+            if (npc && !this.hearthCooks(npc, r)) return { code: 'NOT_COOKED_HERE', message: NOT_HERE_TEXT };
             if (r.requiresUpgrade && !this.player.homestead?.built?.[r.requiresUpgrade]) return { code: 'RECIPE_LOCKED', message: 'This recipe or station is unavailable.' };
             const inv = this.player.inventory;
             const short = Object.entries(r.ingredients || {}).filter(([item, qty]) => inv.filter((x) => x === item).length < qty).map(([item]) => item);
@@ -528,7 +536,7 @@
             const d = this.story.dialogue;
             const npc = this.npcDef(d.npcId);
             if (!npc || !npc.kitchen) { this.refuse('WRONG_STATION', 'There is nothing to cook on here.'); return; }
-            const block = this.cookBlock(recipeId, npc.kitchen);
+            const block = this.cookBlock(recipeId, npc.kitchen, npc);
             if (block) { this.refuse(block.code, block.message); return; }
             this.craftRecipe(recipeId);
         }

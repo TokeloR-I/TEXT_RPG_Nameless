@@ -56,16 +56,22 @@
                 { start: 'C203' }]
         },
         // Fenrir's Heir (Tokelo 2026-11-13, PR #256; replaces Allfather's Chosen): the optional legendary unlock. It begins
-        // when you read the wolf-carving on Gullstrand Coast. The coast and the Wolf's Wake wait on Tokelo's design pictures
-        // (no area is built without one), so the carving, the two fang sites, the stone and the Binding Echo are not on a
-        // map yet; the quest, its talks and the fight are ready for them (docs/design/FENRIRS_HEIR.md, "Placing it").
+        // when you read the wolf-carving at the Wolf's Wake on Gullstrand Coast (west of Skeldvik by the cliff path; the map
+        // is laid out after Tokelo's picture, 2026-11-13). Brynja Net-Mender in the village gives the clues. Two hunts in
+        // either order: wolves gone sun-mad lie across the bright cave; the dark hollow gives up its fang only to someone
+        // who puts their light out, and then sends its wolves after them. Then the stone, the Binding Echo, and the choice.
         CL1: {
-            title: 'The Hunt of Sun and Moon', kind: 'side', xp: 150, candidate: true, awaitsArea: 'gullstrand_coast',
+            title: 'The Hunt of Sun and Moon', kind: 'side', xp: 150, candidate: true,
             summary: 'Gullstrand fishers hear two howls that should not be: one at the brightest hour, one when the moon goes out. An old carving shows two wolves chasing two lights, their tracks bound by a broken chain.',
             objectives: [
-                { id: 'fangs', text: 'Find the Sun Fang and the Moon Fang, in either order', on: { type: 'story', id: 'fenrir_fangs_both' } },
-                { id: 'trial', text: "Lay both fangs on the stone at the Wolf's Wake and survive what wakes", on: { type: 'defeat', id: 'wolfs_wake_trial' } },
-                { id: 'choose', text: "Choose the wolf that runs with you first", on: { type: 'story', id: 'fenrir_heir_awakened' } }
+                // The fangs can be taken in either order: a step whose fang you already hold gives way at once (skipIf).
+                { id: 'sun', text: 'Take the Sun Fang from the bright cave (either fang first)', on: { type: 'story', id: 'fenrir_sun_fang' },
+                    skipIf: { flags: ['fenrir_sun_fang'] }, marker: { map: 'gullstrand_coast', x: 21, y: 5 } },
+                { id: 'moon', text: 'Take the Moon Fang from the dark hollow', on: { type: 'story', id: 'fenrir_moon_fang' },
+                    skipIf: { flags: ['fenrir_moon_fang'] }, marker: { map: 'gullstrand_coast', x: 35, y: 5 } },
+                { id: 'stone', text: "Lay both fangs in the binding stone at the Wolf's Wake", on: { type: 'story', id: 'fenrir_trial_called' }, marker: { map: 'gullstrand_coast', x: 32, y: 6 } },
+                { id: 'trial', text: 'Survive what wakes on the ring', on: { type: 'defeat', id: 'wolfs_wake_trial' }, marker: { map: 'gullstrand_coast', x: 28, y: 8 } },
+                { id: 'choose', text: 'Choose the wolf that runs with you first', on: { type: 'story', id: 'fenrir_heir_awakened' }, marker: { map: 'gullstrand_coast', x: 32, y: 6 } }
             ],
             onComplete: [{ say: "Press T to change wolf: Sköll, Hati, or Fenrir's own stance. Stay with one and its bond grows.", notice: 'quest' }]
         },
@@ -88,8 +94,8 @@
             title: 'A Bard in Skeldvik', kind: 'side', xp: 20, candidate: true,
             summary: 'A southern bard plays outside the Stormtide Inn for fishermen who do not tip. The skalds will not teach him, and he has nowhere in particular to be.',
             objectives: [
-                { id: 'meet', text: 'Listen to the bard outside the Stormtide Inn', on: { type: 'story', id: 'james_met' }, marker: { map: 'skeldvik', x: 27, y: 10 } },
-                { id: 'invite', text: 'Offer James a place at your homestead', on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 27, y: 10 } },
+                { id: 'meet', text: 'Listen to the bard outside the Stormtide Inn', on: { type: 'story', id: 'james_met' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
+                { id: 'invite', text: 'Offer James a place at your homestead', on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
                 { id: 'home', text: 'Find James at your homestead', on: { type: 'story', id: 'james_home' }, marker: { map: 'grounds', x: 26, y: 9 } }
             ],
             onComplete: []
@@ -106,8 +112,67 @@
                 { id: 'deal', text: 'Make a deal with Demonkore (not written yet: the rest of this quest is coming)', on: { type: 'story', id: 'demonkore_deal' } }
             ],
             onComplete: []
+        },
+        // ----- A Fire of Your Own (Tokelo, 2026-11-13: "a portable hearth... someone on the road teaches the player").
+        // Hakon the carter, wrist broken on the Frostspine Road, gives you his spare camp kit once you fetch the tinder.
+        C2S2: {
+            title: 'A Fire of Your Own', kind: 'side', xp: 15, candidate: true,
+            summary: "Hakon has camped on every road from Birkholt to the sea and never waited for an inn. He'll give you his spare camp kit, if you fetch the tinder he can't reach with one good hand.",
+            objectives: [
+                { id: 'juniper', text: 'Gather juniper on the slope above the pass and bring it to Hakon', on: { type: 'story', id: 'hakon_camp' }, marker: { map: 'frostspine_pass', x: 7, y: 2 } }
+            ],
+            onComplete: [{ item: 'Camp Kit', key: 'item:c2s2_camp_kit' },
+                { say: 'Use the Camp Kit from Esc, then Items, anywhere out of a fight: it opens a hearth that cooks the food of the region you are in.', notice: 'quest' }]
+        },
+        // ----- Sour Herring (Tokelo, 2026-11-13: "a prank quest for surströmming"; docs/design/NORSE_KITCHEN.md).
+        // Comic relief in a grieving harbour: Solveig can't fight sixty oars, but she can make their ship stink until
+        // midwinter. Nobody is hurt. Geir, who did not split the board, gets a mead out of it.
+        C2S1: {
+            title: 'Sour Herring', kind: 'side', xp: 30, candidate: true,
+            summary: "Solveig can't fight sixty oars. She does have a cask of herring that has been souring since last spring, and she would like the Wolf-Banner ship to have it.",
+            objectives: [
+                { id: 'awl', text: "Borrow a cooper's awl from Leif Ropehand to tap the cask", on: { type: 'story', id: 'leif_awl' }, marker: { map: 'skeldvik', x: 8, y: 28 } },
+                { id: 'geir', text: 'Get Geir the steersman off the gangplank (a Mead might do it)', on: { type: 'story', id: 'geir_distracted' }, marker: { map: 'skeldvik', x: 24, y: 23 } },
+                { id: 'tap', text: 'Slip aboard the narrow ship and tap the cask under the rowing benches', on: { type: 'story', id: 'herring_tapped' }, marker: { map: 'skeldvik', x: 18, y: 28 } },
+                { id: 'tell', text: 'Tell Solveig how it went', on: { type: 'story', id: 'solveig_prank_done' }, marker: { map: 'skeldvik', x: 28, y: 15 } }
+            ],
+            onComplete: [{ gold: 15, key: 'c2s1_reward' }, { item: 'Surströmming', key: 'item:c2s1_herring_1' }, { item: 'Surströmming', key: 'item:c2s1_herring_2' },
+                { item: 'Gravlax', key: 'item:c2s1_gravlax' }]
         }
     };
+
+    // ------------------------------------------------------------- The Hrimvald kitchen (Tokelo, 2026-11-13)
+    // Station menus are built from the data (recipeDefinitions in src/data.js), as in Chapter One: a recipe shows up
+    // while you carry its ingredients, and "What can I make here?" lists them all.
+    const DATA = isNode ? require('../data.js') : ENSO.data;
+    const amount = (ings) => Object.entries(ings).map(([n, q]) => (q > 1 ? `${q} ${n}` : n)).join(', ');
+    const STATION_VERB = { hearth: 'Cook', meadery: 'Brew' };
+    // Regional cooking (Tokelo, 2026-11-13): Hrimvald's hearths cook Hrimvald's dishes, plus rat goulash (region 'any');
+    // the home hearth in Chapter One cooks every region's. `region: 'here'` (the camp kit) cooks where you stand.
+    const HOME = (DATA.foodRules || {}).homeRegion;
+    const regionOf = (r) => r.region || HOME;
+    const recipesAt = (station, region) => Object.entries(DATA.recipeDefinitions)
+        .filter(([, r]) => r.station === station && (!region || region === 'here' || r.region === 'any' || regionOf(r) === region));
+    const cook = (station, region) => recipesAt(station, region).map(([id, r]) => ({
+        text: `${STATION_VERB[station] || 'Make'} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output} (${amount(r.ingredients)})`,
+        if: { has: r.ingredients, ...(region === 'here' && r.region !== 'any' ? { inRegion: regionOf(r) } : {}) }, stay: true, effects: [{ craft: id }]
+    }));
+    const recipeBook = (station, region) => (region === 'here'
+        ? Object.keys((DATA.foodRules || {}).regions || {}).concat(HOME).map((reg) => ({
+            text: 'What can I make here?', if: { inRegion: reg }, stay: true,
+            effects: [{ say: recipesAt(station, reg).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+        }))
+        : [{
+            text: 'What can I make here?', stay: true,
+            effects: [{ say: recipesAt(station, region).map(([, r]) => `${r.output}${r.yield > 1 ? ` ×${r.yield}` : ''}: ${amount(r.ingredients)}`).join('\n') }]
+        }]);
+    const shop = (id) => ({ text: 'What have you got?', say: 'What have you got for sale?', stay: true, effects: [{ shop: id }] });
+    /** A hearth: a public one cooks its region's dishes; region 'here' (a camp) cooks the region you stand in. */
+    const hearth = (name, title, look, region) => ({
+        name, title, kitchen: 'hearth', region,
+        talk: [{ node: 'hearth' }],
+        nodes: { hearth: { lines: [[null, look]], choices: [...cook('hearth', region), ...recipeBook('hearth', region), { text: 'Leave it.', end: true }] } }
+    });
 
     // Each line below is one page of the dialogue box (docs/ui/DIALOGUE_BOX.md: at most two sentences, ~160
     // characters); tests/98-chapter-two.test.js checks it. Voices (Wick): Eydis exact and dry, Hakon plain,
@@ -299,8 +364,28 @@
                     choices: [
                         { text: 'Who was she?', to: 'asta' },
                         { text: 'Did you know the raiders?', to: 'raiders' },
+                        // A Fire of Your Own (C2S2, Tokelo 2026-11-13): a carter teaches you to cook on the road.
+                        { text: "How do you eat out here, with no hearth?", if: { quests: { C2S2: 'unseen' } }, to: 'camp_offer' },
+                        { text: 'Juniper, for your tinder.', if: { quests: { C2S2: 'active' }, items: ['Juniper Berries'] },
+                            effects: [{ removeItem: 'Juniper Berries' }, { event: { type: 'story', id: 'hakon_camp' } }], to: 'camp_done' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                camp_offer: {
+                    lines: [
+                        ['npc', "Forty years on the roads, and I've never once waited for an inn. A carter carries his own hearth."],
+                        ['npc', "Fire-pot, tripod, flint. I've a spare, but my wrist can't show you, so you'll fetch the tinder yourself."],
+                        ['npc', "Juniper, from the bush up the slope. It catches wet, and it makes everything smell like smoked fish."]
+                    ],
+                    effects: [{ start: 'C2S2' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                camp_done: {
+                    lines: [
+                        [null, 'Hakon talks you through it one-handed: pot, coals, tripod, the juniper teased out thin. The spark takes the second time.'],
+                        ['npc', "There: it's yours, so cook wherever you stop. It'll cook what the land around you cooks, mind; a pot has a sense of place."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 asta: {
                     lines: [
@@ -329,10 +414,20 @@
                     choices: [
                         { text: 'Eydis sent me. Who are the armed crews in the harbour?', if: { flags: ['eydis_harbor_met'], notFlags: ['leif_told'] }, to: 'crews' },
                         { text: 'Tell me about the crews again.', if: { flags: ['leif_told'] }, to: 'crews_again' },
+                        { text: "Solveig says you owe her for cod. She wants your cooper's awl.", if: { quests: { C2S1: 'active' }, notFlags: ['leif_awl_lent'] }, to: 'awl' },
                         { text: 'What are you building?', to: 'ship' },
                         { text: 'There is a mark on the keel.', to: 'mark' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                awl: {
+                    lines: [
+                        [null, 'Leif looks at the cask under your arm, then at the narrow ship, then at the sky to see where the wind sits.'],
+                        ['npc', "Wind's off the land tonight, so it'll blow out over the fjord and not up my yard. Here, take the awl."],
+                        ['npc', "I never saw you, and I'll want it back without herring on it."]
+                    ],
+                    effects: [{ flag: 'leif_awl_lent' }, { event: { type: 'story', id: 'leif_awl' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crews: {
                     lines: [
@@ -381,6 +476,11 @@
                     choices: [
                         { text: 'Eydis says you miss nothing. Who split the memorial board?', if: { flags: ['eydis_harbor_met'], notFlags: ['solveig_told'] }, to: 'witness' },
                         { text: 'Tell me again what you saw.', if: { flags: ['solveig_told'] }, to: 'witness_again' },
+                        shop('solveig'),
+                        // Sour Herring (C2S1): offered once she has told you about the board.
+                        { text: "You're smiling at that narrow ship. Why?", if: { flags: ['solveig_told'], quests: { C2S1: 'unseen' } }, to: 'prank_offer' },
+                        { text: 'The cask is open. Their whole ship is weeping.', if: { quests: { C2S1: 'active' }, flags: ['herring_tapped'] }, to: 'prank_done' },
+                        { text: 'What is that smell on your hands?', if: { quests: { C2S1: 'complete' } }, to: 'prank_after' },
                         { text: 'An opinion, then.', to: 'opinion' },
                         { text: 'Goodbye.', end: true }
                     ]
@@ -403,6 +503,37 @@
                 },
                 thora: {
                     lines: [['npc', "I told her, and she wrote it down. She has eight guards and they have sixty oars; writing it down is what she can do."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_offer: {
+                    lines: [
+                        ['npc', "I can't fight sixty oars, and Thora can't either. But I've a cask of herring that's been souring since last spring."],
+                        ['npc', "Surströmming, my mother called it. Tap it under their rowing benches, and they'll smell it until midwinter."],
+                        ['npc', "Nobody gets hurt. Their pride, maybe, and their noses."]
+                    ],
+                    choices: [
+                        { text: "Give me the cask.", effects: [{ start: 'C2S1' }, { item: 'Cask of Surströmming', key: 'item:c2s1_cask' }], to: 'prank_go' },
+                        { text: 'Not today.', end: true }
+                    ]
+                },
+                prank_go: {
+                    lines: [
+                        ['npc', "Don't open it here. You'll need an awl to tap it quietly: Leif has one, and he owes me for a winter of cod."],
+                        ['npc', "Geir sits on the gangplank all day like a gull on a post. Get him off it somehow."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_done: {
+                    lines: [
+                        [null, 'Solveig listens with her eyes shut, as if to music. Down the wharf, a man in a red cloak is being sick off the stern.'],
+                        ['npc', "Ha! That's the first time I've laughed since midsummer."],
+                        ['npc', "Here, take some for yourself, and some gravlax for the shock. It's good, I swear it."]
+                    ],
+                    effects: [{ event: { type: 'story', id: 'solveig_prank_done' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                prank_after: {
+                    lines: [['npc', "Herring, and joy. Their crew have slept on the wharf for three nights, and Thora says there's no law against a smell."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 opinion: {
@@ -428,8 +559,16 @@
                         { text: 'There are armed crews on your wharf.', to: 'crews' },
                         { text: 'Whose law is it?', to: 'law' },
                         { text: 'What is the bell for?', to: 'bell' },
+                        { text: 'What is that smell on the wharf?', if: { flags: ['herring_tapped'] }, to: 'smell' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                smell: {
+                    lines: [
+                        ['npc', "Someone opened a cask of sour herring in the hold of the Wolf-Banner ship. Their crew sleep on the wharf now."],
+                        ['npc', "There is no law against a smell; I checked, twice. I'm not looking for whoever did it, and I hope you aren't either."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 crews: {
                     lines: [
@@ -480,8 +619,25 @@
                         { text: 'Who are you people?', to: 'who' },
                         { text: "Your crew split Skeldvik's memorial board.", to: 'board' },
                         { text: "Who pays you in the old Crown's silver?", if: { flags: ['leif_told'] }, to: 'silver' },
+                        // Sour Herring (C2S1): a mead and an honest toast, or a lie about the reeve.
+                        { text: 'Drink with me. A mead, to the six hundred.', if: { quests: { C2S1: 'active' }, items: ['Mead'], notFlags: ['geir_distracted'] },
+                            effects: [{ removeItem: 'Mead' }, { flag: 'geir_distracted' }, { flag: 'geir_toasted' }, { event: { type: 'story', id: 'geir_distracted' } }], to: 'toast' },
+                        { text: 'Thora wants your mooring dues counted again. Now.', if: { quests: { C2S1: 'active' }, notFlags: ['geir_distracted'] },
+                            effects: [{ flag: 'geir_distracted' }, { event: { type: 'story', id: 'geir_distracted' } }], to: 'dues' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                toast: {
+                    lines: [
+                        [null, 'Geir takes the horn and looks at it a long moment. Then he stands, and lifts it toward the memorial stone.'],
+                        ['npc', "To the six hundred. And to my brother, whose name I can still say."],
+                        ['npc', "That wasn't my wedge on your board, stranger; I steer. I'll drink this at the stern, out of the wind."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                dues: {
+                    lines: [['npc', "Again? We paid her on the nail, but fine, I'll go and count it twice."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 who: {
                     lines: [
@@ -518,6 +674,102 @@
                     ],
                     effects: [{ flag: 'wolfbanner_heard' }, { flag: 'southern_friends_heard' }],
                     choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+
+        // ============================================================= The Hrimvald kitchen (Tokelo, 2026-11-13)
+        // Aslaug keeps the bar at the Stormtide Inn: mead to buy, and mead to brew with her. She stands at the inn door
+        // until the inn's own hall is built (thread "Add an enterable meeting hall in Skeldvik"), then moves inside.
+        aslaug: {
+            name: 'Aslaug', title: 'Alewife of the Stormtide Inn',
+            talk: [{ node: 'bar' }],
+            nodes: {
+                bar: {
+                    lines: [['npc', "Mead, ale, or a seat by the fire? The mead's from my own casks; the fire's free, and so is the gossip."]],
+                    choices: [
+                        shop('aslaug'),
+                        ...cook('meadery'), ...recipeBook('meadery'),
+                        { text: 'How do you make mead?', to: 'mead' },
+                        { text: "What's good to eat around here?", to: 'food' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                mead: {
+                    lines: [
+                        ['npc', "Honey, water and time. Bring me two crocks of honey and I'll brew it with you."],
+                        ['npc', "Lingonberries make it red, and sharper."],
+                        ['npc', "Barley and juniper make ale. Mind yourself: five horns inside an hour and the floor starts to tilt."]
+                    ],
+                    choices: [{ text: "What's good to eat around here?", to: 'food' }, { text: 'Goodbye.', end: true }]
+                },
+                food: {
+                    lines: [
+                        ['npc', "Solveig's fish, smoked or cured. Gudrun up at Hrafnholm sells mutton and skyr."],
+                        ['npc', "Lingonberries grow on every fell and juniper in the pass. Cloudberries hide on the high bogs, if you can find them."],
+                        ['npc', "The harbour cookfire by the racks is anyone's. Don't let Solveig talk you into the sour herring indoors."]
+                    ],
+                    choices: [{ text: 'How do you make mead?', to: 'mead' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // Gudrun sells from the market stalls in Hrafnholm: her own mutton, dairy, flour and roots.
+        gudrun: {
+            name: 'Gudrun', title: 'Sheep-farmer',
+            talk: [{ node: 'stall' }],
+            nodes: {
+                stall: {
+                    lines: [['npc', "Mutton from my own fell, skyr from my own cows, and I came down for the Thing like everyone. Buy something, so the walk was worth it."]],
+                    choices: [
+                        shop('gudrun'),
+                        { text: 'What do people cook here?', to: 'cook' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                cook: {
+                    lines: [
+                        ['npc', "Fårikål: mutton and cabbage, a fistful of pepper, and all day in the pot. Roast mutton under lingonberries, for a feast."],
+                        ['npc', "And rømmegrøt when it's cold, which is always. The feast fire by the tables cooks anything, if you ask it nicely."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        harbour_cookfire: hearth('Harbour cookfire', 'Skeldvik',
+            'A fire pit by the fish racks, ringed with stones, a pot on a chain and juniper on the coals for smoking. Anyone may cook here.', 'hrimvald'),
+        feast_fire: hearth('Feast fire', 'Hrafnholm',
+            'The fire beside the feast tables, fed day and night while the households are in for the Thing. The cooks wave you to it.', 'hrimvald'),
+        // Hakon's camp kit (C2S2): opened by using the Camp Kit item. It cooks the dishes of the region you stand in.
+        camp_hearth: { ...hearth('Your camp', 'Camp kit',
+            "A fire-pot on the ground, Hakon's tripod over it and the pot on its chain. It cooks what the land around you cooks.", 'here'), portable: true },
+        // Sour Herring (C2S1): the narrow ship's gangplank, once Geir has left it.
+        herring_hatch: {
+            name: 'Gangplank', title: 'The Wolf-Banner ship',
+            talk: [{ if: { flags: ['herring_tapped'] }, node: 'after' }, { if: { notFlags: ['geir_distracted'] }, node: 'watched' }, { node: 'plank' }],
+            nodes: {
+                watched: {
+                    lines: [[null, 'Geir sits on the plank with his boots across it, whittling. Nobody is getting past him without being seen.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                plank: {
+                    lines: [[null, "The plank is clear. Below the rowing benches, out of the wind, there's room for one small cask."]],
+                    choices: [
+                        { text: 'Tap the cask and leave it under the benches.', if: { items: ['Cask of Surströmming'], flags: ['leif_awl_lent'] },
+                            effects: [{ removeItem: 'Cask of Surströmming' }, { flag: 'herring_tapped' }, { event: { type: 'story', id: 'herring_tapped' } }], to: 'tapped' },
+                        { text: "You'd need an awl to tap it quietly.", if: { notFlags: ['leif_awl_lent'] }, stay: true, effects: [{ say: 'Leif Ropehand has one. Solveig says he owes her.' }] },
+                        { text: 'Leave it.', end: true }
+                    ]
+                },
+                tapped: {
+                    lines: [
+                        [null, 'The awl goes in with a soft pop. The smell comes out like something that has been waiting a year to be let out.'],
+                        [null, 'You are back on the wharf before your eyes stop watering. Behind you: a shout, a splash, and a great deal of coughing.']
+                    ],
+                    choices: [{ text: 'Walk away. Do not run.', end: true }]
+                },
+                after: {
+                    lines: [[null, 'The crew have hung their bedrolls on the wharf rail and sleep in the open; nobody goes below.'], [null, 'A gull lands on the rail, thinks better of it, and leaves.']],
+                    choices: [{ text: 'Leave it.', end: true }]
                 }
             }
         },
@@ -843,43 +1095,125 @@
         }
     });
 
-    // Fenrir's Heir (CL1). Spoken by stone and by the two wolves; the wolves never say what you were (lore bible).
+    // Fenrir's Heir (CL1). Spoken by stone, by the two wolves, and by Brynja in the village; the wolves never say what you were (lore bible).
     const BOTH = { flags: ['fenrir_sun_fang', 'fenrir_moon_fang'] };
     const FANG_BOTH = [{ flag: 'fenrir_fangs_both', when: BOTH }, { event: { type: 'story', id: 'fenrir_fangs_both' }, when: BOTH },
-        { say: "Both fangs. Somewhere on the headland above the sea, stone answers stone.", when: BOTH }];
+        { say: 'Both fangs. On the ring before the carving, the binding stone hums like a struck bell.', when: BOTH }];
     const AWAKEN = (stance, text) => ({ text, to: 'bond', effects: [
         { flag: 'fenrir_heir_awakened' }, { legend: 'fenrirs_heir' }, { stance }, { event: { type: 'story', id: 'fenrir_heir_awakened' } }, { flag: 'fenrir_first_bond_tutorial_done' }] });
+    const HUNT = { quests: { CL1: 'active' } };
     Object.assign(npcs, {
-        sun_marker: {
-            name: 'A sun-scorched cairn', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
-            talk: [{ if: { flags: ['fenrir_sun_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'cairn' }, { node: 'plain' }],
+        brynja: {
+            name: 'Brynja Net-Mender', title: 'Gullstrand',
+            talk: [{ if: { flags: ['fenrir_heir_awakened'] }, node: 'after' }, { if: HUNT, node: 'hunt' }, { node: 'mend' }],
             nodes: {
-                plain: { lines: [[null, 'A cairn of black stones on the cliff top. The lichen on its sunward side is burnt white.']], choices: [{ text: 'Leave it.', end: true }] },
+                mend: {
+                    lines: [['npc', "Mind the net, it bites. Not many come down the cliff path who aren't selling salt."]],
+                    choices: [
+                        { text: 'What is the great carved rock above the village?', to: 'rock' },
+                        { text: 'Why does every house here turn its back on it?', to: 'backs' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                rock: {
+                    lines: [['npc', "The Wolf's Wake. Older than the village, older than the Crown's roads; my grandmother said older than the gods' names."],
+                        ['npc', 'Two hunters cut in the rock, and a chain between them.'],
+                        ['npc', "Go up the stair and read it if you like. We don't."]],
+                    choices: [{ text: 'Why not?', to: 'backs' }, { text: 'Goodbye.', end: true }]
+                },
+                backs: {
+                    lines: [['npc', 'So we needn\'t look at it when we step out. Twice a year the headland howls: once at the brightest hour, once when the moon goes out.'],
+                        ['npc', "No wolf on this coast makes that sound. This year the real ones have started answering it."]],
+                    choices: [{ text: 'Answering it?', to: 'wrong' }, { text: 'Goodbye.', end: true }]
+                },
+                wrong: {
+                    lines: [['npc', "The grey wolves lie up by the bright cave, panting in the cold, fur gone white along the back. They took my neighbour's dog."],
+                        ['npc', "And something comes out of the dark hollow on the moon side, after anyone who's been in. Nobody has, for a long while."]],
+                    choices: [{ text: 'Something else.', to: 'mend' }, { text: 'Goodbye.', end: true }]
+                },
+                hunt: {
+                    lines: [['npc', "You read it, then. You've the look of someone listening for a sound."]],
+                    choices: [
+                        { text: 'The bright cave?', if: { notFlags: ['fenrir_sun_fang'] }, to: 'sun_hint' },
+                        { text: 'The dark hollow?', if: { notFlags: ['fenrir_moon_fang'] }, to: 'moon_hint' },
+                        { text: 'And when I have both?', to: 'stone_hint' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sun_hint: {
+                    lines: [['npc', "Those wolves won't move for asking. Whatever's in that cave has hold of them, and you'll have to put them down to get by."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                moon_hint: {
+                    lines: [['npc', 'My grandmother said the moon-hunter only comes when there is nothing left to see by. A torch is no use in there.'],
+                        ['npc', "Put your light out and wait, she said. And don't turn round until you have to."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                stone_hint: {
+                    lines: [['npc', 'There is a stone at the edge of the ring with two holes in its face, like a jaw with the teeth knocked out.'],
+                        ['npc', "The verse says the chain is broken. I'd not want to be the one who finds out what that means."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "The headland's quiet. First time in my life I've heard the sea from up there."],
+                        ['npc', "You've two shadows, you know, one warm and one cold. I'll not ask."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        sun_marker: {
+            name: 'The bright cave', title: "The Wolf's Wake",
+            talk: [{ if: { flags: ['fenrir_sun_fang'] }, node: 'taken' }, { if: HUNT, node: 'cairn' }, { node: 'plain' }],
+            nodes: {
+                plain: {
+                    lines: [[null, 'A cave mouth in the carved cliff, under the sun. There is gold light inside, though the real sun is behind cloud.'],
+                        [null, 'The air coming out of it is hot as a bread oven. You do not go in.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
                 cairn: {
-                    lines: [[null, 'The stones are hot to the touch, though the wind off the sea is cold. Between two of them, something catches the light.'],
+                    lines: [[null, 'Inside, a cairn of black stones, the lichen on them burnt white. They are hot to the touch, and between two of them something catches the light.'],
                         [null, 'A tooth as long as your hand, wedged deep. When you pull it free, somewhere above the clouds a wolf howls at the sun.']],
-                    effects: [{ flag: 'fenrir_sun_fang' }, { item: 'Sun Fang', key: 'item:sun_fang' }, ...FANG_BOTH],
+                    effects: [{ flag: 'fenrir_sun_fang' }, { item: 'Sun Fang', key: 'item:sun_fang' }, { event: { type: 'story', id: 'fenrir_sun_fang' } }, ...FANG_BOTH],
                     choices: [{ text: 'Go on.', end: true }]
                 },
                 taken: { lines: [[null, 'The cairn is only warm now. Whatever it kept, you carry.']], choices: [{ text: 'Leave it.', end: true }] }
             }
         },
         moon_hollow: {
-            name: 'A moon-dark hollow', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
-            talk: [{ if: { flags: ['fenrir_moon_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'hollow' }, { node: 'plain' }],
+            name: 'The dark hollow', title: "The Wolf's Wake",
+            talk: [{ if: { flags: ['fenrir_moon_fang'] }, node: 'taken' }, { if: HUNT, node: 'hollow' }, { node: 'plain' }],
             nodes: {
-                plain: { lines: [[null, 'A hollow under the cliff where the tide does not reach. It is darker inside than it ought to be at noon.']], choices: [{ text: 'Leave it.', end: true }] },
+                plain: { lines: [[null, 'A hollow in the carved cliff, under the moon. It is darker inside than it ought to be at noon, and colder than the wind.']], choices: [{ text: 'Leave it.', end: true }] },
                 hollow: {
-                    lines: [[null, 'Your torch makes no difference in here. The dark leans on you, the way water does at the bottom of a pool.'],
-                        [null, 'Your hand finds a tooth as cold as winter iron. As you take it, the dark lets go, and something far away howls at a moon that is not there.']],
-                    effects: [{ flag: 'fenrir_moon_fang' }, { item: 'Moon Fang', key: 'item:moon_fang' }, ...FANG_BOTH],
-                    choices: [{ text: 'Go on.', end: true }]
+                    lines: [[null, 'The hollow goes further back into the rock than it can. Your light makes no difference in here.']],
+                    choices: [
+                        { text: 'Hold your light up and look.', to: 'light' },
+                        { text: 'Reach into the dark.', to: 'reach' },
+                        { text: 'Put out your light and wait.', to: 'wait' },
+                        { text: 'Leave it.', end: true }
+                    ]
+                },
+                light: {
+                    lines: [[null, 'The flame shrinks to a bead and goes blue. The dark leans on you the way water does at the bottom of a pool.'],
+                        [null, 'You are standing outside again, and you do not remember the step.']],
+                    choices: [{ text: 'Go back in.', to: 'hollow' }, { text: 'Leave it.', end: true }]
+                },
+                reach: {
+                    lines: [[null, 'Your arm goes in to the elbow and finds nothing but cold. Something in there is waiting, and it is not waiting for your hand.']],
+                    choices: [{ text: 'Try something else.', to: 'hollow' }, { text: 'Leave it.', end: true }]
+                },
+                wait: {
+                    lines: [[null, 'You pinch out the light. For a long time there is nothing at all.'],
+                        [null, 'Then the dark gets darker, and in it there is something pale: a tooth as long as your hand, cold as winter iron.'],
+                        [null, 'When you take it, far away a wolf howls at a moon that is not there. Behind you, the dark gets up.']],
+                    effects: [{ flag: 'fenrir_moon_fang' }, { item: 'Moon Fang', key: 'item:moon_fang' }, { event: { type: 'story', id: 'fenrir_moon_fang' } }, ...FANG_BOTH],
+                    choices: [{ text: 'Turn round.', end: true }]
                 },
                 taken: { lines: [[null, 'Only an ordinary hollow now, wet and smelling of weed.']], choices: [{ text: 'Leave it.', end: true }] }
             }
         },
         wolfs_wake_stone: {
-            name: "The Wolf's Wake", title: 'A stone ring above the sea', awaitsArea: 'gullstrand_coast',
+            name: "The Wolf's Wake", title: 'The binding stone',
             talk: [
                 { if: { flags: ['fenrir_heir_awakened'] }, node: 'again' },
                 { if: { flags: ['fenrir_trial_cleared'] }, node: 'wake' },
@@ -888,23 +1222,24 @@
                 { node: 'still' }],
             nodes: {
                 still: {
-                    lines: [[null, 'A ring of standing stones on the headland. On the flat one in the middle, two wolves are carved running after two lights.'],
-                        [null, 'A chain is carved across their tracks, broken in the middle. There are two hollows in the stone, each the shape of a tooth.']],
+                    lines: [[null, 'A standing stone at the edge of the ring, cut with the same chain as the cliff, broken in the same place.'],
+                        [null, 'There are two hollows in its face, each the shape of a tooth.']],
                     choices: [{ text: 'Leave it.', end: true }]
                 },
                 stone: {
                     lines: [[null, 'The two hollows in the stone are the shape of the two teeth you carry. The sea goes quiet below the headland.']],
-                    choices: [{ text: 'Lay the Sun Fang and the Moon Fang in the stone.', effects: [{ flag: 'fenrir_trial_called' }, { removeItem: 'Sun Fang' }, { removeItem: 'Moon Fang' }], to: 'called' },
-                        { text: 'Not yet.', end: true }]
+                    choices: [{ text: 'Lay the Sun Fang and the Moon Fang in the stone.', to: 'called',
+                        effects: [{ flag: 'fenrir_trial_called' }, { removeItem: 'Sun Fang' }, { removeItem: 'Moon Fang' }, { event: { type: 'story', id: 'fenrir_trial_called' } }] },
+                    { text: 'Not yet.', end: true }]
                 },
                 called: {
-                    lines: [[null, 'The carved chain splits along its crack. Links of light and dark climb out of the stone and wind together into something with no face.'],
+                    lines: [[null, 'The carved chain on the cliff splits along its crack. Links of light and dark climb out of the rock and wind together over the ring into something with no face.'],
                         [null, 'It is not a wolf. It is the thing that held one, and it remembers the shape of holding.']],
                     choices: [{ text: 'Face it.', end: true }]
                 },
-                waiting: { lines: [[null, 'The coil of broken chain turns slowly over the stone, waiting for you.']], choices: [{ text: 'Face it.', end: true }] },
+                waiting: { lines: [[null, 'The coil of broken chain turns slowly over the ring, waiting for you.']], choices: [{ text: 'Face it.', end: true }] },
                 wake: {
-                    lines: [[null, 'The last link falls and does not get up. Two shapes step out of the stones: a wolf of embers, and a wolf of no light at all.'],
+                    lines: [[null, 'The last link falls and does not get up. Two shapes step down out of the carving: a wolf of embers, and a wolf of no light at all.'],
                         ['npc', 'We were made to chase: the sun, the moon, the end of things.'],
                         ['npc', 'Our father was bound so that we would run without him.'],
                         ['npc', 'You broke what was left of the binding, and that is enough to be an heir.'],
@@ -923,7 +1258,7 @@
                     choices: [{ text: 'I will run with you.', end: true }]
                 },
                 again: {
-                    lines: [[null, 'The stone ring is quiet. Far off over the sea, two howls answer each other, and you feel both of them in your teeth.']],
+                    lines: [[null, 'The stone is quiet, its two hollows empty. Far off over the sea, two howls answer each other, and you feel both of them in your teeth.']],
                     choices: [{ text: 'Leave it.', end: true }]
                 }
             }
@@ -961,15 +1296,29 @@
             { say: "The two ravens are on the hall's gable, one at each end. The crow lands on a post well away from them. 'They're only birds,' it says, to nobody." }
         ] },
         { id: 'c2_memorial', on: { type: 'inspect', id: 'skeldvik_memorial' }, effects: [{ flag: 'skeldvik_memorial_seen' }] },
-        // Fenrir's Heir (CL1): the carving on Gullstrand's cliffs starts the hunt; beating the Binding Echo opens the waking.
+        // Fenrir's Heir (CL1). Coming down into Gullstrand, the first howl; the carving starts the hunt and wakes the sun-mad
+        // wolves at the bright cave; each hunt's wolves beaten; beating the Binding Echo opens the waking.
+        { id: 'cl1_arrive', on: { type: 'enter', id: 'gullstrand_coast' }, effects: [
+            { say: 'As you come down into the village a howl rolls off the great rock above it, long and high. A second answers, lower, from nowhere at all.', important: true },
+            { say: 'Down in the village, nobody looks up. Every house in Gullstrand turns its back on the rock.' }
+        ] },
         { id: 'cl1_carving', on: { type: 'inspect', id: 'gullstrand_wolf_carving' }, effects: [
             { flag: 'fenrir_quest_discovered' },
-            { say: 'Two wolves cut into the rock, running after two lights. Under them, worn almost flat: "One hunts the day and one the night; the chain between them is broken."', important: true },
-            { start: 'CL1' }
+            { say: 'Under the wolves, worn almost flat: "One hunts the day and one the night; the chain between them is broken."', important: true },
+            { start: 'CL1' },
+            { say: 'At the mouth of the bright cave, three grey shapes lift their heads.' }
+        ] },
+        { id: 'cl1_sun_hunt', on: { type: 'defeat', id: 'gullstrand_sun_hunt' }, effects: [
+            { flag: 'fenrir_sun_wolves_beaten' },
+            { say: 'The last wolf lies down in the cave mouth as if the heat had gone out of it. Inside, light moves on black stones.' }
+        ] },
+        { id: 'cl1_moon_hunt', on: { type: 'defeat', id: 'gullstrand_moon_hunt' }, effects: [
+            { flag: 'fenrir_moon_wolves_beaten' },
+            { say: 'The last of them comes apart like smoke in a wind. The hollow behind you is only a hollow.' }
         ] },
         { id: 'cl1_trial', on: { type: 'defeat', id: 'wolfs_wake_trial' }, effects: [
             { flag: 'fenrir_trial_cleared' },
-            { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on it are not carved any more.', important: true }
+            { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on the cliff are not carved any more.', important: true }
         ] },
         { id: 'anchor_skeldvik', on: { type: 'inspect', id: 'skeldvik_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:skeldvik' },
@@ -979,6 +1328,7 @@
     ];
 
     const chapter2 = { id: 'ch2', title: 'Chapter Two: The Feast of Empty Seats', quests, npcs, triggers, anchors,
+        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun' },
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' } };
 

@@ -27,6 +27,11 @@
  *   'hall_of_winter'   Inside the Great Hall, after Tokelo's interior picture (2026-11-13): the empty high seat and the
  *                      empty step below it, red hangings, house banners, the fire pit with three cauldrons, the feast
  *                      tables, the red runner, the skald's corner, the Lawspeaker's table, the Six Hundred Remembered.
+ *   'gullstrand_coast' Gullstrand Coast and the Wolf's Wake under a storm, after Tokelo's picture (2026-11-13): thatched
+ *                      houses with smoking chimneys, fish racks, a canvas awning, the net shed, quay, pier and rowboats; the
+ *                      winding stair; the carved cliff (a rayed sun and Sköll in gold, a broken chain, Hati and a crescent
+ *                      moon in violet), the bright cave and the dark one throwing their own light, the binding stone, the
+ *                      cracked ring of flagstones; the shingle beach with its wreck, sea stacks and whitecaps.
  *
  * Adds these scenes to ENSO.sceneArt (ui/scene-art.js) with its kit and the Overgrown Road's painters (SA.roadKit,
  * so load this file after ui/scene-road.js). The maps' tiles (src/world/chapter2-maps.js) decide collision, exits
@@ -354,7 +359,7 @@
     // ---------------------------------------------------------------------
     // Skeldvik Harbor (after Tokelo's reference map, 2026-11-11): a harbour town at dusk under snow
     // ---------------------------------------------------------------------
-    const ROOF = R(['#15110f', '#201a17', '#2c2420', '#3a302a', '#4a3e35', '#5b4d42', '#6d5e50']);
+    let ROOF = R(['#15110f', '#201a17', '#2c2420', '#3a302a', '#4a3e35', '#5b4d42', '#6d5e50']);
     const COBBLE = R(['#231e1b', '#352e29', '#463d36', '#574c43', '#695d51', '#7b6e60', '#8d8070', '#a09382']);
     const FLAG = R(['#26272a', '#36383c', '#484b50', '#5a5e63', '#6d7176', '#82868a', '#989b9d']);
     const WARM = [255, 176, 92];
@@ -567,6 +572,13 @@
      *  The inn is the same house built large, with a sign, a banner and two chimneys; the shipwright's hall has
      *  its whole front open on the fire inside. */
     function building(L, b, seed, overhead, FX, o = {}) {
+        // A thatched house (Gullstrand): the same timber house under sea-grass thatch instead of snow-laden planks.
+        if (o.thatch) {
+            const roof = ROOF, snow = NP.snow;
+            ROOF = THATCH; NP.snow = THATCH_HI;
+            try { building(L, b, seed, overhead, FX, { ...o, thatch: false }); } finally { ROOF = roof; NP.snow = snow; }
+            return;
+        }
         // `z`: how big the house is built. 1 is the old scale; Skeldvik's rebuild (playtest 2026-11-11) uses 2, so walls,
         // doors and windows stand at Baker's Lane proportions next to a 32 px person (a door taller than you).
         const z = o.z || 1, Z = (v) => Math.round(v * z);
@@ -1506,6 +1518,380 @@
         });
     }
 
-    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter });
-    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter };
+    // ---------------------------------------------------------------------
+    // Gullstrand Coast and the Wolf's Wake (after Tokelo's picture, 2026-11-13): a fishing village on green cliffs
+    // under a storm, and above it the carved shrine of the two wolves (Fenrir's Heir, quest CL1).
+    // ---------------------------------------------------------------------
+    const THATCH = R(['#241a0c', '#352812', '#4a3818', '#5e4a20', '#745c2a', '#8a6e34', '#a0843e']);
+    const THATCH_HI = R(['#4a3a1a', '#5a4620', '#6c5628', '#7e6630', '#927a3a', '#a68c46', '#bca054']);
+    const GOLD = R(['#3a2408', '#6a4210', '#a06a1a', '#d09a2c', '#f0c850', '#fde58c', '#fff6cc']);
+    const VIOLET = R(['#120a20', '#24163c', '#3a2660', '#56408a', '#7a62b4', '#a690dc', '#d6c8f6']);
+    const SHINGLE = R(['#1e2024', '#2c2f34', '#3c4046', '#4e5258', '#62666a', '#787b7c', '#8f918e']);
+    const SUN_LIGHT = [255, 196, 90], MOON_LIGHT = [168, 120, 255];
+    const G_GROUND = new Set(['grass', 'path', 'flagstones', 'steps', 'shingle', 'wharf']);
+    const G_BASE = { fir: 'grass', cliff: 'cliff', water: 'water', rowboat: 'water', wreck: 'shingle', wolf_carving: 'cliff', sun_cave: 'cliff', moon_cave: 'cliff',
+        binding_stone: 'flagstones', steps: 'path', house: 'path', net_shed: 'path', awning: 'path' };
+    /** A wolf at full stretch, facing right, in units of its length: ellipses for body, chest, haunch and head, limbs
+     *  and tail as tapered strokes ([x, y, rx, ry] ellipses; [x1, y1, x2, y2, r] strokes; y is up from the paws). */
+    const WOLF = {
+        blobs: [[0.32, -0.55, 0.28, 0.115], [0.56, -0.56, 0.11, 0.125], [0.08, -0.56, 0.11, 0.115], [0.8, -0.68, 0.08, 0.068]],
+        strokes: [[0.6, -0.6, 0.76, -0.67, 0.07], [0.8, -0.67, 0.96, -0.645, 0.036], [0.82, -0.63, 0.94, -0.59, 0.022],
+            [0.6, -0.49, 0.76, -0.4, 0.033], [0.76, -0.4, 0.92, -0.38, 0.024], [0.54, -0.47, 0.62, -0.34, 0.03], [0.62, -0.34, 0.74, -0.27, 0.022],
+            [0.06, -0.48, -0.1, -0.42, 0.04], [-0.1, -0.42, -0.26, -0.43, 0.024], [0.12, -0.46, 0.02, -0.33, 0.034], [0.02, -0.33, -0.14, -0.27, 0.022],
+            [-0.02, -0.6, -0.18, -0.68, 0.05], [-0.18, -0.68, -0.34, -0.7, 0.04], [-0.34, -0.7, -0.42, -0.67, 0.025]],
+        ears: [[0.75, -0.73, 0.78, -0.85, 0.82, -0.73], [0.8, -0.73, 0.84, -0.83, 0.86, -0.71]]
+    };
+
+    function gullstrand(map, nameAt) {
+        const cw = map.tiles[0].length, ch = map.tiles.length, L = layersFor(map), seed = 1213, img = L.base;
+        const N = (x, y) => nameAt(map, x, y);
+        const under = new Array(cw * ch);
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y);
+            if (n === 'rock') { under[y * cw + x] = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => N(x + dx, y + dy) === 'water') ? 'water' : null; continue; }
+            under[y * cw + x] = G_GROUND.has(n) && n !== 'steps' ? n : G_BASE[n] || null;
+        }
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (!under[y * cw + x]) {
+            const votes = {};
+            for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) { const n = N(x + dx, y + dy); if (G_GROUND.has(n) && n !== 'steps') votes[n] = (votes[n] || 0) + 1; }
+            under[y * cw + x] = Object.keys(votes).sort((a, b) => votes[b] - votes[a] || (a < b ? -1 : 1))[0] || 'grass';
+        }
+        const U = (x, y) => (x < 0 || y < 0 || x >= cw || y >= ch ? null : under[y * cw + x]);
+        const isWater = (x, y) => U(x, y) === 'water', isPlank = (x, y) => U(x, y) === 'wharf';
+        const pathC = new Float32Array(cw * ch), landC = new Float32Array(cw * ch);
+        for (let i = 0; i < cw * ch; i++) { pathC[i] = under[i] === 'path' ? 1 : 0; landC[i] = under[i] === 'water' ? 0 : 1; }
+        const pathF = field(pathC, cw, ch), landF = field(landC, cw, ch);
+        const kind = new Uint8Array(img.w * img.h);          // 0 grass, 1 path, 2 wharf, 3 water, 4 flagstones, 5 rock, 6 shingle
+        const cobbleAt = (x, y, ramp, sw, sh, sd) => {
+            const row = Math.floor(y / sh), u = x + hash(row, 1, sd) * sw * 2 + Math.sin(y / 9 + row) * 1.2, col = Math.floor(u / sw), fx = u - col * sw, fy = y - row * sh;
+            if (fx < 1 || fy < 1 || (fx < 2 && fy < 2) || (fx > sw - 1.2 && fy < 2)) return ramp[0];
+            return pick(ramp, 0.22 + hash(col, row, sd + 2) * 0.5 + (fy < 2.2 ? 0.1 : fy > sh - 1.6 ? -0.1 : 0) + (fx < 2.2 ? 0.05 : 0));
+        };
+        // The ring of the Wolf's Wake: concentric courses of flagstone round a centre stone, split by one crack.
+        const ring = (() => { const o = (map.encounters || []).find((e) => e.id === 'wolfs_wake_trial'); return o ? { x: o.x * C + 16, y: o.y * C + 16 } : { x: 28 * C + 16, y: 8 * C + 16 }; })();
+        const RX = 104, RY = 78;
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const i = y * img.w + x, cx = Math.floor(x / C), cy = Math.floor(y / C), g = under[cy * cw + cx];
+            const n1 = fbm(x / 22, y / 22, seed + 1), n2 = vnoise(x / 5, y / 5, seed + 2);
+            if (g === 'water') {
+                kind[i] = 3;
+                const shore = landF(x, y);
+                let t = 0.16 + (fbm(x / 40, y / 9, seed + 12) - 0.5) * 0.5 + (y / img.h) * 0.08;
+                if (vnoise(x / 9, y / 2.4, seed + 13) > 0.74) t += 0.16;
+                put(img, x, y, pick(NP.water, t));
+                const cap = vnoise(x / 7, y / 2.2, seed + 14) + fbm(x / 30, y / 18, seed + 15) * 0.4;
+                if (cap > 1.02) put(img, x, y, pick(NP.foam, cap - 1.02 + hash(x, y, seed) * 0.4), 0.8);                     // whitecaps
+                if (shore > 0.12) { const f = (shore - 0.12) * 2.6 + (vnoise(x / 4, y / 3, seed + 16) - 0.5) * 0.9; if (f > 0.35) put(img, x, y, pick(NP.foam, f * 0.7 + hash(x, y, seed + 1) * 0.3), Math.min(0.95, f)); }
+                continue;
+            }
+            if (g === 'cliff') { kind[i] = 5; put(img, x, y, n1 * 0.7 + n2 * 0.3 > 0.52 ? pick(NP.turf, 0.25 + n1 * 0.5) : pick(NP.cliff, 0.12 + n1 * 0.4 + hash(x, y, seed) * 0.08)); continue; }
+            if (g === 'wharf') { kind[i] = 2; continue; }
+            if (g === 'flagstones') {
+                kind[i] = 4;
+                const dx = (x - ring.x) / RX, dy = (y - ring.y) / RY, d = Math.hypot(dx, dy);
+                if (d < 1) {
+                    const r5 = d * 4, band = Math.floor(r5), a = Math.atan2(dy, dx) + Math.PI, segs = 4 + band * 5, seg = Math.floor(a / (Math.PI * 2) * segs + band * 0.4);
+                    const fr = r5 - band, af = a / (Math.PI * 2) * segs + band * 0.4 - seg;
+                    put(img, x, y, fr < 0.08 || af < 0.05 || d > 0.97 ? FLAG[0] : pick(FLAG, 0.42 + hash(band, seg, seed + 55) * 0.35 + (band === 0 ? 0.12 : 0)));
+                } else put(img, x, y, cobbleAt(x, y, FLAG, 19, 13, seed + 50));
+                if (fbm(x / 9, y / 7, seed + 41) > 0.7 && d > 0.9) put(img, x, y, pick(NP.turf, 0.3 + n2 * 0.4), 0.8);   // grass in the joints at the edges
+                continue;
+            }
+            if (g === 'shingle') {
+                // The sea's edge wanders up and down the beach (a ragged tide line, not the tile edge).
+                const tide = landF(x, y) + (fbm(x / 16, y / 12, seed + 62) - 0.5) * 0.4;
+                if (tide < 0.66) {
+                    kind[i] = 3;
+                    put(img, x, y, pick(NP.water, 0.3 + (tide - 0.4) * 0.6 + (n2 - 0.5) * 0.15));
+                    if (tide > 0.56 - n2 * 0.08) put(img, x, y, pick(NP.foam, 0.4 + hash(x, y, seed) * 0.5), 0.85);
+                    continue;
+                }
+                kind[i] = 6;
+                put(img, x, y, pick(SHINGLE, 0.46 + (n1 - 0.5) * 0.35 + (n2 - 0.5) * 0.2));
+                put(img, x, y, [120, 104, 80], 0.12 + n1 * 0.12);                                                           // sand between the stones
+                if (hash(x >> 1, y >> 1, seed + 60) < 0.22) put(img, x, y, pick(SHINGLE, 0.2 + hash(x >> 1, y >> 1, seed + 63) * 0.7), 0.7);   // pebbles
+                if (tide < 0.8) put(img, x, y, NP.water[1], (0.8 - tide) * 2.4);                                            // wet stones
+                continue;
+            }
+            if (pathF(x, y) + (n1 - 0.5) * 0.45 + (n2 - 0.5) * 0.12 > 0.5) {
+                kind[i] = 1;
+                put(img, x, y, pick(NP.dirt, 0.3 + fbm(x / 10, y / 10, seed + 7) * 0.45 + hash(x, y, seed + 8) * 0.2)); put(img, x, y, [130, 100, 60], 0.16);
+            } else {
+                kind[i] = 0;
+                const m = fbm(x / 30, y / 18, seed + 3);
+                put(img, x, y, m < 0.42 ? pick(NP.grass, 0.4 + n2 * 0.4 + m * 0.4) : pick(NP.turf, 0.2 + (m - 0.42) * 1.1 + (n2 - 0.5) * 0.3));
+            }
+        }
+        // Edges: the path's lip of trodden turf, and tufts, heather, little flowers and stones.
+        for (let y = 1; y < img.h - 1; y++) for (let x = 1; x < img.w - 1; x++) {
+            const i = y * img.w + x;
+            if (kind[i] === 0 && (kind[i + img.w] === 1 || kind[i + 1] === 1)) put(img, x, y, NP.grass[1], 0.7);
+            else if (kind[i] === 1 && (kind[i - img.w] === 0 || kind[i - 1] === 0)) put(img, x, y, NP.dirt[6], 0.5);
+        }
+        for (let n = 0; n < (img.w * img.h) / 36; n++) {
+            const x = Math.floor(hash(n, 7, seed) * img.w), y = Math.floor(hash(n, 8, seed) * img.h), k = kind[y * img.w + x], r = hash(n, 9, seed);
+            if (k === 0 && r < 0.3) { for (let j = 0; j < 3; j++) put(img, x + (j & 1), y - j, NP.turf[5 + (j & 1)]); }
+            else if (k === 0 && r < 0.38) { put(img, x, y, [140, 96, 150]); put(img, x + 1, y, [112, 74, 126]); put(img, x, y - 1, [168, 120, 172]); }           // heather
+            else if (k === 0 && r < 0.42) { put(img, x, y, [226, 214, 150]); put(img, x, y + 1, NP.turf[2]); }
+            else if (k === 1 && r < 0.3) { put(img, x, y, NP.rock[6]); put(img, x + 1, y, NP.rock[5]); put(img, x, y + 1, NP.dirt[0]); }
+            else if (k === 4 && r < 0.06) { rectFill(img, x, y, 3, 1, [70, 86, 52]); put(img, x + 1, y - 1, [70, 86, 52]); }
+        }
+        // The crack across the ring: the broken binding, cut through every course.
+        for (let k = -RX + 8; k < RX - 8; k++) {
+            const px = ring.x + k, py = Math.round(ring.y - k * 0.32 + Math.sin(k / 6) * 3 + (hash(k >> 2, 1, seed) - 0.5) * 3);
+            put(img, px, py, [14, 12, 16]); put(img, px, py + 1, FLAG[1]); if (hash(k, 2, seed) < 0.3) put(img, px, py - 1, [14, 12, 16], 0.7);
+        }
+        // Rocky lips where land meets the sea, then the quay, the pier and the boats' wharf.
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const g = U(x, y), X0 = x * C, Y0 = y * C;
+            if (g !== 'water' && g !== 'wharf' && g !== 'cliff' && isWater(x, y + 1)) {
+                RK.blocks(img, X0, Y0 + C, C, 9, seed + x, NP.cliff);
+                for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 1, NP.cliff[6]); for (let j = 0; j < 4; j++) put(img, X0 + i, Y0 + C + 9 + j, NP.shadow, 0.5 - j * 0.12); }
+            }
+            if (g !== 'wharf') continue;
+            RK.planks(img, X0, Y0, C, C, seed + y * 3 + (isPlank(x - 1, y) || isPlank(x + 1, y) ? 0 : x), NP.plank, isPlank(x - 1, y) || isPlank(x + 1, y) || !isPlank(x, y + 1));
+            for (let n = 0; n < 3; n++) if (hash(x, y * 7 + n, seed) < 0.35) put(img, X0 + 4 + hash(x, n, seed) * 24, Y0 + 4 + hash(y, n, seed) * 24, PAL.iron[1]);
+            if (!isPlank(x, y - 1)) for (let i = 0; i < C; i++) { put(img, X0 + i, Y0, NP.plank[7]); put(img, X0 + i, Y0 + 1, NP.plank[6], 0.6); }
+            if (!isPlank(x - 1, y)) for (let j = 0; j < C; j++) { put(img, X0, Y0 + j, NP.plank[0]); put(img, X0 + 1, Y0 + j, NP.plank[6], 0.4); }
+            if (!isPlank(x + 1, y)) for (let j = 0; j < C; j++) { put(img, X0 + C - 1, Y0 + j, NP.plank[0]); if (isWater(x + 1, y)) { put(img, X0 + C, Y0 + j, NP.shadow, 0.5); put(img, X0 + C + 1, Y0 + j, NP.shadow, 0.3); } }
+            if (isWater(x, y + 1)) {
+                for (let i = 0; i < C; i++) { put(img, X0 + i, Y0 + C - 2, NP.plank[6]); put(img, X0 + i, Y0 + C - 1, NP.plank[1]); for (let j = 0; j < 9; j++) put(img, X0 + i, Y0 + C + j, NP.shadow, 0.78 - j * 0.07); }
+                for (const px of [X0 + 5, X0 + 21]) { for (let j = 0; j < 13; j++) { rectFill(img, px, Y0 + C + j, 4, 1, NP.plank[j < 2 ? 4 : 2]); put(img, px, Y0 + C + j, NP.plank[5]); } }
+            }
+            const sea = isWater(x, y - 1) ? -1 : isWater(x, y + 1) ? 1 : 0;
+            if (sea && (x + y) % 3 === 0) items.push({ x, y: sea < 0 ? y - 0.2 : y + 0.86, draw: () => post(img, X0 + 16, sea < 0 ? Y0 + 6 : Y0 + C - 3, seed + x, null) });
+            else if ((isWater(x + 1, y) || isWater(x - 1, y)) && y % 2 === 0) items.push({ x, y: y + 0.3, draw: () => post(img, isWater(x + 1, y) ? X0 + C - 4 : X0 + 4, Y0 + 18, seed + y, null) });
+        }
+        const open = (x, y) => G_GROUND.has(N(x, y));
+        const behind = (x, y) => open(x, y - 1) || open(x - 1, y - 1) || open(x + 1, y - 1);
+        const inner = innerFn(map, nameAt);
+        const anyBehind = (b) => { for (let xx = b.x0; xx <= b.x1; xx++) if (open(xx, b.y0 - 1)) return true; return false; };
+        const seen = new Set(), tinted = [], caves = {};
+        for (const name of ['sun_cave', 'moon_cave']) { let sx = 0, n = 0; for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (N(x, y) === name) { sx += x; n++; } if (n) caves[name] = Math.round((sx / n) * C + 16); }
+        const SHRINE = new Set(['wolf_carving', 'sun_cave', 'moon_cave']);
+        const BLOCKS = {
+            house: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), FX, { z: 2, chimneys: 1, thatch: true }) }),
+            net_shed: (b) => ({ y: b.y1 + 0.9, draw: () => { building(L, b, seed + 71, anyBehind(b), FX, { z: 1.5, thatch: true }); netDrape(img, b, seed); } }),
+            awning: (b) => ({ y: b.y1 + 0.8, draw: () => awning(L, b, seed + 5) }),
+            fish_rack: (b) => ({ y: b.y1 + 0.6, draw: () => fishRack(L, b, seed + b.x0, anyBehind(b)) }),
+            wreck: (b) => ({ y: b.y1 + 0.5, draw: () => wreck(L, b, seed + 9) }),
+            wolf_carving: (b) => ({ y: b.y1 + 0.9, draw: () => wolfCarving(L, b, seed, tinted, caves) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (SHRINE.has(n)) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, SHRINE, seen); items.push({ x, ...BLOCKS.wolf_carving(b) }); continue; }
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P2 = {
+                cliff: () => { const inn = inner(x, y, 'cliff'); if (inn && hash(x, y, seed + 31) > 0.3) return; cragCell(L, x, y, seed, NP.cliff, NP.turf, 6, open(x, y + 1) || isWater(x, y + 1), open(x, y - 1), inn ? 2 : 1); },
+                rock: () => {
+                    if (isWater(x, y)) { for (let a = 0; a < 48; a++) { const t = (a / 48) * Math.PI * 2; put(img, cx + Math.cos(t) * (18 + hash(a, 1, seed) * 4), gy - 4 + Math.sin(t) * (8 + hash(a, 2, seed) * 3), NP.foam[1 + (a & 1)], 0.8); } cragCell(L, x, y, seed + 7, NP.cliff, NP.turf, 6, true, false, 1); }
+                    else stone(img, cx, gy - 8, 11 + hash(x, y, seed) * 3, 8, seed + x * 3 + y, NP.cliff, NP.turf, 0.5);
+                },
+                fir: () => fir(L, x, y, seed, behind(x, y), 0),
+                rowboat: () => rowboat(img, cx, gy, seed + x, true),
+                barrel: () => barrel(L, cx, gy, seed + x),
+                crate: () => crate(L, cx, gy, seed + x),
+                fence: () => fence(L, map, nameAt, x, y, seed),
+                steps: () => cliffSteps(img, N, x, y, seed),
+                binding_stone: () => tall(L, [cx - 26, gy - 80, cx + 26, gy + 8], y * C, open(x, y - 1), (S) => bindingStone(S, cx, gy, seed, tinted))
+            }[n];
+            if (P2) items.push({ x, y: y + (n === 'fir' ? 0.8 : n === 'cliff' ? 0.95 : n === 'steps' ? -1 : 0.5), draw: P2 });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // Gulls over the sea and on the stacks.
+        for (let n = 0; n < 14; n++) { const gx = Math.floor((0.45 + hash(n, 1, seed + 80) * 0.53) * img.w), gy2 = Math.floor((0.05 + hash(n, 2, seed + 80) * 0.9) * img.h); if (kind[gy2 * img.w + gx] === 3) { rectFill(img, gx - 2, gy2, 2, 1, [236, 238, 240]); rectFill(img, gx + 1, gy2, 2, 1, [236, 238, 240]); put(img, gx, gy2 + 1, [210, 214, 220]); } }
+        edgeShade(img, 14, 0.3);
+        // The storm coming in over the sea from the north-east: cloud shadow on the water.
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const a = clamp(sstep(0.55, 1.0, x / img.w) * sstep(1.0, 0.0, y / img.h) * (0.25 + fbm(x / 90, y / 50, seed + 90) * 0.6), 0, 0.55);
+            if (a > 0.02) put(img, x, y, [18, 20, 32], a * (kind[y * img.w + x] === 3 ? 1 : 0.6));
+        }
+        storm([img, L.over], glows, tinted);
+        const water = [];
+        for (let i = 0; i < kind.length; i += 5) if (kind[i] === 3 && hash(i, 0, seed) < 0.1) water.push(i);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water, animate: animator(flames, smoke) };
+    }
+    /** A grey day under a storm: everything cools and dims a little; lit windows warm their walls, and the two caves
+     *  throw their own light (sun-gold and moon-violet) over the flagstones. */
+    function storm(layers, glows, tinted) {
+        for (const im of layers) { const d = im.data; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { d[i] = d[i] * 0.84 + 4; d[i + 1] = d[i + 1] * 0.87 + 6; d[i + 2] = d[i + 2] * 0.93 + 12; } }
+        for (const g of [...glows.map((q) => ({ ...q, c: WARM })), ...tinted]) {
+            const r = g.r, a = g.a == null ? 0.5 : g.a, ry = Math.round(r * 0.8), c = g.c;
+            for (let yy = -ry; yy <= ry; yy++) for (let xx = -r; xx <= r; xx++) {
+                const x = Math.round(g.x) + xx, y = Math.round(g.y) + yy, dd = Math.hypot(xx, yy / 0.8) / r;
+                if (dd >= 1 || x < 0 || y < 0 || x >= layers[0].w || y >= layers[0].h) continue;
+                const w = (1 - dd) * (1 - dd) * a;
+                for (const im of layers) { const i = (y * im.w + x) * 4, d = im.data; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] = Math.min(255, d[i + j] + c[j] * w * 0.5 + (c[j] - d[i + j]) * w * 0.25); }
+            }
+        }
+    }
+    /** Stone steps cut up the headland: treads across the climb, the cliff's edge either side. */
+    function cliffSteps(img, N, x, y, seed) {
+        const X0 = x * C, Y0 = y * C;
+        for (let j = 0; j < C; j++) for (let i = 0; i < C; i++) {
+            const u = (Y0 + j) % 7, bq = Math.floor((i + Math.floor((Y0 + j) / 7) * 5) / 10);
+            put(img, X0 + i, Y0 + j, u === 0 ? FLAG[6] : u === 6 ? FLAG[0] : u === 5 ? FLAG[1] : pick(FLAG, 0.35 + hash(bq, Math.floor((Y0 + j) / 7), seed + x) * 0.3 + (u < 3 ? 0.08 : 0)));
+            if (u > 0 && u < 3 && hash(X0 + i, Y0 + j, seed + 4) < 0.08) put(img, X0 + i, Y0 + j, NP.turf[4]);
+        }
+        for (const [dx, ex] of [[-1, 0], [1, C - 1]]) if (N(x + dx, y) !== 'steps') for (let j = 0; j < C; j++) { put(img, X0 + ex, Y0 + j, FLAG[0]); put(img, X0 + ex + (dx < 0 ? 1 : -1), Y0 + j, FLAG[2]); put(img, X0 + ex + (dx < 0 ? -1 : 1), Y0 + j, NP.shadow, 0.5); }
+    }
+    /** Nets hung to dry on the net shed's side wall, with cork floats. */
+    function netDrape(img, b, seed) {
+        const X0 = (b.x1 + 1) * C - 30, X1 = (b.x1 + 1) * C + 6, Y = (b.y1 + 1) * C - 40;
+        for (let px = X0; px < X1; px++) { const sag = 26 + Math.sin(((px - X0) / (X1 - X0)) * Math.PI) * 8; for (let py = Y; py < Y + sag; py++) if ((px + py) % 4 === 0 || (px - py + 400) % 4 === 0) put(img, px, py, [176, 166, 136], 0.9); }
+        for (let px = X0 - 2; px < X1 + 2; px++) { put(img, px, Y, NP.oak[4]); put(img, px, Y + 1, NP.oak[1]); }
+        for (let k = 0; k < 4; k++) { const f = shape(); ellipse(f, img, X0 + 5 + k * 9, Y + 22 + (k % 2) * 5, 2.2, 1.7); fill(img, f, NP.oak.slice(4), { outline: NP.oak[1] }); }
+    }
+    /** A canvas awning on four poles, sagging between them, a bench and a basket of floats under it. */
+    function awning(L, b, seed) {
+        const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, B = (b.y1 + 1) * C - 4, top = B - 46;
+        tall(L, [X0 - 8, top - 8, X1 + 8, B + 6], b.y0 * C, false, (S) => {
+            shadow(S, (X0 + X1) / 2 + 4, B, (X1 - X0) / 2 + 4, 6, 0.4);
+            const p = shape(); for (const px of [X0 + 2, X1 - 3]) thick(p, S, px, B, px, top + 6, 1.4); fill(S, p, NP.oak.slice(2), { outline: NP.oak[0] });
+            const cl = shape();
+            poly(cl, S, [[X0 - 4, top + 6], [X1 + 4, top], [X1 + 6, top + 22], [X0 - 2, top + 26]], (px, py) => -0.3 + Math.sin((px - X0) / 7) * 0.18 + ((py - top) / 26) * -0.4);
+            fill(S, cl, NP.wool.slice(1), { tex: 0.25, seed, outline: NP.wool[0] });
+            for (let px = X0 - 2; px < X1 + 6; px += 3) put(S, px, top + 24 + Math.round(Math.sin(px / 4) * 1.5), NP.wool[1]);
+            barrel({ base: S }, X0 + 14, B, seed + 1); crate({ base: S }, X1 - 14, B, seed + 2);
+        });
+    }
+    /** The wreck on the beach: a longship on her side with her back broken, ribs showing through the gap, a mast
+     *  snapped twice and the sail in red rags; loose strakes on the shingle round her. */
+    function wreck(L, b, seed) {
+        const X0 = b.x0 * C + 6, X1 = (b.x1 + 1) * C - 4, W = X1 - X0, B = (b.y1 + 1) * C - 10, mx = Math.round(X0 + W * 0.52);
+        const bow = (px) => Math.pow(Math.abs((px - X0) / W - 0.5) * 2, 2.6), tilt = (px) => ((px - X0) / W) * 18;
+        const keel = (px) => B - bow(px) * 20 - tilt(px), sheer = (px) => B - 30 - bow(px) * 30 - tilt(px), gap = (px) => Math.abs(px - mx) < 14 + Math.sin(px) * 2;
+        tall(L, [X0 - 30, B - 160, X1 + 30, B + 20], b.y0 * C + 40, false, (S) => {
+            shadow(S, mx + 6, B + 2, W / 2 + 10, 10, 0.5);
+            for (let k = 0; k < 7; k++) { const sx = X0 + hash(k, 1, seed) * W, sy = B + 4 + hash(k, 2, seed) * 14, pl = shape(); thick(pl, S, sx, sy, sx + 14 + hash(k, 3, seed) * 14, sy - 3 + hash(k, 4, seed) * 6, 1.6); fill(S, pl, NP.oak.slice(1, 6), { outline: NP.oak[0] }); }
+            const hull = shape();
+            for (let px = X0; px <= X1; px++) for (let py = Math.round(sheer(px)); py <= keel(px); py++) if (!gap(px) || py > keel(px) - 6) sset(hull, S, px, py, ((py - sheer(px)) / 30) * -0.8 + 0.3);
+            fill(S, hull, NP.oak, { outline: NP.oak[0] });
+            for (const [i] of hull.px) { const px = i % S.w, py = (i / S.w) | 0, d = Math.round(keel(px)) - py; if (d % 5 === 4) put(S, px, py, NP.oak[0], 0.8); else if (d % 5 === 1 && px % 8 === 0) put(S, px, py, PAL.iron[3]); if (hash(px >> 2, py >> 2, seed) < 0.06) put(S, px, py, [40, 52, 34]); }
+            // The break: dark inside, ribs standing up through it.
+            for (let px = mx - 16; px <= mx + 16; px++) for (let py = Math.round(sheer(px)) - 2; py < keel(px) - 6; py++) put(S, px, py, [16, 12, 10], gap(px) ? 0.95 : 0);
+            for (let k = -2; k <= 2; k++) { const rx = mx + k * 6, rb = shape(); thick(rb, S, rx, keel(rx) - 6, rx + k * 2, sheer(rx) - 10 - Math.abs(k) * -3, 1.3); fill(S, rb, NP.oak.slice(3), { outline: NP.oak[0] }); }
+            for (let px = X0; px <= X1; px++) if (!gap(px)) { put(S, px, Math.round(sheer(px)), NP.oak[6]); put(S, px, Math.round(sheer(px)) + 1, NP.oak[5]); }
+            // The stem post curls up at the bow (west); the stern is broken off short.
+            const st = shape(), y0 = sheer(X0);
+            thick(st, S, X0 + 3, y0 + 4, X0 - 5, y0 - 20, 2.2); thick(st, S, X0 - 5, y0 - 20, X0 - 3, y0 - 34, 1.9); thick(st, S, X0 - 3, y0 - 34, X0 - 10, y0 - 38, 1.7);
+            fill(S, st, NP.oak.slice(2), { outline: NP.oak[0] });
+            const sp = shape(); thick(sp, S, X1, sheer(X1) + 2, X1 + 4, sheer(X1) - 10, 2); fill(S, sp, NP.oak.slice(2), { outline: NP.oak[0] });
+            // Mast, snapped: a stump with a jagged top, and the upper part leaning against it, yard and rags.
+            const mbase = sheer(mx + 26) + 4, mtop = mbase - 92;
+            const ms = shape(); thick(ms, S, mx + 26, mbase, mx + 30, mtop, 1.8); thick(ms, S, mx + 30, mtop, mx + 54, mtop + 30, 1.5); fill(S, ms, NP.oak.slice(2), { outline: NP.oak[0] });
+            const yd = shape(); thick(yd, S, mx + 4, mtop + 10, mx + 58, mtop + 4, 1.2); fill(S, yd, NP.oak.slice(2), { outline: NP.oak[0] });
+            for (let py = mtop + 12; py < mtop + 62; py++) for (let px = mx + 6; px < mx + 56; px++) {
+                const u = (px - mx - 6) / 50, f = (py - mtop - 12) / 50, edge = 0.35 + vnoise(px / 4, 0, seed) * 0.9;
+                if (f > edge || hash(px >> 1, py >> 1, seed + 3) < 0.12 + f * 0.25) continue;                                  // torn bottom edge and holes
+                put(S, px, py, pick(Math.floor(u * 4) % 2 ? NP.wool : NP.madder, 0.45 + Math.sin(u * Math.PI * 4) * 0.1 - f * 0.25 + (vnoise(px / 5, py / 7, seed) - 0.5) * 0.25));
+            }
+            const line = (x1, y1, x2, y2, a) => { const n = Math.hypot(x2 - x1, y2 - y1); for (let t = 0; t <= n; t++) put(S, x1 + ((x2 - x1) * t) / n, y1 + ((y2 - y1) * t) / n, [34, 28, 22], a); };
+            line(mx + 30, mtop + 2, X0 + 6, sheer(X0) - 10, 0.55); line(mx + 30, mtop + 2, X1 - 4, sheer(X1) - 6, 0.55);
+            for (let px = X0 - 10; px < X1 + 10; px += 3) if (hash(px, 1, seed) < 0.5) put(S, px, B + 2 + hash(px, 2, seed) * 3, NP.foam[1], 0.6);
+        });
+    }
+    /** The carved face of the Wolf's Wake: the cliff cut back flat; on the sun's side a rayed sun and Sköll running
+     *  at it, a broken chain across the middle, on the moon's side Hati running at a crescent; the bright cave
+     *  under the sun and the dark one under the moon. Light comes out of both caves. */
+    function wolfCarving(L, b, seed, tinted, caves) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C - 18, B = (b.y1 + 1) * C, W = X1 - X0, S = L.base;
+        // The cut face: a shallow recess with a worn frame.
+        for (let py = Y0; py < B; py++) {
+            const sw = 10 + Math.sin(py / 11) * 3;
+            for (let px = X0; px < X1; px++) {
+                const inside = px > X0 + sw && px < X1 - sw && py > Y0 + 10;
+                const n = fbm(px / 26, py / 14, seed + 300), v = vnoise(px / 4, py / 6, seed + 301);
+                put(S, px, py, pick(NP.cliff, (inside ? 0.28 : 0.42) + n * 0.28 + (v - 0.5) * 0.1 + (py - Y0) / (B - Y0) * -0.08));
+                if (!inside && hash(px >> 1, py >> 2, seed) < 0.12) put(S, px, py, pick(NP.turf, 0.3 + v * 0.4));
+                if (inside && hash(px >> 3, py >> 4, seed + 7) < 0.05) put(S, px, py, NP.cliff[1], 0.6);                        // old cracks
+            }
+        }
+        for (let px = X0 + 12; px < X1 - 12; px++) { put(S, px, Y0 + 10, NP.cliff[0]); put(S, px, Y0 + 11, NP.cliff[1]); put(S, px, B - 1, NP.shadow, 0.6); }
+        // A carving: a shape filled with a lit ramp, cut deep (dark rim below and right, pale rim above and left).
+        const carve = (s, ramp) => {
+            fill(S, s, ramp.slice(1), { tex: 0.3, seed: seed + 5 });
+            for (const [i] of s.px) {
+                const px = i % S.w, py = (i / S.w) | 0;
+                if (!s.px.has(i + 1) || !s.px.has(i + S.w)) put(S, px + 1, py + 1, [10, 8, 12], 0.8);
+                if (!s.px.has(i - 1) || !s.px.has(i - S.w)) put(S, px - 1, py - 1, ramp[ramp.length - 1], 0.5);
+            }
+        };
+        const top = Y0 + 14, sunX = X0 + 70, moonX = X1 - 70;
+        // The sun, rayed like a wheel.
+        const sun = shape(); ellipse(sun, S, sunX, top + 28, 18, 18);
+        for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; thick(sun, S, sunX + Math.cos(a) * 20, top + 28 + Math.sin(a) * 20, sunX + Math.cos(a) * 30, top + 28 + Math.sin(a) * 30, 2); }
+        carve(sun, GOLD);
+        tinted.push({ x: sunX, y: top + 28, r: 50, a: 0.35, c: SUN_LIGHT });
+        // The moon: a crescent.
+        const moon = shape();
+        for (let yy = -24; yy <= 24; yy++) for (let xx = -24; xx <= 24; xx++) if (Math.hypot(xx, yy) <= 20 && Math.hypot(xx - 10, yy - 6) > 16) sset(moon, S, moonX + xx, top + 28 + yy, -yy / 30 - xx / 40);
+        carve(moon, VIOLET);
+        tinted.push({ x: moonX, y: top + 30, r: 50, a: 0.3, c: MOON_LIGHT });
+        // The wolves, running out from the middle toward their lights.
+        const wolf = (cx, gy, len, dir, ramp) => {
+            const s = shape(), X = (u) => cx + dir * (u - 0.32) * len, Y = (v) => gy + v * len;
+            for (const [u1, v1, u2, v2, r] of WOLF.strokes) thick(s, S, X(u1), Y(v1), X(u2), Y(v2), r * len, -0.1);
+            for (const [u, v, rx, ry] of WOLF.blobs) ellipse(s, S, X(u), Y(v), rx * len, ry * len, 0.15);
+            for (const [a1, b1, a2, b2, a3, b3] of WOLF.ears) poly(s, S, [[X(a1), Y(b1)], [X(a2), Y(b2)], [X(a3), Y(b3)]], 0.4);
+            for (const [i, v] of s.px) s.px.set(i, v + (vnoise((i % S.w) / 6, ((i / S.w) | 0) / 6, seed) - 0.5) * 0.3);
+            carve(s, ramp);
+            const ex = X(0.83), ey = Y(-0.69);
+            put(S, ex, ey, ramp[ramp.length - 1]); put(S, ex + dir, ey, ramp[ramp.length - 1]);                                 // the eye
+            for (let k = 0; k < 9; k++) { const fx = X(0.08 + k * 0.06), fy = Y(-0.62 + Math.sin(k) * 0.015); put(S, fx, fy, ramp[2]); put(S, fx + dir, fy + 1, ramp[2]); }   // fur along the back
+        };
+        const mid = Math.round(X0 + W / 2), LEN = 108, wolfY = Y0 + 159, off = 20 + 0.74 * LEN;
+        wolf(mid - off, wolfY, LEN, -1, GOLD);
+        wolf(mid + off, wolfY, LEN, 1, VIOLET);
+        // The chain, link by link from wolf to wolf, broken in the middle: the left half sun-lit, the right moon-dark.
+        for (let k = -6; k <= 6; k++) {
+            if (Math.abs(k) < 1) continue;
+            const lx = mid + k * 14 + (k > 0 ? 6 : -6), ly = wolfY - 0.52 * LEN + Math.cos(k * 0.5) * -5 + (Math.abs(k) === 1 ? 7 : 0), l = shape();
+            if (k % 2) { for (let a = 0; a < 40; a++) { const t = (a / 40) * Math.PI * 2; for (const r of [1, 0.8, 0.62]) sset(l, S, lx + Math.cos(t) * 9 * r, ly + Math.sin(t) * 5 * r, Math.sin(t) * -0.6); } }
+            else { for (let a = 0; a < 28; a++) { const t = (a / 28) * Math.PI * 2; for (const r of [1, 0.7]) sset(l, S, lx + Math.cos(t) * 3 * r, ly + Math.sin(t) * 6.5, Math.cos(t) * -0.6); } }
+            const ramp = k < 0 ? GOLD : VIOLET;
+            fill(S, l, k < 0 ? [ramp[1], ramp[2], NP.cliff[5], ramp[4]] : [ramp[0], ramp[2], NP.cliff[4], ramp[4]], { outline: [10, 8, 12] });
+        }
+        // The broken ends: a scatter of chips under the gap.
+        for (let k = 0; k < 14; k++) put(S, mid - 8 + hash(k, 1, seed) * 16, wolfY - 26 + hash(k, 2, seed) * 20, NP.cliff[1 + (k % 3)]);
+        // The caves: an arch in the rock, the inside lit from somewhere deep.
+        for (const [name, ramp, light] of [['sun_cave', GOLD, SUN_LIGHT], ['moon_cave', VIOLET, MOON_LIGHT]]) {
+            const ccx = caves[name];
+            if (ccx == null) continue;
+            const hw = 40, hh = 46, gyc = B;
+            for (let py = gyc - hh; py < gyc; py++) for (let px = ccx - hw; px <= ccx + hw; px++) {
+                const u = (px - ccx) / hw, f = (gyc - py) / hh; if (u * u + f * f > 1) continue;
+                const depth = Math.hypot(u, f * 0.9);
+                put(S, px, py, depth > 0.86 ? NP.cliff[0] : pick(ramp, 0.15 + (1 - depth) * 0.8 + (vnoise(px / 5, py / 5, seed + 8) - 0.5) * 0.2));
+            }
+            for (let a = 0; a <= 40; a++) {                                                                                     // the rim of rough stones
+                const t = (a / 40) * Math.PI, st = shape(); ellipse(st, S, ccx - Math.cos(t) * (hw + 3), gyc - Math.sin(t) * (hh + 2), 4.5, 4); fill(S, st, NP.cliff.slice(2), { outline: NP.cliff[0] });
+            }
+            if (name === 'sun_cave') for (let k = 0; k < 5; k++) { const st = shape(); ellipse(st, S, ccx - 10 + k * 5, gyc - 6 - (k % 2) * 4, 4, 3.4); fill(S, st, [[20, 18, 22], [34, 30, 34], [60, 50, 40]], { outline: [8, 8, 10] }); }   // the black cairn
+            else for (let k = 0; k < 6; k++) put(S, ccx - 12 + hash(k, 1, seed) * 24, gyc - 30 + hash(k, 2, seed) * 20, VIOLET[6]);                                 // something pale in the dark
+            tinted.push({ x: ccx, y: gyc + 10, r: 96, a: 0.45, c: light });
+            for (let px = ccx - hw - 6; px <= ccx + hw + 6; px++) for (let j = 0; j < 4; j++) put(S, px, gyc + j, NP.shadow, 0.3 - j * 0.06);
+        }
+    }
+    /** The binding stone at the ring's edge: a standing stone cut with the same broken chain, two tooth-shaped
+     *  hollows in its face (gold-lit and violet-lit), lichen on its shoulders. */
+    function bindingStone(S, cx, gy, seed, tinted) {
+        shadow(S, cx + 5, gy + 1, 15, 5, 0.5);
+        const s = shape();
+        poly(s, S, [[cx - 13, gy], [cx - 15, gy - 30], [cx - 11, gy - 58], [cx - 2, gy - 68], [cx + 9, gy - 62], [cx + 14, gy - 36], [cx + 13, gy]], (px, py) => ((px - cx) / 14) * -0.6 + ((py - gy + 68) / 68) * -0.3 + (vnoise(px / 4, py / 5, seed) - 0.5) * 0.5);
+        fill(S, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
+        for (const [i, v] of s.px) { const px = i % S.w, py = (i / S.w) | 0; if (py < gy - 52 + vnoise(px / 3, 0, seed) * 6 && v > -0.2) put(S, px, py, pick(NP.turf, 0.4 + v * 0.3), 0.8); }
+        for (let py = gy - 50; py < gy - 6; py += 7) { const l = shape(); ellipse(l, S, cx + Math.sin(py) * 1.5, py, 2.4, 3.4); fill(S, l, [NP.cliff[0], NP.cliff[1], NP.cliff[2]], { edge: false }); }
+        for (const [dx, ramp] of [[-6, GOLD], [6, VIOLET]]) {
+            const t = shape(); poly(t, S, [[cx + dx - 3, gy - 36], [cx + dx + 3, gy - 36], [cx + dx + 1, gy - 22], [cx + dx, gy - 20], [cx + dx - 1, gy - 22]], 0);
+            fill(S, t, [[10, 8, 12], ramp[1], ramp[2]], { edge: false });
+            for (const [i] of t.px) { const px = i % S.w, py = (i / S.w) | 0; if (!t.px.has(i - S.w)) put(S, px, py, ramp[4], 0.7); }
+        }
+        tinted.push({ x: cx - 6, y: gy - 20, r: 26, a: 0.35, c: SUN_LIGHT }); tinted.push({ x: cx + 6, y: gy - 20, r: 26, a: 0.35, c: MOON_LIGHT });
+    }
+
+    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand });
+    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand };
 })(typeof window !== 'undefined' ? window : globalThis);

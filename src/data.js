@@ -99,6 +99,20 @@
                 critChance: 0.1, critMultiplier: 1.5,
                 skills: [{ name: 'Bite', base_damage: [4, 7] }]
             },
+            // Fenrir's Heir (CL1, Gullstrand Coast): the coast wolves that the two hunts have turned. Sun-mad ones lie across
+            // the bright cave and bite hot; the moonless ones come out of the dark hollow after you. Chapter Two pack wolves.
+            'sunscorched_wolf': {
+                name: 'Sun-Mad Wolf',
+                hp: 40, maxHp: 40, xp: 32, atk: 9, def: 3, spd: 13,
+                critChance: 0.12, critMultiplier: 1.6,
+                skills: [{ name: 'Scorching Bite', base_damage: [7, 10] }]
+            },
+            'moonless_wolf': {
+                name: 'Moonless Wolf',
+                hp: 34, maxHp: 34, xp: 32, atk: 9, def: 2, spd: 14,
+                critChance: 0.18, critMultiplier: 1.6,
+                skills: [{ name: 'Night Bite', base_damage: [6, 10] }]
+            },
             'shackled_ghoul': {
                 name: 'Shackled Ghoul',
                 hp: 20, maxHp: 20, xp: 15, atk: 8, def: 1, spd: 14,
@@ -1418,6 +1432,24 @@
                         { name: 'Snap', skill: 'Bite', shape: 'arc', reach: 14, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1100, blockCost: 6, useAt: [0, 18] }
                     ]
                 },
+                // Gullstrand's turned wolves (CL1): the pack wolf's kit at Chapter Two weight. The sun-mad ones press in close;
+                // the moonless ones circle wider and lunge from further out.
+                sunscorched_wolf: {
+                    speed: 86, detect: 120, smellRadius: 40, reach: 38, shape: 'line', width: 10, lunge: 38, windupMs: 480, activeMs: 200, recoveryMs: 600, radius: 6, poise: 2, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [30, 46], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Scorching Bite', shape: 'line', reach: 38, width: 10, lunge: 38, windupMs: 480, activeMs: 200, recoveryMs: 600, cooldownMs: 2400, blockCost: 10, useAt: [22, 52] },
+                        { name: 'Snap', skill: 'Scorching Bite', shape: 'arc', reach: 16, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1000, blockCost: 7, useAt: [0, 20] }
+                    ]
+                },
+                moonless_wolf: {
+                    speed: 92, detect: 120, smellRadius: 40, reach: 44, shape: 'line', width: 9, lunge: 44, windupMs: 520, activeMs: 200, recoveryMs: 650, radius: 5, poise: 1, leash: 220,
+                    giveUpMs: 2000, giveUpBeyond: 180, keepDistance: [44, 60], group: 'circle',
+                    attacks: [
+                        { name: 'Lunge Bite', skill: 'Night Bite', shape: 'line', reach: 44, width: 9, lunge: 44, windupMs: 520, activeMs: 200, recoveryMs: 650, cooldownMs: 2600, blockCost: 10, useAt: [26, 60] },
+                        { name: 'Snap', skill: 'Night Bite', shape: 'arc', reach: 14, arcDeg: 70, windupMs: 380, activeMs: 80, recoveryMs: 300, cooldownMs: 1100, blockCost: 6, useAt: [0, 18] }
+                    ]
+                },
                 weak_goblin: {
                     speed: 52, detect: 96, alertMs: 400, reach: 18, arcDeg: 90, windupMs: 480, activeMs: 100, recoveryMs: 450, radius: 5, poise: 1, leash: 180,
                     keepDistance: [14, 18], group: 'flank', flee: { belowHpPct: 0.25, ms: 2000 }, hopBackAfterHits: 2, hopBackPx: 20,
@@ -1778,7 +1810,40 @@
             // Beer (Tokelo: semi-OP, and more than four inverts the controls). Brewed with Brother Fenric or bought from him.
             'Helles':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { damage: 0.15 }, sellable: true, sellPrice: 2, description: 'A pale, clean lager. Courage in a mug.' },
             'Dunkel':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { defence: 0.12, regen: 0.5 }, sellable: true, sellPrice: 2, description: 'A dark malty lager. You feel thicker-skinned already.' },
-            'Weizen':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { crit: 0.08, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy wheat beer, banana and clove. Quick on your feet, sharp in the eye.' }
+            'Weizen':           { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { crit: 0.08, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy wheat beer, banana and clove. Quick on your feet, sharp in the eye.' },
+
+            // ----- The Hrimvald kitchen (Tokelo, 2026-11-13; docs/design/NORSE_KITCHEN.md). Chapter Two's own food:
+            // fish from Solveig in Skeldvik, mutton and dairy from Gudrun in Hrafnholm, berries off the fells, and mead
+            // from Aslaug at the Stormtide Inn. Same rules as the German kitchen (foodRules); Gauge's first pass.
+            // Ingredients
+            'Herring':        { type: 'material', sellable: true, sellPrice: 1, description: 'Silver herring, salted in the cask. Smoke it, or ask Solveig what else she does with it. Then wish you had not.' },
+            'Salmon':         { type: 'material', sellable: true, sellPrice: 2, description: 'A side of fjord salmon, red as a sunset. Cure it with herbs for gravlax.' },
+            'Stockfish':      { type: 'material', sellable: true, sellPrice: 1, description: 'Cod dried hard on the Skeldvik racks. It keeps for years, and needs a day in water and a pot to forgive you.' },
+            'Mutton':         { type: 'material', sellable: true, sellPrice: 2, description: 'Hill mutton from Gudrun\'s flock. Stew it with cabbage, or roast it with lingonberries.' },
+            'Honey':          { type: 'material', sellable: true, sellPrice: 1, description: 'A crock of dark heather honey. Most of it in Hrimvald ends up as mead.' },
+            'Sour Cream':     { type: 'material', sellable: true, sellPrice: 1, description: 'Thick soured cream. Bought, like all dairy: porridge-makers swear by it.' },
+            'Lingonberries':  { type: 'material', sellable: true, sellPrice: 1, description: 'Small, red and sharp. They grow on every fell in Hrimvald and go with everything.' },
+            'Cloudberries':   { type: 'material', sellable: true, sellPrice: 2, description: 'Amber berries off the high bogs, rare and prized. Stirred into skyr, they are a feast.' },
+            'Juniper Berries':{ type: 'material', sellable: true, sellPrice: 1, description: 'Blue-black juniper from the pass. Farmhouse brewers filter their ale through the branches.' },
+            // Norse dishes
+            'Flatbread':        { type: 'consumable', use: 'meal', heal: 6, sellable: true, sellPrice: 1, description: 'Thin, crisp flatbread baked on a stone. It keeps all winter. Fine alone, better under gravlax or smoked herring.' },
+            'Skyr':             { type: 'consumable', use: 'meal', heal: 10, seconds: 120, mods: { regen: 0.5 }, sellable: true, sellPrice: 1, description: 'Thick, tart cultured milk, eaten with a spoon. Bought, like all dairy. Add cloudberries at a hearth.' },
+            'Cloudberry Skyr':  { type: 'consumable', use: 'meal', heal: 20, seconds: 180, mods: { crit: 0.05, speed: 0.05 }, sellable: true, sellPrice: 3, description: 'Skyr with cloudberries and a drizzle of honey. Children in Hrimvald behave for a year to get this.' },
+            'Smoked Herring':   { type: 'consumable', use: 'meal', heal: 14, seconds: 120, mods: { damage: 0.05 }, sellable: true, sellPrice: 2, description: 'Herring smoked golden over juniper. Harbour food: eaten standing up, with your fingers.' },
+            'Gravlax':          { type: 'consumable', use: 'meal', heal: 22, seconds: 150, mods: { crit: 0.08 }, sellable: true, sellPrice: 3, description: 'Salmon cured under salt and herbs, sliced thin. A sharp eye comes with it.' },
+            'Fårikål':          { type: 'consumable', use: 'meal', heal: 30, seconds: 180, mods: { defence: 0.10 }, sellable: true, sellPrice: 4, description: 'Mutton and cabbage stewed for hours with whole peppercorns. A winter coat you eat.' },
+            'Lingonberry Mutton':{ type: 'consumable', use: 'meal', heal: 32, seconds: 180, mods: { damage: 0.12 }, sellable: true, sellPrice: 4, description: 'Roast mutton under a sharp lingonberry sauce. The feast-table dish at Hrafnholm.' },
+            'Stockfish Stew':   { type: 'consumable', use: 'meal', heal: 28, seconds: 180, mods: { regen: 1 }, sellable: true, sellPrice: 3, description: 'Stockfish soaked soft and stewed with potato and butter. Sailors swear it put them back together.' },
+            'Rømmegrøt':        { type: 'consumable', use: 'meal', heal: 25, seconds: 180, mods: { defence: 0.06, regen: 0.5 }, sellable: true, sellPrice: 3, description: 'Sour-cream porridge, butter pooled on top. Rich enough to sleep on.' },
+            // Fermented Baltic herring (Tokelo: a prank quest, C2S1). It works. Nobody stands near you, and that includes your enemies.
+            'Surströmming':     { type: 'consumable', use: 'meal', heal: 15, seconds: 180, mods: { defence: 0.15, damage: 0.05 }, sellable: true, sellPrice: 3, description: 'Herring soured in the cask until it fights back. Eat it outdoors, downwind of everyone you love.' },
+            // Hakon's camp kit (C2S2, Tokelo 2026-11-13): use it anywhere out of a fight to make camp and cook that region's food.
+            'Camp Kit':         { type: 'tool', use: 'camp', opens: 'camp_hearth', bound: true, sellable: false, description: "Hakon's carter's kit: a fire-pot, a folding iron tripod, a flint and a twist of juniper tinder. Use it to make camp and cook wherever you are." },
+            'Cask of Surströmming': { type: 'quest', bound: true, sellable: false, description: "Solveig's oldest cask of sour herring, the lid bulging like a drum. Do not open it near anything you like." },
+            // Mead and ale (use 'drink'): they stack and make you Tipsy like beer, and the 5th drink in 2 minutes makes you Drunk.
+            'Mead':             { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { damage: 0.12, regen: 0.5 }, sellable: true, sellPrice: 3, description: 'Honey mead from the Stormtide casks, gold and strong. Skalds say it is where poetry comes from.' },
+            'Lingonberry Mead': { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { crit: 0.08, defence: 0.08 }, sellable: true, sellPrice: 3, description: 'Mead steeped with lingonberries, red and tart. Steady hands, steady nerve.' },
+            'Juniper Ale':      { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { defence: 0.10, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy farmhouse ale filtered through juniper branches. Piney, smoky, and stronger than it tastes.' }
         };
 
         // Global balance knobs.
@@ -1790,7 +1855,12 @@
             drinkStacks: 3,           // the same beer stacks higher: that's what makes it semi-OP
             fullAt: 4,                // four different dishes at once and you're full (beer doesn't count)
             caps: { damage: 0.75, defence: 0.5, crit: 0.35, speed: 0.4, regen: 5 },   // totals over every meal and beer
-            drunk: { beersBeforeDrunk: 4, tipsySeconds: 120, seconds: 20 }   // the 5th beer inside 2 minutes: controls inverted 20 s
+            drunk: { beersBeforeDrunk: 4, tipsySeconds: 120, seconds: 20 },  // the 5th beer inside 2 minutes: controls inverted 20 s
+            // Regional cooking (Tokelo, 2026-11-13): a region's public hearths cook that region's dishes; your home hearth
+            // cooks every region's; a recipe with region 'any' (rat goulash) cooks anywhere. A recipe without a region,
+            // and a map in no region below, belong to homeRegion. The camp kit cooks the region you stand in.
+            homeRegion: 'blackbriar',
+            regions: { hrimvald: { name: 'Hrimvald', maps: ['frostspine_pass', 'skeldvik', 'hrafnholm', 'hall_of_winter'] } }
         };
         const gameRules = {
             statDamagePer: 4,          // +1 damage per 4 points of the scaling stat
@@ -2484,6 +2554,16 @@
                 2,
                 "humanoid",
                 "elite"
+            ],
+            "sunscorched_wolf": [
+                3,
+                "beast",
+                "common"
+            ],
+            "moonless_wolf": [
+                3,
+                "beast",
+                "common"
             ]
         };
         for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
@@ -2491,7 +2571,7 @@
         enemies.crow_touched_warden.materialDrops = false;
         // Meat for the pot (the kitchen, Tokelo 2026-11-02): rats and wolves always leave some. Goulash, not glory.
         for (const id of ['rust_rat', 'cellar_vermin']) enemies[id].foodDrops = [{ item: 'Rat Meat' }];
-        for (const id of ['hungry_wolf', 'pack_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
+        for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
             if (d.use !== 'meal' && d.use !== 'drink') continue;
@@ -2533,7 +2613,15 @@
                 oda: { stock: { 'Brötchen': { buyPrice: 2, quantity: 12 }, 'Brezel': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 6 } } },
                 greta: { stock: { 'Pork': { buyPrice: 5, quantity: 8 }, 'Bratwurst': { buyPrice: 6, quantity: 6 }, 'Leberkäsbrötchen': { buyPrice: 8, quantity: 4 },
                     'Piglet': { buyPrice: 15, quantity: 2 }, 'Hen': { buyPrice: 8, quantity: 3 } } },
-                fenric: { stock: { 'Helles': { buyPrice: 6, quantity: 6 }, 'Dunkel': { buyPrice: 7, quantity: 4 }, 'Weizen': { buyPrice: 7, quantity: 4 } } }
+                fenric: { stock: { 'Helles': { buyPrice: 6, quantity: 6 }, 'Dunkel': { buyPrice: 7, quantity: 4 }, 'Weizen': { buyPrice: 7, quantity: 4 } } },
+                // The Hrimvald kitchen (Tokelo, 2026-11-13; NORSE_KITCHEN.md). Solveig's fish stalls in Skeldvik, Aslaug's bar
+                // at the Stormtide Inn (mead), and Gudrun's market stall in Hrafnholm (mutton, dairy, flour, roots).
+                solveig: { stock: { 'Herring': { buyPrice: 2, quantity: 12 }, 'Salmon': { buyPrice: 4, quantity: 6 }, 'Stockfish': { buyPrice: 3, quantity: 8 },
+                    'Smoked Herring': { buyPrice: 5, quantity: 6 }, 'Gravlax': { buyPrice: 8, quantity: 4 }, 'Surströmming': { buyPrice: 6, quantity: 3 } } },
+                aslaug: { stock: { 'Mead': { buyPrice: 8, quantity: 8 }, 'Lingonberry Mead': { buyPrice: 9, quantity: 4 }, 'Juniper Ale': { buyPrice: 6, quantity: 6 },
+                    'Honey': { buyPrice: 3, quantity: 10 }, 'Flatbread': { buyPrice: 2, quantity: 10 }, 'Fårikål': { buyPrice: 10, quantity: 3 } } },
+                gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
+                    'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {
                 // Orin's first job (Q07). Free for now (Tokelo, 2026-10-24): a story repair until the economy is tuned.
                 homestead_gate: { name: 'Homestead Gate', goldCost: 0, materials: {} },
@@ -2600,15 +2688,32 @@
                 cook_kartoffelsalat: { station: 'hearth', verb: 'Made', ingredients: { 'Potato': 2, 'Onion': 1 }, output: 'Kartoffelsalat', yield: 2 },
                 cook_pilzsuppe:      { station: 'hearth', verb: 'Cooked', ingredients: { 'Chanterelles': 2, 'Fresh Milk': 1 }, output: 'Pilzsuppe', yield: 2 },
                 cook_apfelstrudel:   { station: 'hearth', verb: 'Baked', ingredients: { 'Apple': 2, 'Flour': 1, 'Butter': 1 }, output: 'Apfelstrudel', yield: 2 },
-                cook_rattengulasch:  { station: 'hearth', verb: 'Stewed', ingredients: { 'Rat Meat': 2 }, output: 'Rattengulasch' },
+                cook_rattengulasch:  { station: 'hearth', region: 'any', verb: 'Stewed', ingredients: { 'Rat Meat': 2 }, output: 'Rattengulasch' },   // rats are everywhere (Tokelo)
                 cook_wolfsgulasch:   { station: 'hearth', verb: 'Stewed', ingredients: { 'Wolf Meat': 1, 'Wild Herbs': 1 }, output: 'Wolfsgulasch' },
-                bake_brownies:       { station: 'hearth', verb: 'Baked', ingredients: { 'Cannabis Leaf': 1, 'Flour': 1, 'Egg': 1, 'Butter': 1 }, output: "Shane's Brownie", yield: 2 }
+                bake_brownies:       { station: 'hearth', verb: 'Baked', ingredients: { 'Cannabis Leaf': 1, 'Flour': 1, 'Egg': 1, 'Butter': 1 }, output: "Shane's Brownie", yield: 2 },
+                // The Hrimvald kitchen (2026-11-13): any hearth cooks these; the Skeldvik harbour cookfire and the Hrafnholm
+                // feast fire are hearths. Mead is brewed with Aslaug at the Stormtide Inn (station 'meadery').
+                bake_flatbread:      { station: 'hearth', region: 'hrimvald', verb: 'Baked', ingredients: { 'Flour': 1 }, output: 'Flatbread', yield: 3 },
+                cook_cloudberry_skyr:{ station: 'hearth', region: 'hrimvald', verb: 'Made', ingredients: { 'Skyr': 1, 'Cloudberries': 2 }, output: 'Cloudberry Skyr' },
+                smoke_herring:       { station: 'hearth', region: 'hrimvald', verb: 'Smoked', ingredients: { 'Herring': 2 }, output: 'Smoked Herring', yield: 2 },
+                cure_gravlax:        { station: 'hearth', region: 'hrimvald', verb: 'Cured', ingredients: { 'Salmon': 1, 'Wild Herbs': 1 }, output: 'Gravlax', yield: 2 },
+                cook_farikal:        { station: 'hearth', region: 'hrimvald', verb: 'Stewed', ingredients: { 'Mutton': 1, 'Cabbage': 2 }, output: 'Fårikål', yield: 2 },
+                cook_lingonberry_mutton:{ station: 'hearth', region: 'hrimvald', verb: 'Roasted', ingredients: { 'Mutton': 1, 'Lingonberries': 2 }, output: 'Lingonberry Mutton' },
+                cook_stockfish_stew: { station: 'hearth', region: 'hrimvald', verb: 'Stewed', ingredients: { 'Stockfish': 1, 'Potato': 1, 'Butter': 1 }, output: 'Stockfish Stew', yield: 2 },
+                cook_rommegrot:      { station: 'hearth', region: 'hrimvald', verb: 'Cooked', ingredients: { 'Sour Cream': 1, 'Flour': 1, 'Butter': 1 }, output: 'Rømmegrøt', yield: 2 },
+                brew_mead:           { station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 2 }, output: 'Mead', yield: 2 },
+                brew_lingonberry_mead:{ station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 1, 'Lingonberries': 2 }, output: 'Lingonberry Mead', yield: 2 },
+                brew_juniper_ale:    { station: 'meadery', verb: 'Brewed', ingredients: { 'Barley': 2, 'Juniper Berries': 1 }, output: 'Juniper Ale', yield: 3 }
             }, forageDefinitions: {
                 // World objects of kind 'forage' (src/engine/kitchen.js): gathered, then back after regrowSeconds of calm time.
                 chanterelles: { item: 'Chanterelles', yield: 2, regrowSeconds: 150 },
                 wild_hops:    { item: 'Wild Hops', yield: 1, regrowSeconds: 120 },
                 apples:       { item: 'Apple', yield: 2, regrowSeconds: 180 },
-                wild_herbs:   { item: 'Wild Herbs', yield: 1, regrowSeconds: 120 }
+                wild_herbs:   { item: 'Wild Herbs', yield: 1, regrowSeconds: 120 },
+                // Hrimvald's fells (2026-11-13)
+                lingonberries:{ item: 'Lingonberries', yield: 2, regrowSeconds: 150 },
+                cloudberries: { item: 'Cloudberries', yield: 2, regrowSeconds: 180 },
+                juniper:      { item: 'Juniper Berries', yield: 1, regrowSeconds: 120 }
             },
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
             basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,

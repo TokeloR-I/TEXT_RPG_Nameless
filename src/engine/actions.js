@@ -407,6 +407,7 @@
                 const timing = this.rtItemProblem(item);   // real-time: same check, same order as combatUseItem()
                 if (timing) { opt.enabled = false; opt.reason = { code: timing.code, message: timing.message }; if (timing.remainingMs != null) opt.readyInMs = timing.remainingMs; }
                 else if (this.isFood(def)) { const b = this.foodBlock(item); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
+                else if (def.use === 'camp') { const b = this.campBlock(); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
                 else if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
                 return opt;

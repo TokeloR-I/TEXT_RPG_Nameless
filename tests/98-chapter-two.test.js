@@ -70,7 +70,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
         }
     }
     for (const [nid, npc] of Object.entries(CH2.npcs)) {
-        if (!npc.awaitsArea) assert.ok([...Object.values(ZONE1.maps)].some((m) => (m.interactables || []).some((o) => o.npc === nid)), `${nid} stands on a map`);
+        if (!npc.awaitsArea && !npc.portable) assert.ok([...Object.values(ZONE1.maps)].some((m) => (m.interactables || []).some((o) => o.npc === nid || o.station === nid)), `${nid} stands on a map`);
         for (const t of npc.talk) assert.ok(npc.nodes[t.node], `${nid}: talk -> ${t.node}`);
         for (const [k, node] of Object.entries(npc.nodes)) {
             assert.ok((node.choices || []).length, `${nid}.${k}: a way out`);
@@ -268,7 +268,7 @@ test('The Wolf-Banner: three new enemies with turn stats, live-combat kits, loot
     assert.deepStrictEqual(gate.map((e) => e.id), ['frostspine_ulfrun']);
 });
 
-test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm and the Hall of Winter paint whole, the same every time, every tile named', () => {
+test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter and Gullstrand Coast paint whole, the same every time, every tile named', () => {
     const SCENE = require('../ui/scene-art.js');
     require('../ui/scene-hrimvald.js');
     const nameAt = (m, x, y) => {
@@ -286,7 +286,9 @@ test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm and the Hall of Win
             'guildhall', 'forge', 'stall', 'shed', 'ring_wall', 'tier_bench', 'law_rock', 'brazier', 'banner', 'bench', 'feast_table', 'war_memorial', 'target', 'dummy',
             'weapon_rack', 'anvil', 'crate', 'barrel', 'log_pile'],
         hall_of_winter: ['floor', 'runner', 'dais', 'dais_steps', 'wall', 'post', 'screen', 'high_seat', 'chair', 'side_table', 'brazier', 'fire_pit', 'feast_table',
-            'skald_corner', 'law_table', 'name_boards', 'candle_table', 'berry_jar', 'weapon_rack', 'shield_stand', 'fur_chest', 'barrel', 'shields', 'wall_banner', 'crate']
+            'skald_corner', 'law_table', 'name_boards', 'candle_table', 'berry_jar', 'weapon_rack', 'shield_stand', 'fur_chest', 'barrel', 'shields', 'wall_banner', 'crate'],
+        gullstrand_coast: ['grass', 'path', 'flagstones', 'steps', 'shingle', 'wharf', 'water', 'cliff', 'fir', 'rock', 'wolf_carving', 'sun_cave', 'moon_cave',
+            'binding_stone', 'house', 'awning', 'net_shed', 'fish_rack', 'fence', 'barrel', 'crate', 'rowboat', 'wreck']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];
@@ -414,4 +416,56 @@ test('C2-03: a save from before Hrafnholm, standing in Skeldvik with the old poi
     s2.place('skeldvik', 'from_hrafnholm');
     assert.strictEqual(takeExit(s2, 'skeldvik_west_road').type, 'transition');
     assert.strictEqual(again.currentObjective('C203').id, 'ragnhild');
+});
+
+test("Gullstrand Coast (Tokelo's picture, 2026-11-13): the cliff path from Skeldvik, Brynja's clues, both hunts, the Binding Echo, and the waking", () => {
+    const { g, s } = run();
+    frostspine(g, s);
+    const visible = (id) => s.visibleObjects('gullstrand_coast').some((o) => o.id === id);
+    assert.strictEqual(takeExit(s, 'skeldvik_gullstrand').type, 'transition');
+    assert.strictEqual(s.mapId, 'gullstrand_coast');
+    assert.ok(g.story.seen.includes('enter:gullstrand_coast'));
+    // Brynja gives the clue before the carving is read, and no marker gives the quest away.
+    talk(s, 'gullstrand_brynja'); say(g, /turn its back/); say(g, /Answering it/); say(g, /Goodbye/);
+    assert.notStrictEqual(g.questState('CL1'), 'active');
+    assert.ok(!visible('gullstrand_sun_hunt') && !visible('gullstrand_moon_hunt') && !visible('wolfs_wake_trial'), 'nothing wakes before the carving');
+    inspect(s, 'gullstrand_wolf_carving');
+    assert.strictEqual(g.questState('CL1'), 'active');
+    assert.ok(visible('gullstrand_sun_hunt'), 'the sun-mad wolves lift their heads');
+    for (const o of CH2.quests.CL1.objectives) assert.ok(o.marker && o.marker.map === 'gullstrand_coast', `${o.id} has a marker on the coast`);
+    talk(s, 'gullstrand_brynja'); say(g, /dark hollow/);
+    say(g, /Goodbye/);
+    // The bright cave can't be used while its wolves lie across it.
+    const guarded = inspect(s, 'gullstrand_sun_cairn');
+    assert.strictEqual(guarded.type, 'message');
+    assert.strictEqual(guarded.guarded, 'gullstrand_sun_hunt');
+    // Moon first this time: a light is no use, waiting in the dark gives the fang and wakes the hollow's wolves.
+    talk(s, 'gullstrand_moon_hollow'); say(g, /Hold your light up/); say(g, /Go back in/); say(g, /Put out your light/); say(g, /Turn round/);
+    assert.ok(g.player.inventory.includes('Moon Fang'));
+    assert.ok(visible('gullstrand_moon_hunt'));
+    fight(g, s, 'gullstrand_moon_hunt');
+    settle(g);
+    assert.ok(g.hasStoryFlag('fenrir_moon_wolves_beaten'));
+    assert.strictEqual(g.currentObjective('CL1').id, 'sun', 'the sun step is still owed');
+    fight(g, s, 'gullstrand_sun_hunt');
+    settle(g);
+    talk(s, 'gullstrand_sun_cairn'); say(g, /Go on/);
+    assert.ok(g.player.inventory.includes('Sun Fang'));
+    assert.strictEqual(g.currentObjective('CL1').id, 'stone');
+    talk(s, 'gullstrand_binding_stone'); say(g, /Lay the Sun Fang/); say(g, /Face it/);
+    assert.ok(visible('wolfs_wake_trial'), 'the Binding Echo wakes on the ring');
+    assert.strictEqual(g.currentObjective('CL1').id, 'trial');
+    fight(g, s, 'wolfs_wake_trial');
+    settle(g);
+    assert.ok(g.hasStoryFlag('fenrir_trial_cleared') && !visible('wolfs_wake_trial'));
+    talk(s, 'gullstrand_binding_stone'); say(g, /^Hati/);
+    assert.strictEqual(g.questState('CL1'), 'complete');
+    assert.ok(g.webOwns('heart.fenrirs_heir'));
+    assert.strictEqual(g.getStance().active, 'hati');
+    say(g, /run with you/);
+    talk(s, 'gullstrand_brynja');
+    assert.strictEqual(g.story.dialogue.node, 'after');
+    say(g, /Goodbye/);
+    assert.strictEqual(takeExit(s, 'gullstrand_north').type, 'transition');
+    assert.strictEqual(s.mapId, 'skeldvik');
 });

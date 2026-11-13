@@ -7,7 +7,7 @@
  * ========================================================================= */
 (function (global) {
     const EQUIP_SLOTS = ['mainHand', 'bodyArmor', 'accessory'];
-    const USABLE = new Set(['gold', 'heal', 'meal', 'drink']);   // item `use` values applyItem() handles; anything else is not usable
+    const USABLE = new Set(['gold', 'heal', 'meal', 'drink', 'camp']);   // item `use` values applyItem() handles; anything else is not usable
     const noUseMessage = (item) => `You turn the ${item} over in your hands. There's nothing to use it for (yet).`;
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
@@ -79,6 +79,7 @@
             const p = this.player;
             if (!def || !USABLE.has(def.use)) { this.refuse('ITEM_NO_USE', noUseMessage(item)); return false; }
             if (this.isFood(def)) return this.eatFood(item);   // meals and beer: src/engine/kitchen.js
+            if (def.use === 'camp') return this.makeCamp(item);  // Hakon's camp kit: src/engine/kitchen.js
             if (def.use === 'gold') {
                 if (!Number.isSafeInteger(def.value) || def.value <= 0 ||
                     !Number.isSafeInteger(p.gold + def.value)) {
