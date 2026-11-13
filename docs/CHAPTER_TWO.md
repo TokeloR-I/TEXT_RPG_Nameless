@@ -28,6 +28,20 @@ revised every line to fit one page of the dialogue box. They also set out Hrafnh
 law of twenty winters, who stands with whom, and how the tablet choice is read at the Thing. See
 [design/CHAPTER_TWO_NARRATIVE_REVIEW.md](design/CHAPTER_TWO_NARRATIVE_REVIEW.md).
 
+## James the bard (side quests CB1, CB2)
+Tokelo, 2026-11-13: a bard met in Chapter Two who joins you at your homestead once recruited, and a placeholder
+quest he gives about a deal with a dark being called Demonkore.
+- **CB1 A Bard in Skeldvik:** James, a southern bard, plays outside the Stormtide Inn (`skeldvik_james`, 27,10).
+  Talking to him starts the quest; offering him a place at your homestead recruits him (`james_recruited`). He
+  leaves Skeldvik and stands by the well on the homestead grounds (`grounds_james`, 26,9). Talking to him there
+  finishes CB1 (20 XP, a Gauge candidate). No new area: the inn's interior has no picture yet.
+- **CB2 A Deal with Demonkore (placeholder, unfinished on purpose):** at the homestead, James tells what he heard
+  at a fire on the road: Demonkore is a dark thing that makes deals, and nobody would say what it takes. That
+  starts CB2. Its second step, "Make a deal with Demonkore", is marked as not written yet and nothing fires it, so
+  the quest stays open in the Journal. Who Demonkore is, where the deal happens and what it costs wait on Tokelo.
+- Saves: no layout change. Older saves get CB1/CB2 on load (`reconcileSave`) and find James at the inn;
+  `CONTENT_REVISION` is 5. Tests: `tests/101-james-bard.test.js`.
+
 ## How it joins Chapter One
 One story, one world: `src/story/chapter1.js` merges `chapter2.js` (quests, NPCs, triggers, anchors) and
 `src/world/zone1.js` merges `chapter2-maps.js`, the same way Chapter One's maps join Zone 1. In the browser both

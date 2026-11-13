@@ -223,6 +223,8 @@
                 { id: 'skeldvik_solveig', kind: 'npc', npc: 'solveig', x: 28, y: 15, name: 'Solveig', sprite: 'fishwife' },
                 { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 37, y: 6, name: 'Thora Half-Oar', sprite: 'reeve' },
                 { id: 'skeldvik_geir', kind: 'npc', npc: 'geir', x: 24, y: 23, name: 'Geir', sprite: 'wolfcrew' },
+                // James the bard (CB1), playing outside the Stormtide Inn until you offer him a place at your homestead.
+                { id: 'skeldvik_james', kind: 'npc', npc: 'james', x: 29, y: 10, name: 'James', sprite: 'bard', when: { notFlags: ['james_recruited'] } },
                 { id: 'skeldvik_bell', kind: 'inspect', x: 39, y: 4, name: 'Harbour bell',
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 12, y: 8, name: 'Memorial stone',

@@ -498,6 +498,7 @@
         if (o.prop === 'staff') { rect(g, cx + 8, top + 2, 2, 28, '#7a6044'); rect(g, cx + 8, top + 2, 1, 28, '#9a8064'); }
         if (o.prop === 'pack') { rect(g, cx - 11, top + 14, 5, 9, '#6a5440'); rect(g, cx - 11, top + 14, 5, 1, '#8a7460'); }
         if (o.prop === 'hammer') { rect(g, cx + 8, top + 15, 2, 12, '#7a6044'); rect(g, cx + 6, top + 13, 6, 3, '#9a9aa2'); }
+        if (o.prop === 'lute') { circle(g, cx + 9, base - 10, 4, '#a8743a'); circle(g, cx + 9, base - 10, 1.4, '#3a2410'); rect(g, cx + 10, base - 24, 2, 12, '#6a4a2a'); }
         if (o.prop === 'basket') { rect(g, cx + 6, top + 21, 7, 5, '#8a6a3a'); rect(g, cx + 7, top + 19, 5, 2, '#5a8a4a'); }
         if (o.prop === 'halberd') { rect(g, cx + 9, top - 2, 2, 31, '#5a4a3a'); rect(g, cx + 7, top - 3, 7, 5, '#a8a8b0'); }
         if (o.crows) for (const [dx, dy] of [[-9, 10], [9, 6]]) { circle(g, cx + dx, top + dy, 2.6, '#0a0a0e'); rect(g, cx + dx + 2, top + dy - 1, 2, 1, '#0a0a0e'); }
@@ -543,6 +544,8 @@
         fishwife: { cloak: '#5a6a5a', hood: '#d8d0bc', belt: '#8a6a3a', prop: 'basket' },
         reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' },
         wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' },
+        // James the bard (CB1): a southerner in a russet travelling coat with a lute.
+        bard: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a', prop: 'lute' },
         // Hrafnholm (C2-03): the Jarl in woad and silver-grey, Torvald in madder with an axe-hammer, the heir and her sworn
         // shieldmaiden, the Lawspeaker in undyed wool with his staff, and Osric Vane in a southern coat and hat.
         jarl: { cloak: '#2e4a66', hair: '#b8b4aa', scarf: '#e0dccc', belt: '#c8c8d0' },
