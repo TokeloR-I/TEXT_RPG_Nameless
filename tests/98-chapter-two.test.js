@@ -80,7 +80,8 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
     for (const a of Object.values(CH2.anchors)) assert.ok(ZONE1.maps[a.map].spawns[a.spawn], 'anchor lands on a real spawn');
     // Lore rules (lore doc guardrails; Tokelo 2026-11-11): no door motif, and nobody here knows who the player was.
     const strings = [];
-    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.stormtide_inn, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter, ZONE1.maps.jarnmyr]);
+    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.stormtide_inn, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter, ZONE1.maps.jarnmyr,
+        ZONE1.maps.silent_field, ZONE1.maps.birkholt, ZONE1.maps.runadal, ZONE1.maps.bjarki_barrow]);
     const words = strings.join('\n');
     assert.ok(!/\bgates?\b|threshold|behind the door|door (that|which|between)/i.test(words), 'no door motif in Chapter Two text');
     assert.ok((words.match(/\bdoors?\b/gi) || []).length <= 1, 'a door is furniture here, at most');
@@ -267,7 +268,7 @@ test('The Wolf-Banner: three new enemies with turn stats, live-combat kits, loot
     assert.deepStrictEqual(gate.map((e) => e.id), ['frostspine_ulfrun']);
 });
 
-test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter, Gullstrand Coast and Járnmyr paint whole, the same every time, every tile named', () => {
+test('Scene art: every Hrimvald map (Frostspine Pass to Bjarki\'s Barrow) paints whole, the same every time, every tile named', () => {
     const SCENE = require('../ui/scene-art.js');
     require('../ui/scene-hrimvald.js');
     const nameAt = (m, x, y) => {
@@ -292,7 +293,14 @@ test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter
             'binding_stone', 'house', 'awning', 'net_shed', 'fish_rack', 'fence', 'barrel', 'crate', 'rowboat', 'wreck'],
         jarnmyr: ['moor', 'path', 'yard', 'boardwalk', 'peat', 'quarry_floor', 'barrow_mouth', 'bog', 'crag', 'fir', 'kiln', 'woodshed', 'charcoal', 'log_pile',
             'furnace', 'slag', 'ore', 'stone_hut', 'shed', 'smithy', 'smithy_wing', 'weapon_rack', 'anvil', 'ingots', 'ore_cart', 'barrel', 'fence', 'quarry', 'crane',
-            'blocks', 'barrow', 'peat_stack']
+            'blocks', 'barrow', 'peat_stack'],
+        silent_field: ['tall_grass', 'path', 'torn_earth', 'bridge', 'round_stone', 'stream', 'rock', 'dead_tree', 'grave', 'memorial_stone', 'bell_tower',
+            'field_tent', 'relic', 'war_banner'],
+        birkholt: ['meadow', 'path', 'barley', 'fence', 'house', 'sheep_shelter', 'sheep', 'trough', 'loom_shed', 'drying_rack', 'standing_stone', 'rock',
+            'memorial_cloth', 'herbs', 'barrel', 'cart', 'birch'],
+        runadal: ['moss', 'path', 'pine', 'boulder', 'rune_stone', 'ring_stone', 'offering_table', 'lean_to', 'campfire', 'stump'],
+        bjarki_barrow: ['flagstones', 'rubble', 'barrow_mouth', 'dais_steps', 'knot_wall', 'grave_slab', 'dais', 'stone_coffin', 'flame_altar', 'fire_pillar',
+            'candle_stand', 'urn', 'grave_coffin', 'grave_goods']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];
@@ -381,8 +389,7 @@ test('C2-03 Hrafnholm: the south-west road leads up to the town, the Jarl waits 
     assert.strictEqual(g.currentObjective('C203').id, 'thing', 'the Thing itself is the next part of Chapter Two');
     assert.strictEqual(g.questState('C203'), 'active');
     // The way on to the Silent Field is a boundary until its picture comes.
-    assert.ok(ZONE1.maps.hrafnholm.boundaries.some((b) => b.id === 'hrafnholm_silent_field_track'));
-    assert.ok(!ZONE1.maps.hrafnholm.exits.some((e) => /silent/i.test(e.id)));
+    assert.ok(ZONE1.maps.hrafnholm.exits.some((e) => e.id === 'hrafnholm_silent_field' && e.toMap === 'silent_field'), 'the north-east track goes up to the Silent Field (Act II)');
     // And the road home: back down to Skeldvik's south-west corner.
     walkTo(s, 25, 38);
     assert.strictEqual(takeExit(s, 'hrafnholm_south_road').type, 'transition');

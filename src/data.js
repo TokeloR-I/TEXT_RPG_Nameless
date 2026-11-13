@@ -254,6 +254,35 @@
                 critChance: 0.1, critMultiplier: 1.6,
                 skills: [{ name: 'Measured Cut', base_damage: [9, 13] }, { name: 'Shield Feint', base_damage: [5, 8] }]
             },
+            // C2-05 A Chieftain Disturbed (CHAPTER_TWO_LORE 6.1): the dead of the Járnmyr barrow, woken by the diggers.
+            // CANDIDATE numbers for Gauge, pitched a little above the Wolf-Banner (level 5-6 after C2-04).
+            'draugr': {
+                name: 'Barrow-Dead',
+                hp: 54, maxHp: 54, xp: 38, atk: 10, def: 5, spd: 8,
+                critChance: 0.08, critMultiplier: 1.6,
+                specialFlags: ['undead', 'weak_to_light'],
+                skills: [{ name: 'Grave Sword', base_damage: [8, 12] }, { name: 'Shield Wall', base_damage: [5, 8] }]
+            },
+            'grave_ward': {
+                name: 'Grave-Ward',
+                hp: 36, maxHp: 36, xp: 20, atk: 8, def: 3, spd: 10,
+                critChance: 0.08, critMultiplier: 1.5,
+                specialFlags: ['spirit', 'undead'],
+                skills: [{ name: 'Barrow Chill', base_damage: [6, 9] }]
+            },
+            'bjarki_grave_bound': {
+                name: 'Bjarki the Grave-Bound',
+                id: 'bjarki_grave_bound',
+                hp: 460, maxHp: 460, xp: 200, atk: 15, def: 6, spd: 9,
+                critChance: 0.1, critMultiplier: 1.6,
+                specialFlags: ['boss', 'undead'],
+                skills: [
+                    { name: 'Grave Blade', base_damage: [13, 18] },
+                    { name: 'Shield Crash', base_damage: [10, 14] },
+                    { name: 'Barrow Quake', base_damage: [12, 16] },
+                    { name: 'Burial Curse', base_damage: [8, 12] }
+                ]
+            },
             'wolfbanner_ringleader': {
                 name: 'Ulfrun Grey-Mantle',
                 hp: 120, maxHp: 120, xp: 110, atk: 12, def: 5, spd: 10, tier: 'elite',
@@ -1552,6 +1581,39 @@
                         { name: 'Shield Feint', skill: 'Shield Feint', shape: 'line', reach: 18, width: 14, windupMs: 380, activeMs: 120, recoveryMs: 600, cooldownMs: 3800, blockCost: 14, knockbackPx: 16, staggers: true, useAt: [0, 20] }
                     ]
                 },
+                // C2-05: the barrow-dead fight as a shield pair; the wards drift and chill; Bjarki is a slow shield-and-sword
+                // chieftain whose quake and curse are big, marked and walkable (every tell 600 ms or more).
+                draugr: {
+                    speed: 40, detect: 110, alertMs: 900, reach: 22, arcDeg: 110, windupMs: 640, activeMs: 120, recoveryMs: 620, radius: 6, poise: 4, leash: 220,
+                    keepDistance: [0, 20], group: 'pincer', frontalShield: { arcDeg: 90, damageTaken: 0.6 },
+                    attacks: [
+                        { name: 'Grave Sword', skill: 'Grave Sword', shape: 'arc', reach: 22, arcDeg: 110, windupMs: 640, activeMs: 120, recoveryMs: 620, cooldownMs: 1700, blockCost: 14, useAt: [0, 24] },
+                        { name: 'Shield Wall', skill: 'Shield Wall', shape: 'line', reach: 40, width: 14, lunge: 28, windupMs: 700, activeMs: 150, recoveryMs: 800, cooldownMs: 4600, blockCost: 18, knockbackPx: 16, staggers: true, useAt: [22, 50] }
+                    ]
+                },
+                grave_ward: {
+                    speed: 46, detect: 140, alertMs: 600, ranged: true, keepDistance: [48, 90], reach: 120, shape: 'projectile', projectile: 'arcane', projSpeed: 150,
+                    windupMs: 700, activeMs: 0, recoveryMs: 700, radius: 5, poise: 1, leash: 260, group: 'ranged_keeps_distance', backOffBelow: 36,
+                    attacks: [
+                        { name: 'Barrow Chill', skill: 'Barrow Chill', shape: 'projectile', reach: 120, projSpeed: 150, radius: 5, projectile: 'arcane', windupMs: 700, activeMs: 0, recoveryMs: 700, cooldownMs: 2800, blockCost: 10 }
+                    ]
+                },
+                bjarki_grave_bound: {
+                    boss: true, speed: 42, detect: 150, reach: 30, arcDeg: 140, windupMs: 660, activeMs: 130, recoveryMs: 720, radius: 10, poise: 10, hyperArmor: true, leash: 400,
+                    giveUpMs: null, keepDistance: [0, 40], group: 'solo', frontalShield: { arcDeg: 80, damageTaken: 0.7 },
+                    attacks: [
+                        { name: 'Grave Blade', skill: 'Grave Blade', shape: 'arc', reach: 30, arcDeg: 140, cooldownMs: 2400, useAt: [0, 34],
+                            combo: [
+                                { windupMs: 660, activeMs: 130, recoveryMs: 240, blockCost: 20 },
+                                { windupMs: 600, activeMs: 130, recoveryMs: 900, blockCost: 24, reverse: true }
+                            ] },
+                        { name: 'Shield Crash', skill: 'Shield Crash', shape: 'line', reach: 56, width: 16, lunge: 40, windupMs: 760, activeMs: 160, recoveryMs: 900, cooldownMs: 5000, blockCost: 24, knockbackPx: 22, staggers: true, useAt: [24, 64] },
+                        // He stamps and the barrow shakes: walk out of 60 px or dodge through (1.2 s to read).
+                        { name: 'Barrow Quake', skill: 'Barrow Quake', shape: 'circle', radius: 60, windupMs: 1200, activeMs: 150, recoveryMs: 1200, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 56] },
+                        // The burial curse: grave-earth marks the ground where you stand. Three circles, a full second to step out.
+                        { name: 'Burial Curse', skill: 'Burial Curse', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7500, guardable: false, parryable: false, damageMult: 1.4, useAt: [36, 160] }
+                    ]
+                },
                 wolfbanner_ringleader: {
                     speed: 52, detect: 136, alertMs: 700, reach: 26, arcDeg: 140, windupMs: 650, activeMs: 120, recoveryMs: 650, radius: 8, poise: 6, hyperArmor: true, leash: 240,
                     keepDistance: [0, 24], group: 'direct',
@@ -1820,6 +1882,8 @@
             // Tempering (docs/design/ARMOR_AND_TEMPERING.md): Bragg tempers with scrap metal, Bjorn with bog iron.
             'Bog Iron': { type: 'material', sellable: true, sellPrice: 3, description: 'Iron won from the red mire at Járnmyr and folded clean of slag. Bjorn tempers blades with it.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
+            // C2-05: Bjarki's own ring, given back to you by nobody (CANDIDATE stats for Gauge).
+            "Bjarki's Arm Ring": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 12, def: 1 }, sellable: false, description: 'A twisted arm ring of grave-iron, heavy as a promise. It was a chieftain\'s before there was a Crown.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
             'Small Coin Purse': { type: 'consumable', use: 'gold', value: 6, sellable: false, description: 'A few coins from an earlier life.' },
@@ -2627,6 +2691,21 @@
                 3,
                 "humanoid",
                 "elite"
+            ],
+            "draugr": [
+                3,
+                "undead",
+                "common"
+            ],
+            "grave_ward": [
+                3,
+                "undead",
+                "common"
+            ],
+            "bjarki_grave_bound": [
+                4,
+                "undead",
+                "boss"
             ],
             "oath_sergeant": [
                 2,

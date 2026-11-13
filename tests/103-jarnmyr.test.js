@@ -90,16 +90,17 @@ for (const [skip, choice, flag] of [['clue_cart', /Jarl Ragnhild/, 'iron_to_ragn
         assert.strictEqual(g.player.gold, gold + 30);
         assert.ok(g.hasStoryFlag('jarnmyr_forge_open'));
         assert.strictEqual(g.questState('C205'), 'active');
-        assert.ok(CH2.quests.C205.teaser && /next part/.test(g.currentObjective('C205').text), 'the barrow waits for its picture');
+        assert.strictEqual(g.currentObjective('C205').id, 'barrow', 'the mound is next');
         // The forge sells to the witness now: the warrior's bog-iron axe is on the shelf.
         talk(s, 'jarnmyr_bjorn'); say(g, /What have you got/);
         assert.ok(DATA.shopDefinitions.bjorn.stock['Mire-Iron Bearded Axe']);
     });
 }
 
-test('Járnmyr: the barrow, Birkholt and Rúnadal are boundaries until their pictures come; every Járnmyr line fits the dialogue box', () => {
+test('Járnmyr: the barrow, Birkholt and Rúnadal are real places now (their pictures came); every Járnmyr line fits the dialogue box', () => {
     const map = ZONE1.maps.jarnmyr;
-    assert.deepStrictEqual(map.boundaries.map((b) => b.id).sort(), ['jarnmyr_barrow_mouth', 'jarnmyr_birkholt_boardwalk', 'jarnmyr_runadal_track']);
+    assert.deepStrictEqual(map.boundaries, []);
+    assert.deepStrictEqual(['jarnmyr_barrow_mouth', 'jarnmyr_west_boardwalk', 'jarnmyr_north_track'].map((id) => map.exits.find((e) => e.id === id).toMap), ['bjarki_barrow', 'birkholt', 'runadal']);
     for (const id of ['bjorn', 'asger', 'thyri', 'vigdis']) {
         const npc = CH2.npcs[id];
         for (const node of Object.values(npc.nodes)) for (const [, line] of node.lines || []) {

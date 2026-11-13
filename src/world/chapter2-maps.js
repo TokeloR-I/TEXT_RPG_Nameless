@@ -29,12 +29,17 @@
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
 
+    const BJARKI = "A big man sits up in the coffin on the dais, then stands, and keeps on standing: mail, a helm, a shield as broad as a cart wheel, a sword black with grave-earth. He says one word in a tongue older than the North's, and the fires lean toward him.";
     const zones = {
         hrimvald_frostspine: { name: 'Frostspine Pass', mapIds: ['frostspine_pass'] },
         hrimvald_skeldvik: { name: 'Skeldvik', mapIds: ['skeldvik', 'stormtide_inn'] },
         hrimvald_hrafnholm: { name: 'Hrafnholm', mapIds: ['hrafnholm', 'hall_of_winter'] },
         hrimvald_gullstrand: { name: 'Gullstrand Coast', mapIds: ['gullstrand_coast'] },
-        hrimvald_jarnmyr: { name: 'Járnmyr', mapIds: ['jarnmyr'] }
+        hrimvald_jarnmyr: { name: 'Járnmyr', mapIds: ['jarnmyr'] },
+        hrimvald_silent_field: { name: 'The Silent Field', mapIds: ['silent_field'] },
+        hrimvald_birkholt: { name: 'Birkholt', mapIds: ['birkholt'] },
+        hrimvald_runadal: { name: 'Rúnadal', mapIds: ['runadal'] },
+        hrimvald_bjarki_barrow: { name: "Bjarki's Barrow", mapIds: ['bjarki_barrow'] }
     };
 
     const maps = {
@@ -434,7 +439,9 @@
                 from_hall: { x: 25, y: 10, facing: 'down' },
                 from_hall_2: { x: 26, y: 10, facing: 'down' },
                 from_jarnmyr: { x: 1, y: 18, facing: 'right' },
-                from_jarnmyr_2: { x: 1, y: 19, facing: 'right' }
+                from_jarnmyr_2: { x: 1, y: 19, facing: 'right' },
+                from_silent_field: { x: 43, y: 1, facing: 'down' },
+                from_silent_field_2: { x: 44, y: 1, facing: 'down' }
             },
             exits: [
                 { id: 'hrafnholm_south_road', x: 25, y: 39, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_hrafnholm' },
@@ -446,6 +453,13 @@
                 { id: 'hrafnholm_west_road_2', x: 0, y: 19, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_hrafnholm_2', requires: { flags: ['thing_heard'] },
                     lockedText: 'The west road runs down past the forge toward Járnmyr, where the bog iron is smelted. The Thing has not sat yet; whatever is going on at the forges, it is not your business until somebody makes it so.',
                     text: 'The west road drops off the ridge and follows a stream through birch and pine. Long before you see Járnmyr you smell it: woodsmoke, hot clay, and something like blood that turns out to be the bog.' },
+                // Act II (2026-11-13): the north-east track to the Silent Field, open once the Thing has sat.
+                { id: 'hrafnholm_silent_field', x: 43, y: 0, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_hrafnholm', requires: { flags: ['thing_heard'] },
+                    lockedText: 'The track climbs north-east out of the town toward the Silent Field, where the six hundred lie. Nobody goes up there before the Thing has sat; it would be like reading a will before the funeral.',
+                    text: 'The track climbs between the noble houses and up into the fells. The snow thins, the wind drops, and then there is nothing in front of you but pale grass and mist, and the stones.' },
+                { id: 'hrafnholm_silent_field_2', x: 44, y: 0, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_hrafnholm_2', requires: { flags: ['thing_heard'] },
+                    lockedText: 'The track climbs north-east out of the town toward the Silent Field, where the six hundred lie. Nobody goes up there before the Thing has sat; it would be like reading a will before the funeral.',
+                    text: 'The track climbs between the noble houses and up into the fells. The snow thins, the wind drops, and then there is nothing in front of you but pale grass and mist, and the stones.' },
                 { id: 'hrafnholm_hall_entry', x: 25, y: 9, trigger: 'interact', prompt: 'Go into the Hall of Winter', toMap: 'hall_of_winter', toSpawn: 'from_hrafnholm',
                     text: 'Inside, the heat and the smoke meet you together. A long hall under a high roof, a fire in the middle of it, tables down both sides, and at the far end a carved seat that nobody is sitting in.' },
                 { id: 'hrafnholm_hall_entry_2', x: 26, y: 9, trigger: 'interact', prompt: 'Go into the Hall of Winter', toMap: 'hall_of_winter', toSpawn: 'from_hrafnholm_2',
@@ -494,10 +508,7 @@
                 { id: 'hrafnholm_arch', kind: 'inspect', x: 23, y: 34, name: 'The south arch',
                     text: 'Two posts of whole pine and a beam across, carved with ravens. The road from Skeldvik comes up under it. Everyone who passes touches the left post, so it is darker and smoother than the right.' }
             ],
-            boundaries: [
-                { id: 'hrafnholm_silent_field_track', x: 43, y: 0, w: 2, h: 1, title: 'The track to the Silent Field',
-                    text: 'The track climbs north-east out of the town, between the noble houses and up into the fells, toward the Silent Field. That way is not open yet. (Coming in a later part of Chapter Two.)' }
-            ]
+            boundaries: []
         },
 
         // -----------------------------------------------------------------
@@ -764,11 +775,25 @@
             ],
             spawns: {
                 from_hrafnholm: { x: 27, y: 34, facing: 'up' },
-                from_hrafnholm_2: { x: 28, y: 34, facing: 'up' }
+                from_hrafnholm_2: { x: 28, y: 34, facing: 'up' },
+                from_birkholt: { x: 1, y: 12, facing: 'right' },
+                from_runadal: { x: 14, y: 1, facing: 'down' },
+                from_runadal_2: { x: 15, y: 1, facing: 'down' },
+                from_barrow: { x: 43, y: 5, facing: 'down' }
             },
             exits: [
                 { id: 'jarnmyr_south_road', x: 27, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr' },
-                { id: 'jarnmyr_south_road_2', x: 28, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr_2' }
+                { id: 'jarnmyr_south_road_2', x: 28, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr_2' },
+                { id: 'jarnmyr_west_boardwalk', x: 0, y: 12, trigger: 'step', toMap: 'birkholt', toSpawn: 'from_jarnmyr',
+                    text: "The boardwalk runs west over the mire on split logs, the red water lapping at them. Then birch, then a fence, then barley, and the smoke of Birkholt's longhouses." },
+                // C2-05: the barrow's wedged-open mouth, once the buyers have shown you what came out of it.
+                { id: 'jarnmyr_barrow_mouth', x: 43, y: 4, trigger: 'step', toMap: 'bjarki_barrow', toSpawn: 'from_jarnmyr', requires: { quests: { C205: 'active+' } },
+                    lockedText: 'The stone mouth of the mound has been wedged open with quarry wedges. Cold air comes out of it, and a smell like old coins. Nothing has given you a reason to go in yet.',
+                    text: 'You squeeze past the quarry wedges into the dark. The air is still and cold and tastes of iron, and somewhere ahead, very small, a fire is burning that nobody has fed.' },
+                { id: 'jarnmyr_north_track', x: 14, y: 0, trigger: 'step', toMap: 'runadal', toSpawn: 'from_jarnmyr',
+                    text: 'The track climbs north into the pines. The forge noise falls away behind you, and soon there is only wind in the needles and your own steps on the moss.' },
+                { id: 'jarnmyr_north_track_2', x: 15, y: 0, trigger: 'step', toMap: 'runadal', toSpawn: 'from_jarnmyr_2',
+                    text: 'The track climbs north into the pines. The forge noise falls away behind you, and soon there is only wind in the needles and your own steps on the moss.' }
             ],
             encounters: [
                 // C2-04: the buyers, on the barrow path with an empty cart, once you know where the iron goes.
@@ -820,13 +845,389 @@
                     text: 'A juniper bush above the kilns, smelling of smoke as much as of itself.' }
             ],
             boundaries: [
-                { id: 'jarnmyr_barrow_mouth', x: 43, y: 4, w: 1, h: 1, title: 'The barrow',
-                    text: 'The stone mouth of the mound has been wedged open with quarry wedges. Cold air comes out of it, and a smell like old coins. You are not going in there yet. (The inside of the barrow is coming in a later part of Chapter Two.)' },
-                { id: 'jarnmyr_birkholt_boardwalk', x: 0, y: 12, w: 1, h: 1, title: 'The boardwalk to Birkholt',
-                    text: 'The boardwalk goes on west across the mire toward Birkholt\'s barley fields. That way is not open yet. (Coming in a later part of Chapter Two.)' },
-                { id: 'jarnmyr_runadal_track', x: 14, y: 0, w: 2, h: 1, title: 'The track to Rúnadal',
-                    text: 'The track climbs north into the pines toward Rúnadal and its grove. That way is not open yet. (Coming in a later part of Chapter Two.)' }
             ]
+        },
+
+
+        // -----------------------------------------------------------------
+        // The Silent Field, after Tokelo's picture (2026-11-13): a wide field of pale grass under mist, bare trees, the
+        // memorial ring of six standing stones on a patch of turned earth with a carved round stone at its heart, graves
+        // and markers scattered through the grass, broken shields and spears where they fell, torn banners, the ruined
+        // bell tower on its stone footing (north-east), the field hospital's rotten tent with its cots (south-west), and a
+        // stream along the south crossed by a plank bridge. Up the north-east track from Hrafnholm. The west path to
+        // Hallvard's Barrow and the east path to the uplands are boundaries until they are built.
+        silent_field: {
+            zoneId: 'hrimvald_silent_field',
+            name: 'The Silent Field',
+            scene: 'silent_field',             // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(110, 110, 130, 0.1)', particles: { kind: 'snow', count: 6 },
+                grade: { ambient: 0.9, exposure: 1.0, highlights: [-0.02, 0.0, 0.04] } },
+            legend: {
+                ',': { name: 'tall_grass' }, ':': { name: 'path' }, ';': { name: 'torn_earth' }, '=': { name: 'bridge' }, 'c': { name: 'round_stone' },
+                '~': { name: 'stream', solid: true }, 'o': { name: 'rock', solid: true }, 'Y': { name: 'dead_tree', solid: true }, 'G': { name: 'grave', solid: true },
+                'I': { name: 'memorial_stone', solid: true }, 'B': { name: 'bell_tower', solid: true }, 'X': { name: 'field_tent', solid: true },
+                'w': { name: 'relic', solid: true }, 'f': { name: 'war_banner', solid: true }
+            },
+            tiles: [
+                ',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Y,,,,,,,,,,,,,,,,,,,',
+                ',,Y,,,,,,,,Y,,,o,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Y,,',
+                ',,,,,,,,,,,,,,,,,,,,,f,,,,,,,,,,,,,,,,,,,,BBBB,,,,,,,,',
+                ',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,G,,,,,,,,,,BBBB,,,,,,,,',
+                ',,,o,,G,,,,,,,,,,,G,,,,,,,,,,,,,,,,,,,,,,,BBBB,,,,,,,,',
+                ',,,,o,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,f,,,,BBBB,,,,,,,,',
+                ',,,,,,,,,,,,,,w,,,,,,,,,,,,,,,,,,,,,,,G,,,,,,,,,,,,,,,',
+                '::,,,,,,,,,,,,,,,,,,,,,,;;;I;;;;;,,,,,,,,,,,,,,,,,,,,,',
+                '::::::::,,,,,,,,,,,,,,;;;;;;;;;;;;;,,,,,,,,,,,,G,,,,,,',
+                '::::::::,,G,,,,,,,,,,;;I;;;;;;;;I;;;,,,,,,,,,,,,,,,,,,',
+                ',o,,,,::,,,,,,,,,,,,;;;;;;;;;;;;;;;;;,,,,,,,,,,,,,,f,,',
+                ',,,,,,::::::::,,,,,;;;;;;;;;;;;;;;;;;;,,,,G,,,,,,,,,,,',
+                ',,,,,,:::::::::::::::;;;;;;cc;;;;;;;;;,,,G,,,,,,,w,,,,',
+                ',,,,,,,,,,,,:::::::::;;;;;;cc;;;;;;;;;,,,,,,,,,,,,,,,,',
+                ',,f,,,,,,,,,G,,,,,,;;;I;;;;;;;;;;I;;;;,,,,,,,,,,,,,,,,',
+                ',,,,,,w,,,,,,,,,,,,,;;;;;;;;;;;;;;;;;,,,,,,,,,,,,,,,,:',
+                ',,,,,,,,,,,,,,,,::::::;;;;;;;;;;;;;;,,,,,,,,,,,,,,,,,:',
+                ',,,,,,,,,,,,,::::,,,,,;;;;;;I;;;;;;,,,,,,,,,::::::::::',
+                ',,,XXXXXXXXX,:,,,,,,,,,,;;;;::;;;,,,,,,,,,,,::::::::::',
+                ',,,XXXXXXXXX,,,,,,,,,,,,,,,,::::,,,,,,,,w,,,::,,,,,,,,',
+                ',,,XXXXXXXXX,,,,f,,,,,,,,,,,::::,,,,::::::::::,,,,,,,,',
+                ',,,XXXXXXXXX,,,,,,,,,,,,,,,,,,::::::::::::::::,,,,,Y,,',
+                ',,,XXXXXXXXX,,,,,,,,,,,G,G,,,,:::::::,,,,,,G,,,,,,,,,,',
+                ',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,,',
+                ',Y,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,o,',
+                ',,,,,,,,oo,,,,,,,,,,o,,,,,,,o,,,,,,:::,,,,o,,,o,,,,,,,',
+                '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+                '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~==~~~~~~~~~~~~~~~~~',
+                ',,,,,,,,,,,,,,,,,Y,,,,,,,,,,,,,,,,,::,,,,,,,o,,,,,,,,,',
+                ',,,,,Y,,,,,,o,,,,,,,,,,,,,,,,,o,,,,::,,,,,,,,,,,,,Y,,,'
+            ],
+            lights: [],
+            spawns: {
+                from_hrafnholm: { x: 35, y: 28, facing: 'up' },
+                from_hrafnholm_2: { x: 36, y: 28, facing: 'up' },
+                flight_bell: { x: 43, y: 6, facing: 'up' }
+            },
+            exits: [
+                { id: 'silent_field_south', x: 35, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field' },
+                { id: 'silent_field_south_2', x: 36, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field_2' }
+            ],
+            encounters: [],
+            interactables: [
+                { id: 'silent_ring', kind: 'inspect', x: 28, y: 17, name: 'The memorial ring',
+                    text: 'Six stones stood up in a ring by the survivors, the first spring after, each one dragged here from a different steading. There are no names on them. The names are on the boards at home, where the families could reach them.' },
+                { id: 'silent_round_stone', kind: 'inspect', x: 28, y: 12, name: 'The round stone',
+                    text: 'A flat round stone at the heart of the ring, cut with a wheel of eight spokes. Someone has dug round its edge with a bar, not long ago, and given up. The earth they turned is still dark.' },
+                { id: 'silent_bell', kind: 'inspect', x: 43, y: 5, name: 'The field bell',
+                    text: 'A bell under a little roof on a footing of stone, half the timbers fallen in. It was rung on the morning of the battle and has been rung once a year since, on the day. The rope is new.' },
+                { id: 'silent_tent', kind: 'inspect', x: 7, y: 22, name: 'The field hospital',
+                    text: 'A long tent, the canvas rotted to rags on its frame, a red mark faded to brown on the roof. Cots in a row inside, a table with bowls on it. Nobody has moved anything in twenty winters. Nobody has had the heart to.' },
+                { id: 'silent_graves', kind: 'inspect', x: 23, y: 22, name: 'Graves',
+                    text: 'Two small stones in the grass with a name on each, cut by somebody who was not a carver. These ones came home, as far as here. Most did not come home at all.' },
+                { id: 'silent_disturbed', kind: 'inspect', x: 41, y: 12, name: 'Disturbed grave',
+                    text: 'The marker has been pulled up and laid on its face, and the turf cut back in a square. Whoever dug here was looking for something, and stopped at the first wood they hit. This was done this winter.' },
+                { id: 'silent_relic', kind: 'inspect', x: 40, y: 19, name: 'A shield and a wheel',
+                    text: 'A round shield, its paint gone to grey, leaning on a cart wheel where somebody propped it. Every year the families set the things they find upright again. Nobody takes them away.' },
+                { id: 'silent_banner', kind: 'inspect', x: 37, y: 5, name: 'A torn banner',
+                    text: 'A spear stood up in the grass with a strip of red cloth on it, faded almost white. Not a war banner: a marker, so the family can find their place again next year.' },
+                { id: 'silent_stream', kind: 'inspect', x: 22, y: 26, name: 'The stream',
+                    text: 'A slow brown stream between stones. The old Crown\'s host came across it at dawn, the songs say, and the North stood in the grass on this side and waited for them.' }
+            ],
+            boundaries: [
+                { id: 'silent_field_west_path', x: 0, y: 7, w: 1, h: 2, title: "The path to Hallvard's Barrow",
+                    text: "The path goes west across the field toward a great mound on the skyline: Hallvard's Barrow. That way is not open yet. (Coming in a later part of Chapter Two.)" },
+                { id: 'silent_field_east_path', x: 53, y: 15, w: 1, h: 4, title: 'The path to the uplands',
+                    text: 'The path climbs east out of the field into the uplands, where the herds go in summer. That way is not open yet. (Coming in a later part of Chapter Two.)' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Birkholt, after Tokelo's picture (2026-11-13): a farming hamlet of turf-roofed longhouses with smoking chimneys,
+        // two barley fields in their fences, two sheep pens with shelters and troughs, two weaving sheds with looms and a
+        // memorial cloth hung out, a rack of drying wool, two herb gardens, and three standing stones in the middle where
+        // the paths meet. West across the mire from Járnmyr by the boardwalk. The cart track south is a boundary.
+        birkholt: {
+            zoneId: 'hrimvald_birkholt',
+            name: 'Birkholt',
+            scene: 'birkholt',                 // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(120, 100, 60, 0.06)', particles: { kind: 'snow', count: 6 },
+                grade: { ambient: 0.95, exposure: 1.05, highlights: [0.05, 0.03, -0.02] } },
+            legend: {
+                ',': { name: 'meadow' }, ':': { name: 'path' }, 'F': { name: 'barley', solid: true }, 'j': { name: 'fence', solid: true }, 'h': { name: 'house', solid: true },
+                'k': { name: 'sheep_shelter', solid: true }, 's': { name: 'sheep', solid: true }, 't': { name: 'trough', solid: true }, 'l': { name: 'loom_shed', solid: true },
+                'r': { name: 'drying_rack', solid: true }, 'I': { name: 'standing_stone', solid: true }, 'o': { name: 'rock', solid: true }, 'n': { name: 'memorial_cloth', solid: true },
+                'g': { name: 'herbs', solid: true }, 'b': { name: 'barrel', solid: true }, 'v': { name: 'cart', solid: true }, 'T': { name: 'birch', solid: true }
+            },
+            tiles: [
+                ',,,,jFFFFFFFFFFFFj,,T,,,,,,,,,,,,,,,j,,,,,,,,,,,,,,j,T',
+                ',T,,jFFFFFFFFFFFFj,,,,hhhhhhhhhh,:,,j,t,,,,,,,,kkkkj,,',
+                ',,,,jFFFFFFFFFFFFjb,,,hhhhhhhhhh,:,,j,,s,,,,s,,kkkkj,,',
+                ',,,,jFFFFFFFFFFFFjb,,,hhhhhhhhhh,:,,j,,,,,s,,,,kkkkj,,',
+                ',,,,jFFFFFFFFFFFFjb,,,hhhhhhhhhh,:,,j,,,,,,,,,,,,,,j,,',
+                ',,,,jFFFFFFFFFFFFj,,,,hhhhhhhhhh,T,,j,,,,,,,,,,,,,,j,,',
+                ',,T,jjjjjjjjjjjjjj,o,,hhhhhhhhhh,:,,jjjjjjj,,jjjjjjj,,',
+                'o,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,:,,,,,,,,,,,,,,,,,,,,',
+                ',,,,,,,,,,,,,,,,,,,,:::::::::::::::::,,,,,,,,,,,,,,,T,',
+                'hhhhhhhhh,,lllllll,,::::::::::::::::::::llllllll,,,,,,',
+                'hhhhhhhhh,,lllllll,rrrr,,,,,,,,I,,,,::::llllllll,,,,,,',
+                'hhhhhhhhh,,lllllll,rrrr,,,,,,I,,,I,,,,::llllllll,n,,,,',
+                'hhhhhhhhh,,lllllll,rrrr,,,,,o,,,,,o,,,::llllllll,,,,,o',
+                'hhhhhhhhh,,lllllll,,::,,,,,,,,,,,,,,,,::llllllll,,,,,,',
+                ',,,,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,',
+                ',T,o,,,,,,::::::::::::::::::,,,,,,,:::::,,,,,,::::::::',
+                ',,,,,,,,,,::::::::::::::::::,,,,,,,:::::::::::::::::::',
+                ',hhhhhhhh,,,,,,hhhhhhhhhh,::,jjjjjjjjj::::::::::,,,,,,',
+                ',hhhhhhhh,rrr,,hhhhhhhhhh,::,jgggggggj::,,hhhhhhhhhh,,',
+                ',hhhhhhhh,rrr,,hhhhhhhhhh,::,jgggggggj::,,hhhhhhhhhh,,',
+                ',hhhhhhhh,,,,,,hhhhhhhhhh,::,jgggggggjb:,,hhhhhhhhhh,,',
+                ',hhhhhhhh,,,,,,hhhhhhhhhh,::,jjjjjjjjj::,,hhhhhhhhhh,,',
+                ',,,,,,,,,,,,,,,,,,,,,,,,,,::,,,,,,,,,,::,,hhhhhhhhhh,,',
+                'T,,,,,,,,,,::::::::::::::::::::::,,,,,::,,,,,,,,,,,,,,',
+                ',,,,,,,,,,::::::::::::::::::::::::::::::,,,,,,,,,,,,o,',
+                ',,,jjjjjjj:::,jjjjjjjjjjjjjjjj,:::jjjj,,jjjjjjjjjjjj,,',
+                ',,,jgggggj::,,jFFFFFFFFFFFFFFj,::,j,,,,,,,,,,,,kkkkj,,',
+                ',,,jgggggj::,,jFFFFFFFFFFFFFFj,::,j,t,,,,s,,,,,kkkkj,,',
+                ',,,jjjjjjj::::jFFFFFFFFFFFFFFj,::,j,,,,,,,,,,,,kkkkj,,',
+                ',,,,,,,,,,::::jFFFFFFFFFFFFFFj,::,j,,,s,,,,,,,,,,,,jT,',
+                'hhhhhhhhh,,,::jFFFFFFFFFFFFFFj,::,j,,,,,,,,s,,,,,,,j,,',
+                'hhhhhhhhh,,,::jFFFFFFFFFFFFFFj,::,j,,s,,,,,,,,,,,,,j,,',
+                'hhhhhhhhh,,,:Tjjjjjjjjjjjjjjjj,::,j,,,,,,,,,,,,,,,,j,,',
+                'hhhhhhhhh,,,::,,,,,,,,,,,,,,,vv::,jjjjjjjjjjjjjjjjjj,,',
+                'hhhhhhhhh,,,::,,,,,,,,o,,T,,,,,::,,,o,,,,,,,,,,,,,,,,T',
+                ',,,,,,,,,,T,::,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,,,,,,'
+            ],
+            lights: [],
+            spawns: {
+                from_jarnmyr: { x: 52, y: 15, facing: 'left' }
+            },
+            exits: [
+                { id: 'birkholt_east_boardwalk', x: 53, y: 15, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_birkholt' }
+            ],
+            encounters: [],
+            interactables: [
+                { id: 'birkholt_sigrid', kind: 'npc', npc: 'sigrid', x: 31, y: 12, name: 'Sigrid', sprite: 'widow' },
+                { id: 'birkholt_hearth', kind: 'station', station: 'birkholt_hearth', verb: 'Cook at', x: 21, y: 7, name: 'Longhouse hearth', sprite: 'cookfire' },
+                { id: 'birkholt_stones', kind: 'inspect', x: 31, y: 10, name: 'The standing stones',
+                    text: 'Three stones where the paths meet, cut with knotwork and one name each: the three families who cleared the birch wood here. Every steading\'s board hangs in a longhouse, but the stones are where you swear.' },
+                { id: 'birkholt_loom', kind: 'inspect', x: 14, y: 13, name: 'Weaving shed',
+                    text: 'An upright loom under an open roof, the warp weighted with rings of clay. Half the cloth on it is everyday grey wool. The other half is memorial cloth: a name worked into every hand\'s breadth.' },
+                { id: 'birkholt_cloth', kind: 'inspect', x: 49, y: 11, name: 'Memorial cloth',
+                    text: 'A finished cloth hung out to air, white wool with a red star of eight points in the middle and names round the border. It will go on a bench in the longhouse, for somebody who has been missing twenty winters.' },
+                { id: 'birkholt_barley', kind: 'inspect', x: 10, y: 6, name: 'Barley field',
+                    text: 'Barley, the last strips not yet cut, gone pale gold. Birkholt brews it and bakes it and sends the rest to Járnmyr for iron. The field-board at the corner has a name crossed out and the next one cut under it.' },
+                { id: 'birkholt_sheep', kind: 'inspect', x: 39, y: 2, name: 'Sheep',
+                    text: 'Short-tailed sheep with long fleeces, grey and brown and cream, all of them looking at you. The wool for every cloth in Birkholt grows here.' },
+                { id: 'birkholt_herbs', kind: 'inspect', x: 33, y: 21, name: 'Herb garden',
+                    text: 'Lavender, chamomile, angelica and yarrow behind a wattle fence. The cures for Birkholt\'s coughs, and the bitter herbs for its grave-ale, grow in the same bed.' },
+                { id: 'birkholt_longhouse', kind: 'inspect', x: 26, y: 6, name: 'The longhouse',
+                    text: 'The biggest house in Birkholt, turf on the roof and smoke from the ridge. Inside, a bench runs the length of the hall with a cloth folded on every seat that nobody sits on.' },
+                { id: 'birkholt_rack', kind: 'inspect', x: 20, y: 12, name: 'Drying rack',
+                    text: 'Fleeces and fresh-dyed wool hung over poles to dry: madder red, birch-leaf yellow, and a great deal of undyed grey.' },
+                { id: 'birkholt_lingonberries', kind: 'forage', forage: 'lingonberries', x: 2, y: 24, name: 'Lingonberries',
+                    sprite: 'lingonberries', text: 'Lingonberries under the birches at the edge of the hamlet.' }
+            ],
+            boundaries: [
+                { id: 'birkholt_south_track', x: 31, y: 35, w: 2, h: 1, title: 'The cart track south',
+                    text: 'The cart track runs south out of Birkholt toward the coast. The rest of that road is not built yet. (Coming in a later part of Chapter Two.)' },
+                { id: 'birkholt_southwest_track', x: 12, y: 35, w: 2, h: 1, title: 'The lane south-west',
+                    text: 'A lane between the birches, south-west to the outlying steadings. That way is not open yet. (Coming in a later part of Chapter Two.)' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Rúnadal, after Tokelo's picture (2026-11-13): a crossroads deep in a pine wood, three paths meeting at a ring of rune
+        // stones (three tall, the rest small) round a flat stone table with offerings on a woven cloth; north-east of it a
+        // lean-to of poles and turf with a bench, a fleece, herbs hung to dry, two stumps and a ring-fire. Yrsa Thornstaff's.
+        // Up the north track from Járnmyr. The west and east paths are boundaries.
+        runadal: {
+            zoneId: 'hrimvald_runadal',
+            name: 'Rúnadal',
+            scene: 'runadal',                  // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(90, 120, 70, 0.06)', particles: { kind: 'snow', count: 4 },
+                grade: { ambient: 0.92, exposure: 1.04, highlights: [0.06, 0.04, -0.02] } },
+            legend: {
+                ',': { name: 'moss' }, ':': { name: 'path' }, 'T': { name: 'pine', solid: true }, 'o': { name: 'boulder', solid: true },
+                'R': { name: 'rune_stone', solid: true }, 'r': { name: 'ring_stone', solid: true }, 'A': { name: 'offering_table', solid: true },
+                'L': { name: 'lean_to', solid: true }, 'F': { name: 'campfire', solid: true }, 'u': { name: 'stump', solid: true }
+            },
+            tiles: [
+                'TTT,TT,TT,,,T,TT,T,T,TTTT,T,,,oT,T,T,oT,To,,TTTTTToTTT',
+                'T,,,,,T,,TTTT,oT,TT,TTTTTT,TTTT,,TTTTT,TTToTTTTTTTTTTT',
+                'TT,TTTT,,T,T,T,,,,,,TT,oTTT,TTTTTTTTTo,T,TT,,TTTTTT,TT',
+                ',T,TT,,,TTTTTT,TTo,TT,TTTTT,,oTTT,TT,T,,ToTT,TTT,TT,o,',
+                'o,TTTTT,TTTTTT,,T,T,T,TTT,o,T,,TTT,TLLLLLLLLLTTTTT,,,,',
+                'ToTTT,,TT,,,,,oTTTTTT,,,,,TTTT,,TTo,LLLLLLLLL,,T,TT,,T',
+                'o,,o,T,,TTT,,TT,,TTTTT,,,,,,,,,,,,,,LLLLLLLLL,,,T,,,,,',
+                'T,,o,,TTTTTTTT,T,,,,,,,,,,,,,,,,,T,,LLLLLLLLL,,,T,,,TT',
+                ',ToTTTTT,,TTTTTT,oT,,,,r,R,,,r,,,,,,,,,,,,,,,,,T,,,TTT',
+                'TTTT,,,T,TTToT,T,,,,,,,,,,,,,,,,,,,u,,F,,,,,,,,TTTTTTT',
+                'T,,TT,ToTTTT,T,To,,,,R,,,,,,,,,R,,,,,,,,,u,,,,,TTTTTTT',
+                ',,T,T,,TTTT,,T,,,,,,,,,,,,,,,,,,,,,,,,:,,,,,,,T,,TT,TT',
+                ',,,,,,,,,,,,,TTTT,,,,,,,,,,,,,,,,,,,,,:,,,,,,,,TTTTTT,',
+                '::::::::::::,,,TT,r,,,,,,,,,,,,,,r,,,,:,TTTTT,T,,TTTTT',
+                '::::::::::::,,ToT,,,,,,,,AAA,,,,,,,,,,:,o,,,,,,,,,,,,,',
+                ',,,,,,,,,,::,,,TT,,,,,,,,AAA,,,,,::::::,T,::::::::::::',
+                'T,T,,To,T,::,,,,,,,r,,,,,,::,,,,,r,,,,,,T,::::::::::::',
+                ',ToTTTo,T,:::::::::,,,,,,,::,,,,,,,,,,,,,,::,,,,,,,,,:',
+                'TTTTTT,TT,:::::::::,,,,,,,::,,,,,,::::::::::,T,oTT,T,,',
+                'T,T,,TTTT,,,,,,,,::,T,,,,,::,,,,,,::::::::::,TTT,TT,T,',
+                'TTooT,,TTTTT,oTT,::,,,,,,,::::::::::,,,,,,,,,TT,TTo,TT',
+                ',T,TT,,TT,,T,,To,:::::::::::::::::::,TTTT,T,TT,T,T,,TT',
+                ',,,T,oTT,TTT,TTT,:::::::::::,,,,,,,,,T,,,T,TTT,ToTT,T,',
+                ',To,,TT,T,T,TT,T,,,,,,,,,::,,TTTTTTTTT,,TTT,TTT,T,T,,T',
+                'TTToTTTTTT,TTToTTTTTTToT,::,oT,,T,TT,,,TTTTTT,,T,,TTTo',
+                'TTTT,T,,TT,,TT,TTToTTTTT,::,TTTTT,TTT,,,,T,TTo,,,TTTT,',
+                'TT,oTT,TTTTTToTT,oT,,,T,,::,T,TT,TTo,,,TTTTTTT,TTT,,T,',
+                ',ToTTTTTTTTTTT,TT,TTTT,,,::,T,TTTT,oTo,T,o,,T,,,TTT,,,',
+                ',T,,TTTT,,,T,,TTTT,TT,,T,::,,,,,T,TTTTTo,T,TTTTT,TTT,,',
+                'oT,,,T,To,,T,T,TTToTTTTT,::,T,T,TTTTTTT,TTTTTT,TTTTTTT',
+                'T,To,T,TTTTo,,,TT,T,T,TT,::,T,oT,,TT,,TTT,,TTT,TT,TTTT',
+                ',,oT,,TT,,T,oToTT,,TTTTT,::,T,TTT,,ToT,,T,TToT,TTT,,,,',
+                'TT,T,T,TT,,TTTTTTTT,T,,,,::,TTT,TT,TTTTTTTT,,,TTTTTT,T',
+                'TT,,T,TT,TT,,TT,TT,TTTT,,::,T,,TTTTToTTTTTTToT,TT,T,TT',
+                'TTTT,o,ToT,TTTT,T,TTTTTT,::,TT,,TT,T,TTTT,TTTT,TT,,,,o',
+                'TTTTTTTTTo,ToTTTTTTTTTT,,::,,TT,,,,T,TTTTTTTT,T,,TTTT,'
+            ],
+            lights: [{ x: 38, y: 9, radius: 2.6, color: 'rgba(255, 150, 60, 0.28)' }],
+            spawns: {
+                from_jarnmyr: { x: 25, y: 34, facing: 'up' },
+                from_jarnmyr_2: { x: 26, y: 34, facing: 'up' },
+                flight_table: { x: 24, y: 17, facing: 'up' }
+            },
+            exits: [
+                { id: 'runadal_south_track', x: 25, y: 35, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_runadal' },
+                { id: 'runadal_south_track_2', x: 26, y: 35, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_runadal_2' }
+            ],
+            encounters: [],
+            interactables: [
+                { id: 'runadal_yrsa', kind: 'npc', npc: 'yrsa', x: 40, y: 9, name: 'Yrsa Thornstaff', sprite: 'seeress' },
+                { id: 'runadal_table', kind: 'inspect', x: 26, y: 15, name: 'The offering table',
+                    text: 'A flat stone on three smaller ones, a woven cloth over it, and on the cloth a round loaf, a bowl of milk and a cup. The loaf is fresh. People come a long way to leave bread here.' },
+                { id: 'runadal_stone', kind: 'inspect', x: 25, y: 8, name: 'Rune stone',
+                    text: 'The tallest stone, lichen on its shoulders and one rune cut deep in the middle, a branching mark like a tree or a hand. The smaller stones round the ring carry names, worn almost smooth. Nobody here can read them all any more.' },
+                { id: 'runadal_leanto', kind: 'inspect', x: 40, y: 7, name: 'The lean-to',
+                    text: 'Poles and a turf roof against a fallen trunk. A bench with a fleece on it, a basket, a staff, and bunches of herbs hung to dry from the rafter: mugwort, yarrow, juniper.' },
+                { id: 'runadal_fire', kind: 'inspect', x: 38, y: 9, name: 'Ring-fire',
+                    text: 'A fire in a ring of stones, burning low and clean. Whoever keeps it has kept it a long time.' },
+                { id: 'runadal_juniper', kind: 'forage', forage: 'juniper', x: 12, y: 11, name: 'Juniper', sprite: 'juniper',
+                    text: 'Juniper under the pines, the berries blue-black and bitter.' },
+                { id: 'runadal_lingonberries', kind: 'forage', forage: 'lingonberries', x: 45, y: 14, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Lingonberries in the moss beside the east path.' }
+            ],
+            boundaries: [
+                { id: 'runadal_west_path', x: 0, y: 13, w: 1, h: 2, title: 'The west path',
+                    text: 'The west path goes on under the pines toward the high fells. That way is not open yet. (Coming in a later part of Chapter Two.)' },
+                { id: 'runadal_east_path', x: 53, y: 15, w: 1, h: 2, title: 'The east path',
+                    text: 'The east path climbs out of the trees toward the windy heights. That way is not open yet. (Coming in a later part of Chapter Two.)' }
+            ]
+        },
+
+        // -----------------------------------------------------------------
+        // Bjarki's Barrow, inside the Járnmyr mound, after Tokelo's picture (2026-11-13): a narrow passage lined with grave
+        // slabs opens into a great chamber walled with knotwork stones. Two fire-bowls burn on carved pillars, side recesses
+        // hold urns, weapons, shields and stone coffins, and a stepped dais carries Bjarki the Grave-Bound's coffin with a
+        // flame altar behind it. The altar and the two pillar fires are the burial anchors (CHAPTER_TWO_LORE 6.1).
+        bjarki_barrow: {
+            zoneId: 'hrimvald_bjarki_barrow',
+            name: "Bjarki's Barrow",
+            scene: 'bjarki_barrow',            // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(30, 20, 14, 0.25)', particles: { kind: 'dust', count: 10 },
+                grade: { ambient: 0.62, exposure: 0.95, highlights: [0.08, 0.03, -0.04] } },
+            legend: {
+                '.': { name: 'flagstones' }, ':': { name: 'rubble' }, 'm': { name: 'barrow_mouth' }, 'd': { name: 'dais_steps' },
+                '#': { name: 'knot_wall', solid: true }, 'S': { name: 'grave_slab', solid: true }, 'D': { name: 'dais', solid: true }, 'K': { name: 'stone_coffin', solid: true },
+                'A': { name: 'flame_altar', solid: true }, 'P': { name: 'fire_pillar', solid: true }, 'b': { name: 'candle_stand', solid: true }, 'u': { name: 'urn', solid: true },
+                'c': { name: 'grave_coffin', solid: true }, 'w': { name: 'grave_goods', solid: true }
+            },
+            tiles: [
+                '################################',
+                '################################',
+                '#########......AA:.....#########',
+                '#########....b:AA.b....#########',
+                '#####....:.DDDDDDDDDD......#####',
+                '#####......DDKKKKKKDD.....:#####',
+                '#####..:...DDKKKKKKDD.....:#####',
+                '##.u:..:...DDDDDDDDDD::.....u.##',
+                '##u........DDddddddDD:........##',
+                '##........:DDddddddDD......cc.##',
+                '##.:.:........................##',
+                '####........................####',
+                '####.:PP................PP..####',
+                '####.bPPb..............bPPb.####',
+                '####.:......:..:....:......:####',
+                '####......:.................####',
+                '####..:.....................####',
+                '##.........:..................##',
+                '##www.......:.....:........www##',
+                '##.....:..............:....:..##',
+                '##..:.............:...:.......##',
+                '##u...:......................u##',
+                '##.......:.:..................##',
+                '##.ccc.........:.:...:....ccc.##',
+                '##.ccc............:.......ccc.##',
+                '##......:.................::..##',
+                '##:.........:.:.:...::........##',
+                '##############....##############',
+                '##############S.:.##############',
+                '##############...S##############',
+                '##############...S##############',
+                '##############S...##############',
+                '##############S...##############',
+                '##############...S##############',
+                '##############...S##############',
+                '##############S...##############',
+                '##############S..:##############',
+                '##############.:..##############',
+                '###############..###############',
+                '###############m################'
+            ],
+            lights: [
+                { x: 15.5, y: 2, radius: 3.4, color: 'rgba(255, 150, 60, 0.32)' }, { x: 6.5, y: 12, radius: 3.2, color: 'rgba(255, 150, 60, 0.3)' },
+                { x: 24.5, y: 12, radius: 3.2, color: 'rgba(255, 150, 60, 0.3)' }
+            ],
+            spawns: {
+                from_jarnmyr: { x: 15, y: 38, facing: 'up' }
+            },
+            exits: [
+                { id: 'barrow_out', x: 15, y: 39, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_barrow',
+                    text: 'Grey daylight, the smell of the bog, and the hammers of Járnmyr going on as if nothing were under the hill at all.' }
+            ],
+            encounters: [
+                { id: 'barrow_passage_dead', x: 15, y: 31, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 96,
+                    text: 'Two of the slabs have been pulled out of the passage wall, and what was laid behind them has stood up. Grave-cloth, iron rings, and eyes like cold coals.' },
+                { id: 'barrow_west_dead', x: 9, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
+                    text: 'Bjarki\'s hearth-men, still in their mail, with the shields they were buried with. They turn to face you together, the way they were taught.' },
+                { id: 'barrow_east_dead', x: 22, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
+                    text: 'Bjarki\'s hearth-men, still in their mail, with the shields they were buried with. They turn to face you together, the way they were taught.' },
+                // Bjarki the Grave-Bound: one grave-ward at his side for every burial anchor still burning (C2-05).
+                { id: 'barrow_bjarki_warded', x: 14, y: 10, name: 'Bjarki the Grave-Bound', enemies: ['bjarki_grave_bound', 'grave_ward', 'grave_ward', 'grave_ward'], trigger: 'contact', sprite: 'warden',
+                    detect: 120, when: { notFlags: ['barrow_anchors_1', 'bjarki_laid'] }, text: BJARKI },
+                { id: 'barrow_bjarki_two', x: 15, y: 10, name: 'Bjarki the Grave-Bound', enemies: ['bjarki_grave_bound', 'grave_ward', 'grave_ward'], trigger: 'contact', sprite: 'warden',
+                    detect: 120, when: { flags: ['barrow_anchors_1'], notFlags: ['barrow_anchors_2', 'bjarki_laid'] }, text: BJARKI },
+                { id: 'barrow_bjarki_one', x: 16, y: 10, name: 'Bjarki the Grave-Bound', enemies: ['bjarki_grave_bound', 'grave_ward'], trigger: 'contact', sprite: 'warden',
+                    detect: 120, when: { flags: ['barrow_anchors_2'], notFlags: ['barrow_anchors_3', 'bjarki_laid'] }, text: BJARKI },
+                { id: 'barrow_bjarki_bare', x: 17, y: 10, name: 'Bjarki the Grave-Bound', enemies: ['bjarki_grave_bound'], trigger: 'contact', sprite: 'warden',
+                    detect: 120, when: { flags: ['barrow_anchors_3'], notFlags: ['bjarki_laid'] }, text: BJARKI }
+            ],
+            interactables: [
+                { id: 'barrow_anchor_altar', kind: 'inspect', x: 15, y: 2, name: 'The flame altar',
+                    text: 'A pillar of knotwork stone with a fire-bowl on top, burning on nothing. Bones are packed into the bowl under the flame: a hand, wrapped in a strip of red cloth.' },
+                { id: 'barrow_anchor_west', kind: 'inspect', x: 6, y: 12, name: 'Pillar fire',
+                    text: 'A carved pillar on a stepped base, and on it a bowl of fire that gives no smoke. Iron nails have been driven into the stone round its foot in a ring.' },
+                { id: 'barrow_anchor_east', kind: 'inspect', x: 25, y: 12, name: 'Pillar fire',
+                    text: 'A carved pillar on a stepped base, and on it a bowl of fire that gives no smoke. Iron nails have been driven into the stone round its foot in a ring.' },
+                { id: 'barrow_coffin', kind: 'inspect', x: 15, y: 7, name: "Bjarki's coffin",
+                    text: 'A coffin of one stone, its lid carved with a man in a helm holding a sword on his chest. The lid has been levered askew with a quarry bar. The bar is still in the gap.' },
+                { id: 'barrow_slabs', kind: 'inspect', x: 14, y: 32, name: 'Grave slabs',
+                    text: 'Upright slabs along the passage, each with a worn figure cut on it. Behind every one is a niche, and somebody has been opening them one at a time with wedges.' },
+                { id: 'barrow_goods_west', kind: 'inspect', x: 3, y: 18, name: 'Grave goods',
+                    text: 'Spears and a sword laid in the recess with a round shield, and bare marks in the dust where more were laid. Whatever was bronze or silver has gone. The iron they left.' },
+                { id: 'barrow_goods_east', kind: 'inspect', x: 28, y: 18, name: 'Grave goods',
+                    text: 'A bearded axe and a red-and-white shield against the wall, an empty bowl, a cloak-pin dropped and left. The diggers were in a hurry here.' },
+                { id: 'barrow_coffins', kind: 'inspect', x: 4, y: 23, name: 'Stone coffin',
+                    text: 'A lesser coffin of the household, its lid knocked aside and cracked across. Empty. A drag mark goes from it toward the dais.' },
+                { id: 'barrow_urns', kind: 'inspect', x: 3, y: 7, name: 'Urns',
+                    text: 'Clay urns of ash and bone, sealed with wax, and one of them broken open. Someone looked inside, found ash, and kicked it over.' }
+            ],
+            boundaries: []
         }
 
 
