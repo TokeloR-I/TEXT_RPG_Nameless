@@ -109,7 +109,14 @@
                 { id: 'frostspine_cairn', kind: 'inspect', x: 26, y: 7, name: 'Travellers\' cairn',
                     text: 'A cairn at the top of the pass. Everyone who crosses adds a stone. You find you have picked one up without deciding to.' },
                 { id: 'frostspine_herbs', kind: 'forage', forage: 'wild_herbs', x: 6, y: 14, name: 'Wild herbs', sprite: 'herbs',
-                    text: 'Yarrow in the lee of the firs, the last green thing before the rock.' }
+                    text: 'Yarrow in the lee of the firs, the last green thing before the rock.' },
+                // The Hrimvald kitchen (2026-11-13): berries and juniper on the fells; they grow back.
+                { id: 'frostspine_lingonberries', kind: 'forage', forage: 'lingonberries', x: 3, y: 12, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Low glossy leaves and red berries in clusters, right down to the road.' },
+                { id: 'frostspine_juniper', kind: 'forage', forage: 'juniper', x: 7, y: 2, name: 'Juniper', sprite: 'juniper',
+                    text: 'A juniper bush bent flat by the wind, blue with berries.' },
+                { id: 'frostspine_cloudberries', kind: 'forage', forage: 'cloudberries', x: 24, y: 13, name: 'Cloudberries', sprite: 'cloudberries',
+                    text: 'A wet hollow below the crags, and amber berries standing up out of the moss, one to a stem.' }
             ]
         },
 
@@ -230,6 +237,15 @@
                     text: 'Nets hung from the wharf to dry and to mend. A bone needle is still threaded in one, left mid-knot.' },
                 { id: 'skeldvik_crane', kind: 'inspect', x: 43, y: 13, name: 'Wharf crane',
                     text: 'A crane of two timbers and a rope, with a net of cod swinging from it. It lifts a catch from a boat to the wharf and has lifted heavier things when asked.' },
+                // The Hrimvald kitchen (Tokelo, 2026-11-13). Aslaug keeps the Stormtide's bar; she waits at the inn door until
+                // the inn's hall is built, then moves inside. The harbour cookfire is a public hearth by the fish racks.
+                { id: 'skeldvik_aslaug', kind: 'npc', npc: 'aslaug', x: 27, y: 10, name: 'Aslaug', sprite: 'alewife' },
+                { id: 'skeldvik_cookfire', kind: 'station', station: 'harbour_cookfire', verb: 'Cook at', x: 35, y: 18, name: 'Harbour cookfire', sprite: 'cookfire' },
+                { id: 'skeldvik_lingonberries', kind: 'forage', forage: 'lingonberries', x: 3, y: 20, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Lingonberries in the snow by the road, red as sparks.' },
+                // Sour Herring (C2S1): the narrow ship's gangplank, only while the prank is on.
+                { id: 'skeldvik_gangplank', kind: 'station', station: 'herring_hatch', verb: 'Board', x: 18, y: 28, name: 'Gangplank',
+                    when: { quests: { C2S1: 'active' } } },
                 { id: 'skeldvik_waterfall', kind: 'inspect', x: 44, y: 11, name: 'The fjord',
                     text: 'Across the water a fall comes off the cliff in one white thread and is lost in mist before it lands. The fjord is so still under it that the gulls look as if they are flying over a second sky.' }
             ]
@@ -328,6 +344,13 @@
                 { id: 'hrafnholm_sigrun', kind: 'npc', npc: 'sigrun', x: 41, y: 21, name: 'Sigrun Frostmark', sprite: 'heir' },
                 { id: 'hrafnholm_runa', kind: 'npc', npc: 'runa', x: 46, y: 21, name: 'Runa Hallvardsdottir', sprite: 'shieldmaiden' },
                 { id: 'hrafnholm_osric', kind: 'npc', npc: 'osric', x: 12, y: 15, name: 'Osric Vane', sprite: 'factor' },
+                // The Hrimvald kitchen (2026-11-13): Gudrun at the east stalls, the feast fire by the tables, berries on the slope.
+                { id: 'hrafnholm_gudrun', kind: 'npc', npc: 'gudrun', x: 33, y: 15, name: 'Gudrun', sprite: 'shepherd' },
+                { id: 'hrafnholm_feast_fire', kind: 'station', station: 'feast_fire', verb: 'Cook at', x: 38, y: 16, name: 'Feast fire', sprite: 'cookfire' },
+                { id: 'hrafnholm_lingonberries', kind: 'forage', forage: 'lingonberries', x: 46, y: 9, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Lingonberries under the firs above the houses.' },
+                { id: 'hrafnholm_cloudberries', kind: 'forage', forage: 'cloudberries', x: 46, y: 23, name: 'Cloudberries', sprite: 'cloudberries',
+                    text: 'Cloudberries in a boggy corner under the cliff. Someone has been here before you and left a few.' },
                 { id: 'hrafnholm_law_rock', kind: 'inspect', x: 25, y: 21, name: 'The law rock',
                     text: 'A slab of grey stone set on end on a stepped dais, with four fire bowls round it. The Lawspeaker stands here to say the law aloud, all of it, from memory, one third each summer. The stone is worn smooth at the height of a hand.' },
                 { id: 'hrafnholm_thing', kind: 'inspect', x: 21, y: 18, name: 'The Thing',

@@ -1064,7 +1064,12 @@
         if (id === 'items') {
             const v = MM.itemsView(engine.getAvailableActions(), engine.getState().player.inventory, engine.itemDefinitions());
             items = v.usable.map((u) => ({ label: `${u.item}${u.count > 1 ? ` ×${u.count}` : ''}`, sub: u.enabled ? u.description : (u.reason ? u.reason.message : ''), disabled: !u.enabled,
-                action: again(() => { mm.note = actLines({ type: 'use_item', item: u.item }); }) }));
+                action: (engine.itemDefinitions()[u.item] || {}).use === 'camp'
+                    // Hakon's camp kit (C2S2): making camp opens its hearth, so the menu gives way to the cooking pot.
+                    ? () => { const r = engine.act({ type: 'use_item', item: u.item }); updateHud();
+                        if (engine.getAvailableActions().awaiting === 'dialogue') { closePause(); openTalk(r.events); }
+                        else { mm.note = readable(r.events).map((l) => l.text).join(' '); enterList(id, menu.index); } }
+                    : again(() => { mm.note = actLines({ type: 'use_item', item: u.item }); }) }));
         }
         if (id === 'items') {
             const claim = engine.getAvailableActions().actions.find(a => a.type === 'claim_loot');

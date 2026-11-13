@@ -35,7 +35,7 @@
     // Which content release wrote a save. Bump it when a PR adds or removes story content (quests, NPCs, items,
     // maps), so a save carried back to an older copy of the game is recognised as newer, not "updated" (playtest
     // 2026-11-11). A save that names quests or items this build doesn't know is newer whatever the number says.
-    const CONTENT_REVISION = 4;
+    const CONTENT_REVISION = 5;   // 5: the Hrimvald kitchen and Sour Herring (C2S1)
     const ENGINE_VERSION = '0.1.0';          // package.json "version" (kept in step by tests/33-save-load.test.js)
     const STATE_KEYS = ['rooms', 'currentRoom', 'mode', 'player', 'combat', 'pendingBranchChoice', 'flags', 'stats', 'progression', 'world', 'story'];
     // Fields a save must have to be loaded at all (story/world may be null: the text game).
