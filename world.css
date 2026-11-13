@@ -129,15 +129,81 @@ body {
 }
 .prompt kbd { border: 1px solid var(--ink-dim); padding: 0 0.35em; margin-right: 0.4em; font-family: inherit; color: var(--accent); }
 
-/* ---------- touch pad (coarse pointers only) ---------- */
-.touch-pad { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; user-select: none; touch-action: none; }
-.touch-pad button { width: 56px; height: 56px; font: inherit; font-size: 20px; color: var(--ink); background: #1a1820; border: 1px solid var(--edge); border-radius: 8px; }
-.dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 4px; }
-.dpad [data-key="ArrowUp"] { grid-column: 2; grid-row: 1; }
-.dpad [data-key="ArrowLeft"] { grid-column: 1; grid-row: 2; }
-.dpad [data-key="ArrowRight"] { grid-column: 3; grid-row: 2; }
-.dpad [data-key="ArrowDown"] { grid-column: 2; grid-row: 3; }
-.pad-actions { display: flex; gap: 12px; }
+/* ---------- touch controls (coarse pointers only; ui/touch-controls.js) ---------- */
+.touch-pad {
+    --tc: min(48px, 12vw);
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px;
+    user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none;
+}
+.tc-stick {
+    position: relative; flex: none; width: calc(var(--tc) * 2.9); height: calc(var(--tc) * 2.9); border-radius: 50%;
+    background: radial-gradient(circle, rgba(232, 225, 207, 0.08) 0 38%, rgba(232, 225, 207, 0.04) 39% 100%);
+    border: 2px solid rgba(138, 122, 88, 0.75); box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.6); touch-action: none;
+}
+.tc-stick::before, .tc-stick::after { content: ''; position: absolute; left: 50%; top: 50%; background: rgba(232, 225, 207, 0.12); transform: translate(-50%, -50%); }
+.tc-stick::before { width: 72%; height: 2px; }
+.tc-stick::after { width: 2px; height: 72%; }
+.tc-knob {
+    position: absolute; left: 50%; top: 50%; z-index: 1; width: calc(var(--tc) * 1.15); height: calc(var(--tc) * 1.15); border-radius: 50%;
+    transform: translate(-50%, -50%); background: radial-gradient(circle at 35% 30%, #4a4436, #1d1b29 70%);
+    border: 2px solid var(--c-frame-hi); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); pointer-events: none;
+}
+.tc-stick.active .tc-knob { border-color: var(--c-accent); }
+.tc-stick.sprint { border-color: var(--c-gold); }
+.tc-stick.sprint .tc-knob { border-color: var(--c-gold); box-shadow: 0 0 10px rgba(232, 200, 96, 0.6); }
+.tc-buttons {
+    display: grid; gap: 6px; grid-template-columns: repeat(4, var(--tc)); grid-template-rows: repeat(4, var(--tc));
+    grid-template-areas: "s0 s1 s2 menu" "s3 s4 s5 use" "heal guard atk atk" "dash full atk atk";
+}
+.tc-btn {
+    position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+    font: inherit; font-size: calc(var(--tc) * 0.4); color: var(--ink); background: rgba(26, 24, 32, 0.92);
+    border: 1px solid var(--c-frame); border-radius: 10px; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.tc-btn.pressed { background: #2c2838; border-color: var(--c-accent); }
+.tc-icon { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 70%; height: 70%; line-height: 1; }
+.tc-icon svg { width: 100%; height: 100%; }
+.tc-secs { position: absolute; z-index: 2; right: 3px; bottom: 1px; font-size: calc(var(--tc) * 0.26); color: #fff; text-shadow: 0 1px 2px #000; }
+.tc-shutter { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0, 0, 0, 0.6); pointer-events: none; }
+.tc-label { position: absolute; z-index: 1; bottom: 2px; font-size: calc(var(--tc) * 0.22); color: var(--ink-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+.tc-skill.empty { opacity: 0.35; }
+.tc-skill.is-nores .tc-icon, .tc-skill.is-disabled .tc-icon { opacity: 0.45; }
+.tc-btn.is-disabled { opacity: 0.45; }
+.tc-s0 { grid-area: s0; } .tc-s1 { grid-area: s1; } .tc-s2 { grid-area: s2; }
+.tc-s3 { grid-area: s3; } .tc-s4 { grid-area: s4; } .tc-s5 { grid-area: s5; }
+.tc-menu { grid-area: menu; } .tc-use { grid-area: use; color: var(--c-accent); }
+.tc-heal { grid-area: heal; color: var(--c-hp); } .tc-guard { grid-area: guard; }
+.tc-guard.active { border-color: var(--c-st-control); }
+.tc-dash { grid-area: dash; font-size: calc(var(--tc) * 0.55); } .tc-dash .tc-icon { height: 60%; margin-bottom: 18%; }
+.tc-attack { grid-area: atk; border-radius: 50%; font-size: calc(var(--tc) * 0.85); border-width: 2px; border-color: var(--c-frame-hi); background: radial-gradient(circle at 40% 35%, #3a2e2a, #1a1820 70%); }
+.tc-full { grid-area: full; font-size: calc(var(--tc) * 0.5); }
+.touch-pad:not(.can-fullscreen) .tc-buttons { grid-template-areas: "s0 s1 s2 menu" "s3 s4 s5 use" "heal guard atk atk" "dash dash atk atk"; }
+/* Before the action HUD runs (classic modes, title screen) and while a panel is open only the stick, E and Menu show. */
+.touch-pad:not(.has-combat) .tc-skill, .touch-pad:not(.has-combat) .tc-combat,
+.touch-pad.hud-off .tc-skill, .touch-pad.hud-off .tc-combat { visibility: hidden; }
+
+body.touch .world-help { display: none; }   /* keyboard help: not for a touch screen */
+
+/* Phone held sideways (body.touch-landscape, set by fitStage): the stage fills the screen and the controls lie over it. */
+body.touch-landscape { overflow: hidden; }
+body.touch-landscape .world-shell { margin: 0; }
+body.touch-landscape .world-stage { outline: none; box-shadow: none; }
+body.touch-landscape .world-help { display: none; }
+body.touch-landscape .touch-pad {
+    --tc: min(44px, 10.5vh);
+    position: fixed; inset: auto 0 0 0; z-index: 40; margin: 0; align-items: flex-end; pointer-events: none;
+    padding: 0 max(14px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+body.touch-landscape .tc-stick, body.touch-landscape .tc-btn { pointer-events: auto; }
+body.touch-landscape .touch-pad.hud-off .tc-stick { opacity: 0.4; }
+/* Panels are sized by the stage's width; a wide stage is short, so they shrink by --wide-k (set by fitStage). */
+body.touch-landscape .panel { font-size: max(10px, calc(1.8cqw * var(--wide-k, 1))); }
+body.touch-landscape .panel.mm { inset: 2cqw 6cqw; }
+body.touch-landscape .mm-nav { overflow-y: auto; scrollbar-width: none; }
+body.touch-landscape .dialog { font-size: max(11px, calc(1.7cqw * var(--wide-k, 1))); left: 20cqw; right: 20cqw; }
+body.touch-landscape .tc-stick { width: calc(var(--tc) * 3.1); height: calc(var(--tc) * 3.1); background: radial-gradient(circle, rgba(232, 225, 207, 0.1) 0 38%, rgba(10, 9, 16, 0.25) 39% 100%); }
+body.touch-landscape .tc-btn { background: rgba(26, 24, 32, 0.62); }
+body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%, rgba(58, 46, 42, 0.8), rgba(26, 24, 32, 0.7) 70%); }
 
 /* ---------- map name banner ---------- */
 .banner {

@@ -47,16 +47,26 @@
     // Display: the stage is sized in whole screen pixels per canvas pixel when that fits well
     // (ui/display.js). The choice is a per-browser preference, kept outside any save.
     // ---------------------------------------------------------------------
+    const TOUCH = !!(els.pad && ENSO.touchControls && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
+    const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })) }) : null;
+    if (TOUCH) { els.pad.hidden = false; document.body.classList.add('touch'); }
     const DISPLAY_KEY = 'enso.ui.display';
     let displayMode = (() => { try { const m = localStorage.getItem(DISPLAY_KEY); return ENSO.display.MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } })();
     function fitStage() {
         const stage = $('world-stage'), shell = stage.parentElement;
         const help = shell.querySelector('.world-help');
-        const below = (help ? help.offsetHeight + 10 : 0) + (els.pad && !els.pad.hidden ? els.pad.offsetHeight + 12 : 0);
-        const f = ENSO.display.fit(window.innerWidth - 32, window.innerHeight - 24 - below, displayMode);
+        // A phone held sideways: the stage takes the whole screen and the touch controls lie over it.
+        const landscape = TOUCH && window.innerWidth > window.innerHeight;
+        document.body.classList.toggle('touch-landscape', landscape);
+        const below = landscape ? 0 : (help && help.offsetParent ? help.offsetHeight + 10 : 0) + (els.pad && !els.pad.hidden ? els.pad.offsetHeight + 12 : 0);
+        const f = landscape
+            ? ENSO.display.fit(window.innerWidth, window.innerHeight, displayMode, ENSO.display.BASE, { wide: true })
+            : ENSO.display.fit(window.innerWidth - 32, window.innerHeight - 24 - below, displayMode);
         shell.style.width = `${f.w}px`;
         Object.assign(stage.style, { width: `${f.w}px`, height: `${f.h}px`, aspectRatio: 'auto' });
         stage.classList.toggle('tall', f.tall);
+        // A wide landscape stage is shorter than its width suggests: panels sized in cqw shrink by this much to fit.
+        stage.style.setProperty('--wide-k', f.wide ? (f.h * 480 / 270 / f.w).toFixed(3) : '1');
         if (renderer.hd) renderer.resize(f.canvasW, f.canvasH);   // the scene; postfx sizes the visible canvas to the screen
         else if (canvas.width !== f.canvasW || canvas.height !== f.canvasH) { canvas.width = f.canvasW; canvas.height = f.canvasH; }   // the renderer follows (GFX-3 draw reads the size each frame)
         stage.dataset.scale = f.integer ? `${f.scale}x` : 'fill';
@@ -2071,7 +2081,10 @@
         els.prompt.hidden = true;
         if (hud) {
             syncActionHudVisibility();
-            hud.update(ENSO.actionHud.viewModel(engine, hudView(now), now), now);
+            if (touch) els.pad.classList.toggle('hud-off', hud.el.hidden);
+            const model = ENSO.actionHud.viewModel(engine, hudView(now), now);
+            hud.update(model, now);
+            if (touch) touch.update(model);
             placeNotices();
         }
     }
@@ -2373,16 +2386,11 @@
     });
     window.addEventListener('blur', () => { held.length = 0; down.clear(); stale.clear(); });
 
-    // On-screen pad for touch screens (shown only for coarse pointers): it sends the same keys.
-    if (els.pad && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) {
-        els.pad.hidden = false;
-        const fire = (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
-        els.pad.querySelectorAll('button[data-key]').forEach((b) => {
-            const key = b.dataset.key;
-            b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); fire('keydown', key); });
-            const up = (e) => { e.preventDefault(); fire('keyup', key); };
-            b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
-        });
+    // On-screen controls for touch screens (coarse pointers only; ui/touch-controls.js): a joystick with
+    // diagonals, the skill bar, dash, guard, heal, interact and menu. They send the same keys as the keyboard.
+    if (touch) {
+        window.addEventListener('blur', () => touch.release());
+        document.addEventListener('visibilitychange', () => { if (document.hidden) touch.release(); });
     }
 
     // ---------------------------------------------------------------------
