@@ -7,7 +7,7 @@ const { WorldSession, validateWorld } = require('../src/world/world.js');
 const ZONE1 = require('../src/world/zone1.js');
 const STORY = require('../src/story/chapter1.js');
 const CH2 = require('../src/story/chapter2.js');
-const { inspect } = require('./world-helpers.js');
+const { inspect, takeExit } = require('./world-helpers.js');
 
 const items = data.itemDefinitions, recipes = data.recipeDefinitions, FOOD = data.foodRules;
 const NORSE = Object.entries(recipes).filter(([, r]) => r.region === 'hrimvald');
@@ -124,6 +124,7 @@ test('A Fire of Your Own (C2S2): Hakon trades his spare camp kit for juniper; it
 // ---------------------------------------------------------------- mead and the prank (C2S1)
 test('Aslaug sells and brews mead at the Stormtide; mead stacks, and the fifth drink still makes you Drunk', () => {
     const { g, s } = run();
+    assert.strictEqual(takeExit(s, 'skeldvik_inn_entry').type, 'transition', 'Aslaug keeps her bar inside the Stormtide');
     talk(s, 'skeldvik_aslaug'); say(g, /What have you got/);
     assert.ok(g.act({ type: 'buy', shopId: 'aslaug', item: 'Mead' }).ok);
     give(g, 'Honey', 2);
