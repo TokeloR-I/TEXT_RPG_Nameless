@@ -80,7 +80,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
     for (const a of Object.values(CH2.anchors)) assert.ok(ZONE1.maps[a.map].spawns[a.spawn], 'anchor lands on a real spawn');
     // Lore rules (lore doc guardrails; Tokelo 2026-11-11): no door motif, and nobody here knows who the player was.
     const strings = [];
-    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter]);
+    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter, ZONE1.maps.jarnmyr]);
     const words = strings.join('\n');
     assert.ok(!/\bgates?\b|threshold|behind the door|door (that|which|between)/i.test(words), 'no door motif in Chapter Two text');
     assert.ok((words.match(/\bdoors?\b/gi) || []).length <= 1, 'a door is furniture here, at most');
@@ -267,7 +267,7 @@ test('The Wolf-Banner: three new enemies with turn stats, live-combat kits, loot
     assert.deepStrictEqual(gate.map((e) => e.id), ['frostspine_ulfrun']);
 });
 
-test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter and Gullstrand Coast paint whole, the same every time, every tile named', () => {
+test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter, Gullstrand Coast and Járnmyr paint whole, the same every time, every tile named', () => {
     const SCENE = require('../ui/scene-art.js');
     require('../ui/scene-hrimvald.js');
     const nameAt = (m, x, y) => {
@@ -287,7 +287,10 @@ test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter
         hall_of_winter: ['floor', 'runner', 'dais', 'dais_steps', 'wall', 'post', 'screen', 'high_seat', 'chair', 'side_table', 'brazier', 'fire_pit', 'feast_table',
             'skald_corner', 'law_table', 'name_boards', 'candle_table', 'berry_jar', 'weapon_rack', 'shield_stand', 'fur_chest', 'barrel', 'shields', 'wall_banner', 'crate'],
         gullstrand_coast: ['grass', 'path', 'flagstones', 'steps', 'shingle', 'wharf', 'water', 'cliff', 'fir', 'rock', 'wolf_carving', 'sun_cave', 'moon_cave',
-            'binding_stone', 'house', 'awning', 'net_shed', 'fish_rack', 'fence', 'barrel', 'crate', 'rowboat', 'wreck']
+            'binding_stone', 'house', 'awning', 'net_shed', 'fish_rack', 'fence', 'barrel', 'crate', 'rowboat', 'wreck'],
+        jarnmyr: ['moor', 'path', 'yard', 'boardwalk', 'peat', 'quarry_floor', 'barrow_mouth', 'bog', 'crag', 'fir', 'kiln', 'woodshed', 'charcoal', 'log_pile',
+            'furnace', 'slag', 'ore', 'stone_hut', 'shed', 'smithy', 'smithy_wing', 'weapon_rack', 'anvil', 'ingots', 'ore_cart', 'barrel', 'fence', 'quarry', 'crane',
+            'blocks', 'barrow', 'peat_stack']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];

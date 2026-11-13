@@ -18,7 +18,8 @@
  * sets out Hrafnholm's politics). XP and Gold are CANDIDATES for Gauge.
  * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03, C204 = C2-04; side quests keep the lore doc's
  * ids (C2-S02, C2-S04). Hrafnholm is built (Tokelo's reference maps, 2026-11-13): C203 takes you there, to Ragnhild in
- * the hall and Torvald in the yard, and ends Act I at the Thing (2026-11-13). C204 is a pointer until Járnmyr's picture.
+ * the hall and Torvald in the yard, and ends Act I at the Thing (2026-11-13). Act II opens at Járnmyr (C204, Tokelo's picture,
+ * 2026-11-13); C205 is a pointer until the barrow's inside has its picture.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -97,12 +98,37 @@
                 { say: 'Arnkel will hear you at the law rock whenever you come back with something.', when: { flags: ['thing_asked_inquiry'] } },
                 { start: 'C204' }]
         },
-        // Act II begins at Járnmyr, which has no map yet: Tokelo's rule is no new area before its picture (2026-11-13).
+        // ----- Act II, Blood and Oaths. C2-04 Iron for the Wolf (lore doc section 5), at Járnmyr, built after Tokelo's picture
+        // (2026-11-13). The Thing's witness follows the iron: Bjorn Ironvein denies it, the works say otherwise (any three of
+        // the collier, the bloomery, the quarry and the ore cart), the buyers are caught on the barrow path carrying a bill of
+        // sale paid in old Crown plate, and Bjorn chooses his workers over his buyers. Ids kept from the pointer this used to be.
         C204: {
-            title: 'Iron for the Wolf', kind: 'main', xp: 0, teaser: true,
+            title: 'Iron for the Wolf', kind: 'main', xp: 90, candidate: true,
             summary: 'Name boards and iron are going missing from the North together, and the iron goes through Járnmyr, where the bog-iron is smelted. The Thing has made you its witness. Follow the iron.',
             objectives: [
-                { id: 'jarnmyr', text: 'Follow the iron to Járnmyr (the next part of Chapter Two)', on: { type: 'story', id: 'jarnmyr_reached' } }
+                { id: 'jarnmyr', text: 'Take the west road from Hrafnholm to Járnmyr', on: { type: 'story', id: 'jarnmyr_reached' }, marker: { map: 'hrafnholm', x: 0, y: 18 } },
+                { id: 'bjorn', text: 'Ask Bjorn Ironvein at the great smithy where his iron goes', on: { type: 'story', id: 'bjorn_met' }, marker: { map: 'jarnmyr', x: 39, y: 25 } },
+                { id: 'trail', text: 'Ask around the works: the collier, the bloomery, the quarry, the ore cart (any three)', on: { type: 'story', id: 'jarnmyr_trail' },
+                    skipIf: { flags: ['jarnmyr_trail_found'] }, marker: { map: 'jarnmyr', x: 25, y: 20 } },
+                { id: 'buyers', text: 'Catch the buyers on the path up to the burial mound', on: { type: 'defeat', id: 'jarnmyr_buyers' }, marker: { map: 'jarnmyr', x: 36, y: 6 } },
+                { id: 'confront', text: 'Put the bill of sale in front of Bjorn Ironvein', on: { type: 'story', id: 'bjorn_confronted' }, marker: { map: 'jarnmyr', x: 39, y: 25 } }
+            ],
+            onComplete: [{ flag: 'jarnmyr_forge_open' }, { gold: 30, key: 'c204_reward' },
+                { say: 'Behind you the hammers start again, slower. On the mound above the works, the two ravens sit on the lintel stone.', important: true },
+                { say: "'Grave goods,' the crow says. 'Somebody is shopping for the dead. I never liked that in a customer.'" },
+                { say: "Ragnhild will have the bill of sale by tomorrow night, carried by one of Bjorn's own lads.", when: { flags: ['iron_to_ragnhild'] } },
+                { say: "Torvald will get the bill of sale from Bjorn's hand, and has to answer for it in front of his own crews.", when: { flags: ['iron_to_torvald'] } },
+                { say: 'The bill of sale goes to Arnkel, to be read out at the law rock when the Thing next sits.', when: { flags: ['iron_to_thing'] } },
+                { say: "Bjorn's forge will sell to you now, and only to people he can look in the eye.", notice: 'quest' },
+                { start: 'C205' }]
+        },
+        // C2-05 A Chieftain Disturbed: the barrow at Járnmyr. A pointer until Tokelo's picture of the barrow's inside
+        // (area-art-first rule, 2026-11-13): nobody fires `barrow_entered` yet.
+        C205: {
+            title: 'A Chieftain Disturbed', kind: 'main', xp: 0, teaser: true,
+            summary: "The buyers were digging out the kerbstones of Járnmyr's burial mound and carrying out what the dead were buried with. Something in there is older than the old Crown, and it has been disturbed.",
+            objectives: [
+                { id: 'barrow', text: 'Go into the barrow at Járnmyr (the next part of Chapter Two)', on: { type: 'story', id: 'barrow_entered' }, marker: { map: 'jarnmyr', x: 43, y: 5 } }
             ],
             onComplete: []
         },
@@ -1792,6 +1818,162 @@
         }
     });
 
+    // ------------------------------------------------------------- Járnmyr (C2-04 Iron for the Wolf, Tokelo's picture 2026-11-13)
+    // Voices: Bjorn proud and tired, a man keeping forty families in work; Asger the collier slow and exact, awake all night;
+    // Thyri the bloomery-master blunt; Vigdis the quarry forewoman counts everything. Nobody here knows who the stranger was.
+    const CLUES = ['clue_collier', 'clue_bloomery', 'clue_quarry', 'clue_cart'];
+    const TRAIL3 = { any: CLUES.map((skip) => ({ flags: CLUES.filter((c) => c !== skip) })) };
+    const ON_TRAIL = { quests: { C204: 'active' } };
+    // Each clue: its flag, then (with three of four) the trail is found and the buyers come down the barrow path.
+    const clue = (flag) => [{ flag },
+        { say: 'Carts at night, grave goods under the ore, wedges at the mound. The buyers will be back for another load.', important: true, when: { ...TRAIL3, notFlags: ['jarnmyr_trail_found'] } },
+        { flag: 'jarnmyr_trail_found', when: TRAIL3 }, { event: { type: 'story', id: 'jarnmyr_trail' }, when: TRAIL3 }];
+    Object.assign(npcs, {
+        bjorn: {
+            name: 'Bjorn Ironvein', title: 'Master smith of Járnmyr',
+            talk: [
+                { if: { flags: ['jarnmyr_forge_open'] }, node: 'smith' },
+                { if: { quests: { C204: 'active' }, flags: ['buyers_beaten'] }, node: 'confront' },
+                { if: { flags: ['bjorn_met'] }, node: 'again' },
+                { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', 'Bjorn Ironvein. Forty families eat because these hammers go, and they have not stopped in twenty winters.'],
+                        ['npc', "You're the Thing's witness; Arnkel's runner said you'd come. Ask, then."]
+                    ],
+                    choices: [{ text: 'Where does your iron go?', to: 'deny' }, { text: 'Goodbye.', end: true }]
+                },
+                deny: {
+                    lines: [
+                        ['npc', 'Scythes to Birkholt, nails to Skeldvik, pots to anyone with a hearth. Spearheads to the Jarl, and to anyone else who pays.'],
+                        ['npc', "I sell to buyers, not to banners. What a man does with a spear after he's paid for it is his business and the Thing's."],
+                        ['npc', "Walk round the works if you like; nobody here has anything to hide. They'll tell you so themselves."]
+                    ],
+                    choices: [{ text: "I'll ask around.", effects: [{ flag: 'bjorn_met' }, { event: { type: 'story', id: 'bjorn_met' } }], end: true }]
+                },
+                again: {
+                    lines: [['npc', "Still here? Ask the works, then, and mind the furnaces; they don't care whose witness you are."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                confront: {
+                    lines: [
+                        [null, 'You put the bill of sale on his anvil. Bjorn reads it twice, then wipes his hands and reads it again.'],
+                        ['npc', 'Two hundred spearheads, and "old iron, reworked", paid in Crown plate.'],
+                        ['npc', 'I knew the coin was old. I told myself coin is coin.'],
+                        ['npc', 'The "old iron" came out of the mound, then. They had my lads melting down grave goods at night, and I took their silver for it.'],
+                        ['npc', "I'll sell them nothing more, but this paper will hang someone. You're the witness: who gets it?"]
+                    ],
+                    choices: [
+                        { text: 'Jarl Ragnhild. The hall should know who is arming the crews.', effects: [{ flag: 'iron_to_ragnhild' }], to: 'promise' },
+                        { text: 'Torvald Redhand. He should answer for his own buyers.', effects: [{ flag: 'iron_to_torvald' }], to: 'promise' },
+                        { text: 'Arnkel. It belongs to the Thing, read aloud at the law rock.', effects: [{ flag: 'iron_to_thing' }], to: 'promise' }
+                    ]
+                },
+                promise: {
+                    lines: [
+                        ['npc', "So be it. I'll send it with my own lad, and my own name under yours."],
+                        ['npc', "My forge is open to you, witness. I'll forge for people I can look in the eye, and you're one."],
+                        ['npc', "And the mound: Vigdis says it's quiet in there. It wasn't quiet the last night they went in."]
+                    ],
+                    choices: [{ text: 'Goodbye.', effects: [{ removeItem: 'Bill of Sale' }, { event: { type: 'story', id: 'bjorn_confronted' } }], end: true }]
+                },
+                smith: {
+                    lines: [['npc', "Bog iron, folded and quenched in the mire. Nothing here went near a grave."]],
+                    choices: [shop('bjorn'), { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        asger: {
+            name: 'Asger', title: 'Collier',
+            talk: [{ if: { flags: ['clue_collier'] }, node: 'after' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "A kiln burns three days, and it mustn't flare or it's ash and no charcoal. So I sit up with it."],
+                        ['npc', 'You see a lot from a kiln at night. Most of it is foxes.']
+                    ],
+                    choices: [
+                        { text: 'And the rest of it?', if: ON_TRAIL, to: 'carts' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                carts: {
+                    lines: [
+                        ['npc', "Carts: up the mound path after dark, empty, with wedges and bars. Down before dawn, heavy, covered over."],
+                        ['npc', "They paid me not to see them, in old Crown silver. I've still got it; spending it didn't feel right."]
+                    ],
+                    effects: clue('clue_collier'),
+                    choices: [{ text: 'Thank you, Asger.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "The kilns are quiet tonight. I'd rather they were the only thing that was."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        thyri: {
+            name: 'Thyri', title: 'Bloomery-master',
+            talk: [{ if: { flags: ['clue_bloomery'] }, node: 'after' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "Stand back from the mouth. Ore in the top, charcoal in the top, and in a day there's a bloom of iron at the bottom."],
+                        ['npc', "Three furnaces this year. We built the third for one buyer."]
+                    ],
+                    choices: [
+                        { text: 'Who is the buyer?', if: ON_TRAIL, to: 'buyer' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                buyer: {
+                    lines: [
+                        ['npc', "A man called Skuli, with a tally-stick behind his ear. Two hundred spearheads, filed blank, no mark."],
+                        ['npc', "And old iron to rework, black and pitted, in sacks. I wouldn't put it in my furnace; somebody did, at night."],
+                        ['npc', "I found a bronze bead in the slag the next morning. Iron doesn't grow beads."]
+                    ],
+                    effects: clue('clue_bloomery'),
+                    choices: [{ text: 'Thank you, Thyri.', end: true }]
+                },
+                after: {
+                    lines: [['npc', 'Bjorn will hear it from you or from me, and better you. I still have to work for him.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        vigdis: {
+            name: 'Vigdis', title: 'Quarry forewoman',
+            talk: [{ if: { flags: ['clue_quarry'] }, node: 'after' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "Every block out of this pit is counted, and so is every wedge, rope and bar. That's my job."],
+                        ['npc', 'My count has been wrong all winter.']
+                    ],
+                    choices: [
+                        { text: "What's missing?", if: ON_TRAIL, to: 'missing' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                missing: {
+                    lines: [
+                        ['npc', "Six iron wedges, two bars and a crane rope. The rope turned up on the mound path, cut."],
+                        ['npc', "Somebody's been prising the kerbstones off the mound. You don't need a quarry for that, only my tools."],
+                        ['npc', "That mound was old before the forges. My gran wouldn't walk past it after dark, and she wasn't afraid of anything."]
+                    ],
+                    effects: clue('clue_quarry'),
+                    choices: [{ text: 'Thank you, Vigdis.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "If you get my wedges back, I'll count them twice."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        jarnmyr_hearth: hearth("Bloomers' cookfire", 'Járnmyr',
+            "A fire pit outside the stone hut, a pot of something with barley in it on a chain, and bread warming on a slab. The furnace crews eat in shifts and wave you in.", 'hrimvald')
+    });
+
     // Black Flight (Nahemoth design): Skeldvik is attuned by standing at its bell, the place people come back to.
     const anchors = {
         skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' }
@@ -1823,6 +2005,23 @@
             { say: "The two ravens are on the hall's gable, one at each end. The crow lands on a post well away from them. 'They're only birds,' it says, to nobody." }
         ] },
         { id: 'c2_memorial', on: { type: 'inspect', id: 'skeldvik_memorial' }, effects: [{ flag: 'skeldvik_memorial_seen' }] },
+        // C2-04 Iron for the Wolf: Járnmyr, the ore cart, and the buyers on the barrow path.
+        { id: 'c2_jarnmyr', on: { type: 'enter', id: 'jarnmyr' }, effects: [
+            { event: { type: 'story', id: 'jarnmyr_reached' } },
+            { say: 'Járnmyr: the iron mire. Smoke from the kilns, three furnaces glowing in the yard, hammers in the long smithy, and a red bog that goes on to the edge of sight.', important: true },
+            { say: "The crow lands on a heap of ore and comes away with rust on its feet. 'Lovely,' it says." }
+        ] },
+        { id: 'c2_ore_cart', on: { type: 'inspect', id: 'jarnmyr_ore_cart' }, if: { quests: { C204: 'active' }, notFlags: ['clue_cart'] }, effects: [
+            { say: 'Under the ore, wrapped in sacking: a bronze cloak-pin green with age, a twisted arm ring, a string of amber beads with grave-earth in the knots.' },
+            ...clue('clue_cart')
+        ] },
+        { id: 'c2_buyers', on: { type: 'defeat', id: 'jarnmyr_buyers' }, effects: [
+            { flag: 'buyers_beaten' }, { item: 'Bill of Sale', key: 'item:jarnmyr_bill' },
+            { say: 'Skuli Tally-Hand sits down in the mud and holds out a folded paper before you ask. "Take it. I only count things."', important: true },
+            { say: 'A bill of sale: two hundred spearheads and "old iron, reworked", paid in old Crown plate. It is sealed with a ring of grey ash.' },
+            { say: "You know the hand. It's the same as on Bersi's debt: Osric Vane's.", when: { flags: ['heard_of_osric'] } },
+            { say: 'The other two carters run for the road. Skuli watches them go, and then looks up at the mound, and does not get up.' }
+        ] },
         // Fenrir's Heir (CL1). Coming down into Gullstrand, the first howl; the carving starts the hunt and wakes the sun-mad
         // wolves at the bright cave; each hunt's wolves beaten; beating the Binding Echo opens the waking.
         { id: 'cl1_arrive', on: { type: 'enter', id: 'gullstrand_coast' }, effects: [
@@ -1855,7 +2054,7 @@
     ];
 
     const chapter2 = { id: 'ch2', title: 'Chapter Two: The Feast of Empty Seats', quests, npcs, triggers, anchors,
-        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun' },
+        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun', bjorn: 'Bjorn Ironvein' },
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' } };
 

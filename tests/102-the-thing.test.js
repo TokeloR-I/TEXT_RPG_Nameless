@@ -68,12 +68,12 @@ for (const [choice, flag] of POS) {
         r = say(g, /Wait for the Lawspeaker/);
         assert.ok(/not yet/.test(text(r)) && /Járnmyr/.test(text(r)));
         say(g, /Leave the ring/);
-        // Act I is over, paid once, and Act II waits for Járnmyr's picture (no position closes the main road).
+        // Act I is over, paid once, and Act II opens at Járnmyr (no position closes the main road).
         assert.strictEqual(g.questState('C203'), 'complete');
         assert.ok(g.hasStoryFlag('thing_heard'));
         assert.ok(g.player.xp + g.player.level * 1e6 > xp && g.player.gold === gold + 30);
         assert.strictEqual(g.questState('C204'), 'active');
-        assert.ok(CH2.quests.C204.teaser && /next part/.test(g.currentObjective('C204').text));
+        assert.ok(/west road/.test(g.currentObjective('C204').text), 'Act II opens on the road to Járnmyr');
         // Exactly one position, and the town remembers it.
         assert.deepStrictEqual(POS.map(([, f]) => g.hasStoryFlag(f)), POS.map(([, f]) => f === flag));
         const lines = [text(talk(s, 'hrafnholm_torvald')), (say(g, /Goodbye/), text(talk(s, 'hrafnholm_ulfrun'))), (say(g, /Goodbye/), text(talk(s, 'hrafnholm_eydis')))];
