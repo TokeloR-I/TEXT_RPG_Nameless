@@ -799,8 +799,8 @@
         },
 
         // ============================================================= The Hrimvald kitchen (Tokelo, 2026-11-13)
-        // Aslaug keeps the bar at the Stormtide Inn: mead to buy, and mead to brew with her. She stands at the inn door
-        // until the inn's own hall is built (thread "Add an enterable meeting hall in Skeldvik"), then moves inside.
+        // Aslaug keeps the bar at the Stormtide Inn: mead to buy, and mead to brew with her. She stands behind her
+        // counter inside the inn (map stormtide_inn, Skeldvik's meeting hall).
         aslaug: {
             name: 'Aslaug', title: 'Alewife of the Stormtide Inn',
             talk: [{ node: 'bar' }],
@@ -857,6 +857,66 @@
         },
         harbour_cookfire: hearth('Harbour cookfire', 'Skeldvik',
             'A fire pit by the fish racks, ringed with stones, a pot on a chain and juniper on the coals for smoking. Anyone may cook here.', 'hrimvald'),
+        stormtide_hearth: hearth('The long fire', 'The Stormtide Inn',
+            'The long fire down the middle of the hall, with a pig on the spit and a cauldron of fish stew on its chain. There is room at the edge for your own pot.', 'hrimvald'),
+        // The Stormtide Inn's regulars (Tokelo, 2026-11-13: a hall where people meet up). Halli and Sveinn, two old friends at the tafl
+        // board; Sveinn always plays the king, because the king always gets home.
+        halli: {
+            name: 'Halli', title: 'Tafl player',
+            talk: [{ node: 'game' }],
+            nodes: {
+                game: {
+                    lines: [['npc', "Don't talk to me, I'm losing. Sveinn has had his king in the corner for an hour and won't finish it."]],
+                    choices: [
+                        { text: 'What are you playing?', to: 'tafl' },
+                        { text: 'Who drinks here?', to: 'regulars' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                tafl: {
+                    lines: [
+                        ['npc', "Hnefatafl. The king starts in the middle and runs for a corner, and everyone else tries to box him in."],
+                        ['npc', "I play the boxing in. Forty winters, and I have caught that king nine times."]
+                    ],
+                    choices: [{ text: 'Who drinks here?', to: 'regulars' }, { text: 'Goodbye.', end: true }]
+                },
+                regulars: {
+                    lines: [
+                        ['npc', "Fishermen when the boats are in, Thora's watch when it changes, and the Wolf-Banner crews when Aslaug lets them."],
+                        ['npc', "She lets them because they pay. She doesn't let them sit near the fire."]
+                    ],
+                    choices: [{ text: 'What are you playing?', to: 'tafl' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        sveinn: {
+            name: 'Sveinn', title: 'Tafl player',
+            talk: [{ node: 'game' }],
+            nodes: {
+                game: {
+                    lines: [['npc', "Sit and watch if you like. Just don't help him."]],
+                    choices: [
+                        { text: 'Why do you always play the king?', to: 'king' },
+                        { text: "What's the talk in the inn?", to: 'talk' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                king: {
+                    lines: [
+                        ['npc', "My father taught me on this board, the winter before the host marched. He always played the king."],
+                        ['npc', "In this game the king gets home. I like a game where that happens."]
+                    ],
+                    choices: [{ text: "What's the talk in the inn?", to: 'talk' }, { text: 'Goodbye.', end: true }]
+                },
+                talk: {
+                    lines: [
+                        ['npc', "Hrafnholm will call the Thing, and the whole fjord has an opinion about the law of twenty winters."],
+                        ['npc', "Mine is that I'd like another mead. Aslaug pretends not to hear me until I stand up."]
+                    ],
+                    choices: [{ text: 'Why do you always play the king?', to: 'king' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
         feast_fire: hearth('Feast fire', 'Hrafnholm',
             'The fire beside the feast tables, fed day and night while the households are in for the Thing. The cooks wave you to it.', 'hrimvald'),
         // Hakon's camp kit (C2S2): opened by using the Camp Kit item. It cooks the dishes of the region you stand in.

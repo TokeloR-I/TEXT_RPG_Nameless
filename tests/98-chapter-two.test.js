@@ -80,7 +80,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
     for (const a of Object.values(CH2.anchors)) assert.ok(ZONE1.maps[a.map].spawns[a.spawn], 'anchor lands on a real spawn');
     // Lore rules (lore doc guardrails; Tokelo 2026-11-11): no door motif, and nobody here knows who the player was.
     const strings = [];
-    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter, ZONE1.maps.jarnmyr]);
+    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.stormtide_inn, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter, ZONE1.maps.jarnmyr]);
     const words = strings.join('\n');
     assert.ok(!/\bgates?\b|threshold|behind the door|door (that|which|between)/i.test(words), 'no door motif in Chapter Two text');
     assert.ok((words.match(/\bdoors?\b/gi) || []).length <= 1, 'a door is furniture here, at most');
@@ -284,6 +284,8 @@ test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm, the Hall of Winter
         hrafnholm: ['snow', 'cobble', 'yard', 'paving', 'steps', 'cliff', 'fir', 'boulder', 'palisade', 'arch_post', 'fence', 'great_hall', 'terrace_wall', 'house',
             'guildhall', 'forge', 'stall', 'shed', 'ring_wall', 'tier_bench', 'law_rock', 'brazier', 'banner', 'bench', 'feast_table', 'war_memorial', 'target', 'dummy',
             'weapon_rack', 'anvil', 'crate', 'barrel', 'log_pile'],
+        stormtide_inn: ['planks', 'wall', 'post', 'kitchen_shelf', 'pantry', 'prep_table', 'cask_rack', 'bar_counter', 'stool', 'long_fire', 'feast_table',
+            'bench', 'tafl_table', 'barrel'],
         hall_of_winter: ['floor', 'runner', 'dais', 'dais_steps', 'wall', 'post', 'screen', 'high_seat', 'chair', 'side_table', 'brazier', 'fire_pit', 'feast_table',
             'skald_corner', 'law_table', 'name_boards', 'candle_table', 'berry_jar', 'weapon_rack', 'shield_stand', 'fur_chest', 'barrel', 'shields', 'wall_banner', 'crate'],
         gullstrand_coast: ['grass', 'path', 'flagstones', 'steps', 'shingle', 'wharf', 'water', 'cliff', 'fir', 'rock', 'wolf_carving', 'sun_cave', 'moon_cave',
