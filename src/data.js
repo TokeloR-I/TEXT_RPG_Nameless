@@ -1725,6 +1725,24 @@
                 itemBaseId: "Sexton's Bone Rod", itemLevel: 2, requiredLevel: 2, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 11,
                 statModifiers: { magicDamage: 1, intelligence: 1, maxHp: 8 },
                 description: 'A wand of grave-yew from the Kloster\'s burial ground, capped in iron. Bragg does not ask what you want it for, and charges extra for not asking.' },
+            // Bjorn Ironvein's forge at Járnmyr (C2-04, 2026-11-13): bog iron, one weapon per class, sold once the witness has
+            // put the bill of sale in front of him. Stats and prices are CANDIDATES for Gauge, a step above Bragg's.
+            'Mire-Iron Bearded Axe': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['warrior'],
+                itemBaseId: 'Mire-Iron Bearded Axe', itemLevel: 5, requiredLevel: 5, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 22,
+                statModifiers: { physicalDamage: 4, strength: 2, def: 1 },
+                description: 'A bearded axe of Járnmyr bog iron, quenched in the red mire. Bjorn\'s three-stroke vein on the cheek, and nothing filed off.' },
+            'Bog-Iron Seax': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['rogue'],
+                itemBaseId: 'Bog-Iron Seax', itemLevel: 5, requiredLevel: 5, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 22,
+                statModifiers: { physicalDamage: 3, agility: 2, critChance: 0.04 },
+                description: 'A long single-edged knife, broken-backed, the edge pattern-welded so the steel shows like water on it. Every free man in Hrimvald wears one.' },
+            'Charcoal-Burner\'s Staff': { type: 'weapon', slot: 'mainHand', weaponType: 'staff', hands: 2, damageType: 'magic', legalClasses: ['mage'],
+                itemBaseId: 'Charcoal-Burner\'s Staff', itemLevel: 5, requiredLevel: 5, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 22,
+                statModifiers: { magicDamage: 4, intelligence: 2, maxHp: 8 },
+                description: 'Birch charred in Asger\'s kiln and bound in bog-iron rings. It is warm to hold on the coldest morning, which Asger says is nothing to do with him.' },
+            'Slag-Glass Wand': { type: 'weapon', slot: 'mainHand', weaponType: 'wand', hands: 1, damageType: 'magic', legalClasses: ['necromancer'],
+                itemBaseId: 'Slag-Glass Wand', itemLevel: 5, requiredLevel: 5, rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice: 22,
+                statModifiers: { magicDamage: 3, intelligence: 2, maxHp: 12 },
+                description: 'Black furnace glass set in an iron haft. The bloomers\' children pick these pieces out of the slag for beads; Thyri kept the best one back.' },
             // Step 3: Shamefield's Thanks. The village pays Bragg to forge one weapon for whoever helped all six households
             // (L01 done). Bound: a gift isn't for selling. Each one carries a piece of Chapter One canon (ENSO_LORE_BIBLE.md).
             'Sunbreak': { type: 'weapon', slot: 'mainHand', weaponType: 'one-hand', hands: 1, damageType: 'physical', legalClasses: ['warrior'],
@@ -2155,6 +2173,8 @@
             },
             // Fenrir's Heir: the Hunt of Sun and Moon (quest CL1, docs/design/FENRIRS_HEIR.md). Laid on the stone at the Wolf's Wake.
             "Sun Fang": { "type": "quest", "bound": true, "unique": true, "sellable": false, "description": "A wolf's tooth the size of your hand, warm as a stone left in the sun. It smells of smoke." },
+            // C2-04 Iron for the Wolf: what Skuli Tally-Hand carried. Bjorn sends it on to whoever the witness names.
+            "Bill of Sale": { "type": "quest", "bound": true, "unique": true, "sellable": false, "description": "Two hundred spearheads and \"old iron, reworked\", paid in old Crown plate, sealed with a ring of grey ash." },
             "Moon Fang": { "type": "quest", "bound": true, "unique": true, "sellable": false, "description": "A wolf's tooth the size of your hand, so cold it aches to hold. In the dark it is darker than the dark." },
             "Birkholt Name Tablet": {
                 "type": "quest",
@@ -2620,6 +2640,10 @@
                     'Smoked Herring': { buyPrice: 5, quantity: 6 }, 'Gravlax': { buyPrice: 8, quantity: 4 }, 'Surströmming': { buyPrice: 6, quantity: 3 } } },
                 aslaug: { stock: { 'Mead': { buyPrice: 8, quantity: 8 }, 'Lingonberry Mead': { buyPrice: 9, quantity: 4 }, 'Juniper Ale': { buyPrice: 6, quantity: 6 },
                     'Honey': { buyPrice: 3, quantity: 10 }, 'Flatbread': { buyPrice: 2, quantity: 10 }, 'Fårikål': { buyPrice: 10, quantity: 3 } } },
+                // Bjorn Ironvein's forge at Járnmyr (C2-04): open once the bill of sale is in his hands. Prices are CANDIDATES for Gauge.
+                bjorn: { stock: { 'Mire-Iron Bearded Axe': { buyPrice: 48, quantity: 1, classes: ['warrior'] }, 'Bog-Iron Seax': { buyPrice: 48, quantity: 1, classes: ['rogue'] },
+                    "Charcoal-Burner's Staff": { buyPrice: 48, quantity: 1, classes: ['mage'] }, 'Slag-Glass Wand': { buyPrice: 48, quantity: 1, classes: ['necromancer'] },
+                    'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
                 gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
                     'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {

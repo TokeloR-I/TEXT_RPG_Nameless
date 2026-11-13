@@ -570,7 +570,13 @@
         // Sergeant Kess, beaten in the orchard: an old Crown coat with the ash circle on the sleeve.
         oath_sergeant: { cloak: '#663432', hair: '#9a9a94', belt: '#43505c', scarf: '#3e2224' },
         // Gullstrand Coast (Fenrir's Heir): Brynja Net-Mender, old, in salt-faded woad with a net over her arm.
-        netmender: { cloak: '#3e5468', hair: '#d8d6cc', scarf: '#9a907a', belt: '#5a4a38', prop: 'basket' }
+        netmender: { cloak: '#3e5468', hair: '#d8d6cc', scarf: '#9a907a', belt: '#5a4a38', prop: 'basket' },
+        // Járnmyr (C2-04): Bjorn in a leather apron with his hammer, Asger black with charcoal, Thyri in a scorched hood,
+        // Vigdis in quarry grey with her tally staff.
+        ironmaster: { cloak: '#5a4232', hair: '#8a5a32', scarf: '#2a2018', belt: '#1a1612', prop: 'hammer', skin: '#d0a888' },
+        collier: { cloak: '#2e2c2a', hood: '#3e3a36', belt: '#5a4a38', prop: 'staff', skin: '#a88a70' },
+        bloomer: { cloak: '#6a3a24', hood: '#8a5a3a', scarf: '#c8a050', belt: '#2a2018', prop: 'hammer' },
+        quarrier: { cloak: '#6a6a66', hair: '#c8b890', belt: '#3a3a38', prop: 'staff' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
