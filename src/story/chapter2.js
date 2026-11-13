@@ -56,16 +56,22 @@
                 { start: 'C203' }]
         },
         // Fenrir's Heir (Tokelo 2026-11-13, PR #256; replaces Allfather's Chosen): the optional legendary unlock. It begins
-        // when you read the wolf-carving on Gullstrand Coast. The coast and the Wolf's Wake wait on Tokelo's design pictures
-        // (no area is built without one), so the carving, the two fang sites, the stone and the Binding Echo are not on a
-        // map yet; the quest, its talks and the fight are ready for them (docs/design/FENRIRS_HEIR.md, "Placing it").
+        // when you read the wolf-carving at the Wolf's Wake on Gullstrand Coast (west of Skeldvik by the cliff path; the map
+        // is laid out after Tokelo's picture, 2026-11-13). Brynja Net-Mender in the village gives the clues. Two hunts in
+        // either order: wolves gone sun-mad lie across the bright cave; the dark hollow gives up its fang only to someone
+        // who puts their light out, and then sends its wolves after them. Then the stone, the Binding Echo, and the choice.
         CL1: {
-            title: 'The Hunt of Sun and Moon', kind: 'side', xp: 150, candidate: true, awaitsArea: 'gullstrand_coast',
+            title: 'The Hunt of Sun and Moon', kind: 'side', xp: 150, candidate: true,
             summary: 'Gullstrand fishers hear two howls that should not be: one at the brightest hour, one when the moon goes out. An old carving shows two wolves chasing two lights, their tracks bound by a broken chain.',
             objectives: [
-                { id: 'fangs', text: 'Find the Sun Fang and the Moon Fang, in either order', on: { type: 'story', id: 'fenrir_fangs_both' } },
-                { id: 'trial', text: "Lay both fangs on the stone at the Wolf's Wake and survive what wakes", on: { type: 'defeat', id: 'wolfs_wake_trial' } },
-                { id: 'choose', text: "Choose the wolf that runs with you first", on: { type: 'story', id: 'fenrir_heir_awakened' } }
+                // The fangs can be taken in either order: a step whose fang you already hold gives way at once (skipIf).
+                { id: 'sun', text: 'Take the Sun Fang from the bright cave (either fang first)', on: { type: 'story', id: 'fenrir_sun_fang' },
+                    skipIf: { flags: ['fenrir_sun_fang'] }, marker: { map: 'gullstrand_coast', x: 21, y: 5 } },
+                { id: 'moon', text: 'Take the Moon Fang from the dark hollow', on: { type: 'story', id: 'fenrir_moon_fang' },
+                    skipIf: { flags: ['fenrir_moon_fang'] }, marker: { map: 'gullstrand_coast', x: 35, y: 5 } },
+                { id: 'stone', text: "Lay both fangs in the binding stone at the Wolf's Wake", on: { type: 'story', id: 'fenrir_trial_called' }, marker: { map: 'gullstrand_coast', x: 32, y: 6 } },
+                { id: 'trial', text: 'Survive what wakes on the ring', on: { type: 'defeat', id: 'wolfs_wake_trial' }, marker: { map: 'gullstrand_coast', x: 28, y: 8 } },
+                { id: 'choose', text: 'Choose the wolf that runs with you first', on: { type: 'story', id: 'fenrir_heir_awakened' }, marker: { map: 'gullstrand_coast', x: 32, y: 6 } }
             ],
             onComplete: [{ say: "Press T to change wolf: Sköll, Hati, or Fenrir's own stance. Stay with one and its bond grows.", notice: 'quest' }]
         },
@@ -966,43 +972,125 @@
         }
     };
 
-    // Fenrir's Heir (CL1). Spoken by stone and by the two wolves; the wolves never say what you were (lore bible).
+    // Fenrir's Heir (CL1). Spoken by stone, by the two wolves, and by Brynja in the village; the wolves never say what you were (lore bible).
     const BOTH = { flags: ['fenrir_sun_fang', 'fenrir_moon_fang'] };
     const FANG_BOTH = [{ flag: 'fenrir_fangs_both', when: BOTH }, { event: { type: 'story', id: 'fenrir_fangs_both' }, when: BOTH },
-        { say: "Both fangs. Somewhere on the headland above the sea, stone answers stone.", when: BOTH }];
+        { say: 'Both fangs. On the ring before the carving, the binding stone hums like a struck bell.', when: BOTH }];
     const AWAKEN = (stance, text) => ({ text, to: 'bond', effects: [
         { flag: 'fenrir_heir_awakened' }, { legend: 'fenrirs_heir' }, { stance }, { event: { type: 'story', id: 'fenrir_heir_awakened' } }, { flag: 'fenrir_first_bond_tutorial_done' }] });
+    const HUNT = { quests: { CL1: 'active' } };
     Object.assign(npcs, {
-        sun_marker: {
-            name: 'A sun-scorched cairn', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
-            talk: [{ if: { flags: ['fenrir_sun_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'cairn' }, { node: 'plain' }],
+        brynja: {
+            name: 'Brynja Net-Mender', title: 'Gullstrand',
+            talk: [{ if: { flags: ['fenrir_heir_awakened'] }, node: 'after' }, { if: HUNT, node: 'hunt' }, { node: 'mend' }],
             nodes: {
-                plain: { lines: [[null, 'A cairn of black stones on the cliff top. The lichen on its sunward side is burnt white.']], choices: [{ text: 'Leave it.', end: true }] },
+                mend: {
+                    lines: [['npc', "Mind the net, it bites. Not many come down the cliff path who aren't selling salt."]],
+                    choices: [
+                        { text: 'What is the great carved rock above the village?', to: 'rock' },
+                        { text: 'Why does every house here turn its back on it?', to: 'backs' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                rock: {
+                    lines: [['npc', "The Wolf's Wake. Older than the village, older than the Crown's roads; my grandmother said older than the gods' names."],
+                        ['npc', 'Two hunters cut in the rock, and a chain between them.'],
+                        ['npc', "Go up the stair and read it if you like. We don't."]],
+                    choices: [{ text: 'Why not?', to: 'backs' }, { text: 'Goodbye.', end: true }]
+                },
+                backs: {
+                    lines: [['npc', 'So we needn\'t look at it when we step out. Twice a year the headland howls: once at the brightest hour, once when the moon goes out.'],
+                        ['npc', "No wolf on this coast makes that sound. This year the real ones have started answering it."]],
+                    choices: [{ text: 'Answering it?', to: 'wrong' }, { text: 'Goodbye.', end: true }]
+                },
+                wrong: {
+                    lines: [['npc', "The grey wolves lie up by the bright cave, panting in the cold, fur gone white along the back. They took my neighbour's dog."],
+                        ['npc', "And something comes out of the dark hollow on the moon side, after anyone who's been in. Nobody has, for a long while."]],
+                    choices: [{ text: 'Something else.', to: 'mend' }, { text: 'Goodbye.', end: true }]
+                },
+                hunt: {
+                    lines: [['npc', "You read it, then. You've the look of someone listening for a sound."]],
+                    choices: [
+                        { text: 'The bright cave?', if: { notFlags: ['fenrir_sun_fang'] }, to: 'sun_hint' },
+                        { text: 'The dark hollow?', if: { notFlags: ['fenrir_moon_fang'] }, to: 'moon_hint' },
+                        { text: 'And when I have both?', to: 'stone_hint' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                sun_hint: {
+                    lines: [['npc', "Those wolves won't move for asking. Whatever's in that cave has hold of them, and you'll have to put them down to get by."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                moon_hint: {
+                    lines: [['npc', 'My grandmother said the moon-hunter only comes when there is nothing left to see by. A torch is no use in there.'],
+                        ['npc', "Put your light out and wait, she said. And don't turn round until you have to."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                stone_hint: {
+                    lines: [['npc', 'There is a stone at the edge of the ring with two holes in its face, like a jaw with the teeth knocked out.'],
+                        ['npc', "The verse says the chain is broken. I'd not want to be the one who finds out what that means."]],
+                    choices: [{ text: 'Something else.', to: 'hunt' }, { text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "The headland's quiet. First time in my life I've heard the sea from up there."],
+                        ['npc', "You've two shadows, you know, one warm and one cold. I'll not ask."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        sun_marker: {
+            name: 'The bright cave', title: "The Wolf's Wake",
+            talk: [{ if: { flags: ['fenrir_sun_fang'] }, node: 'taken' }, { if: HUNT, node: 'cairn' }, { node: 'plain' }],
+            nodes: {
+                plain: {
+                    lines: [[null, 'A cave mouth in the carved cliff, under the sun. There is gold light inside, though the real sun is behind cloud.'],
+                        [null, 'The air coming out of it is hot as a bread oven. You do not go in.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
                 cairn: {
-                    lines: [[null, 'The stones are hot to the touch, though the wind off the sea is cold. Between two of them, something catches the light.'],
+                    lines: [[null, 'Inside, a cairn of black stones, the lichen on them burnt white. They are hot to the touch, and between two of them something catches the light.'],
                         [null, 'A tooth as long as your hand, wedged deep. When you pull it free, somewhere above the clouds a wolf howls at the sun.']],
-                    effects: [{ flag: 'fenrir_sun_fang' }, { item: 'Sun Fang', key: 'item:sun_fang' }, ...FANG_BOTH],
+                    effects: [{ flag: 'fenrir_sun_fang' }, { item: 'Sun Fang', key: 'item:sun_fang' }, { event: { type: 'story', id: 'fenrir_sun_fang' } }, ...FANG_BOTH],
                     choices: [{ text: 'Go on.', end: true }]
                 },
                 taken: { lines: [[null, 'The cairn is only warm now. Whatever it kept, you carry.']], choices: [{ text: 'Leave it.', end: true }] }
             }
         },
         moon_hollow: {
-            name: 'A moon-dark hollow', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
-            talk: [{ if: { flags: ['fenrir_moon_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'hollow' }, { node: 'plain' }],
+            name: 'The dark hollow', title: "The Wolf's Wake",
+            talk: [{ if: { flags: ['fenrir_moon_fang'] }, node: 'taken' }, { if: HUNT, node: 'hollow' }, { node: 'plain' }],
             nodes: {
-                plain: { lines: [[null, 'A hollow under the cliff where the tide does not reach. It is darker inside than it ought to be at noon.']], choices: [{ text: 'Leave it.', end: true }] },
+                plain: { lines: [[null, 'A hollow in the carved cliff, under the moon. It is darker inside than it ought to be at noon, and colder than the wind.']], choices: [{ text: 'Leave it.', end: true }] },
                 hollow: {
-                    lines: [[null, 'Your torch makes no difference in here. The dark leans on you, the way water does at the bottom of a pool.'],
-                        [null, 'Your hand finds a tooth as cold as winter iron. As you take it, the dark lets go, and something far away howls at a moon that is not there.']],
-                    effects: [{ flag: 'fenrir_moon_fang' }, { item: 'Moon Fang', key: 'item:moon_fang' }, ...FANG_BOTH],
-                    choices: [{ text: 'Go on.', end: true }]
+                    lines: [[null, 'The hollow goes further back into the rock than it can. Your light makes no difference in here.']],
+                    choices: [
+                        { text: 'Hold your light up and look.', to: 'light' },
+                        { text: 'Reach into the dark.', to: 'reach' },
+                        { text: 'Put out your light and wait.', to: 'wait' },
+                        { text: 'Leave it.', end: true }
+                    ]
+                },
+                light: {
+                    lines: [[null, 'The flame shrinks to a bead and goes blue. The dark leans on you the way water does at the bottom of a pool.'],
+                        [null, 'You are standing outside again, and you do not remember the step.']],
+                    choices: [{ text: 'Go back in.', to: 'hollow' }, { text: 'Leave it.', end: true }]
+                },
+                reach: {
+                    lines: [[null, 'Your arm goes in to the elbow and finds nothing but cold. Something in there is waiting, and it is not waiting for your hand.']],
+                    choices: [{ text: 'Try something else.', to: 'hollow' }, { text: 'Leave it.', end: true }]
+                },
+                wait: {
+                    lines: [[null, 'You pinch out the light. For a long time there is nothing at all.'],
+                        [null, 'Then the dark gets darker, and in it there is something pale: a tooth as long as your hand, cold as winter iron.'],
+                        [null, 'When you take it, far away a wolf howls at a moon that is not there. Behind you, the dark gets up.']],
+                    effects: [{ flag: 'fenrir_moon_fang' }, { item: 'Moon Fang', key: 'item:moon_fang' }, { event: { type: 'story', id: 'fenrir_moon_fang' } }, ...FANG_BOTH],
+                    choices: [{ text: 'Turn round.', end: true }]
                 },
                 taken: { lines: [[null, 'Only an ordinary hollow now, wet and smelling of weed.']], choices: [{ text: 'Leave it.', end: true }] }
             }
         },
         wolfs_wake_stone: {
-            name: "The Wolf's Wake", title: 'A stone ring above the sea', awaitsArea: 'gullstrand_coast',
+            name: "The Wolf's Wake", title: 'The binding stone',
             talk: [
                 { if: { flags: ['fenrir_heir_awakened'] }, node: 'again' },
                 { if: { flags: ['fenrir_trial_cleared'] }, node: 'wake' },
@@ -1011,23 +1099,24 @@
                 { node: 'still' }],
             nodes: {
                 still: {
-                    lines: [[null, 'A ring of standing stones on the headland. On the flat one in the middle, two wolves are carved running after two lights.'],
-                        [null, 'A chain is carved across their tracks, broken in the middle. There are two hollows in the stone, each the shape of a tooth.']],
+                    lines: [[null, 'A standing stone at the edge of the ring, cut with the same chain as the cliff, broken in the same place.'],
+                        [null, 'There are two hollows in its face, each the shape of a tooth.']],
                     choices: [{ text: 'Leave it.', end: true }]
                 },
                 stone: {
                     lines: [[null, 'The two hollows in the stone are the shape of the two teeth you carry. The sea goes quiet below the headland.']],
-                    choices: [{ text: 'Lay the Sun Fang and the Moon Fang in the stone.', effects: [{ flag: 'fenrir_trial_called' }, { removeItem: 'Sun Fang' }, { removeItem: 'Moon Fang' }], to: 'called' },
-                        { text: 'Not yet.', end: true }]
+                    choices: [{ text: 'Lay the Sun Fang and the Moon Fang in the stone.', to: 'called',
+                        effects: [{ flag: 'fenrir_trial_called' }, { removeItem: 'Sun Fang' }, { removeItem: 'Moon Fang' }, { event: { type: 'story', id: 'fenrir_trial_called' } }] },
+                    { text: 'Not yet.', end: true }]
                 },
                 called: {
-                    lines: [[null, 'The carved chain splits along its crack. Links of light and dark climb out of the stone and wind together into something with no face.'],
+                    lines: [[null, 'The carved chain on the cliff splits along its crack. Links of light and dark climb out of the rock and wind together over the ring into something with no face.'],
                         [null, 'It is not a wolf. It is the thing that held one, and it remembers the shape of holding.']],
                     choices: [{ text: 'Face it.', end: true }]
                 },
-                waiting: { lines: [[null, 'The coil of broken chain turns slowly over the stone, waiting for you.']], choices: [{ text: 'Face it.', end: true }] },
+                waiting: { lines: [[null, 'The coil of broken chain turns slowly over the ring, waiting for you.']], choices: [{ text: 'Face it.', end: true }] },
                 wake: {
-                    lines: [[null, 'The last link falls and does not get up. Two shapes step out of the stones: a wolf of embers, and a wolf of no light at all.'],
+                    lines: [[null, 'The last link falls and does not get up. Two shapes step down out of the carving: a wolf of embers, and a wolf of no light at all.'],
                         ['npc', 'We were made to chase: the sun, the moon, the end of things.'],
                         ['npc', 'Our father was bound so that we would run without him.'],
                         ['npc', 'You broke what was left of the binding, and that is enough to be an heir.'],
@@ -1046,7 +1135,7 @@
                     choices: [{ text: 'I will run with you.', end: true }]
                 },
                 again: {
-                    lines: [[null, 'The stone ring is quiet. Far off over the sea, two howls answer each other, and you feel both of them in your teeth.']],
+                    lines: [[null, 'The stone is quiet, its two hollows empty. Far off over the sea, two howls answer each other, and you feel both of them in your teeth.']],
                     choices: [{ text: 'Leave it.', end: true }]
                 }
             }
@@ -1084,15 +1173,29 @@
             { say: "The two ravens are on the hall's gable, one at each end. The crow lands on a post well away from them. 'They're only birds,' it says, to nobody." }
         ] },
         { id: 'c2_memorial', on: { type: 'inspect', id: 'skeldvik_memorial' }, effects: [{ flag: 'skeldvik_memorial_seen' }] },
-        // Fenrir's Heir (CL1): the carving on Gullstrand's cliffs starts the hunt; beating the Binding Echo opens the waking.
+        // Fenrir's Heir (CL1). Coming down into Gullstrand, the first howl; the carving starts the hunt and wakes the sun-mad
+        // wolves at the bright cave; each hunt's wolves beaten; beating the Binding Echo opens the waking.
+        { id: 'cl1_arrive', on: { type: 'enter', id: 'gullstrand_coast' }, effects: [
+            { say: 'As you come down into the village a howl rolls off the great rock above it, long and high. A second answers, lower, from nowhere at all.', important: true },
+            { say: 'Down in the village, nobody looks up. Every house in Gullstrand turns its back on the rock.' }
+        ] },
         { id: 'cl1_carving', on: { type: 'inspect', id: 'gullstrand_wolf_carving' }, effects: [
             { flag: 'fenrir_quest_discovered' },
-            { say: 'Two wolves cut into the rock, running after two lights. Under them, worn almost flat: "One hunts the day and one the night; the chain between them is broken."', important: true },
-            { start: 'CL1' }
+            { say: 'Under the wolves, worn almost flat: "One hunts the day and one the night; the chain between them is broken."', important: true },
+            { start: 'CL1' },
+            { say: 'At the mouth of the bright cave, three grey shapes lift their heads.' }
+        ] },
+        { id: 'cl1_sun_hunt', on: { type: 'defeat', id: 'gullstrand_sun_hunt' }, effects: [
+            { flag: 'fenrir_sun_wolves_beaten' },
+            { say: 'The last wolf lies down in the cave mouth as if the heat had gone out of it. Inside, light moves on black stones.' }
+        ] },
+        { id: 'cl1_moon_hunt', on: { type: 'defeat', id: 'gullstrand_moon_hunt' }, effects: [
+            { flag: 'fenrir_moon_wolves_beaten' },
+            { say: 'The last of them comes apart like smoke in a wind. The hollow behind you is only a hollow.' }
         ] },
         { id: 'cl1_trial', on: { type: 'defeat', id: 'wolfs_wake_trial' }, effects: [
             { flag: 'fenrir_trial_cleared' },
-            { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on it are not carved any more.', important: true }
+            { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on the cliff are not carved any more.', important: true }
         ] },
         { id: 'anchor_skeldvik', on: { type: 'inspect', id: 'skeldvik_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:skeldvik' },

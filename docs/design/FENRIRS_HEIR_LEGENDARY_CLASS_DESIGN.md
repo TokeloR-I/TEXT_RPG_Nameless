@@ -8,7 +8,8 @@
 
 > **Build status (2026-11-13):** built from this handoff; the as-built spec, numbers and the director's answers are in
 > [FENRIRS_HEIR.md](FENRIRS_HEIR.md). Tokelo's rulings: a **neutral Fenrir stance exists** (decision 1), and Fenrir's
-> Heir **replaces Allfather's Chosen** (decision 4). This document stays as the original creative handoff.
+> Heir **replaces Allfather's Chosen** (decision 4). The quest is placed on Gullstrand Coast after Tokelo's picture
+> (map `gullstrand_coast`). This document stays as the original creative handoff.
 
 ## 1. Creative intent
 

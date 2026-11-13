@@ -72,9 +72,17 @@ test("Fenrir's Heir: the Hunt of Sun and Moon runs carving, two fangs in either 
         g.act({ type: 'world_inspect', objectId: 'gullstrand_wolf_carving' });
         assert.strictEqual(g.questState('CL1'), 'active');
         assert.ok(g.hasStoryFlag('fenrir_quest_discovered'));
-        for (const npc of order) { g.act({ type: 'talk', npcId: npc }); choose(g, /Go on/); }
+        assert.strictEqual(g.currentObjective('CL1').id, 'sun');
+        for (const npc of order) {
+            g.act({ type: 'talk', npcId: npc });
+            if (npc === 'sun_marker') { choose(g, /Go on/); continue; }
+            // The dark hollow: a light is no use (you are put outside again); only waiting in the dark gives the fang.
+            choose(g, /Hold your light up/);
+            assert.ok(!g.hasStoryFlag('fenrir_moon_fang'));
+            choose(g, /Go back in/); choose(g, /Put out your light/); choose(g, /Turn round/);
+        }
         assert.ok(g.player.inventory.includes('Sun Fang') && g.player.inventory.includes('Moon Fang'));
-        assert.strictEqual(g.currentObjective('CL1').id, 'trial');
+        assert.strictEqual(g.currentObjective('CL1').id, 'stone', 'either order: both fang steps are done');
         // The stone takes the fangs and calls the Binding Echo; no web yet.
         g.act({ type: 'talk', npcId: 'wolfs_wake_stone' });
         assert.strictEqual(g.story.dialogue.node, 'stone');
@@ -82,7 +90,8 @@ test("Fenrir's Heir: the Hunt of Sun and Moon runs carving, two fangs in either 
         assert.ok(g.hasStoryFlag('fenrir_trial_called'));
         assert.ok(!g.player.inventory.includes('Sun Fang') && !g.player.inventory.includes('Moon Fang'));
         assert.ok(!g.webOwns('heart.fenrirs_heir'), 'the bond only comes after the trial');
-        g.storyEvent({ type: 'defeat', id: 'wolfs_wake_trial' });   // the fight itself is placed with the Wolf's Wake map
+        assert.strictEqual(g.currentObjective('CL1').id, 'trial');
+        g.storyEvent({ type: 'defeat', id: 'wolfs_wake_trial' });   // the fight itself: the world test below
         assert.ok(g.hasStoryFlag('fenrir_trial_cleared'));
         assert.strictEqual(g.currentObjective('CL1').id, 'choose');
         g.act({ type: 'talk', npcId: 'wolfs_wake_stone' });
@@ -205,15 +214,17 @@ test("Fenrir's Heir: Predator's Instinct makes the bond grow 50% faster; without
     assert.ok(!plain.getAvailableActions().actions.some((a) => a.type === 'switch_stance'));
 });
 
-test("Fenrir's Heir: the Binding Echo has turn stats, a live kit, art, and waits for the Wolf's Wake map", () => {
+test("Fenrir's Heir: the Binding Echo has turn stats, a live kit, art, and stands on the Wolf's Wake", () => {
     const e = data.enemies.binding_echo;
     assert.ok(e && e.specialFlags.includes('boss') && e.hp > 0);
     const kit = data.actionRules.enemies.binding_echo;
     assert.ok(kit.boss && kit.attacks.some((a) => a.shape === 'ground') && kit.attacks.some((a) => a.onHit && a.onHit.pullPx), 'sun ground fire and a moon pull');
     for (const a of kit.attacks) assert.ok(a.windupMs >= 600, `${a.name}: readable tell`);
-    // Placing it waits on Tokelo's pictures of Gullstrand Coast and the Wolf's Wake: exactly this content is unplaced.
-    const waiting = [...Object.entries(CH2.quests), ...Object.entries(CH2.npcs)].filter(([, x]) => x.awaitsArea).map(([id]) => id).sort();
-    assert.deepStrictEqual(waiting, ['CL1', 'moon_hollow', 'sun_marker', 'wolfs_wake_stone']);
+    // Placed on Gullstrand Coast (Tokelo's picture, 2026-11-13): nothing of the quest waits for a map any more.
+    const waiting = [...Object.entries(CH2.quests), ...Object.entries(CH2.npcs)].filter(([, x]) => x.awaitsArea).map(([id]) => id);
+    assert.deepStrictEqual(waiting, []);
+    const trial = require('../src/world/zone1.js').maps.gullstrand_coast.encounters.find((e) => e.id === 'wolfs_wake_trial');
+    assert.deepStrictEqual(trial.enemies, ['binding_echo']);
 });
 
 test("Fenrir's Heir in the world sim: Black Maw drags the rats in, Solar Fang flies, Sunfang Rush dashes; T's HUD cell follows the stance", () => {

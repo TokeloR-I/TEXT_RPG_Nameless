@@ -559,7 +559,9 @@
         oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },
         oath_officer: { cloak: '#4a4e58', hair: '#b8b8b0', belt: '#a08a50', hat: '#2e3038' },
         // Sergeant Kess, beaten in the orchard: an old Crown coat with the ash circle on the sleeve.
-        oath_sergeant: { cloak: '#663432', hair: '#9a9a94', belt: '#43505c', scarf: '#3e2224' }
+        oath_sergeant: { cloak: '#663432', hair: '#9a9a94', belt: '#43505c', scarf: '#3e2224' },
+        // Gullstrand Coast (Fenrir's Heir): Brynja Net-Mender, old, in salt-faded woad with a net over her arm.
+        netmender: { cloak: '#3e5468', hair: '#d8d6cc', scarf: '#9a907a', belt: '#5a4a38', prop: 'basket' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -695,7 +697,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
