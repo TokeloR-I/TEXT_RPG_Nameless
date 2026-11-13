@@ -70,7 +70,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
         }
     }
     for (const [nid, npc] of Object.entries(CH2.npcs)) {
-        if (!npc.awaitsArea) assert.ok([...Object.values(ZONE1.maps)].some((m) => (m.interactables || []).some((o) => o.npc === nid)), `${nid} stands on a map`);
+        if (!npc.awaitsArea && !npc.portable) assert.ok([...Object.values(ZONE1.maps)].some((m) => (m.interactables || []).some((o) => o.npc === nid || o.station === nid)), `${nid} stands on a map`);
         for (const t of npc.talk) assert.ok(npc.nodes[t.node], `${nid}: talk -> ${t.node}`);
         for (const [k, node] of Object.entries(npc.nodes)) {
             assert.ok((node.choices || []).length, `${nid}.${k}: a way out`);

@@ -99,6 +99,43 @@
             return true;
         }
 
+        // =====================================================================
+        // Regional cooking (Tokelo, 2026-11-13) and the camp kit
+        // =====================================================================
+        /** Pure. The food region of the map you're on (foodRules.regions), else foodRules.homeRegion. */
+        foodRegion() {
+            const r = this.foodRules(), at = this.story && this.story.at;
+            for (const [id, def] of Object.entries(r.regions || {})) if ((def.maps || []).includes(at)) return id;
+            return r.homeRegion || null;
+        }
+
+        /** Pure. Does this hearth cook this recipe? No `region` (your home hearth): every region's. `region: 'here'`
+         *  (the camp kit): the region you stand in. A recipe with region 'any' (rat goulash) cooks everywhere. */
+        hearthCooks(npc, recipe) {
+            if (!npc || !npc.region || !recipe) return true;
+            const where = npc.region === 'here' ? this.foodRegion() : npc.region;
+            const r = recipe.region || this.foodRules().homeRegion;
+            return r === 'any' || r === where;
+        }
+
+        /** Pure. Why the camp kit can't be used now, or null. availability and makeCamp share it. */
+        campBlock() {
+            if (this.mode === 'combat') return { code: 'IN_COMBAT', message: 'Not in the middle of a fight.' };
+            if (this.story && this.story.dialogue) return { code: 'WRONG_MODE', message: 'Finish talking first.' };
+            return null;
+        }
+
+        /** Make camp with a kit (use 'camp'): opens its hearth (`opens`, a story station). The kit is not used up. */
+        makeCamp(item) {
+            const def = this.itemDef(item);
+            const block = this.campBlock();
+            if (block) { this.refuse(block.code, block.message); return false; }
+            if (!def.opens || !this.npcDef || !this.npcDef(def.opens)) { this.refuse('ITEM_NO_USE', 'There is nowhere to set it up.'); return false; }
+            this.say('You clear a patch of ground, set the tripod over the fire-pot and strike a spark into the juniper.');
+            this.startTalk(def.opens);
+            return false;
+        }
+
         /** "+12% damage, +1 HP/s" (pure). */
         foodModText(mods) {
             const pct = (v) => `${Math.round(v * 100)}%`;
