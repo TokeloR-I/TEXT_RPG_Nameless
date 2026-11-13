@@ -122,15 +122,20 @@
                 { say: "Bjorn's forge will sell to you now, and only to people he can look in the eye.", notice: 'quest' },
                 { start: 'C205' }]
         },
-        // C2-05 A Chieftain Disturbed: the barrow at Járnmyr. A pointer until Tokelo's picture of the barrow's inside
-        // (area-art-first rule, 2026-11-13): nobody fires `barrow_entered` yet.
+        // C2-05 A Chieftain Disturbed (lore doc 5 and 6.1), inside the Járnmyr mound after Tokelo's picture (2026-11-13). The
+        // diggers woke Bjarki the Grave-Bound and his hearth-men. Three burial anchors (the flame altar and the two pillar fires)
+        // each hold a grave-ward at his side; putting them out is optional and takes one ward away each, never a forced puzzle.
         C205: {
-            title: 'A Chieftain Disturbed', kind: 'main', xp: 0, teaser: true,
+            title: 'A Chieftain Disturbed', kind: 'main', xp: 140, candidate: true,
             summary: "The buyers were digging out the kerbstones of Járnmyr's burial mound and carrying out what the dead were buried with. Something in there is older than the old Crown, and it has been disturbed.",
             objectives: [
-                { id: 'barrow', text: 'Go into the barrow at Járnmyr (the next part of Chapter Two)', on: { type: 'story', id: 'barrow_entered' }, marker: { map: 'jarnmyr', x: 43, y: 5 } }
+                { id: 'barrow', text: 'Go into the burial mound at Járnmyr', on: { type: 'story', id: 'barrow_entered' }, marker: { map: 'jarnmyr', x: 43, y: 4 } },
+                { id: 'bjarki', text: 'Lay Bjarki the Grave-Bound to rest (every fire you put out takes a grave-ward from his side)', on: { type: 'story', id: 'bjarki_laid' },
+                    marker: { map: 'bjarki_barrow', x: 15, y: 10 } }
             ],
-            onComplete: []
+            onComplete: [{ gold: 40, key: 'c205_reward' },
+                { say: 'Outside, Járnmyr is still hammering. Up on the mound the two ravens have gone, and the crow sits alone on the lintel stone.', important: true },
+                { say: "'Nothing to do with you, that one,' it says. 'Or me. The North had its dead long before anybody came asking about the six hundred.'" }]
         },
         // ----- C2-S02 The Price of an Oath (lore doc section 7): a vanished warrior's land, after the Thing said "not yet".
         'C2-S02': {
@@ -250,6 +255,12 @@
     // characters); tests/98-chapter-two.test.js checks it. Voices (Wick): Eydis exact and dry, Hakon plain,
     // Leif brusque, Solveig salt, Thora legal, Geir grieving and sure of himself.
     // The choices a conversation with Ragnhild or Torvald keeps coming back to.
+    const YRSA = [
+        { text: 'What is in the barrow at Járnmyr?', if: { quests: { C205: 'active' } }, to: 'barrow' },
+        { text: 'What do you hear on the Silent Field?', to: 'field' },
+        { text: 'What do you see when you look at me?', to: 'you' },
+        { text: 'Goodbye.', effects: [{ flag: 'yrsa_met' }], end: true }
+    ];
     const RAGNHILD = [
         { text: 'Why is the high seat empty?', to: 'seat' },
         { text: 'Thora told me about the twenty winters.', if: { flags: ['heard_of_succession'] }, to: 'law_known' },
@@ -2030,14 +2041,118 @@
                 }
             }
         },
+        // Birkholt (Tokelo's picture, 2026-11-13). Sigrid is Asta's daughter; Asta was the old woman on the Frostspine bier,
+        // carrying Birkholt's name board under her hands. What Sigrid says depends on where you let the board go.
+        sigrid: {
+            name: 'Sigrid', title: 'Weaver of Birkholt',
+            talk: [{ if: { flags: ['sigrid_met'] }, node: 'again' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "You're the one who was on the Frostspine road. Hakon sent word with the carter."],
+                        ['npc', "Asta was my mother. She'd have hated a fuss, so I'm weaving instead."]
+                    ],
+                    choices: [
+                        { text: 'The board is with Eydis, for the Roll.', if: { flags: ['tablet_with_eydis'] }, to: 'eydis' },
+                        { text: "The board is with the reeve's guard in Skeldvik.", if: { flags: ['tablet_with_reeve'] }, to: 'reeve' },
+                        { text: "I'm still carrying your board.", if: { flags: ['tablet_kept'] }, to: 'kept' },
+                        { text: 'Tell me about Birkholt.', to: 'place' },
+                        { text: 'Goodbye.', effects: [{ flag: 'sigrid_met' }], end: true }
+                    ]
+                },
+                eydis: {
+                    lines: [
+                        ['npc', "The skald? Good; she'll read it out loud, which is more than the Thing has done in twenty winters."],
+                        ['npc', "Father's eleventh from the top, Ketil; tell her not to rush him."]
+                    ],
+                    choices: [{ text: 'Tell me about Birkholt.', to: 'place' }, { text: 'Goodbye.', effects: [{ flag: 'sigrid_met' }], end: true }]
+                },
+                reeve: {
+                    lines: [
+                        ['npc', 'Behind a lock. Mother kept it under her pillow forty years, and now it has a key.'],
+                        ['npc', "Still, nobody's tipping it out on a road. I'll walk down at midsummer and read it."]
+                    ],
+                    choices: [{ text: 'Tell me about Birkholt.', to: 'place' }, { text: 'Goodbye.', effects: [{ flag: 'sigrid_met' }], end: true }]
+                },
+                kept: {
+                    lines: [
+                        [null, 'She holds out her hand for it, then takes it back before you can move.'],
+                        ['npc', "No, keep it; if they're hunting boards, a stranger's pack is the last place they'll look."]
+                    ],
+                    choices: [{ text: 'Tell me about Birkholt.', to: 'place' }, { text: 'Goodbye.', effects: [{ flag: 'sigrid_met' }], end: true }]
+                },
+                place: {
+                    lines: [
+                        ['npc', 'Barley, sheep and cloth. We send grain to Járnmyr for iron and wool to Skeldvik for salt, and we weave the rest.'],
+                        ['npc', 'Every house has a cloth on a bench for somebody who went to the Silent Field. Ours is Father\'s, and now there will be two.']
+                    ],
+                    choices: [{ text: 'Goodbye.', effects: [{ flag: 'sigrid_met' }], end: true }]
+                },
+                again: {
+                    lines: [['npc', "Mind the loom weights; they roll. Come and eat with us when there's time."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // Rúnadal (Tokelo's picture, 2026-11-13). Yrsa Thornstaff, the völva: helps families remember, will not be an oracle.
+        // Her sight is limited and sometimes contradicts itself (lore doc section 3); she reveals nothing about who you are.
+        yrsa: {
+            name: 'Yrsa Thornstaff', title: 'Völva of Rúnadal',
+            talk: [{ if: { flags: ['yrsa_met'] }, node: 'again' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        [null, 'An old woman by the ring-fire, a staff across her knees, bunches of herbs drying over her head.'],
+                        ['npc', "Sit, if your knees will let you. I'm Yrsa; people come up here when the dead won't keep quiet."]
+                    ],
+                    choices: YRSA
+                },
+                barrow: {
+                    lines: [
+                        ['npc', "Bjarki. Old even when my grandmother was a girl; they buried him with three fires to hold him down."],
+                        ['npc', 'Put the fires out and he is only a man in his mail. Leave them burning and they will stand up beside him.']
+                    ],
+                    effects: [{ flag: 'yrsa_told_barrow' }],
+                    choices: YRSA
+                },
+                field: {
+                    lines: [
+                        ['npc', 'Every spring I sit on the Silent Field and listen, and every spring the six hundred are a sea, far off.'],
+                        ['npc', "This year there's no sea. I don't know what that means, and I won't pretend I do."]
+                    ],
+                    choices: YRSA
+                },
+                you: {
+                    lines: [
+                        [null, 'She looks at you for a long time, and then at the crow, and then into the fire.'],
+                        ['npc', "I see a road and a lot of birds. That's all, and anybody could have told you that."]
+                    ],
+                    choices: YRSA
+                },
+                again: {
+                    lines: [['npc', 'Bread on the table if you have any. The stones like to be fed, and so do I.']],
+                    choices: YRSA
+                }
+            }
+        },
+        birkholt_hearth: hearth('Longhouse hearth', 'Birkholt',
+            "The long fire down the hall, barley and mutton in a pot on its chain, flatbread on the stones; somebody pushes a stool toward you without looking up.", 'hrimvald'),
         jarnmyr_hearth: hearth("Bloomers' cookfire", 'Járnmyr',
             "A fire pit outside the stone hut, a pot of something with barley in it on a chain, and bread warming on a slab. The furnace crews eat in shifts and wave you in.", 'hrimvald')
     });
 
     // Black Flight (Nahemoth design): Skeldvik is attuned by standing at its bell, the place people come back to.
     const anchors = {
-        skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' }
+        skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' },
+        silent_field: { name: 'The Silent Field, the field bell', region: 'Hrimvald', map: 'silent_field', spawn: 'flight_bell' },
+        runadal: { name: 'Rúnadal, the offering table', region: 'Hrimvald', map: 'runadal', spawn: 'flight_table' }
     };
+    // C2-05: putting out the burial anchors. Each one counts up (the highest first, so one fire only moves it one step).
+    const anchorOut = (id, say) => ({ id: `c205_${id}`, on: { type: 'inspect', id }, if: { quests: { C205: 'active' } }, effects: [
+        { flag: 'barrow_anchors_3', when: { flags: ['barrow_anchors_2'] } }, { flag: 'barrow_anchors_2', when: { flags: ['barrow_anchors_1'], notFlags: ['barrow_anchors_2'] } },
+        { flag: 'barrow_anchors_1', when: { notFlags: ['barrow_anchors_1'] } },
+        { say, important: true }, { say: 'On the dais, something in the coffin turns over.' }] });
+    const BJARKI_FIGHTS = ['barrow_bjarki_warded', 'barrow_bjarki_two', 'barrow_bjarki_one', 'barrow_bjarki_bare'];
 
     const triggers = [
         // Crossing into the pass is "following the crows east": Q08 completes and Chapter Two begins.
@@ -2081,6 +2196,43 @@
             { say: 'A bill of sale: two hundred spearheads and "old iron, reworked", paid in old Crown plate. It is sealed with a ring of grey ash.' },
             { say: "You know the hand. It's the same as on Bersi's debt: Osric Vane's.", when: { flags: ['heard_of_osric'] } },
             { say: 'The other two carters run for the road. Skuli watches them go, and then looks up at the mound, and does not get up.' }
+        ] },
+        // Act II (Tokelo's pictures, 2026-11-13): the Silent Field, Birkholt and Rúnadal.
+        { id: 'c2_silent_field', on: { type: 'enter', id: 'silent_field' }, effects: [
+            { say: 'The Silent Field: pale grass to the edge of the mist, a ring of six stones on turned earth, and markers everywhere, leaning, in no order at all.', important: true },
+            { say: "The crow lands on a grave marker and gets straight off it again. 'No,' it says. 'Not that one.'" }
+        ] },
+        { id: 'c2_birkholt', on: { type: 'enter', id: 'birkholt' }, effects: [
+            { say: 'Birkholt: barley in its fences, sheep in their pens, smoke from the turf roofs, and the clack of looms from every open shed.', important: true }
+        ] },
+        { id: 'c2_runadal', on: { type: 'enter', id: 'runadal' }, effects: [
+            { say: 'Rúnadal: three paths meet in the pines at a ring of carved stones, and a thin line of smoke goes up from a lean-to beyond them.', important: true },
+            { say: "The crow lands on the tallest stone, reads it, and says nothing at all, which is not like it." }
+        ] },
+        // C2-05: into the mound; the three fires; Bjarki.
+        { id: 'c205_barrow', on: { type: 'enter', id: 'bjarki_barrow' }, effects: [
+            { event: { type: 'story', id: 'barrow_entered' } },
+            { say: 'A passage of grave slabs, half of them pulled from the wall, opens into a hall under the hill. Three fires burn in it that nobody has fed in a thousand winters.', important: true },
+            { say: "'Three fires,' the crow says quietly. 'Somebody wanted whoever is up there to stay up there.'" }
+        ] },
+        anchorOut('barrow_anchor_altar', 'You tip the bones out of the bowl, and the fire goes out as if someone had closed a hand on it.'),
+        anchorOut('barrow_anchor_west', 'You pull the ring of nails out of the stone one by one. On the last, the fire on the pillar shrinks to a coal and dies.'),
+        anchorOut('barrow_anchor_east', 'You pull the ring of nails out of the stone one by one. On the last, the fire on the pillar shrinks to a coal and dies.'),
+        ...BJARKI_FIGHTS.map((id) => ({ id: `c205_${id}`, on: { type: 'defeat', id }, effects: [
+            { flag: 'bjarki_laid' }, { item: "Bjarki's Arm Ring", key: 'item:bjarki_arm_ring' },
+            { say: 'Bjarki goes down on one knee, then lies back in his coffin as if he had only got up to see who was there. The fires that are left go out together.', important: true },
+            { say: 'In the coffin, under his hand, a fresh chalk tally: so many weights of bronze, so many of silver, and the running wolf.' },
+            { say: 'And a word in the same chalk, "for the field rites", underlined twice.' },
+            { event: { type: 'story', id: 'bjarki_laid' } }] })),
+        { id: 'anchor_silent_field', on: { type: 'inspect', id: 'silent_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
+            { flag: 'anchor:silent_field' },
+            { say: "The crow settles on the bell's little roof and is quiet for a while. 'All right,' it says. 'I'll remember this one.'" },
+            { say: '(Black Flight: the Silent Field is attuned.)', important: true }
+        ] },
+        { id: 'anchor_runadal', on: { type: 'inspect', id: 'runadal_table' }, if: { flags: ['aspect_nahemoth'] }, effects: [
+            { flag: 'anchor:runadal' },
+            { say: "The crow takes a crumb from the loaf and looks at you as if daring you to say something. 'An offering,' it says. 'It counts.'" },
+            { say: '(Black Flight: Rúnadal is attuned.)', important: true }
         ] },
         // Fenrir's Heir (CL1). Coming down into Gullstrand, the first howl; the carving starts the hunt and wakes the sun-mad
         // wolves at the bright cave; each hunt's wolves beaten; beating the Binding Echo opens the waking.
