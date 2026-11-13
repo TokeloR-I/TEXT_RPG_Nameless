@@ -44,7 +44,7 @@ test('Skill Web view: the picture draws only that web, with the selected node ri
     assert.ok(/class="sw-owned sw-sel" data-node="plaguecaller.1.skill"/.test(svg));
     assert.strictEqual((svg.match(/<title>/g) || []).length, ids.length);
     assert.match(SW.summary(view), /walking as Plaguecaller · a path guides your points/);
-    assert.deepStrictEqual(SW.sealedLegends(view).map((x) => x.name), ['Deathlord Eternal', 'Fallen Seraphim', 'Reality Breaker']);
+    assert.deepStrictEqual(SW.sealedLegends(view).map((x) => x.name), ['Deathlord Eternal', 'Fallen Seraphim', "Fenrir's Heir", 'Reality Breaker']);
 });
 
 test('Skill Web screen: the radial scene keeps one web, links each pair once and gives every branch a wedge', () => {

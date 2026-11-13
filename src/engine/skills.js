@@ -89,6 +89,7 @@
                 if (target.isPlayer && this.combat && this.combat.action) final = Math.max(final, dmg * ((this.actionRules().defence || {}).minDamageShare || 0));
                 for (const s of target.statusEffects) if (s.type === 'damage_reduction') final *= Math.pow(1 - s.value, s.stacks || 1);   // each stack multiplies
                 final *= 1 - this.foodMod(target, 'defence');   // meals and beer (src/engine/kitchen.js)
+                final *= 1 - this.stanceMod(target, 'defence');   // stance bond (src/engine/stance.js)
                 if (target.isPlayer && this.progression.branch === 'bone_warden') {
                     const cap = target.traits.some((t) => t.name === 'Bone Fortress') ? 0.15 : 0.10;
                     final *= 1 - Math.min(this.alive(this.combat.minions).length * 0.02, cap);
@@ -106,6 +107,7 @@
             final *= this.traitDamageMult(attacker, target);   // passive traits with `mods` (the Fallen Seraphim web)
             if (ninja) final *= ninja.damageMult;
             final *= 1 + this.foodMod(attacker, 'damage');   // meals and beer (src/engine/kitchen.js)
+            final *= 1 + this.stanceMod(attacker, 'damage');   // stance bond (src/engine/stance.js)
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.

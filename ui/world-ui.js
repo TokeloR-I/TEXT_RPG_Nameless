@@ -1962,6 +1962,7 @@
             hud.onSlot((i) => { press.slot = i; });
             hud.onAttack(() => { press.attack = true; });
             hud.onHeal(quickHeal);
+            if (hud.onStance) hud.onStance(nextStance);
         }
     }
 
@@ -1976,7 +1977,19 @@
         if (slot != null) { press.slot = slot; return true; }
         if ((ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') && !fade && !flash && !feathering) { press.interact = true; return true; }
         if (ev.code === 'KeyH' || ev.key === 'h' || ev.key === 'H') { quickHeal(); return true; }
+        if ((ev.code === 'KeyT' || ev.key === 't' || ev.key === 'T') && engine.getStance && engine.getStance()) { nextStance(); return true; }
         return false;
+    }
+
+    /** T: Fenrir's Heir changes wolf, Sköll -> Hati -> Fenrir (switch_stance; free out of a fight, 8 s cooldown in one). */
+    function nextStance() {
+        if (screen !== 'explore' || modal) return;
+        const cell = ENSO.actionHud && ENSO.actionHud.stanceCell ? ENSO.actionHud.stanceCell(engine) : null;
+        if (!cell || !cell.next) return;
+        const r = engine.act({ type: 'switch_stance', stance: cell.next });
+        const line = (r.events || []).find((e) => e.type === 'text');
+        toast(r.ok ? (line ? line.text : 'Stance changed.') : (r.error ? r.error.message : 'Not now.'));
+        updateHud();
     }
 
     /** H: the engine picks and uses the best healing item (quick_heal), in a fight or out of one. */

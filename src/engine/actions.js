@@ -107,6 +107,7 @@
                 case 'unlearn_node': this.unlearnWebNode(a.nodeId); return;
                 case 'set_specialization': this.setSpecialization(String(a.branchId || '')); return;
                 case 'set_web_guide': this.setWebGuide(a.branchId == null ? null : String(a.branchId)); return;
+                case 'switch_stance': this.switchStance(String(a.stance || '')); return;   // legendary stances (stance.js)
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
                 case 'cheat': this.cheat(a.cheat, a.amount); return;
@@ -133,6 +134,12 @@
                 case 'add_xp': this.addExperience(parseInt(amount, 10) || 50); this.maybePromptBranch(); return;
                 case 'become_hollow_king': this.becomeHollowKing(); return;
                 case 'unlock_events': this.flags.eventsUnlocked = true; this.say('[cheat] Story-event evolutions unlocked.'); this.applyStages(); return;
+                case 'awaken_fenrir': {   // Fenrir's Heir without the Gullstrand quest (its maps wait on Tokelo's pictures)
+                    if (!this.story) { this.refuse('WRONG_MODE', 'Fenrir\'s Heir needs the story: play in the world.'); return; }
+                    this.say('[cheat] Fenrir\'s Heir awakens.');
+                    this.applyStoryEffects([{ flag: 'fenrir_heir_awakened' }, { legend: 'fenrirs_heir' }, { stance: String(amount || 'skoll') }]);
+                    return;
+                }
                 default: this.refuse('UNKNOWN_ACTION', `Unknown cheat '${name}'.`);
             }
         }
@@ -141,6 +148,7 @@
             const c = this.combat;
             const p = this.player;
             if (WEB_ACTIONS.has(a.type)) { const busy = this.webCombatProblem(); this.refuse(busy.code, busy.message); return; }
+            if (a.type === 'switch_stance') { this.switchStance(String(a.stance || '')); return; }   // any fight mode; never uses the turn
             if (this.rtActive()) { if (a.type === 'set_skill_slot') this.setSkillSlot(a.slot, a.skillId); else this.rtPerformCombat(a); return; }   // combat v2 (realtime.js)
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
             if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)
@@ -237,6 +245,8 @@
                 this.refuseCombat('ONCE_PER_FIGHT', `${skillName} can only be used once per fight!`);
                 return;
             }
+            const stance = this.stanceProblem({ ...skill, name: skillName });   // legendary stances (stance.js)
+            if (stance) { this.refuseCombat(stance.code, stance.message); return; }
             const timing = this.rtActionProblem(skillName, !!opts.viaAttack || skillName === basic);   // real-time only: stun, cooldowns
             if (timing) { this.refuseCombat(timing.code, timing.message); return; }
             const cost = this.skillCost(skill);
@@ -379,7 +389,7 @@
                 for (const item of room.items) actions.push({ type: 'take', item, enabled: true });
                 if (room.enemies.length) actions.push({ type: 'engage', enabled: true });
             }
-            actions.push(...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean));
+            actions.push(...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability());
             if (this.pendingLoot().length) {
                 const reason = this.lootCreditBlock();
                 actions.push({ type: 'claim_loot', enabled: !reason, ...(reason ? { reason } : {}) });
@@ -447,7 +457,7 @@
             const attack = this.skillAvailability(basic, true);
             attack.type = 'attack';
             const skills = p.skills.map((name) => this.skillAvailability(name, false));
-            return [attack, ...skills, ...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), { type: 'flee', enabled: true }];
+            return [attack, ...skills, ...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability(), { type: 'flee', enabled: true }];
         }
 
         /** One skill's option: same checks, same order and same messages as useSkill(). */
@@ -464,6 +474,8 @@
             if (this.statusOfType(p, 'silence') && name !== this.basicAttackName()) return fail('SILENCED', 'You are silenced — only your basic attack works this turn.');
             if (!this.isCastable(skill)) return fail('NOT_IMPLEMENTED', `${name} isn't implemented yet (missing: ${this.missingEffects(skill).join(', ')}).`);
             if (skill.oncePerFight && c.usedOncePerFight[name]) return fail('ONCE_PER_FIGHT', `${name} can only be used once per fight!`);
+            const stance = this.stanceProblem({ ...skill, name });
+            if (stance) return fail(stance.code, stance.message);
             if (this.rtActive()) {
                 const cdMs = opt.isBasic ? this.rtIntervalMs(p) : this.rtCooldownMs(name);
                 opt.cooldownMs = cdMs;

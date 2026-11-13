@@ -6,7 +6,7 @@
 //   power     sqrt(dps x survival), survival = max HP / taken per s (seconds you last, capped at 300: past five minutes
 //             a fight doesn't care): one number for both
 // The bot is the warden_benchmark one: hold range, cast whatever the engine says is ready, else basic attack.
-//   node qa/scripts/legendary_power.js [--seeds 6] [--secs 60]
+//   node qa/scripts/legendary_power.js [--seeds 6] [--secs 60] [--fenrir]   (--fenrir adds Fenrir's Heir rows)
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const { GameEngine } = require(path.join(ROOT, 'src/engine.js'));
@@ -42,6 +42,16 @@ function setup(st, seed) {
         gifts.slice(0, st.giftSlots || gifts.length).forEach((n, k) => { if (!bar.includes(n)) bar[bar.length - 1 - k] = n; });
     }
     if (st.fallen) g.flags.eventsUnlocked = false;
+    // Fenrir's Heir (2026-11-13): awakened in a stance, the gifts on the bar's last slots, bond preset (0 = just woken).
+    if (st.fenrir) {
+        g.act({ type: 'cheat', cheat: 'awaken_fenrir', amount: st.fenrir });
+        if (st.bond != null && g.player.stance.bond[st.fenrir] != null) g.player.stance.bond[st.fenrir] = st.bond;
+        const leg = g.data.skillWeb.legendaryWebs.fenrirs_heir;
+        const gifts = leg.gifts.map((id) => g.skillWeb().nodes.get(id).skill)
+            .filter((n) => { const d = g.data.skillDefinitions[n]; return !d.stance || d.stance === st.fenrir; });
+        const bar = g.ensureSkillBar();
+        gifts.forEach((n, k) => { if (!bar.includes(n)) bar[bar.length - 1 - k] = n; });
+    }
     if (st.bar) { const bar = g.ensureSkillBar(); st.bar.forEach((n, i) => { if (g.player.skills.includes(n)) bar[i] = n; }); }
     const s = new WorldSession(WORLD, { engine: g });
     s.place('sanctuary', Object.keys(WORLD.maps.sanctuary.spawns)[0]);
@@ -106,6 +116,8 @@ if (require.main === module) {
         const tries = [1, 3].map((n) => measure({ label: `${cls} / ${branch} L5 + Fallen at unlock (${n} gift${n > 1 ? 's' : ''} on the bar)`, cls, branch, level: 5, fallen: 'unlock', giftSlots: n }));
         rows.push(tries.sort((a, b) => b.power - a.power)[0]);
     }
+    if (args.includes('--fenrir')) for (const [cls, branch] of PEAK.filter((_, i) => i % 2 === 0)) for (const [fenrir, bond] of [['skoll', 0], ['skoll', 100], ['hati', 0], ['hati', 100]])
+        rows.push(measure({ label: `${cls} / ${branch} L5 + Fenrir's Heir at unlock (${fenrir}, bond ${bond})`, cls, branch, level: 5, fenrir, bond }));
     const peak = mean(rows.filter((r) => /peak/.test(r.label)).map((r) => r.power));
     console.log(`Crow Warden x60 HP, ${SECS} s, ${SEEDS} seeds; player kept alive. Peak average power ${peak.toFixed(1)}.\n`);
     const classPeak = (cls) => mean(rows.filter((r) => r.cls === cls && /peak/.test(r.label)).map((r) => r.power));

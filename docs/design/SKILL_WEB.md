@@ -54,7 +54,7 @@ you have the **points**.
 the tests run the same check (every class web is one piece on its own, only gateways cross between webs,
 every skill defined).
 
-Today: **4 class webs + 3 legendary webs, 177 nodes** (7 hearts, 92 active, 66 passive, 12 gateways), 33 to 40 per class web. Room for
+Today: **4 class webs + 4 legendary webs, 195 nodes** (8 hearts, 105 active, 70 passive, 12 gateways), 33 to 40 per class web. Room for
 80–100+ skills is the design target; the structure has no limit.
 
 ### Gateways (increment 1)
@@ -131,6 +131,7 @@ lore stay in `legendaryAndSecretClasses`.
 |---|---|---|
 | Deathlord Eternal | Eternal Lich (`soulbinder.5`) + Abyssal King (`vanguard.5`) + the Throne of Bones | Legion of the Dead (passive), Death's Dominion (active, effect not built yet) |
 | Fallen Seraphim | no stage; the Kloster statue wakes (stare at it 120 s, flag `seraph_awakened`); heart free | 19 nodes in three wing paths + Seraph Unbound, four ranks: [FALLEN_SERAPHIM.md](FALLEN_SERAPHIM.md) |
+| Fenrir's Heir | no stage; the wolves wake at the Wolf's Wake (quest CL1, flag `fenrir_heir_awakened`); heart free | 17 nodes: a Sköll path, a Hati path and Fenrir's shared nodes, three **stances** with a bond: [FENRIRS_HEIR.md](FENRIRS_HEIR.md) |
 | Reality Breaker | Arcane Hollow (`illusionist.5`) + an event not designed yet | heart only; skills to be designed (Thorne) |
 
 A legendary web may also have **`ranks`** (titles reached by nodes owned, each with a story flag and an optional

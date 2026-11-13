@@ -29,6 +29,8 @@
 
     /** What happens when a timer of each kind runs out. New mechanics add a kind here, not a new code path. */
     const TIMER_KINDS = {
+        // Legendary stances (stance.js): the switch cooldown in turn fights. Nothing happens when it runs out.
+        stance_cooldown: {},
         // Soulbinder (K1, QA-19): one caster-owned clock ends the caster's link group and its Feast.
         soul_link: {
             expire(engine, timer) {
@@ -56,6 +58,7 @@
 
         endOpportunity(actor, { skipped = false } = {}) {
             if (!skipped) this.endNormalTurn(actor);  // QA-1 windows: actionable turns only
+            if (actor === this.player && !this.rtActive()) this.stanceAccrue((this.data.realtimeRules || {}).secondsPerTurn * 1000 || 3000);   // stance bond: one turn of fighting
             this.tickTimers(actor, { skipped });
             if (!skipped && actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
             this.crEndOpportunity(actor, skipped);   // Package 2: CR decay, protection ends

@@ -55,6 +55,20 @@
                 { say: "Four boards since midsummer: two up the coast, Asta's on the road, Skeldvik's off its stone, and the running wolf at every one. Whoever leads the Wolf-Banner wants all six hundred names, and is not asking the families." },
                 { start: 'C203' }]
         },
+        // Fenrir's Heir (Tokelo 2026-11-13, PR #256; replaces Allfather's Chosen): the optional legendary unlock. It begins
+        // when you read the wolf-carving on Gullstrand Coast. The coast and the Wolf's Wake wait on Tokelo's design pictures
+        // (no area is built without one), so the carving, the two fang sites, the stone and the Binding Echo are not on a
+        // map yet; the quest, its talks and the fight are ready for them (docs/design/FENRIRS_HEIR.md, "Placing it").
+        CL1: {
+            title: 'The Hunt of Sun and Moon', kind: 'side', xp: 150, candidate: true, awaitsArea: 'gullstrand_coast',
+            summary: 'Gullstrand fishers hear two howls that should not be: one at the brightest hour, one when the moon goes out. An old carving shows two wolves chasing two lights, their tracks bound by a broken chain.',
+            objectives: [
+                { id: 'fangs', text: 'Find the Sun Fang and the Moon Fang, in either order', on: { type: 'story', id: 'fenrir_fangs_both' } },
+                { id: 'trial', text: "Lay both fangs on the stone at the Wolf's Wake and survive what wakes", on: { type: 'defeat', id: 'wolfs_wake_trial' } },
+                { id: 'choose', text: "Choose the wolf that runs with you first", on: { type: 'story', id: 'fenrir_heir_awakened' } }
+            ],
+            onComplete: [{ say: "Press T to change wolf: Sköll, Hati, or Fenrir's own stance. Stay with one and its bond grows.", notice: 'quest' }]
+        },
         C203: {
             title: 'The Hall of Winter', kind: 'main', xp: 0, teaser: true,
             summary: 'The assembly meets at Hrafnholm, where the Jarl keeps her hall. Eydis means to read the stolen names aloud there, in front of the man she thinks took them.',
@@ -706,6 +720,93 @@
         }
     };
 
+    // Fenrir's Heir (CL1). Spoken by stone and by the two wolves; the wolves never say what you were (lore bible).
+    const BOTH = { flags: ['fenrir_sun_fang', 'fenrir_moon_fang'] };
+    const FANG_BOTH = [{ flag: 'fenrir_fangs_both', when: BOTH }, { event: { type: 'story', id: 'fenrir_fangs_both' }, when: BOTH },
+        { say: "Both fangs. Somewhere on the headland above the sea, stone answers stone.", when: BOTH }];
+    const AWAKEN = (stance, text) => ({ text, to: 'bond', effects: [
+        { flag: 'fenrir_heir_awakened' }, { legend: 'fenrirs_heir' }, { stance }, { event: { type: 'story', id: 'fenrir_heir_awakened' } }, { flag: 'fenrir_first_bond_tutorial_done' }] });
+    Object.assign(npcs, {
+        sun_marker: {
+            name: 'A sun-scorched cairn', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
+            talk: [{ if: { flags: ['fenrir_sun_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'cairn' }, { node: 'plain' }],
+            nodes: {
+                plain: { lines: [[null, 'A cairn of black stones on the cliff top. The lichen on its sunward side is burnt white.']], choices: [{ text: 'Leave it.', end: true }] },
+                cairn: {
+                    lines: [[null, 'The stones are hot to the touch, though the wind off the sea is cold. Between two of them, something catches the light.'],
+                        [null, 'A tooth as long as your hand, wedged deep. When you pull it free, somewhere above the clouds a wolf howls at the sun.']],
+                    effects: [{ flag: 'fenrir_sun_fang' }, { item: 'Sun Fang', key: 'item:sun_fang' }, ...FANG_BOTH],
+                    choices: [{ text: 'Go on.', end: true }]
+                },
+                taken: { lines: [[null, 'The cairn is only warm now. Whatever it kept, you carry.']], choices: [{ text: 'Leave it.', end: true }] }
+            }
+        },
+        moon_hollow: {
+            name: 'A moon-dark hollow', title: 'Gullstrand Coast', awaitsArea: 'gullstrand_coast',
+            talk: [{ if: { flags: ['fenrir_moon_fang'] }, node: 'taken' }, { if: { quests: { CL1: 'active' } }, node: 'hollow' }, { node: 'plain' }],
+            nodes: {
+                plain: { lines: [[null, 'A hollow under the cliff where the tide does not reach. It is darker inside than it ought to be at noon.']], choices: [{ text: 'Leave it.', end: true }] },
+                hollow: {
+                    lines: [[null, 'Your torch makes no difference in here. The dark leans on you, the way water does at the bottom of a pool.'],
+                        [null, 'Your hand finds a tooth as cold as winter iron. As you take it, the dark lets go, and something far away howls at a moon that is not there.']],
+                    effects: [{ flag: 'fenrir_moon_fang' }, { item: 'Moon Fang', key: 'item:moon_fang' }, ...FANG_BOTH],
+                    choices: [{ text: 'Go on.', end: true }]
+                },
+                taken: { lines: [[null, 'Only an ordinary hollow now, wet and smelling of weed.']], choices: [{ text: 'Leave it.', end: true }] }
+            }
+        },
+        wolfs_wake_stone: {
+            name: "The Wolf's Wake", title: 'A stone ring above the sea', awaitsArea: 'gullstrand_coast',
+            talk: [
+                { if: { flags: ['fenrir_heir_awakened'] }, node: 'again' },
+                { if: { flags: ['fenrir_trial_cleared'] }, node: 'wake' },
+                { if: { flags: ['fenrir_trial_called'], notFlags: ['fenrir_trial_cleared'] }, node: 'waiting' },
+                { if: { flags: ['fenrir_fangs_both'] }, node: 'stone' },
+                { node: 'still' }],
+            nodes: {
+                still: {
+                    lines: [[null, 'A ring of standing stones on the headland. On the flat one in the middle, two wolves are carved running after two lights.'],
+                        [null, 'A chain is carved across their tracks, broken in the middle. There are two hollows in the stone, each the shape of a tooth.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                },
+                stone: {
+                    lines: [[null, 'The two hollows in the stone are the shape of the two teeth you carry. The sea goes quiet below the headland.']],
+                    choices: [{ text: 'Lay the Sun Fang and the Moon Fang in the stone.', effects: [{ flag: 'fenrir_trial_called' }, { removeItem: 'Sun Fang' }, { removeItem: 'Moon Fang' }], to: 'called' },
+                        { text: 'Not yet.', end: true }]
+                },
+                called: {
+                    lines: [[null, 'The carved chain splits along its crack. Links of light and dark climb out of the stone and wind together into something with no face.'],
+                        [null, 'It is not a wolf. It is the thing that held one, and it remembers the shape of holding.']],
+                    choices: [{ text: 'Face it.', end: true }]
+                },
+                waiting: { lines: [[null, 'The coil of broken chain turns slowly over the stone, waiting for you.']], choices: [{ text: 'Face it.', end: true }] },
+                wake: {
+                    lines: [[null, 'The last link falls and does not get up. Two shapes step out of the stones: a wolf of embers, and a wolf of no light at all.'],
+                        ['npc', 'We were made to chase: the sun, the moon, the end of things.'],
+                        ['npc', 'Our father was bound so that we would run without him.'],
+                        ['npc', 'You broke what was left of the binding, and that is enough to be an heir.'],
+                        ['npc', 'Blood is only one kind of inheritance.'],
+                        ['npc', 'Choose who runs at your side first. The other will not go far.'],
+                        ['npc', 'And our father will hold us both, when you need us still.']],
+                    choices: [
+                        AWAKEN('skoll', 'Sköll, who chases the sun.'),
+                        AWAKEN('hati', 'Hati, who chases the moon.'),
+                        AWAKEN('fenrir', 'Neither yet. Fenrir, who holds you both.')
+                    ]
+                },
+                bond: {
+                    lines: [[null, 'The wolves run through you and are gone. Two shadows walk behind yours now, one warm and one cold.'],
+                        ['npc', 'Stay with one of us and the bond grows, and it does not forget between fights. Change when you must; we need a breath to follow.']],
+                    choices: [{ text: 'I will run with you.', end: true }]
+                },
+                again: {
+                    lines: [[null, 'The stone ring is quiet. Far off over the sea, two howls answer each other, and you feel both of them in your teeth.']],
+                    choices: [{ text: 'Leave it.', end: true }]
+                }
+            }
+        }
+    });
+
     // Black Flight (Nahemoth design): Skeldvik is attuned by standing at its bell, the place people come back to.
     const anchors = {
         skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' }
@@ -737,6 +838,16 @@
             { say: "The two ravens are on the hall's gable, one at each end. The crow lands on a post well away from them. 'They're only birds,' it says, to nobody." }
         ] },
         { id: 'c2_memorial', on: { type: 'inspect', id: 'skeldvik_memorial' }, effects: [{ flag: 'skeldvik_memorial_seen' }] },
+        // Fenrir's Heir (CL1): the carving on Gullstrand's cliffs starts the hunt; beating the Binding Echo opens the waking.
+        { id: 'cl1_carving', on: { type: 'inspect', id: 'gullstrand_wolf_carving' }, effects: [
+            { flag: 'fenrir_quest_discovered' },
+            { say: 'Two wolves cut into the rock, running after two lights. Under them, worn almost flat: "One hunts the day and one the night; the chain between them is broken."', important: true },
+            { start: 'CL1' }
+        ] },
+        { id: 'cl1_trial', on: { type: 'defeat', id: 'wolfs_wake_trial' }, effects: [
+            { flag: 'fenrir_trial_cleared' },
+            { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on it are not carved any more.', important: true }
+        ] },
         { id: 'anchor_skeldvik', on: { type: 'inspect', id: 'skeldvik_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:skeldvik' },
             { say: "The crow settles on the bell post. 'Salt, tar and other people's fish. Fine. I'll remember it. Don't ask me to like it.'" },
