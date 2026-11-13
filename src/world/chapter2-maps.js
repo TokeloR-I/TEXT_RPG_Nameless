@@ -337,7 +337,7 @@
                 { id: 'skeldvik_aslaug', kind: 'npc', npc: 'aslaug', x: 6, y: 11, w: 2, name: 'Aslaug', sprite: 'alewife' },
                 // The long fire is the inn's hearth: Hrimvald's dishes, like the harbour cookfire (regional cooking).
                 { id: 'stormtide_hearth', kind: 'station', station: 'stormtide_hearth', verb: 'Cook at', x: 19, y: 15, w: 2, name: 'The long fire' },
-                { id: 'stormtide_orm', kind: 'npc', npc: 'orm', x: 28, y: 7, name: 'Orm', sprite: 'tafl_fair' },
+                { id: 'stormtide_halli', kind: 'npc', npc: 'halli', x: 28, y: 7, name: 'Halli', sprite: 'tafl_fair' },
                 { id: 'stormtide_sveinn', kind: 'npc', npc: 'sveinn', x: 33, y: 7, name: 'Sveinn', sprite: 'tafl_dark' },
                 { id: 'stormtide_tafl', kind: 'inspect', x: 31, y: 8, name: 'The tafl board',
                     text: 'A board of thirteen by thirteen squares, cut into the tabletop itself. The king stands in the middle, his guard around him, and the attackers wait along every edge. Someone has scratched a tally of games in the wood, two columns, and one column is much longer.' },

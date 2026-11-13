@@ -739,10 +739,10 @@
             'A fire pit by the fish racks, ringed with stones, a pot on a chain and juniper on the coals for smoking. Anyone may cook here.', 'hrimvald'),
         stormtide_hearth: hearth('The long fire', 'The Stormtide Inn',
             'The long fire down the middle of the hall, with a pig on the spit and a cauldron of fish stew on its chain. There is room at the edge for your own pot.', 'hrimvald'),
-        // The Stormtide Inn's regulars (Tokelo, 2026-11-13: a hall where people meet up). Two old friends at the tafl
+        // The Stormtide Inn's regulars (Tokelo, 2026-11-13: a hall where people meet up). Halli and Sveinn, two old friends at the tafl
         // board; Sveinn always plays the king, because the king always gets home.
-        orm: {
-            name: 'Orm', title: 'Tafl player',
+        halli: {
+            name: 'Halli', title: 'Tafl player',
             talk: [{ node: 'game' }],
             nodes: {
                 game: {

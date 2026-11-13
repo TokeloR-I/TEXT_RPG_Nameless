@@ -56,7 +56,7 @@ test('Stormtide Inn: in under the sign, Aslaug across the counter, the long fire
     assert.ok(menu.includes('cook_farikal') && !menu.includes('cook_schnitzel'), menu.join(','));
     leave(g);
     // The regulars.
-    assert.strictEqual(inspect(s, 'stormtide_orm').type, 'talk'); say(g, /What are you playing/); leave(g);
+    assert.strictEqual(inspect(s, 'stormtide_halli').type, 'talk'); say(g, /What are you playing/); leave(g);
     assert.strictEqual(inspect(s, 'stormtide_sveinn').type, 'talk'); assert.ok(/king/.test(lines(say(g, /play the king/)))); leave(g);
     assert.ok(/king/.test(inspect(s, 'stormtide_tafl').text));
     // Out the way you came, in front of the inn.
