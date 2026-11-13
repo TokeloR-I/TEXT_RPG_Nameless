@@ -80,7 +80,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
     for (const a of Object.values(CH2.anchors)) assert.ok(ZONE1.maps[a.map].spawns[a.spawn], 'anchor lands on a real spawn');
     // Lore rules (lore doc guardrails; Tokelo 2026-11-11): no door motif, and nobody here knows who the player was.
     const strings = [];
-    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik]);
+    (function walk(v) { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk); })([CH2, ZONE1.maps.frostspine_pass, ZONE1.maps.skeldvik, ZONE1.maps.hrafnholm, ZONE1.maps.hall_of_winter]);
     const words = strings.join('\n');
     assert.ok(!/\bgates?\b|threshold|behind the door|door (that|which|between)/i.test(words), 'no door motif in Chapter Two text');
     assert.ok((words.match(/\bdoors?\b/gi) || []).length <= 1, 'a door is furniture here, at most');
@@ -268,7 +268,7 @@ test('The Wolf-Banner: three new enemies with turn stats, live-combat kits, loot
     assert.deepStrictEqual(gate.map((e) => e.id), ['frostspine_ulfrun']);
 });
 
-test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every time, every tile named', () => {
+test('Scene art: Frostspine Pass, Skeldvik Harbor, Hrafnholm and the Hall of Winter paint whole, the same every time, every tile named', () => {
     const SCENE = require('../ui/scene-art.js');
     require('../ui/scene-hrimvald.js');
     const nameAt = (m, x, y) => {
@@ -281,7 +281,12 @@ test('Scene art: Frostspine Pass and Skeldvik Harbor paint whole, the same every
         frostspine_pass: ['ground', 'road', 'fir', 'crag', 'rock', 'watch_post', 'mile_marker', 'caravan', 'bier', 'campfire', 'crate', 'wolf_banner', 'cairn', 'log'],
         skeldvik: ['snow', 'cobble', 'yard', 'wharf', 'steps', 'terrace', 'water', 'cliff', 'fir', 'skerry', 'waterfall', 'palisade', 'terrace_wall', 'inn', 'house',
             'shipyard_hall', 'shipyard', 'harbour_bell', 'memorial_stone', 'ring_stone', 'brazier', 'banner', 'customs_stone', 'stall', 'fish_rack', 'nets', 'crane',
-            'barrel', 'crate', 'log_pile', 'workbench', 'fence', 'longship', 'rowboat']
+            'barrel', 'crate', 'log_pile', 'workbench', 'fence', 'longship', 'rowboat'],
+        hrafnholm: ['snow', 'cobble', 'yard', 'paving', 'steps', 'cliff', 'fir', 'boulder', 'palisade', 'arch_post', 'fence', 'great_hall', 'terrace_wall', 'house',
+            'guildhall', 'forge', 'stall', 'shed', 'ring_wall', 'tier_bench', 'law_rock', 'brazier', 'banner', 'bench', 'feast_table', 'war_memorial', 'target', 'dummy',
+            'weapon_rack', 'anvil', 'crate', 'barrel', 'log_pile'],
+        hall_of_winter: ['floor', 'runner', 'dais', 'dais_steps', 'wall', 'post', 'screen', 'high_seat', 'chair', 'side_table', 'brazier', 'fire_pit', 'feast_table',
+            'skald_corner', 'law_table', 'name_boards', 'candle_table', 'berry_jar', 'weapon_rack', 'shield_stand', 'fur_chest', 'barrel', 'shields', 'wall_banner', 'crate']
     };
     for (const [mapId, names] of Object.entries(painted)) {
         const map = ZONE1.maps[mapId];
@@ -329,4 +334,84 @@ test('Skeldvik re-laid at full scale: a save standing in the old harbour starts 
     const here = { map: 'skeldvik', x: s.x, y: s.y + 2, facing: 'down', tile: 16 };
     assert.strictEqual(s.restorePosition(here, { revision: 2 }), true);
     assert.deepStrictEqual([s.x, s.y], [here.x, here.y]);
+});
+
+// C2-03 (Tokelo, 2026-11-13: the Hrafnholm and Hall of Winter reference pictures): the road from Skeldvik opens,
+// the Jarl is in her hall beside the empty seat, Torvald is in the yard, and the Thing itself is the next part.
+/** Act I done (the tablet decided by `choice`); leaves you in Skeldvik with C203 active. */
+function actOne(g, s, choice = /belongs with the Roll/) {
+    frostspine(g, s);
+    talk(s, 'skeldvik_eydis'); say(g, /ask around/);
+    talk(s, 'skeldvik_solveig'); say(g, /Who split the memorial board/); say(g, /Thank you/);
+    talk(s, 'skeldvik_leif'); say(g, /armed crews/); say(g, /Thank you/);
+    inspect(s, 'skeldvik_memorial');
+    talk(s, 'skeldvik_eydis'); say(g, /I know who/); say(g, choice); say(g, /What happens now/); say(g, /Goodbye/);
+    settle(g);
+    assert.strictEqual(g.questState('C203'), 'active');
+}
+
+test('C2-03 Hrafnholm: the south-west road leads up to the town, the Jarl waits by the empty seat, Torvald in the yard', () => {
+    const { g, s } = run();
+    actOne(g, s);
+    assert.strictEqual(g.currentObjective('C203').id, 'hrafnholm');
+    assert.strictEqual(takeExit(s, 'skeldvik_west_road').type, 'transition');
+    assert.strictEqual(s.mapId, 'hrafnholm');
+    assert.strictEqual(g.currentObjective('C203').id, 'ragnhild', 'arriving is the first step');
+    // Into the hall by its entrance, and the Jarl knows the stranger gave the board to Eydis.
+    assert.strictEqual(takeExit(s, 'hrafnholm_hall_entry').type, 'transition');
+    assert.strictEqual(s.mapId, 'hall_of_winter');
+    assert.ok(/skald and not to this hall/.test(text(talk(s, 'hall_ragnhild'))));
+    say(g, /high seat empty/); say(g, /What will you ask the Thing/); say(g, /Goodbye/);
+    assert.ok(g.hasStoryFlag('ragnhild_met'));
+    assert.strictEqual(g.currentObjective('C203').id, 'torvald');
+    assert.ok(/guest of this hall/.test(text(talk(s, 'hall_ragnhild'))), 'the second time she only reminds you');
+    say(g, /Goodbye/);
+    assert.ok(/empty/.test(JSON.stringify(inspect(s, 'hall_high_seat'))));
+    takeExit(s, 'hall_of_winter_out');
+    assert.strictEqual(s.mapId, 'hrafnholm');
+    // Torvald remembers Ulfrun was spared.
+    assert.ok(/let her walk away/.test(text(talk(s, 'hrafnholm_torvald'))));
+    say(g, /name boards/); say(g, /Goodbye/);
+    assert.strictEqual(g.currentObjective('C203').id, 'thing', 'the Thing itself is the next part of Chapter Two');
+    assert.strictEqual(g.questState('C203'), 'active');
+    // The way on to the Silent Field is a boundary until its picture comes.
+    assert.ok(ZONE1.maps.hrafnholm.boundaries.some((b) => b.id === 'hrafnholm_silent_field_track'));
+    assert.ok(!ZONE1.maps.hrafnholm.exits.some((e) => /silent/i.test(e.id)));
+    // And the road home: back down to Skeldvik's south-west corner.
+    walkTo(s, 25, 38);
+    assert.strictEqual(takeExit(s, 'hrafnholm_south_road').type, 'transition');
+    assert.strictEqual(s.mapId, 'skeldvik');
+});
+
+test('C2-03: what Act I decided and heard changes how Hrafnholm receives you', () => {
+    for (const [choice, line] of [[/Thora's guard/, /Thora wrote to me/], [/keep carrying it/, /I ask you for it, formally/]]) {
+        const { g, s } = run();
+        actOne(g, s, choice);
+        takeExit(s, 'skeldvik_west_road'); takeExit(s, 'hrafnholm_hall_entry');
+        assert.ok(line.test(text(talk(s, 'hall_ragnhild'))), String(line));
+        say(g, /Goodbye/);
+    }
+    // Optional threads only add choices: Osric knows his name has gone before him, Runa can be asked about her father.
+    const { g, s } = run();
+    actOne(g, s);
+    takeExit(s, 'skeldvik_west_road');
+    g.story.flags.push('heard_of_osric', 'heard_of_hallvard');
+    assert.ok(/heard my name already/.test(text(talk(s, 'hrafnholm_osric')))); say(g, /Goodbye/);
+    talk(s, 'hrafnholm_runa'); say(g, /Your father/); say(g, /Goodbye/);
+    talk(s, 'hrafnholm_arnkel'); say(g, /twenty winters/); say(g, /Goodbye/);
+    talk(s, 'hrafnholm_sigrun'); say(g, /What do you want/); say(g, /Goodbye/);
+});
+
+test('C2-03: a save from before Hrafnholm, standing in Skeldvik with the old pointer, walks straight up the road', () => {
+    const { g, s } = run();
+    actOne(g, s);
+    const save = JSON.parse(JSON.stringify(g.serialize()));
+    save.game.revision = 2;                                                       // made before Hrafnholm was built
+    const again = GameEngine.fromSave(save);
+    assert.strictEqual(again.questState('C203'), 'active');
+    assert.strictEqual(again.currentObjective('C203').id, 'hrafnholm');
+    const s2 = new WorldSession(ZONE1, { engine: again });
+    s2.place('skeldvik', 'from_hrafnholm');
+    assert.strictEqual(takeExit(s2, 'skeldvik_west_road').type, 'transition');
+    assert.strictEqual(again.currentObjective('C203').id, 'ragnhild');
 });

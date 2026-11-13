@@ -543,6 +543,14 @@
         fishwife: { cloak: '#5a6a5a', hood: '#d8d0bc', belt: '#8a6a3a', prop: 'basket' },
         reeve: { cloak: '#34506a', helm: '#8a8a92', belt: '#c8a050', prop: 'halberd' },
         wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' },
+        // Hrafnholm (C2-03): the Jarl in woad and silver-grey, Torvald in madder with an axe-hammer, the heir and her sworn
+        // shieldmaiden, the Lawspeaker in undyed wool with his staff, and Osric Vane in a southern coat and hat.
+        jarl: { cloak: '#2e4a66', hair: '#b8b4aa', scarf: '#e0dccc', belt: '#c8c8d0' },
+        warchief: { cloak: '#7a2e24', hair: '#a8482a', scarf: '#8a8478', belt: '#2a2018', prop: 'hammer', skin: '#d0a888' },
+        heir: { cloak: '#34506a', hair: '#e0c070', belt: '#c8a050', prop: 'staff' },
+        shieldmaiden: { cloak: '#5a5a54', hair: '#4a3220', helm: '#8a8a92', belt: '#2a2018', prop: 'halberd' },
+        lawspeaker: { cloak: '#9a907a', hair: '#e8e8e4', belt: '#5a4a38', prop: 'staff' },
+        factor: { cloak: '#3a3638', hat: '#24222a', belt: '#c8a050', scarf: '#6a2a3a' },
         // The Broken Crown rework (2026-11-11): the road scavenger, the Broken Oath courier, Corvin Sere's old quartermaster's coat.
         scavenger: { cloak: '#5a5040', hair: '#4a3a2a', belt: '#3a2a20', prop: 'pack', skin: '#c8a888' },
         oath_courier: { cloak: '#6a6a66', hood: '#5a5a56', belt: '#2a2a28', scarf: '#3a3a38' },

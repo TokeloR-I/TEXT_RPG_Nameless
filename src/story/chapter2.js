@@ -16,7 +16,8 @@
  *     ones' names and think it is grief. Seeded, never explained here (the why is a [mid] reveal).
  * Dialogue reviewed by Ashby, Wick and Cairn on 2026-11-11 (docs/design/CHAPTER_TWO_NARRATIVE_REVIEW.md, which also
  * sets out Hrafnholm's politics). XP and Gold are CANDIDATES for Gauge.
- * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03 (a pointer only, until Hrafnholm is built).
+ * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03. Hrafnholm is built (Tokelo's reference maps,
+ * 2026-11-13): C203 takes you there, to Ragnhild in the hall and Torvald in the yard; the Thing itself comes next.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -58,7 +59,11 @@
             title: 'The Hall of Winter', kind: 'main', xp: 0, teaser: true,
             summary: 'The assembly meets at Hrafnholm, where the Jarl keeps her hall. Eydis means to read the stolen names aloud there, in front of the man she thinks took them.',
             objectives: [
-                { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm (the next part of Chapter Two)', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 36 } }
+                { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 36 } },
+                { id: 'ragnhild', text: 'Present yourself to Jarl Ragnhild in the Hall of Winter', on: { type: 'story', id: 'ragnhild_met' }, marker: { map: 'hall_of_winter', x: 19, y: 6 } },
+                { id: 'torvald', text: 'Find Torvald Redhand at the Training Yard', on: { type: 'story', id: 'torvald_met' }, marker: { map: 'hrafnholm', x: 6, y: 28 } },
+                // The Thing itself (C2-03's verdict and the three first positions) is the next part of Chapter Two.
+                { id: 'thing', text: 'Wait for the Thing to sit (the next part of Chapter Two)', on: { type: 'story', id: 'thing_sits' }, marker: { map: 'hrafnholm', x: 25, y: 23 } }
             ],
             onComplete: []
         }
@@ -67,6 +72,20 @@
     // Each line below is one page of the dialogue box (docs/ui/DIALOGUE_BOX.md: at most two sentences, ~160
     // characters); tests/98-chapter-two.test.js checks it. Voices (Wick): Eydis exact and dry, Hakon plain,
     // Leif brusque, Solveig salt, Thora legal, Geir grieving and sure of himself.
+    // The choices a conversation with Ragnhild or Torvald keeps coming back to.
+    const RAGNHILD = [
+        { text: 'Why is the high seat empty?', to: 'seat' },
+        { text: 'Thora told me about the twenty winters.', if: { flags: ['heard_of_succession'] }, to: 'law_known' },
+        { text: 'What will you ask the Thing?', if: { notFlags: ['heard_of_succession'] }, to: 'law' },
+        { text: 'And Torvald Redhand?', to: 'redhand' },
+        { text: 'Goodbye.', end: true }
+    ];
+    const TORVALD = [
+        { text: 'Why take the name boards?', to: 'boards' },
+        { text: 'Tell me about Arni.', if: { flags: ['wolfbanner_heard'] }, to: 'arni' },
+        { text: 'Where does your silver come from?', if: { flags: ['southern_friends_heard', 'leif_told'] }, to: 'silver' },
+        { text: 'Goodbye.', end: true }
+    ];
     const npcs = {
         // ------------------------------------------------------------- Eydis Namesinger, keeper of the Roll
         eydis: {
@@ -461,6 +480,229 @@
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
+        },
+
+        // ============================================================= Hrafnholm (C2-03; review doc section 4)
+        // Voices: Ragnhild careful and tired, Torvald hot and grieving, Sigrun dry, Runa loyal, Arnkel exact, Osric smooth.
+        ragnhild: {
+            name: 'Ragnhild Frostmark', title: 'Jarl of Hrafnholm',
+            talk: [
+                { if: { flags: ['tablet_with_reeve'], notFlags: ['ragnhild_met'] }, node: 'meet_reeve' },
+                { if: { flags: ['tablet_with_eydis'], notFlags: ['ragnhild_met'] }, node: 'meet_eydis' },
+                { if: { flags: ['tablet_kept'], notFlags: ['ragnhild_met'] }, node: 'meet_kept' },
+                { if: { notFlags: ['ragnhild_met'] }, node: 'meet' },
+                { node: 'again' }
+            ],
+            nodes: {
+                meet_reeve: {
+                    lines: [
+                        ['npc', "Thora wrote to me about you. A stranger who handed a dead woman's board to the law, and not to the loudest voice in the room."],
+                        ['npc', "I am Ragnhild Frostmark. I have held this hall for twenty winters, for a husband who did not come home."]
+                    ],
+                    effects: [{ flag: 'ragnhild_met' }, { event: { type: 'story', id: 'ragnhild_met' } }],
+                    choices: RAGNHILD
+                },
+                meet_eydis: {
+                    lines: [
+                        ['npc', "You gave the Birkholt board to a skald and not to this hall. I would like to know why a foreigner trusts a song over a law."],
+                        ['npc', "I am Ragnhild Frostmark. Eydis will read it at the Thing, and I will stand there and listen."]
+                    ],
+                    effects: [{ flag: 'ragnhild_met' }, { event: { type: 'story', id: 'ragnhild_met' } }],
+                    choices: RAGNHILD
+                },
+                meet_kept: {
+                    lines: [
+                        ['npc', "They tell me you still carry the Birkholt board. I am Ragnhild Frostmark, and I ask you for it, formally, in front of my hall."],
+                        ['npc', "You may say no. Here a thing is not taken from a guest, it is asked for."]
+                    ],
+                    effects: [{ flag: 'ragnhild_met' }, { event: { type: 'story', id: 'ragnhild_met' } }],
+                    choices: RAGNHILD
+                },
+                meet: {
+                    lines: [
+                        ['npc', "You're the southerner who came up from Skeldvik. I am Ragnhild Frostmark, and I have held this hall for twenty winters."]
+                    ],
+                    effects: [{ flag: 'ragnhild_met' }, { event: { type: 'story', id: 'ragnhild_met' } }],
+                    choices: RAGNHILD
+                },
+                again: {
+                    lines: [['npc', "The Thing sits when the Lawspeaker calls it. Until then you are a guest of this hall, and you eat at its tables."]],
+                    choices: RAGNHILD
+                },
+                seat: {
+                    lines: [
+                        ['npc', "Eirik's seat. My husband marched to the Silent Field with six hundred, and nobody has drunk his grave-ale, so nobody may sit there."],
+                        ['npc', "No body, no grave-ale. No grave-ale, no heir: that is our law, and it has held this hall together."]
+                    ],
+                    choices: RAGNHILD
+                },
+                law: {
+                    lines: [
+                        ['npc', "This is the twentieth winter. Under the old law a person missing twenty winters may be declared dead, and their grave-ale drunk."],
+                        ['npc', "I will ask the Thing to let us bury them. Six hundred households have waited long enough to mourn."]
+                    ],
+                    choices: RAGNHILD
+                },
+                law_known: {
+                    lines: [
+                        ['npc', "Then Thora told you the truth, which she always does, and at length."],
+                        ['npc', "I will ask the Thing to let us bury them. Six hundred households have waited long enough to mourn."]
+                    ],
+                    choices: RAGNHILD
+                },
+                redhand: {
+                    lines: [
+                        ['npc', "Torvald thinks I want to forget them. His brother Arni marched with Eirik, and he wants to go out there and bring them home."],
+                        ['npc', "I want that too. I have wanted it every night for twenty years, and wanting is not a law."]
+                    ],
+                    choices: RAGNHILD
+                }
+            }
+        },
+        // ------------------------------------------------------------- Torvald Redhand, the Wolf-Banner
+        torvald: {
+            name: 'Torvald Redhand', title: 'Wolf-Banner',
+            talk: [
+                { if: { flags: ['ulfrun_beaten'], notFlags: ['torvald_met'] }, node: 'meet_ulfrun' },
+                { if: { notFlags: ['torvald_met'] }, node: 'meet' },
+                { node: 'again' }
+            ],
+            nodes: {
+                meet_ulfrun: {
+                    lines: [
+                        ['npc', "Ulfrun says you put her down in the pass and let her walk away. I am Torvald Redhand, and I don't forget a thing like that."],
+                        ['npc', "Those were my crews on the road. I won't pretend otherwise."]
+                    ],
+                    effects: [{ flag: 'torvald_met' }, { event: { type: 'story', id: 'torvald_met' } }],
+                    choices: TORVALD
+                },
+                meet: {
+                    lines: [
+                        ['npc', "So you're the one with the Birkholt board. I am Torvald Redhand, and before you ask, yes, those were my crews."],
+                        ['npc', "Ask the hall what it has done for the six hundred in twenty years. It has counted them."]
+                    ],
+                    effects: [{ flag: 'torvald_met' }, { event: { type: 'story', id: 'torvald_met' } }],
+                    choices: TORVALD
+                },
+                again: {
+                    lines: [['npc', "The Thing sits soon. Stand where you like, southerner, but stand somewhere."]],
+                    choices: TORVALD
+                },
+                boards: {
+                    lines: [
+                        ['npc', "Because Ragnhild means to read them out at the Thing and bury every name on them. You can't bury a man who isn't dead."],
+                        ['npc', "When I go to the Field I'm taking all six hundred names with me. Nobody gets left behind."]
+                    ],
+                    choices: TORVALD
+                },
+                arni: {
+                    lines: [
+                        ['npc', "My little brother. He was nineteen, and he wanted Eirik's eye on him so badly he walked in the front rank."],
+                        ['npc', "There were no bodies on that field. Think about what that means before you call him dead."]
+                    ],
+                    choices: TORVALD
+                },
+                silver: {
+                    lines: [
+                        ['npc', "Friends in the south, who remember how the North fought. Ask me again at the Thing if you want it said in front of everyone."],
+                        ['npc', "You'll get the same answer."]
+                    ],
+                    choices: TORVALD
+                }
+            }
+        },
+        // ------------------------------------------------------------- Sigrun Frostmark, the heir who won't be
+        sigrun: {
+            name: 'Sigrun Frostmark', title: "The Jarl's daughter",
+            talk: [{ node: 'memorial' }],
+            nodes: {
+                memorial: {
+                    lines: [
+                        ['npc', "My father's name is on the middle board, top row, cut by someone who spelled it wrong. I've never asked them to mend it."],
+                        ['npc', "I'm Sigrun. Everyone will tell you I'm the heir; please don't."]
+                    ],
+                    choices: [{ text: 'What do you want from the Thing?', to: 'want' }, { text: 'Goodbye.', end: true }]
+                },
+                want: {
+                    lines: [
+                        ['npc', "To be chosen, if I'm chosen at all. Not to inherit a seat because my mother finally held a funeral."],
+                        ['npc', "Make me jarl over a cup of grave-ale and I'll be Eirik's daughter for the rest of my life."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Runa Hallvardsdottir, sworn to Sigrun
+        runa: {
+            name: 'Runa Hallvardsdottir', title: 'Sworn to Sigrun',
+            talk: [{ node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [['npc', "Runa Hallvardsdottir, sworn to Sigrun. If you've come to look at her, look at the memorial instead; she's tired of it."]],
+                    choices: [{ text: 'Your father was at the Silent Field?', if: { flags: ['heard_of_hallvard'] }, to: 'father' }, { text: 'Goodbye.', end: true }]
+                },
+                father: {
+                    lines: [
+                        ['npc', "He's the only one who walked off it. He was Eirik's skald, and he hasn't sung a note since."],
+                        ['npc', "He keeps the barrow out on the fells now. When I ask him what he saw, he asks me if I've eaten."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Arnkel the Lawspeaker
+        arnkel: {
+            name: 'Arnkel the Lawspeaker', title: 'Lawspeaker',
+            talk: [{ node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "Arnkel, Lawspeaker. I say the law at this rock, all of it, from memory, and I take no sides, so there's no use offering me one."],
+                        ['npc', "The Thing sits when the households are in. Not long now."]
+                    ],
+                    choices: [
+                        { text: 'What is the law of twenty winters?', to: 'twenty' },
+                        { text: 'Who may speak at the Thing?', to: 'speak' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                twenty: {
+                    lines: [
+                        ['npc', "Whoever is missing twenty winters, the Thing may declare dead, and then their grave-ale may be drunk and their goods divided."],
+                        ['npc', "May, not must. Everything in this town is going to turn on that one word."]
+                    ],
+                    choices: [{ text: 'Who may speak at the Thing?', to: 'speak' }, { text: 'Goodbye.', end: true }]
+                },
+                speak: {
+                    lines: [['npc', "Any free person with a claim, and any guest the Thing agrees to hear. You'll have to be heard, southerner, before you're listened to."]],
+                    choices: [{ text: 'What is the law of twenty winters?', to: 'twenty' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Osric Vane, a southern factor (the Broken Oath's money, hidden)
+        osric: {
+            name: 'Osric Vane', title: 'Factor',
+            talk: [{ if: { flags: ['heard_of_osric'] }, node: 'known' }, { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "Osric Vane, factor, at your service and at everyone else's. I buy wool and amber, and sell the North what it forgets it needs."],
+                        ['npc', "Hrafnholm is a fine place to do business in a bad year. Everyone owes someone."]
+                    ],
+                    choices: [{ text: 'Where are you from?', to: 'south' }, { text: 'Goodbye.', end: true }]
+                },
+                known: {
+                    lines: [
+                        ['npc', "You've heard my name already, I can see it. Leif Ropehand, I expect: he owes me and hates it, which is the usual arrangement."],
+                        ['npc', "Osric Vane, factor. I lend, I buy, I keep accounts."]
+                    ],
+                    choices: [{ text: 'Where are you from?', to: 'south' }, { text: 'Goodbye.', end: true }]
+                },
+                south: {
+                    lines: [['npc', "The south, which is a large place. I go where coin is thin and need is thick."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
         }
     };
 
@@ -488,6 +730,12 @@
         ] },
         // Eydis and Hakon come down by the goat track: she is at the memorial stone when you reach the harbour.
         { id: 'c2_skeldvik', on: { type: 'enter', id: 'skeldvik' }, effects: [{ flag: 'eydis_in_skeldvik' }] },
+        // Up the south-west road: Hrafnholm, and C2-03 begins in earnest.
+        { id: 'c2_hrafnholm', on: { type: 'enter', id: 'hrafnholm' }, effects: [
+            { event: { type: 'story', id: 'hrafnholm_reached' } },
+            { say: 'Hrafnholm: a palisade on a ridge of grey rock, the noble houses stepped up either side, and over all of it the long roof of the Hall of Winter. The town is full. The households are in for the Thing.', important: true },
+            { say: "The two ravens are on the hall's gable, one at each end. The crow lands on a post well away from them. 'They're only birds,' it says, to nobody." }
+        ] },
         { id: 'c2_memorial', on: { type: 'inspect', id: 'skeldvik_memorial' }, effects: [{ flag: 'skeldvik_memorial_seen' }] },
         { id: 'anchor_skeldvik', on: { type: 'inspect', id: 'skeldvik_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:skeldvik' },

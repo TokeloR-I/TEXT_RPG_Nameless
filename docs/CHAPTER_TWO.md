@@ -14,7 +14,9 @@ This file tracks what the game actually contains. Started 2026-11-11 (Tokelo: "s
 | C2-02 Salt and Silver | Quest `C202`: find Eydis, look at the memorial stone, ask Leif and Solveig (any order), then decide who keeps the tablet: Eydis, Thora's guard, or you. Flags `tablet_with_eydis` / `tablet_with_reeve` / `tablet_kept` change later lines; none blocks the story. | `src/story/chapter2.js` |
 | Black Flight | Anchor `skeldvik`, attuned by touching the harbour bell. | `src/story/chapter2.js` (`anchors`) |
 | Wolf-Banner | Enemies `wolfbanner_raider` (shield and axe), `wolfbanner_skirmisher` (thrown spears), `wolfbanner_ringleader` (Ulfrun Grey-Mantle, elite). Turn stats, action kits, loot ranks, art. | `src/data.js`, `assets/sprites/enso-enemies.js` |
-| C2-03 The Hall of Winter | Quest `C203` is a pointer only ("take the south-west road to Hrafnholm"). The south-west road out of Skeldvik is a boundary. | next slice |
+| Hrafnholm | Map `hrafnholm` (52x40), laid out after Tokelo's reference map (2026-11-13, copy in `/mnt/project-files/chapter2/hrafnholm-reference.png`): the Great Hall on its stone terrace, the Thing (assembly ring, tiered benches, law rock), the noble houses on both sides, Guild Lane with the forge, the Training Yard, the War Memorial, feast tables, the palisade and the south arch. Skeldvik's south-west road leads up to it; the north-east track to the Silent Field is a boundary until Tokelo sends that area's picture. Scene `hrafnholm`. | `src/world/chapter2-maps.js`, `ui/scene-hrimvald.js` |
+| The Hall of Winter | Map `hall_of_winter` (36x27), entered from the Great Hall's entrance, after Tokelo's interior picture (2026-11-13, `/mnt/project-files/chapter2/hall-of-winter-reference.png`): the empty high seat on its dais, the fire pit with three cauldrons, six feast tables, the red runner, the skald's corner (Hallvard's harp), the Lawspeaker's table, "The Six Hundred Remembered" and the armoury. Scene `hall_of_winter`. | same |
+| C2-03 The Hall of Winter (opening) | Quest `C203`: take the road to Hrafnholm, present yourself to Jarl Ragnhild beside the empty seat (her greeting follows the tablet choice), find Torvald Redhand in the Training Yard (he remembers if Ulfrun was spared), then "wait for the Thing to sit": the Thing's verdict and the three first positions are the next slice. Also in town: Sigrun and Runa at the War Memorial, Arnkel at the law rock, Osric Vane in Guild Lane. | `src/story/chapter2.js` |
 
 People: Eydis Namesinger, Leif Ropehand (both from the lore doc); Hakon the carter, Solveig the fish-seller,
 Thora Half-Oar the harbour reeve, Ulfrun Grey-Mantle and Geir the Wolf-Banner steersman (on the east pier, optional)
@@ -47,4 +49,4 @@ with Ten Seals active just walks east (tested in `tests/98-chapter-two.test.js`)
   `southern_friends_heard`, `heard_of_osric` and `heard_of_hallvard` are set for Hrafnholm to read; none is required.
 - **Names:** Hrimvald and the settlement names are used as the lore doc proposes them (its open decision 1).
 - **Not built yet:** Skeldvik's shops (Skeldvik Iron Axe and the regional gear), side quest C2-S04 The Fisherman's
-  Debt, Hrafnholm and everything after it.
+  Debt, the Thing itself (C2-03's verdict and positions) and everything after it.
