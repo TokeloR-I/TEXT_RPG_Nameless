@@ -234,7 +234,7 @@
                 level: 1, xp: 0, xpToNext: 100,
                 resource: { type: def.startingResource.type, current: def.startingResource.initial, max: def.startingResource.max, regen: def.startingResource.regen || 0 },
                 inventory: [...def.startingItems],
-                gold: 0, itemInstances: {}, equipment: { mainHand: null, offHand: null, bodyArmor: null, accessory: null },
+                gold: 0, itemInstances: {}, equipment: { mainHand: null, offHand: null, head: null, bodyArmor: null, hands: null, feet: null, accessory: null },
                 skills: [...def.startingSkills],
                 traits: clone(def.startingTraits),
                 statusEffects: [],
@@ -261,10 +261,10 @@
                 const choices = this.dialogueChoices();
                 if (/^(bye|leave|goodbye|exit)$/.test(lower)) this.perform({ type: 'dialogue_leave' });
                 else if (String(n) === lower && n >= 1 && n <= choices.length) this.perform({ type: 'dialogue_choice', choiceId: choices[n - 1].choiceId });
-                else if (/^(buy|sell) /.test(lower)) {
-                    const match = /^(buy|sell) (\S+) (.+)$/i.exec(text);
-                    if (match) this.perform({ type: match[1].toLowerCase(), shopId: match[2].toLowerCase(), item: this.findInventoryItem(match[3]) || match[3] });
-                    else this.refuse('INVALID_CHOICE', 'Use buy <merchant> <item> or sell <merchant> <item>.');
+                else if (/^(buy|sell|temper) /.test(lower)) {
+                    const match = /^(buy|sell|temper) (\S+) (.+)$/i.exec(text);
+                    if (match) this.perform({ type: match[1].toLowerCase(), shopId: match[2].toLowerCase(), item: match[1].toLowerCase() === 'temper' ? match[3] : this.findInventoryItem(match[3]) || match[3] });
+                    else this.refuse('INVALID_CHOICE', 'Use buy <merchant> <item>, sell <merchant> <item> or temper <smith> <weapon>.');
                 }
                 else if (/^(journal|j)$/.test(lower)) this.perform({ type: 'describe', subject: 'journal' });
                 else { this.refuse('INVALID_CHOICE', `Type a number from 1 to ${choices.length}, or 'bye'.`); this.showDialogueChoices(); }
@@ -280,7 +280,7 @@
 
             // Chapter One equipment and commerce text commands share the same
             // authoritative rules as UI act(), without requiring an NPC UI.
-            const trade = /^(equip|unequip|compare|buy|sell)\s+(.+)$/i.exec(text.trim());
+            const trade = /^(equip|unequip|compare|buy|sell|temper)\s+(.+)$/i.exec(text.trim());
             if (trade) {
                 const command = trade[1].toLowerCase(), value = trade[2].trim();
                 if (command === 'equip') this.perform({ type: 'equip', item: value });

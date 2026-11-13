@@ -2,7 +2,9 @@
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
-    const SLOTS = ['mainHand', 'offHand', 'bodyArmor', 'accessory'];
+    // head, hands and feet came with the armor sets (2026-11-13); reconcileSave() adds them to older saves.
+    const SLOTS = ['mainHand', 'offHand', 'head', 'bodyArmor', 'hands', 'feet', 'accessory'];
+    const ATTRIBUTES = ['strength', 'agility', 'intelligence'];
     const APPLIED = ['def', 'strength', 'intelligence', 'agility', 'maxHp'];
     class EquipmentMethods {
         itemDef(id) {
@@ -15,14 +17,20 @@
         }
         itemDefinitions() { return { ...this.data.itemDefinitions, ...((this.player && this.player.itemInstances) || {}) }; }
         itemName(id) { return (this.itemDef(id) || {}).name || id; }
+        /** "+2 physical damage, +1 STR" */
+        modifiersText(mods) {
+            const labels = { physicalDamage: 'physical damage', magicDamage: 'magic damage', maxHp: 'Max HP', critChance: 'crit chance', def: 'DEF', intelligence: 'INT', strength: 'STR', agility: 'AGI' };
+            return Object.entries(mods || {}).map(([k, n]) => `${n >= 0 ? '+' : ''}${k === 'critChance' ? `${Math.round(n * 100)}%` : n} ${labels[k] || k}`).join(', ');
+        }
         itemDetails(id) {
             const d = this.itemDef(id);
             if (!d) return '';
-            const labels = { physicalDamage: 'physical damage', magicDamage: 'magic damage', maxHp: 'Max HP', critChance: 'crit chance', def: 'DEF', intelligence: 'INT', strength: 'STR', agility: 'AGI' };
-            const stats = Object.entries(d.statModifiers || {}).map(([k, n]) => `${n >= 0 ? '+' : ''}${k === 'critChance' ? `${Math.round(n * 100)}%` : n} ${labels[k] || k}`).join(', ');
-            return [d.rarity, d.itemLevel ? `item level ${d.itemLevel}` : '', stats,
+            const fmt = (mods) => this.modifiersText(mods);
+            const set = d.set && (this.data.armorSets || {})[d.set];
+            const setText = set ? `${set.name} set (${Object.entries(set.bonuses).map(([n, mods]) => `${n} pieces: ${fmt(mods)}`).join('; ')})` : '';
+            return [d.rarity, d.itemLevel ? `item level ${d.itemLevel}` : '', d.tempered ? `tempered +${d.tempered}` : '', fmt(d.statModifiers),
                 (d.affixes || []).map(a => this.data.equipmentAffixes[a].name).join(', '),
-                d.effectText, d.sellable ? `Sell: ${d.sellPrice} Gold` : 'Cannot sell', d.description].filter(Boolean).join(' · ');
+                setText, d.effectText, d.sellable ? `Sell: ${d.sellPrice} Gold` : 'Cannot sell', d.description].filter(Boolean).join(' · ');
         }
         rarityForLevel(rarity, level) {
             const names = Object.keys(this.data.equipmentRarities);
@@ -76,8 +84,98 @@
         }
         equipmentModifiers(loadout = this.player.equipment) {
             const sum = {};
-            for (const id of Object.values(loadout || {})) for (const [stat, n] of Object.entries(this.itemDef(id)?.statModifiers || {})) sum[stat] = (sum[stat] || 0) + n;
+            const add = (mods) => { for (const [stat, n] of Object.entries(mods || {})) sum[stat] = (sum[stat] || 0) + n; };
+            for (const id of Object.values(loadout || {})) add(this.itemDef(id)?.statModifiers);
+            for (const s of this.armorSetBonuses(loadout)) for (const n of s.active) add(s.bonuses[n]);
             return sum;
+        }
+        /** The armor sets worn in `loadout` (data `armorSets`): pieces worn and which piece-count bonuses are active.
+         *  Bonuses are part of equipmentModifiers(), so equipping, the stat preview and save/load all count them. */
+        armorSetBonuses(loadout = this.player && this.player.equipment) {
+            const sets = this.data.armorSets || {}, worn = {};
+            for (const id of new Set(Object.values(loadout || {}))) {
+                const set = id && this.itemDef(id)?.set;
+                if (set && sets[set]) worn[set] = (worn[set] || 0) + 1;
+            }
+            return Object.entries(worn).map(([id, count]) => {
+                const set = sets[id], pieces = Object.values(this.data.itemDefinitions).filter((d) => d.set === id).length;
+                return { id, name: set.name, count, pieces, bonuses: set.bonuses, active: Object.keys(set.bonuses).filter((n) => count >= Number(n)) };
+            });
+        }
+
+        // ----- Weapon tempering (docs/design/ARMOR_AND_TEMPERING.md). A smith (smithingRules.forges) raises a main-hand
+        // weapon one rank: the tempered weapon is a new item record in player.itemInstances, id "<base> [+n]" (the
+        // generated-gear naming the save checks already know), so saves need no new layout.
+        /** The weapon id a temper request names: the main hand first, then the bag. */
+        temperTarget(name) {
+            const p = this.player, main = p && p.equipment && p.equipment.mainHand, lower = String(name || '').trim().toLowerCase();
+            if (!lower) return null;
+            if (main && (main.toLowerCase() === lower || this.itemName(main).toLowerCase() === lower)) return main;
+            return this.findInventoryItem(String(name));
+        }
+        temperBase(id) { const d = this.itemDef(id); return (d && d.temperBase) || id; }
+        /** Pure: why `item` cannot be tempered at `shopId` now, or null. Same check for the action and the menu. */
+        temperBlock(shopId, item) {
+            const access = this.merchantBlock(shopId);
+            if (access) return access;
+            const forge = ((this.data.smithingRules || {}).forges || {})[shopId];
+            if (!forge) return { code: 'NOT_A_FORGE', message: 'This merchant does not temper weapons.' };
+            const p = this.player, d = item && this.itemDef(item);
+            const owned = item && (p.inventory.includes(item) || (p.equipment || {}).mainHand === item);
+            if (!d || !owned || d.type !== 'weapon' || d.slot !== 'mainHand') return { code: 'NOT_TEMPERABLE', message: 'Only a weapon you carry can be tempered.' };
+            if (d.holy || d.kindle) return { code: 'NOT_TEMPERABLE', message: 'No smith can work holy steel. It grows with you instead.' };
+            const rank = (d.tempered || 0) + 1, rules = this.data.smithingRules.temper, cost = rules.ranks[rank - 1];
+            if (!cost) return { code: 'TEMPER_MAX', message: 'That weapon is tempered as far as it will go.' };
+            if (rank > forge.maxRank) return { code: 'TEMPER_FORGE_MAX', message: `This forge can only temper to +${forge.maxRank}.` };
+            if (p.gold < cost.gold) return { code: 'NOT_ENOUGH_GOLD', message: 'Not enough Gold.' };
+            const short = Object.entries(cost.materials || {}).find(([m, n]) => p.inventory.filter((i) => i === m).length < n);
+            if (short) return { code: 'TEMPER_MATERIALS', message: `Needs ${short[1]} ${short[0]}.` };
+            return null;
+        }
+        /** The record of `item` tempered one rank higher (pure). */
+        temperedRecord(item) {
+            const d = this.itemDef(item), base = this.temperBase(item), baseDef = this.itemDef(base) || d;
+            const rank = (d.tempered || 0) + 1, rules = this.data.smithingRules.temper;
+            const mods = { ...(baseDef.statModifiers || {}) };
+            const dmg = baseDef.damageType === 'magic' ? 'magicDamage' : 'physicalDamage';
+            mods[dmg] = (mods[dmg] || 0) + rules.damagePerRank * rank;
+            const attr = ATTRIBUTES.find((a) => (baseDef.statModifiers || {})[a]) || (dmg === 'magicDamage' ? 'intelligence' : 'strength');
+            const extra = (rules.attributeRanks || []).filter((r) => r <= rank).length;
+            if (extra) mods[attr] = (mods[attr] || 0) + extra;
+            return { ...JSON.parse(JSON.stringify(baseDef)), name: `${baseDef.name || base} +${rank}`, statModifiers: mods, tempered: rank, temperBase: base };
+        }
+        /** Pure: the tempering offers at a forge, for every weapon carried or held. */
+        temperOptions(shopId) {
+            const forge = ((this.data.smithingRules || {}).forges || {})[shopId];
+            if (!forge || !this.player) return [];
+            const p = this.player, ids = [...new Set([p.equipment && p.equipment.mainHand, ...p.inventory].filter(Boolean))];
+            return ids.filter((id) => { const d = this.itemDef(id); return d && d.type === 'weapon' && d.slot === 'mainHand' && !d.holy && !d.kindle; }).map((item) => {
+                const d = this.itemDef(item), rank = (d.tempered || 0) + 1, cost = this.data.smithingRules.temper.ranks[rank - 1] || null;
+                const reason = this.temperBlock(shopId, item);
+                const next = cost ? this.temperedRecord(item) : null;
+                const diff = next ? Object.fromEntries(Object.keys(next.statModifiers).map((k) => [k, next.statModifiers[k] - ((d.statModifiers || {})[k] || 0)]).filter(([, n]) => n)) : {};
+                return { type: 'temper', shopId, item, name: this.itemName(item), rank, cost, diff, equipped: p.equipment.mainHand === item,
+                    description: next ? `${next.name}: ${this.modifiersText(diff)}. Costs ${[`${cost.gold} Gold`, ...Object.entries(cost.materials || {}).map(([m, n]) => `${n} ${m}`)].join(', ')}.` : 'Fully tempered.',
+                    enabled: !reason, ...(reason ? { reason } : {}) };
+            });
+        }
+        temperWeapon(shopId, name) {
+            const item = this.temperTarget(name), block = this.temperBlock(shopId, item);
+            if (block) { this.refuse(block.code, block.message); return false; }
+            const p = this.player, record = this.temperedRecord(item), cost = this.data.smithingRules.temper.ranks[record.tempered - 1];
+            const id = `${record.temperBase} [+${record.tempered}]`;
+            p.gold -= cost.gold;
+            for (const [m, n] of Object.entries(cost.materials || {})) for (let i = 0; i < n; i++) p.inventory.splice(p.inventory.indexOf(m), 1);
+            p.itemInstances = p.itemInstances || {};
+            p.itemInstances[id] = record;
+            if (p.equipment.mainHand === item) {
+                const before = this.equipmentModifiers();
+                p.equipment.mainHand = id;
+                this.reapplyEquipment(before);
+            } else p.inventory.splice(p.inventory.indexOf(item), 1, id);
+            this.say(this.data.smithingRules.forges[shopId].line);
+            this.say(`Tempered: ${record.name} (${cost.gold} Gold). ${this.itemDetails(id)}`, { important: true, notice: 'item' });
+            return true;
         }
         equipmentAfter(item) {
             const def = this.itemDef(item), next = { ...this.player.equipment, [def.slot]: item };
@@ -145,7 +243,7 @@
                 slots[d.slot].candidates.push({ item, name: this.itemName(item), rarity: d.rarity || null,
                     description: this.itemDetails(item), diff: this.equipmentDiff(item), enabled: !reason, ...(reason ? { reason } : {}) });
             }
-            return { slots, modifiers: this.equipmentModifiers() };
+            return { slots, modifiers: this.equipmentModifiers(), sets: this.armorSetBonuses() };
         }
         equipStarters() {
             if (this.player.startersEquipped) return;
