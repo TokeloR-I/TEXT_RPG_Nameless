@@ -2188,6 +2188,22 @@
                 }
             } else if (what === 'barrels') {
                 for (let rx = X0 + 14; rx < X1 - 8; rx += 18) barrel({ base: S }, rx, B - 2, seed + rx);
+            } else if (what === 'hay') {                                      // the sheep shelter: hay heaped against the back wall
+                const h = shape(); for (let k = 0; k < 4; k++) ellipse(h, S, X0 + 18 + k * ((W - 36) / 3), B - 10, (W - 20) / 6 + 4, 12); fill(S, h, PAL.straw, { tex: 0.7, seed, outline: NP.oak[0] });
+                for (const [i] of h.px) if (hash(i, 3, seed) < 0.15) put(S, i % S.w, (i / S.w) | 0, PAL.straw[PAL.straw.length - 1]);
+            } else if (what === 'loom') {                                     // an upright loom, warp weighted with clay rings; baskets of wool
+                const lx = X0 + W * 0.3, lw = Math.min(70, W * 0.45), ly = eave + 6;
+                const fr = shape(); box(fr, S, lx, ly, 4, B - ly, -0.2); box(fr, S, lx + lw, ly, 4, B - ly, -0.2); box(fr, S, lx - 2, ly, lw + 8, 4, 0.3); fill(S, fr, NP.oak.slice(1, 6), { outline: NP.oak[0] });
+                for (let px = lx + 6; px < lx + lw; px += 2) for (let py = ly + 4; py < B - 12; py++) put(S, px, py, py < ly + 26 ? (hash(px >> 3, 1, seed) < 0.5 ? NP.madder[4] : NP.wool[4]) : NP.wool[3]);
+                for (let px = lx + 6; px < lx + lw; px += 6) { const r = shape(); ellipse(r, S, px, B - 10, 2.6, 2.6); fill(S, r, CLAY.slice(2), { outline: CLAY[0] }); }
+                for (const bx of [X1 - 24, X1 - 44]) { const bk = shape(); box(bk, S, bx - 8, B - 12, 16, 11, 0.2); fill(S, bk, PAL.straw.slice(0, 5), { tex: 0.6, seed: seed + bx, outline: NP.oak[0] }); const w = shape(); ellipse(w, S, bx, B - 13, 7, 4); fill(S, w, NP.wool.slice(2), { tex: 0.6, seed: seed + bx + 1, outline: NP.wool[0] }); }
+            } else if (what === 'bench') {                                    // the völva's lean-to: a bench with a fleece, a basket, a staff, herbs drying
+                const bn = shape(); box(bn, S, X0 + W * 0.3, B - 16, W * 0.45, 6, 0.3); fill(S, bn, NP.plank.slice(2), { outline: NP.oak[0] });
+                for (const lx of [X0 + W * 0.32, X0 + W * 0.72]) rectFill(S, Math.round(lx), B - 10, 3, 10, NP.oak[1]);
+                const fl = shape(); ellipse(fl, S, X0 + W * 0.6, B - 18, 16, 5); fill(S, fl, NP.wool.slice(2), { tex: 0.7, seed, outline: NP.wool[0] });
+                const bk = shape(); box(bk, S, X0 + 14, B - 14, 16, 13, 0.2); fill(S, bk, PAL.straw.slice(0, 5), { tex: 0.6, seed: seed + 2, outline: NP.oak[0] });
+                const st = shape(); thick(st, S, X1 - 16, B, X1 - 26, eave + 4, 1.2); fill(S, st, NP.oak.slice(2), { outline: NP.oak[0] });
+                for (let k = 0; k < 5; k++) { const hx = X0 + 20 + k * ((W - 40) / 4); for (let j = 0; j < 12; j++) put(S, hx + (j & 1) - 0.5, eave + 7 + j, j < 3 ? NP.oak[2] : [[100, 140, 70], [150, 120, 180], [200, 190, 120]][k % 3]); }
             } else {                                                          // tools: tongs, hammers and blades on the wall, a grindstone
                 for (let rx = X0 + 10; rx < X1 - 8; rx += 9) { const hgt = 14 + hash(rx, 1, seed) * 10; rectFill(S, rx, eave + 8, 2, hgt, hash(rx, 2, seed) < 0.5 ? PAL.iron[3] : NP.oak[3]); rectFill(S, rx - 1, eave + 8, 4, 3, PAL.iron[4]); }
                 const gs = shape(); ellipse(gs, S, X1 - 22, B - 12, 9, 9); fill(S, gs, NP.cliff.slice(2), { outline: NP.cliff[0] });
@@ -2322,6 +2338,662 @@
         }
     }
 
-    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr });
-    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr };
+    // ---------------------------------------------------------------------
+    // Act II (Tokelo's pictures, 2026-11-13): the Silent Field, Birkholt and Rúnadal.
+    // ---------------------------------------------------------------------
+    const kit = SA.kit;
+    /** Which ground lies under every cell: the cell's own ground, the ground an object stands on, or what its
+     *  open neighbours vote for. Shared by the three Act II painters. */
+    function groundGrid(map, nameAt, GROUND, BASE, dflt) {
+        const cw = map.tiles[0].length, ch = map.tiles.length, N = (x, y) => nameAt(map, x, y), under = new Array(cw * ch);
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { const n = N(x, y); under[y * cw + x] = GROUND.has(n) ? n : BASE[n] || null; }
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (!under[y * cw + x]) {
+            const votes = {};
+            for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) { const n = N(x + dx, y + dy); if (GROUND.has(n)) votes[n] = (votes[n] || 0) + 1; }
+            under[y * cw + x] = Object.keys(votes).sort((a, b) => votes[b] - votes[a] || (a < b ? -1 : 1))[0] || dflt;
+        }
+        const U = (x, y) => (x < 0 || y < 0 || x >= cw || y >= ch ? null : under[y * cw + x]);
+        const cells = (f) => { const a = new Float32Array(cw * ch); for (let i = 0; i < a.length; i++) a[i] = f(under[i]); return field(a, cw, ch); };
+        return { cw, ch, N, under, U, cells };
+    }
+    /** Bare branches against the sky: a trunk that forks, and forks again. */
+    const BARK = R(['#120f0d', '#1d1915', '#29231d', '#362e26', '#443a30', '#54483c', '#655849']);
+    function bareTree(img, x, gy, seed, s = 1) {
+        const t = shape();
+        thick(t, img, x, gy - 30 * s, x, gy, 4.2 * s);
+        thick(t, img, x - 1, gy - 4, x - 10 * s, gy + 2, 2 * s); thick(t, img, x + 1, gy - 4, x + 10 * s, gy + 1, 2 * s);
+        const limb = (ax, ay, a, len, w, depth) => {
+            const bx = ax + Math.cos(a) * len, by = ay + Math.sin(a) * len;
+            thick(t, img, ax, ay, bx, by, w);
+            if (depth <= 0) return;
+            const forks = depth > 2 ? 2 : 2 + (hash(ax | 0, ay | 0, seed) < 0.4 ? 1 : 0);
+            for (let f = 0; f < forks; f++) limb(bx, by, a + (f - (forks - 1) / 2) * 0.75 + (hash(ax | 0, f + depth, seed) - 0.5) * 0.5, len * (0.62 + hash(f, depth, seed + (ax | 0)) * 0.18), Math.max(0.5, w * 0.62), depth - 1);
+        };
+        const top = gy - 30 * s;
+        limb(x, top + 6 * s, -Math.PI / 2 - 0.85, 18 * s, 2.6 * s, 3); limb(x, top + 2 * s, -Math.PI / 2 + 0.8, 19 * s, 2.6 * s, 3);
+        limb(x, top, -Math.PI / 2 - 0.1, 16 * s, 2.4 * s, 3); limb(x, top + 12 * s, -Math.PI / 2 + 1.3, 14 * s, 1.8 * s, 2);
+        for (const [i] of t.px) { const px = i % img.w, py = (i / img.w) | 0; t.px.set(i, t.px.get(i) * 0.8 + (vnoise(px / 2, py / 5, seed) - 0.5) * 0.7); }
+        fill(img, t, BARK, { outline: BARK[0] });
+    }
+    /** A standing stone, mossy at the foot; `h` tall, `w` half-wide; `cut`: 'knot', 'rune', or nothing. */
+    function mossStone(S, cx, gy, seed, h, w, cut, cap = RP.moss) {
+        shadow(S, cx + 4, gy + 1, w + 4, 4, 0.45);
+        const s = shape(); poly(s, S, [[cx - w, gy], [cx - w - 1, gy - h * 0.55], [cx - w + 2, gy - h * 0.9], [cx - 1, gy - h], [cx + w - 2, gy - h * 0.92], [cx + w, gy - h * 0.5], [cx + w, gy]],
+            (px, py) => ((px - cx) / w) * -0.55 + (vnoise(px / 3, py / 4, seed) - 0.5) * 0.45);
+        fill(S, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
+        for (const [i] of s.px) {
+            const px = i % S.w, py = (i / S.w) | 0;
+            if ((py > gy - 7 && vnoise(px / 2, py / 2, seed + 3) > 0.45) || (!s.px.has(i - S.w * 2) && vnoise(px / 3, 0, seed + 4) > 0.5) || fbm(px / 4, py / 4, seed + 5) > 0.72) put(S, px, py, cap[1 + ((px + py) % 3)]);
+            if (hash(px >> 1, py >> 2, seed + 6) < 0.05) put(S, px, py, NP.cliff[1]);
+        }
+        if (cut === 'knot') for (let py = Math.round(gy - h * 0.8); py < gy - h * 0.25; py++) {
+            const a = Math.sin((py - gy) / 3) * (w * 0.5);
+            for (const sg of [-1, 1]) { const px = Math.round(cx + sg * a); put(S, px, py, NP.cliff[0]); put(S, px + 1, py, NP.cliff[7], 0.6); }
+        }
+        if (cut === 'rune') {                                     // one rune, cut deep: a stem and three pairs of branches
+            const top = Math.round(gy - h * 0.82), bot = Math.round(gy - h * 0.18), cut2 = (x0, y0, x1, y1) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= n; k++) { const px = Math.round(x0 + ((x1 - x0) * k) / n), py = Math.round(y0 + ((y1 - y0) * k) / n); put(S, px, py, NP.cliff[0]); put(S, px + 1, py, NP.cliff[0]); put(S, px + 2, py, NP.cliff[6], 0.5); } };
+            cut2(cx, top, cx, bot);
+            for (let k = 0; k < 3; k++) { const y0 = top + 3 + k * Math.round((bot - top) / 4); cut2(cx, y0 + 6, cx - w * 0.6, y0); cut2(cx, y0 + 6, cx + w * 0.6, y0); }
+        }
+        for (let k = 0; k < 3; k++) { const st = shape(); ellipse(st, S, cx - w + k * w, gy + 1 - (k & 1), 3 + hash(k, 1, seed) * 2, 2.2); fill(S, st, NP.cliff.slice(2), { outline: NP.cliff[0] }); }
+    }
+    /** A sunlit autumn day: warmer and a touch brighter, warm light round fires and lit windows. */
+    function autumnDay(layers, glows, warm = 1) {
+        for (const im of layers) { const d = im.data; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { d[i] = Math.min(255, d[i] * (1 + 0.05 * warm) + 4); d[i + 1] = Math.min(255, d[i + 1] * (1 + 0.025 * warm) + 2); d[i + 2] = d[i + 2] * (1 - 0.04 * warm); } }
+        for (const g of glows) {
+            const r = g.r, a = g.a == null ? 0.5 : g.a, ry = Math.round(r * 0.8);
+            for (let yy = -ry; yy <= ry; yy++) for (let xx = -r; xx <= r; xx++) {
+                const x = Math.round(g.x) + xx, y = Math.round(g.y) + yy, dd = Math.hypot(xx, yy / 0.8) / r;
+                if (dd >= 1 || x < 0 || y < 0 || x >= layers[0].w || y >= layers[0].h) continue;
+                const w = (1 - dd) * (1 - dd) * a * 0.6;
+                for (const im of layers) { const i = (y * im.w + x) * 4, d = im.data; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] = Math.min(255, d[i + j] + WARM[j] * w * 0.4); }
+            }
+        }
+    }
+
+    // --- The Silent Field ---
+    const FIELD = R(['#33333c', '#41414a', '#504f58', '#605f68', '#71707a', '#83828b', '#97959e', '#acaab1', '#c2c0c5']);
+    const TRACK = R(['#33261d', '#433226', '#544030', '#664e3b', '#785d47', '#8a6d54', '#9c7e63']);
+    const SOIL = R(['#1a1310', '#241a15', '#2f231c', '#3b2c23', '#47362b', '#534033']);
+    const S_GROUND = new Set(['tall_grass', 'path', 'torn_earth', 'bridge']);
+    const S_BASE = { stream: 'stream', rock: 'tall_grass', dead_tree: 'tall_grass', grave: 'tall_grass', memorial_stone: 'torn_earth', round_stone: 'torn_earth',
+        bell_tower: 'tall_grass', field_tent: 'path', relic: 'tall_grass', war_banner: 'tall_grass' };
+    function silentField(map, nameAt) {
+        const L = layersFor(map), seed = 2207, img = L.base, G = groundGrid(map, nameAt, S_GROUND, S_BASE, 'tall_grass'), { cw, ch, N, U } = G;
+        const pathF = G.cells((u) => (u === 'path' || u === 'bridge' ? 1 : 0)), earthF = G.cells((u) => (u === 'torn_earth' ? 1 : 0)), waterF = G.cells((u) => (u === 'stream' ? 1 : 0));
+        const kind = new Uint8Array(img.w * img.h);          // 0 grass, 1 path, 2 earth, 3 water, 4 bank
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const i = y * img.w + x, n1 = fbm(x / 22, y / 22, seed + 1), n2 = vnoise(x / 5, y / 5, seed + 2);
+            const wet = waterF(x, y) + (fbm(x / 14, y / 10, seed + 3) - 0.5) * 0.35;
+            if (wet > 0.55) {
+                kind[i] = 3;
+                let t = 0.3 + (fbm(x / 30, y / 6, seed + 4) - 0.5) * 0.3 + (vnoise(x / 12, y / 1.8, seed + 5) > 0.78 ? 0.18 : 0);
+                put(img, x, y, pick(NP.water, t)); put(img, x, y, [96, 96, 110], 0.35);
+                if (wet < 0.62) put(img, x, y, SOIL[2], (0.62 - wet) * 9);
+                continue;
+            }
+            if (wet > 0.42) { kind[i] = 4; put(img, x, y, pick(NP.cliff, 0.25 + n1 * 0.45 + hash(x >> 1, y >> 1, seed) * 0.15)); if (vnoise(x / 3, y / 3, seed + 6) > 0.62) put(img, x, y, RP.moss[1 + (x & 1)]); continue; }
+            if (pathF(x, y) + (n1 - 0.5) * 0.4 + (n2 - 0.5) * 0.12 > 0.5) {
+                kind[i] = 1; put(img, x, y, pick(TRACK, 0.35 + fbm(x / 9, y / 9, seed + 7) * 0.45 + hash(x, y, seed + 8) * 0.15));
+                if (hash(x, y, seed + 9) < 0.03) put(img, x, y, NP.rock[5]);
+                continue;
+            }
+            if (earthF(x, y) + (n1 - 0.5) * 0.35 + (n2 - 0.5) * 0.1 > 0.5) {
+                kind[i] = 2; put(img, x, y, pick(SOIL, 0.3 + fbm(x / 7, y / 7, seed + 10) * 0.5 + hash(x, y, seed + 11) * 0.2));
+                if (hash(x >> 1, y >> 1, seed + 12) < 0.04) put(img, x, y, SOIL[5]);
+                continue;
+            }
+            kind[i] = 0;
+            put(img, x, y, pick(FIELD, 0.05 + fbm(x / 30, y / 14, seed + 13) * 0.45 + (n2 - 0.5) * 0.25));
+        }
+        for (let y = 1; y < img.h - 1; y++) for (let x = 1; x < img.w - 1; x++) {
+            const i = y * img.w + x;
+            if ((kind[i] === 1 || kind[i] === 2) && kind[i - img.w] === 0) put(img, x, y, FIELD[1], 0.6);
+            if (kind[i] === 3 && kind[i - img.w] !== 3) put(img, x, y, NP.water[0], 0.7);
+        }
+        // The grass: thousands of pale stems leaning east in the wind, a plume on each; white flowers in the hollows.
+        for (let n = 0; n < (img.w * img.h) / 7; n++) {
+            const x = Math.floor(hash(n, 7, seed) * img.w), y = Math.floor(hash(n, 8, seed) * img.h), k = kind[y * img.w + x], r = hash(n, 9, seed);
+            if (k !== 0 || fbm(x / 14, y / 10, seed + 15) < 0.32 + r * 0.25) continue;
+            if (r < 0.012) { for (const [dx, dy] of [[0, 0], [2, 1], [-1, 2]]) { put(img, x + dx, y + dy, [232, 228, 214]); put(img, x + dx, y + dy + 1, [196, 180, 120], 0.6); } continue; }
+            const h = 8 + hash(n, 10, seed) * 11, lean = 0.25 + vnoise(x / 60, y / 60, seed + 14) * 0.35, t0 = 0.3 + hash(n, 11, seed) * 0.4 + (fbm(x / 40, y / 20, seed + 16) - 0.5) * 0.3;
+            for (let j = 0; j < h; j++) put(img, x + lean * j * (j / h), y - j, pick(FIELD, t0 + (j / h) * 0.3 - 0.15));
+            const px = x + lean * h, py = y - h;
+            put(img, px, py, FIELD[8]); put(img, px + 1, py, FIELD[7]); put(img, px + 1, py + 1, FIELD[7]); put(img, px + 2, py + 1, FIELD[6]);
+            put(img, x, y + 1, FIELD[0], 0.5);
+        }
+        // The round stone at the heart of the ring: a flat wheel of eight spokes in a kerb of flags.
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows }, seen = new Set();
+        const open = (x, y) => S_GROUND.has(N(x, y)), behind = (x, y) => open(x, y - 1) || open(x - 1, y - 1) || open(x + 1, y - 1);
+        const anyBehind = (b) => { for (let xx = b.x0; xx <= b.x1; xx++) if (open(xx, b.y0 - 1)) return true; return false; };
+        const BLOCKS = {
+            round_stone: (b) => ({ y: b.y0 - 1, draw: () => roundStone(img, (b.x0 + b.x1 + 1) * C / 2, (b.y0 + b.y1 + 1) * C / 2, seed) }),
+            bell_tower: (b) => ({ y: b.y1 + 0.9, draw: () => fieldBell(L, b, seed + 5, anyBehind(b)) }),
+            field_tent: (b) => ({ y: b.y1 + 0.9, draw: () => fieldTent(L, b, seed + 9, anyBehind(b)) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P = {
+                dead_tree: () => tall(L, [cx - 90, gy - 150, cx + 90, gy + 8], y * C, behind(x, y), (S) => { shadow(S, cx + 8, gy + 1, 24, 6, 0.4); bareTree(S, cx, gy, seed + x * 5 + y, 1.45 + hash(x, y, seed) * 0.4); }),
+                grave: () => tall(L, [cx - 24, gy - 40, cx + 30, gy + 8], y * C, behind(x, y), (S) => grave(S, cx + (hash(x, y, seed) - 0.5) * 6, gy, seed + x * 3 + y)),
+                memorial_stone: () => tall(L, [cx - 24, gy - 76, cx + 28, gy + 6], y * C, behind(x, y), (S) => mossStone(S, cx, gy, seed + x * 7 + y, 58 + hash(x, y, seed) * 10, 13, null)),
+                rock: () => stone(img, cx, gy - 9, 13 + hash(x, y, seed) * 4, 10, seed + x + y, NP.cliff, RP.moss, 0.1),
+                relic: () => relic(img, cx, gy, seed + x),
+                war_banner: () => tall(L, [cx - 14, gy - 56, cx + 24, gy + 4], y * C, behind(x, y), (S) => markerSpear(S, cx, gy, seed + x * 3 + y)),
+                bridge: () => fieldBridge(img, x, y, N, seed)
+            }[n];
+            if (P) items.push({ x, y: y + (n === 'dead_tree' ? 0.8 : n === 'bridge' ? -0.5 : 0.5), draw: P });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // Mist lying in the hollows and drifting over the field.
+        for (const im of [img, L.over]) { const d = im.data; for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) { const i = (y * im.w + x) * 4; if (!d[i + 3]) continue; const m = Math.max(0, fbm(x / 90, y / 26, seed + 40) - 0.5) * 0.9 + Math.max(0, vnoise(x / 40, y / 12, seed + 41) - 0.7) * 0.6; if (m > 0) for (let j = 0; j < 3; j++) d[i + j] = d[i + j] + ([196, 196, 206][j] - d[i + j]) * Math.min(0.55, m); } }
+        edgeShade(img, 16, 0.32);
+        overcast([img, L.over], glows);
+        const water = [];
+        for (let i = 0; i < kind.length; i += 5) if (kind[i] === 3 && hash(i, 0, seed) < 0.1) water.push(i);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water, animate: animator(flames, smoke) };
+    }
+    function roundStone(img, mx, my, seed) {
+        const k = shape(); ellipse(k, img, mx, my, 30, 19); fill(img, k, NP.cliff.slice(1, 6), { tex: 0.4, seed, outline: NP.cliff[0] });
+        for (let a = 0; a < 16; a++) { const t = (a / 16) * Math.PI * 2; for (let r = 21; r < 30; r++) put(img, mx + Math.cos(t) * r, my + Math.sin(t) * r * 0.63, NP.cliff[1]); }
+        const d = shape(); ellipse(d, img, mx, my, 20, 12.5); fill(img, d, NP.cliff.slice(3), { tex: 0.3, seed: seed + 1, outline: NP.cliff[1] });
+        for (let r = 14; r < 16; r++) for (let a = 0; a < 200; a++) { const t = (a / 200) * Math.PI * 2; put(img, mx + Math.cos(t) * r, my + Math.sin(t) * r * 0.62, NP.cliff[1]); }
+        for (let s = 0; s < 8; s++) { const t = (s / 8) * Math.PI * 2 + 0.2; for (let r = 2; r < 13; r++) put(img, mx + Math.cos(t) * r, my + Math.sin(t) * r * 0.62, NP.cliff[1]); }
+        for (let a = 0; a < 40; a++) { const t = (a / 40) * Math.PI * 2; put(img, mx + Math.cos(t) * 31, my + Math.sin(t) * 20, SOIL[0]); }
+        for (let px = mx - 30; px < mx - 10; px++) if (hash(px, 1, seed) < 0.6) put(img, px, my + 8 + Math.round(Math.sin(px / 3) * 2), SOIL[5]);   // where the bar went in
+    }
+    function grave(img, cx, gy, seed) {
+        shadow(img, cx + 4, gy + 1, 10, 3, 0.45);
+        const h = 24 + hash(seed, 2, 1) * 8, s = shape();
+        poly(s, img, [[cx - 9, gy], [cx - 9, gy - h + 7], [cx - 5, gy - h], [cx + 5, gy - h], [cx + 9, gy - h + 7], [cx + 9, gy]], (px, py) => ((px - cx) / 9) * -0.6 + (vnoise(px / 2, py / 3, seed) - 0.5) * 0.4);
+        fill(img, s, NP.cliff.slice(1), { outline: NP.cliff[0] });
+        for (let k = 0; k < 4; k++) for (let px = cx - 5; px < cx + 5; px++) if (hash(px, k, seed) < 0.7) put(img, px, gy - h + 8 + k * 4, NP.cliff[1]);
+        for (const [i] of s.px) { const px = i % img.w, py = (i / img.w) | 0; if (py > gy - 5 && vnoise(px / 2, py, seed + 3) > 0.45) put(img, px, py, RP.moss[1 + (px & 1)]); }
+        const b = shape(); box(b, img, cx - 12, gy - 3, 24, 5, 0.2); fill(img, b, NP.cliff.slice(2, 6), { tex: 0.5, seed: seed + 1, outline: NP.cliff[0] });
+        if (hash(seed, 3, 1) < 0.5) { const s2 = shape(); poly(s2, img, [[cx + 10, gy + 2], [cx + 10, gy - 7], [cx + 13, gy - 10], [cx + 16, gy - 7], [cx + 16, gy + 2]], (px) => ((px - cx - 13) / 3) * -0.6); fill(img, s2, NP.cliff.slice(1), { outline: NP.cliff[0] }); }
+    }
+    function relic(img, cx, gy, seed) {
+        shadow(img, cx + 3, gy + 1, 16, 4, 0.45);
+        const w = shape(); for (let a = 0; a < 360; a += 3) { const t = (a * Math.PI) / 180; sset(w, img, cx + 6 + Math.cos(t) * 10, gy - 11 + Math.sin(t) * 10, Math.cos(t) * -0.4); sset(w, img, cx + 6 + Math.cos(t) * 9, gy - 11 + Math.sin(t) * 9, 0); }
+        for (let a = 0; a < 360; a += 45) thick(w, img, cx + 6, gy - 11, cx + 6 + Math.cos((a * Math.PI) / 180) * 9, gy - 11 + Math.sin((a * Math.PI) / 180) * 9, 0.6, -0.2);
+        fill(img, w, NP.plank.slice(1, 6), { outline: NP.oak[0] });
+        const sh = shape(); ellipse(sh, img, cx - 4, gy - 9, 9, 9); fill(img, sh, NP.wool.slice(0, 4), { tex: 0.5, seed, outline: NP.oak[0] });
+        for (const [i] of sh.px) { const px = i % img.w, py = (i / img.w) | 0; if ((px - cx + 4) * (py - gy + 9) > 0 && hash(px >> 1, py >> 1, seed) < 0.75) put(img, px, py, NP.madder[2 + ((px + py) & 1)], 0.6); }
+        const boss = shape(); ellipse(boss, img, cx - 4, gy - 9, 2.5, 2.5); fill(img, boss, PAL.iron.slice(2), { outline: PAL.iron[0] });
+        const sp = shape(); thick(sp, img, cx - 18, gy + 2, cx + 14, gy - 4, 0.8); fill(img, sp, NP.oak.slice(2), { outline: NP.oak[0] });
+        for (let k = 0; k < 5; k++) put(img, cx + 14 + k, gy - 4 - k * 0.2, PAL.iron[3 + (k & 1)]);
+    }
+    function markerSpear(S, cx, gy, seed) {
+        shadow(S, cx + 3, gy + 1, 5, 2, 0.4);
+        const p = shape(); thick(p, S, cx, gy, cx + 1, gy - 46, 0.9); fill(S, p, NP.oak.slice(2), { outline: NP.oak[0] });
+        const hd = shape(); poly(hd, S, [[cx - 1, gy - 46], [cx + 3, gy - 46], [cx + 1, gy - 54]], () => 0.2); fill(S, hd, PAL.iron.slice(2), { outline: PAL.iron[0] });
+        for (let py = gy - 44; py < gy - 22; py++) {                   // a strip of red cloth, faded, torn into tails
+            const f = (py - gy + 44) / 22, len = 14 - f * 6 + Math.sin(py * 1.7 + seed) * 2;
+            for (let k = 0; k < len; k++) { if (f > 0.5 && (k + py) % 5 === 0) continue; put(S, cx + 2 + k, py + Math.sin((k + seed) / 3) * 1.5, pick(NP.madder, 0.35 + (1 - f) * 0.3 + (k / len) * 0.2)); }
+        }
+    }
+    function fieldBridge(img, x, y, N, seed) {
+        const X0 = x * C, Y0 = y * C, top = N(x, y - 1) !== 'bridge', bot = N(x, y + 1) !== 'bridge', left = N(x - 1, y) !== 'bridge';
+        if (!left) return;                                             // drawn once per row, from its left cell
+        const BX = X0 + 6, BW = 52, by0 = Y0 - (top ? 4 : 0), by1 = Y0 + C + (bot ? 4 : 0);
+        for (let py = by0; py < by1 + 3; py++) for (let px = BX - 1; px < BX + BW + 2; px++) put(img, px + 3, py + 2, NP.water[0], 0.3);
+        for (let py = by0; py < by1; py++) for (let px = BX; px < BX + BW; px++) {
+            const u = (py - by0) % 6, b = Math.floor((py - by0) / 6) + y * 7;
+            put(img, px, py, u === 0 ? NP.plank[0] : pick(NP.plank, 0.42 + (hash(b, 1, seed) - 0.5) * 0.35 + (vnoise(px / 6, b, seed) - 0.5) * 0.25));
+        }
+        for (const px of [BX - 2, BX + BW]) { for (let py = by0 - 10; py < by1; py++) put(img, px, py, py % 16 < 10 ? NP.oak[2] : NP.oak[1]); for (let py = by0 - 10; py < by1; py++) put(img, px + 1, py, NP.oak[0]); }
+        for (const px of [BX - 3, BX + BW - 1]) for (let py = by0 - 12; py < by1; py += 16) { rectFill(img, px, py, 4, 12, NP.oak[3]); rectFill(img, px, py, 4, 1, NP.oak[6]); }
+    }
+    /** The field bell on its ruined footing: a stone base, the bell under its little roof, and the fallen timbers of
+     *  the old frame heaped against the east side. */
+    function fieldBell(L, b, seed, overhead) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, B = (b.y1 + 1) * C - 4, mx = X0 + 46;
+        tall(L, [X0 - 20, B - 150, X1 + 20, B + 10], b.y0 * C + 8, overhead, (S) => {
+            shadow(S, (X0 + X1) / 2 + 8, B + 2, (X1 - X0) / 2 + 6, 8, 0.5);
+            const H = 34;
+            RK.blocks(S, X0 + 8, B - H, 82, H, seed, NP.cliff);
+            for (let px = X0 + 8; px < X0 + 90; px++) { put(S, px, B - H, NP.cliff[7]); if (vnoise(px / 4, 0, seed) > 0.55) put(S, px, B - H - 1, RP.moss[2]); }
+            for (let k = 0; k < 3; k++) RK.blocks(S, X0 + 18 + k * 8, B - 6 + k * 3, 30, 4, seed + k, NP.cliff);   // the steps
+            for (let k = 0; k < 9; k++) { const st = shape(); ellipse(st, S, X0 + 92 + hash(k, 1, seed) * 30, B - 4 - hash(k, 2, seed) * 14, 4 + hash(k, 3, seed) * 3, 3); fill(S, st, NP.cliff.slice(2), { outline: NP.cliff[0] }); }
+            const snow = NP.snow; NP.snow = SHINGLE; try { bellTower(S, mx, B - H + 2, seed); } finally { NP.snow = snow; }
+            for (const [ax, ay, bx2, by2] of [[X0 + 74, B - 92, X0 + 116, B - 6], [X0 + 84, B - 70, X0 + 124, B - 22], [X0 + 96, B - 40, X0 + 128, B - 4], [X0 + 70, B - 54, X0 + 112, B - 50], [X0 + 100, B - 64, X0 + 104, B - 2]]) {
+                const t = shape(); thick(t, S, ax, ay, bx2, by2, 2.4); fill(S, t, NP.plank.slice(1), { tex: 0.4, seed: seed + ax, outline: NP.oak[0] });
+            }
+            for (let px = X0 + 8; px < X0 + 90; px++) if (hash(px, 9, seed) < 0.3) put(S, px, B - H + 4 + (px % 9), RP.moss[1]);
+        });
+    }
+    /** The field hospital: a long tent on a frame of poles, the canvas rotted to rags and hanging in tails, a red
+     *  mark faded on the roof; cots in a row inside, a table of bowls at the end. */
+    function fieldTent(L, b, seed, overhead) {
+        const X0 = b.x0 * C + 6, X1 = (b.x1 + 1) * C - 6, B = (b.y1 + 1) * C - 6, W = X1 - X0, eave = B - 64, ridge = eave - 62;
+        tall(L, [X0 - 20, ridge - 20, X1 + 20, B + 10], b.y0 * C + 8, overhead, (S) => {
+            shadow(S, (X0 + X1) / 2 + 8, B + 2, W / 2 + 8, 8, 0.5);
+            for (let py = eave; py < B; py++) for (let px = X0 + 4; px < X1 - 4; px++) put(S, px, py, pick(TRACK, 0.15 + (py - eave) / (B - eave) * 0.3 + hash(px >> 2, py >> 2, seed) * 0.08));
+            for (let k = 0; k < 3; k++) {                                     // cots
+                const cx = X0 + 30 + k * ((W - 120) / 2), cy = B - 22;
+                const f = shape(); box(f, S, cx - 18, cy - 8, 36, 12, 0.2); fill(S, f, NP.plank.slice(2), { outline: NP.oak[0] });
+                const bl = shape(); box(bl, S, cx - 17, cy - 10, 34, 9, 0.3); fill(S, bl, NP.wool.slice(1), { tex: 0.5, seed: seed + k, outline: NP.wool[0] });
+                for (const lx of [cx - 17, cx + 15]) rectFill(S, lx, cy + 4, 2, 6, NP.oak[1]);
+            }
+            const tx = X1 - 44, ty = B - 18, t = shape(); box(t, S, tx - 18, ty - 10, 38, 10, 0.3); fill(S, t, NP.plank.slice(2), { outline: NP.oak[0] });
+            for (const lx of [tx - 16, tx + 16]) rectFill(S, lx, ty, 3, 12, NP.oak[1]);
+            for (const [dx, c] of [[-10, PAL.iron[3]], [0, NP.wool[3]], [9, NP.plank[4]]]) { const bw = shape(); ellipse(bw, S, tx + dx, ty - 11, 4, 2); fill(S, bw, [c, c, c], { outline: NP.oak[0] }); }
+            for (let k = 0; k < 4; k++) put(S, tx - 4 + k * 3, ty - 9, NP.madder[2]);
+            for (const px of [X0, X0 + W / 3, X0 + (2 * W) / 3, X1 - 4]) { const p = shape(); box(p, S, Math.round(px), ridge + 10, 4, B - ridge - 10, -0.2); fill(S, p, NP.oak.slice(1, 6), { outline: NP.oak[0] }); }
+            const fr = shape(); thick(fr, S, X0 - 6, eave, X1 + 6, eave, 1.4); thick(fr, S, X0 + 2, ridge + 10, X1 - 2, ridge + 10, 1.4); fill(S, fr, NP.oak.slice(2), { outline: NP.oak[0] });
+            // The canvas: a pitched sheet from the ridge pole to the eaves, torn through; tails hang below the eave.
+            for (let py = ridge; py < eave + 30; py++) {
+                const f = (py - ridge) / (eave - ridge);
+                for (let px = Math.round(X0 - 8 - Math.min(1, f) * 6); px < X1 + 8 + Math.min(1, f) * 6; px++) {
+                    const tear = fbm(px / 7, py / 9, seed + 1) > 0.66 - (f > 1 ? 0 : 0.05);
+                    if (f > 1) { const tail = (Math.floor(px / 7) * 13 + seed) % 31, len = 8 + (tail % 23); if (py - eave > len || (px % 7 === 0)) continue; }
+                    if (tear) continue;
+                    let c = pick(NP.wool, 0.55 + (1 - Math.min(1, f)) * 0.25 + (vnoise(px / 4, py / 12, seed + 2) - 0.5) * 0.35 - (f > 1 ? 0.2 : 0));
+                    put(S, px, py, c);
+                    if (fbm(px / 12, py / 10, seed + 3) > 0.68) put(S, px, py, [116, 96, 70], 0.35);                         // stains
+                    const rx = px - (X0 + W * 0.35), ry = py - (ridge + (eave - ridge) * 0.5);
+                    if ((Math.abs(rx) < 4 && Math.abs(ry) < 15) || (Math.abs(ry) < 4 && Math.abs(rx) < 15)) put(S, px, py, NP.madder[3], 0.55);   // the faded red mark
+                }
+            }
+            for (let px = X0 - 8; px < X1 + 8; px++) if (alphaAt(S, px, ridge)) put(S, px, ridge, NP.oak[1]);
+        });
+    }
+
+    // --- Birkholt ---
+    const MEAD = R(['#2a2612', '#383217', '#48401c', '#584e21', '#6a5c27', '#7c6a2e', '#8e7a36', '#a08a40']);
+    const BARLEY = R(['#3a2608', '#5c3e0e', '#7e5814', '#a0741e', '#bf8f2c', '#d6a83e', '#e8c25a']);
+    const BIRCH = R(['#3a1606', '#5c240a', '#82380e', '#a64e14', '#c66a1c', '#de8a2c', '#eeac46']);
+    const B_GROUND = new Set(['meadow', 'path']);
+    const B_BASE = { barley: 'field', herbs: 'garden', fence: 'meadow', house: 'meadow', sheep_shelter: 'meadow', sheep: 'meadow', trough: 'meadow', loom_shed: 'meadow',
+        drying_rack: 'meadow', standing_stone: 'meadow', rock: 'meadow', memorial_cloth: 'meadow', barrel: 'meadow', cart: 'path', birch: 'meadow' };
+    function birkholt(map, nameAt) {
+        const L = layersFor(map), seed = 3109, img = L.base, G = groundGrid(map, nameAt, B_GROUND, B_BASE, 'meadow'), { cw, ch, N } = G;
+        const pathF = G.cells((u) => (u === 'path' ? 1 : 0));
+        const kind = new Uint8Array(img.w * img.h);
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const i = y * img.w + x, cx = Math.floor(x / C), cy = Math.floor(y / C), g = G.under[cy * cw + cx], n1 = fbm(x / 22, y / 22, seed + 1), n2 = vnoise(x / 5, y / 5, seed + 2);
+            if (g === 'field') {                                          // barley in drills; the east strips cut to stubble
+                kind[i] = 5; const r = y % 8, cut = vnoise(cx / 3, 0, seed + 3) > 0.62;
+                put(img, x, y, r < 2 ? SOIL[2] : pick(BARLEY, (cut ? 0.25 : 0.45) + (r / 8) * 0.3 + (vnoise(x / 2, y / 6, seed + 4) - 0.5) * 0.4));
+                if (!cut && r === 2 && hash(x, y, seed) < 0.5) put(img, x, y - 1, BARLEY[6]);
+                continue;
+            }
+            if (g === 'garden') { kind[i] = 6; put(img, x, y, pick(SOIL, 0.35 + n1 * 0.35 + hash(x, y, seed) * 0.15)); continue; }
+            if (pathF(x, y) + (n1 - 0.5) * 0.4 + (n2 - 0.5) * 0.12 > 0.5) {
+                kind[i] = 1; put(img, x, y, pick(TRACK, 0.3 + fbm(x / 9, y / 9, seed + 7) * 0.45 + hash(x, y, seed + 8) * 0.15));
+                const rut = Math.abs(((x + y * 0.3) % 14) - 7); if (rut < 0.7 && hash(x >> 2, y >> 2, seed) < 0.5) put(img, x, y, TRACK[1], 0.5);
+                continue;
+            }
+            kind[i] = 0;
+            put(img, x, y, pick(MEAD, 0.2 + fbm(x / 26, y / 16, seed + 13) * 0.55 + (n2 - 0.5) * 0.3));
+            if (fbm(x / 10, y / 8, seed + 14) > 0.74) put(img, x, y, pick(NP.snow, 0.45 + n2 * 0.3), 0.7);      // frost in the hollows
+        }
+        for (let y = 1; y < img.h - 1; y++) for (let x = 1; x < img.w - 1; x++) { const i = y * img.w + x; if (kind[i] === 1 && kind[i - img.w] === 0) put(img, x, y, MEAD[1], 0.7); }
+        for (let n = 0; n < (img.w * img.h) / 26; n++) {
+            const x = Math.floor(hash(n, 7, seed) * img.w), y = Math.floor(hash(n, 8, seed) * img.h), k = kind[y * img.w + x], r = hash(n, 9, seed);
+            if (k === 0 && r < 0.4) { for (let j = 0; j < 4; j++) put(img, x + (j & 1), y - j, MEAD[5 + (j & 1)]); }
+            else if (k === 0 && r < 0.46) { const c = pick(BIRCH, 0.3 + hash(n, 10, seed) * 0.5); for (const [dx, dy] of [[0, 0], [1, 0], [-1, -1], [0, -1], [1, -1], [0, -2]]) put(img, x + dx, y + dy, c); }   // autumn bushes
+            else if (k === 1 && r < 0.2) { put(img, x, y, NP.rock[5]); put(img, x + 1, y, NP.rock[4]); }
+        }
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows }, seen = new Set();
+        const open = (x, y) => B_GROUND.has(N(x, y)), behind = (x, y) => open(x, y - 1) || open(x - 1, y - 1) || open(x + 1, y - 1);
+        const anyBehind = (b) => { for (let xx = b.x0; xx <= b.x1; xx++) if (open(xx, b.y0 - 1)) return true; return false; };
+        const BLOCKS = {
+            house: (b) => ({ y: b.y1 + 0.9, draw: () => building(L, b, seed + b.x0 * 5 + b.y0, anyBehind(b), FX, { z: 2, chimneys: 1, thatch: true }) }),
+            sheep_shelter: (b) => ({ y: b.y1 + 0.8, draw: () => leanTo(L, b, seed + b.x0 * 3 + b.y0, anyBehind(b), 'hay') }),
+            loom_shed: (b) => ({ y: b.y1 + 0.8, draw: () => leanTo(L, b, seed + b.x0 * 7, anyBehind(b), 'loom') }),
+            drying_rack: (b) => ({ y: b.y1 + 0.7, draw: () => dryingRack(L, b, seed + b.x0, anyBehind(b)) }),
+            herbs: (b) => ({ y: b.y0 - 0.5, draw: () => herbBed(img, b, seed + b.x0) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P = {
+                fence: () => rail(L, N, x, y, seed),
+                sheep: () => sheep(img, cx + (hash(x, y, seed) - 0.5) * 10, gy - 2, seed + x * 3 + y),
+                trough: () => trough(img, cx, gy, seed),
+                standing_stone: () => tall(L, [cx - 20, gy - 66, cx + 24, gy + 6], y * C, behind(x, y), (S) => mossStone(S, cx, gy, seed + x * 7 + y, 40 + hash(x, y, seed + 1) * 16, 10, 'knot', NP.turf)),
+                rock: () => stone(img, cx, gy - 8, 11, 8, seed + x + y, NP.cliff, NP.turf, 0.4),
+                memorial_cloth: () => tall(L, [cx - 24, gy - 70, cx + 26, gy + 6], y * C, behind(x, y), (S) => memorialCloth(S, cx, gy, seed)),
+                barrel: () => barrel(L, cx, gy, seed + x * 3 + y),
+                cart: () => { if (N(x - 1, y) !== 'cart') kit.cart(L, x, y, seed); },
+                birch: () => tall(L, [cx - 40, gy - 90, cx + 40, gy + 8], y * C, behind(x, y), (S) => birchTree(S, cx, gy, seed + x * 5 + y))
+            }[n];
+            if (P) items.push({ x, y: y + (n === 'birch' ? 0.8 : n === 'fence' ? 0.4 : 0.5), draw: P });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        edgeShade(img, 14, 0.28);
+        autumnDay([img, L.over], glows, 1);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water: [], animate: animator(flames, smoke) };
+    }
+    /** Post-and-rail fencing that runs either way: rails along a row, or down a column. */
+    function rail(L, N, x, y, seed) {
+        const img = L.base, isF = (a, b) => N(a, b) === 'fence', X0 = x * C, Y0 = y * C, gy = Y0 + 24, h = isF(x - 1, y) || isF(x + 1, y), v = isF(x, y - 1) || isF(x, y + 1);
+        const s = shape(), post = (px, py) => { box(s, img, px, py - 16, 4, 18, 0); shadow(img, px + 4, py + 2, 3, 1.5, 0.3); };
+        if (h || !v) {
+            const left = isF(x - 1, y) ? X0 : X0 + 12, right = isF(x + 1, y) ? X0 + C : X0 + 20;
+            for (const ry of [gy - 13, gy - 6]) box(s, img, left, ry, right - left, 2, 0.3);
+            post(X0 + 14, gy);
+        }
+        if (v) {
+            const top = isF(x, y - 1) ? Y0 - 8 : Y0 + 8, bot = isF(x, y + 1) ? Y0 + C - 8 : Y0 + 24;
+            for (const rx of [X0 + 14, X0 + 17]) box(s, img, rx, top, 1, bot - top, 0.2);
+            if (!h) post(X0 + 14, gy);
+        }
+        for (const [i] of s.px) { const py = (i / img.w) | 0; s.px.set(i, s.px.get(i) + (vnoise(i % img.w, py / 4, seed) - 0.5) * 0.8); }
+        fill(img, s, PAL.wood.slice(1, 7), { outline: PAL.wood[0] });
+    }
+    function sheep(img, cx, gy, seed) {
+        shadow(img, cx + 3, gy + 1, 10, 3, 0.4);
+        const flip = hash(seed, 1, 2) < 0.5 ? -1 : 1, tone = hash(seed, 2, 3);
+        const ramp = tone < 0.6 ? R(['#6a6252', '#8c8470', '#aaa28c', '#c6bea6', '#dcd6c0', '#eeead8']) : tone < 0.8 ? R(['#3a3430', '#4e4640', '#635a52', '#786e64', '#8c8276']) : R(['#4a3a2a', '#614c36', '#7a6044', '#937654', '#a88a66']);
+        for (const lx of [-7, -2, 4, 8]) rectFill(img, cx + lx * flip, gy - 5, 2, 6, [40, 34, 30]);
+        const b = shape(); for (let k = 0; k < 5; k++) ellipse(b, img, cx - 6 + k * 3, gy - 10 - (k % 2), 6.5, 6);
+        for (const [i, v] of b.px) b.px.set(i, v * 0.6 + (vnoise((i % img.w) / 1.6, ((i / img.w) | 0) / 1.6, seed) - 0.5) * 0.9);
+        fill(img, b, ramp, { outline: ramp[0] });
+        const hd = shape(); ellipse(hd, img, cx + 13 * flip, gy - 12, 3.4, 4); fill(img, hd, R(['#1c1814', '#2c2620', '#3e362e']), { outline: [20, 16, 14] });
+        put(img, cx + 14 * flip, gy - 13, [210, 200, 180]);
+    }
+    function trough(img, cx, gy, seed) {
+        shadow(img, cx + 3, gy + 1, 14, 3, 0.4);
+        const t = shape(); box(t, img, cx - 13, gy - 9, 26, 9, 0.3); fill(img, t, NP.plank.slice(2), { tex: 0.4, seed, outline: NP.oak[0] });
+        rectFill(img, cx - 11, gy - 8, 22, 3, NP.water[4]); for (let px = cx - 10; px < cx + 10; px += 3) put(img, px, gy - 8, NP.foam[1]);
+    }
+    function dryingRack(L, b, seed, overhead) {
+        const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, B = (b.y1 + 1) * C - 6, top = B - 52;
+        tall(L, [X0 - 8, top - 8, X1 + 8, B + 6], b.y0 * C + 8, overhead, (S) => {
+            shadow(S, (X0 + X1) / 2 + 6, B + 1, (X1 - X0) / 2 + 4, 4, 0.4);
+            const fr = shape();
+            for (const px of [X0, X1 - 3, ...(X1 - X0 > 90 ? [Math.round((X0 + X1) / 2)] : [])]) box(fr, S, px, top, 3, B - top, -0.2);
+            box(fr, S, X0 - 2, top + 2, X1 - X0 + 4, 3, 0.3); box(fr, S, X0 - 2, top + 26, X1 - X0 + 4, 2, 0.3);
+            fill(S, fr, NP.oak.slice(1, 6), { outline: NP.oak[0] });
+            const dyes = [NP.wool, NP.wool, NP.madder, R(['#4a3a08', '#6e5810', '#94781a', '#b89a2a', '#d4b844']), NP.wool];
+            for (let k = 0, px = X0 + 6; px < X1 - 14; k++, px += 14 + Math.round(hash(k, 1, seed) * 4)) {
+                for (const row of [0, 1]) {
+                    const ramp = dyes[Math.floor(hash(k, row + 2, seed) * dyes.length)], h = 14 + hash(k, row, seed) * 8, w = 10, y0 = top + 5 + row * 24;
+                    const f = shape(); poly(f, S, [[px, y0], [px + w, y0], [px + w + 1, y0 + h - 3], [px + w - 3, y0 + h], [px + 3, y0 + h - 1], [px - 1, y0 + h - 4]], (qx) => ((qx - px - w / 2) / w) * -0.5);
+                    for (const [i, v] of f.px) f.px.set(i, v + (vnoise((i % S.w) / 1.5, ((i / S.w) | 0) / 3, seed + k) - 0.5) * 0.6);
+                    fill(S, f, ramp.slice(1), { outline: ramp[0] });
+                }
+            }
+        });
+    }
+    function herbBed(img, b, seed) {
+        const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, Y1 = (b.y1 + 1) * C;
+        const kinds = [[[150, 120, 200], [112, 86, 160]], [[236, 232, 210], [200, 190, 120]], [[222, 160, 60], [176, 110, 40]], [[96, 140, 70], [60, 100, 50]]];
+        let k = 0;
+        for (let py = Y0 + 10; py < Y1 - 2; py += 13) for (let px = X0 + 8; px < X1 - 6; px += 12, k++) {
+            const [hi, lo] = kinds[Math.floor((px - X0) / ((X1 - X0) / kinds.length)) % kinds.length];
+            shadow(img, px + 2, py + 2, 6, 2, 0.35);
+            const s = shape(); for (let j = 0; j < 4; j++) ellipse(s, img, px - 3 + j * 2, py - 3 - (j & 1) * 2, 3.5, 3.5); fill(img, s, NP.turf.slice(1), { outline: NP.turf[0] });
+            for (let j = 0; j < 22; j++) { const fx = px - 5 + hash(j, k, seed) * 11, fy = py - 9 + hash(j, k + 1, seed) * 8; put(img, fx, fy, j & 1 ? hi : lo); if (j % 3 === 0) put(img, fx, fy - 1, hi); }
+        }
+    }
+    function memorialCloth(S, cx, gy, seed) {
+        shadow(S, cx + 4, gy + 1, 18, 4, 0.4);
+        const fr = shape(); box(fr, S, cx - 18, gy - 60, 3, 60, -0.2); box(fr, S, cx + 15, gy - 60, 3, 60, -0.2); box(fr, S, cx - 20, gy - 62, 40, 3, 0.3);
+        fill(S, fr, NP.oak.slice(1, 6), { outline: NP.oak[0] });
+        const X = cx - 13, Y = gy - 58, W = 26, H = 38;
+        for (let py = Y; py < Y + H; py++) for (let px = X; px < X + W; px++) put(S, px, py, pick(NP.wool, 0.75 + (vnoise(px / 3, py / 8, seed) - 0.5) * 0.25));
+        for (let px = X; px < X + W; px++) { put(S, px, Y + H, (px & 1) ? NP.wool[3] : NP.wool[1]); put(S, px, Y + 2, NP.madder[3]); put(S, px, Y + H - 3, NP.madder[3]); }
+        const mx = X + W / 2, my = Y + H / 2;
+        for (let a = 0; a < 8; a++) { const t = (a / 8) * Math.PI * 2; for (let r = 2; r < 10; r++) { const px = Math.round(mx + Math.cos(t) * r), py = Math.round(my + Math.sin(t) * r); put(S, px, py, NP.madder[4]); if (r > 6) { put(S, px + Math.round(Math.cos(t + 1.6)), py + Math.round(Math.sin(t + 1.6)), NP.madder[3]); put(S, px + Math.round(Math.cos(t - 1.6)), py + Math.round(Math.sin(t - 1.6)), NP.madder[3]); } } }
+        rectFill(S, mx - 1, my - 1, 3, 3, NP.madder[2]);
+        for (let py = Y + 6; py < Y + H - 5; py += 3) { put(S, X + 2, py, NP.madder[2]); put(S, X + W - 3, py, NP.madder[2]); }
+    }
+    function birchTree(S, cx, gy, seed) {
+        shadow(S, cx + 8, gy + 1, 18, 5, 0.4);
+        const t = shape(); thick(t, S, cx, gy - 54, cx + 1, gy, 2.6); thick(t, S, cx, gy - 30, cx - 10, gy - 48, 1.2); thick(t, S, cx, gy - 38, cx + 11, gy - 56, 1.2);
+        fill(S, t, R(['#5a5550', '#9c9890', '#c8c4ba', '#e2ded4', '#f0ece2']), { outline: [36, 32, 30] });
+        for (let py = gy - 52; py < gy; py += 4 + (py % 3)) if (hash(py, 1, seed) < 0.7) { put(S, cx - 1 + (py & 1), py, [30, 28, 26]); put(S, cx + (py & 1), py, [30, 28, 26]); }
+        const c = shape();
+        for (let k = 0; k < 9; k++) ellipse(c, S, cx + (hash(k, 1, seed) - 0.5) * 30, gy - 50 - hash(k, 2, seed) * 28, 8 + hash(k, 3, seed) * 5, 7 + hash(k, 4, seed) * 4);
+        for (const [i, v] of c.px) { const px = i % S.w, py = (i / S.w) | 0; c.px.set(i, v * 0.6 + (vnoise(px / 2.2, py / 2.2, seed + 5) - 0.5) * 0.9); }
+        fill(S, c, BIRCH, { outline: BIRCH[0] });
+        for (const [i] of c.px) if (hash(i, 7, seed) < 0.06) put(S, i % S.w, (i / S.w) | 0, [36, 30, 22], 0.6);           // the gaps where the leaves are gone
+    }
+
+    // --- Rúnadal ---
+    const MOSSG = R(['#18200f', '#212c14', '#2b3819', '#36461e', '#425524', '#50652b', '#5e7533', '#6e863d']);
+    const DUFF = R(['#2e2014', '#3e2c1b', '#4f3a24', '#62492d', '#765a38', '#8a6c44', '#9e7f52']);
+    const PINE_G = R(['#09140c', '#0e1d11', '#142817', '#1b331d', '#233f24', '#2e4c2c', '#3b5a34', '#4b6a3e', '#5e7c49']);
+    const R_GROUND = new Set(['moss', 'path']);
+    const R_BASE = { pine: 'moss', boulder: 'moss', rune_stone: 'path', ring_stone: 'path', offering_table: 'path', lean_to: 'moss', campfire: 'path', stump: 'path' };
+    function runadal(map, nameAt) {
+        const L = layersFor(map), seed = 4013, img = L.base, G = groundGrid(map, nameAt, R_GROUND, R_BASE, 'moss'), { cw, ch, N } = G;
+        const pathF = G.cells((u) => (u === 'path' ? 1 : 0));
+        const treeD = new Float32Array(cw * ch); for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) treeD[y * cw + x] = N(x, y) === 'pine' ? 1 : 0;
+        const shadeF = field(treeD, cw, ch);
+        const kind = new Uint8Array(img.w * img.h);
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const i = y * img.w + x, n1 = fbm(x / 20, y / 20, seed + 1), n2 = vnoise(x / 4, y / 4, seed + 2);
+            if (pathF(x, y) + (n1 - 0.5) * 0.45 + (n2 - 0.5) * 0.12 > 0.5) {
+                kind[i] = 1; put(img, x, y, pick(DUFF, 0.35 + fbm(x / 8, y / 8, seed + 7) * 0.45 + hash(x, y, seed + 8) * 0.18));
+                if (hash(x, y, seed + 9) < 0.06) put(img, x, y, DUFF[6]); else if (hash(x, y, seed + 10) < 0.04) put(img, x, y, NP.rock[5]);
+            } else {
+                kind[i] = 0; put(img, x, y, pick(MOSSG, 0.3 + fbm(x / 18, y / 14, seed + 13) * 0.55 + (n2 - 0.5) * 0.35));
+                if (fbm(x / 12, y / 10, seed + 14) > 0.76) put(img, x, y, pick(DUFF, 0.3 + n2 * 0.3), 0.6);                   // needles
+            }
+            const sh = shadeF(x, y) * 0.55 + (fbm(x / 34, y / 30, seed + 15) - 0.5) * 0.4;                           // shade under the canopy, sun in the clearing
+            if (sh > 0.15) put(img, x, y, [8, 14, 8], Math.min(0.45, (sh - 0.15) * 0.8)); else put(img, x, y, [255, 214, 130], Math.min(0.14, (0.15 - sh) * 0.3));
+        }
+        for (let y = 1; y < img.h - 1; y++) for (let x = 1; x < img.w - 1; x++) { const i = y * img.w + x; if (kind[i] === 1 && kind[i - img.w] === 0) put(img, x, y, MOSSG[1], 0.6); }
+        for (let n = 0; n < (img.w * img.h) / 30; n++) {
+            const x = Math.floor(hash(n, 7, seed) * img.w), y = Math.floor(hash(n, 8, seed) * img.h), k = kind[y * img.w + x], r = hash(n, 9, seed);
+            if (k === 0 && r < 0.18) { put(img, x, y, [150, 104, 150]); put(img, x + 1, y, [120, 80, 124]); put(img, x, y - 1, [182, 136, 182]); }   // heather
+            else if (k === 0 && r < 0.26) { for (let j = 0; j < 6; j++) { put(img, x + j, y - j * 0.5, MOSSG[6]); put(img, x - j, y - j * 0.5, MOSSG[5]); } }   // fern
+            else if (k === 0 && r < 0.3) { put(img, x, y, [214, 222, 230]); put(img, x + 1, y + 1, [190, 200, 214]); }                                     // a last scrap of snow
+            else if (k === 0 && r < 0.34) { for (let j = 0; j < 4; j++) put(img, x + (j & 1), y - j, MOSSG[5 + (j & 1)]); }
+        }
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows }, seen = new Set();
+        const open = (x, y) => R_GROUND.has(N(x, y)), behind = (x, y) => open(x, y - 1) || open(x - 1, y - 1) || open(x + 1, y - 1), inner = innerFn(map, nameAt);
+        const anyBehind = (b) => { for (let xx = b.x0; xx <= b.x1; xx++) if (open(xx, b.y0 - 1)) return true; return false; };
+        const BLOCKS = {
+            offering_table: (b) => ({ y: b.y1 + 0.6, draw: () => offeringTable(img, b, seed) }),
+            lean_to: (b) => ({ y: b.y1 + 0.8, draw: () => leanTo(L, b, seed + 31, anyBehind(b), 'bench') })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P = {
+                pine: () => { if (inner(x, y, 'pine') && hash(x, y, seed + 3) < 0.4) return; bigPine(L, x, y, seed, behind(x, y) || inner(x, y, 'pine')); },
+                boulder: () => stone(img, cx, gy - 9, 12 + hash(x, y, seed) * 3, 10, seed + x * 3 + y, NP.cliff, RP.moss, 0.6),
+                rune_stone: () => tall(L, [cx - 30, gy - 96, cx + 34, gy + 6], y * C, behind(x, y), (S) => mossStone(S, cx, gy, seed + x * 7 + y, 62 + (x === 25 ? 20 : 0), x === 25 ? 20 : 14, 'rune')),
+                ring_stone: () => tall(L, [cx - 18, gy - 46, cx + 20, gy + 6], y * C, behind(x, y), (S) => mossStone(S, cx, gy, seed + x * 5 + y, 28 + hash(x, y, seed) * 10, 8, null)),
+                campfire: () => { flames.push(fire(img, cx, gy, seed)); glows.push({ x: cx, y: gy - 8, r: 70, a: 0.5 }); smoke.push({ x: cx, y: gy - 16 }); },
+                stump: () => kit.stump(L, x, y, seed + x)
+            }[n];
+            if (P) items.push({ x, y: y + (n === 'pine' ? 0.8 : 0.5), draw: P });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // Shafts of low sun through the pines.
+        for (const im of [img, L.over]) { const d = im.data; for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) { const i = (y * im.w + x) * 4; if (!d[i + 3]) continue; const s = vnoise((x + y * 0.6) / 46, 0, seed + 60); if (s > 0.68) for (let j = 0; j < 3; j++) d[i + j] = Math.min(255, d[i + j] + [255, 216, 140][j] * (s - 0.68) * 0.35); } }
+        edgeShade(img, 16, 0.34);
+        autumnDay([img, L.over], glows, 0.6);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water: [], animate: animator(flames, smoke) };
+    }
+    /** A big spruce of the deep wood: a red-brown trunk with roots, and a tall cone of drooping bough tiers. */
+    function bigPine(L, cx, cy, seed, overhead) {
+        const x = cx * C + 16 + (hash(cx, cy, seed) - 0.5) * 10, gy = cy * C + 30, h = 78 + hash(cx, cy, seed + 1) * 30, w = 30 + hash(cx, cy, seed + 2) * 10;
+        shadow(L.base, x + 10, gy, w, 7, 0.5);
+        const tr = shape(); thick(tr, L.base, x, gy - 16, x, gy, 3.6); thick(tr, L.base, x - 2, gy, x - 9, gy + 2, 1.6); thick(tr, L.base, x + 2, gy, x + 8, gy + 2, 1.6);
+        fill(L.base, tr, R(['#2a1408', '#42200e', '#5c3016', '#78421e', '#905428']), { tex: 0.5, seed, outline: [24, 12, 6] });
+        const CL = overhead ? L.over : L.base, s = shape(), tiers = 6;
+        for (let t = 0; t < tiers; t++) {
+            const ty = gy - 12 - (t / tiers) * h, tw = w * (1 - t / (tiers + 0.8)), th = h / tiers + 10;
+            poly(s, CL, [[x, ty - th], [x + tw, ty], [x + tw * 0.6, ty - 3], [x + tw * 0.3, ty + 1], [x, ty - 1], [x - tw * 0.3, ty + 1], [x - tw * 0.6, ty - 3], [x - tw, ty]], (px, py) => ((px - x) / tw) * -0.55 + ((py - ty) / th) * 0.35);
+        }
+        for (const [i, v] of s.px) s.px.set(i, v * 0.75 + (vnoise((i % CL.w) / 2, ((i / CL.w) | 0) / 1.6, seed + cx * 3 + cy) - 0.5) * 0.8);
+        fill(CL, s, PINE_G, { outline: PINE_G[0] });
+        for (const [i, v] of s.px) if (v > 0.35 && hash(i, 1, seed) < 0.1) put(CL, i % CL.w, (i / CL.w) | 0, [120, 150, 80], 0.5);   // the sunlit tips
+    }
+    function offeringTable(img, b, seed) {
+        const mx = (b.x0 + b.x1 + 1) * C / 2, gy = (b.y1 + 1) * C - 6;
+        shadow(img, mx + 6, gy + 2, 40, 8, 0.5);
+        for (const dx of [-26, 0, 24]) { const l = shape(); box(l, img, mx + dx - 6, gy - 10, 12, 12, 0); fill(img, l, NP.cliff.slice(1, 6), { tex: 0.4, seed: seed + dx, outline: NP.cliff[0] }); }
+        const t = shape(); ellipse(t, img, mx, gy - 18, 42, 14); fill(img, t, NP.cliff.slice(2), { tex: 0.5, seed, outline: NP.cliff[0] });
+        for (const [i] of t.px) { const px = i % img.w, py = (i / img.w) | 0; if (vnoise(px / 3, py / 3, seed + 2) > 0.66) put(img, px, py, RP.moss[2]); }
+        // The cloth: woven stripes, hanging over the front edge.
+        for (let py = gy - 26; py < gy - 2; py++) for (let px = mx - 22; px < mx + 2; px++) {
+            if (py > gy - 12 && (px + py) % 9 === 0) continue;
+            const st = ((px - mx) & 7) < 2 || ((py - gy) & 7) < 2;
+            put(img, px, py, st ? NP.madder[3 + ((px >> 2) & 1)] : pick(NP.wool, 0.65 + (vnoise(px / 3, py / 3, seed + 3) - 0.5) * 0.25));
+        }
+        for (let px = mx - 22; px < mx + 2; px += 2) put(img, px, gy - 1, NP.wool[2]);
+        const loaf = shape(); ellipse(loaf, img, mx - 12, gy - 24, 9, 6); fill(img, loaf, R(['#4a2a10', '#6e4018', '#945a22', '#b8772e', '#d4973e']), { outline: [50, 28, 12] });
+        for (const dx of [-16, -12, -8]) put(img, mx + dx, gy - 26, [232, 196, 120]);
+        const bowl = shape(); ellipse(bowl, img, mx + 10, gy - 22, 6, 3.5); fill(img, bowl, NP.oak.slice(2), { outline: NP.oak[0] }); const milk = shape(); ellipse(milk, img, mx + 10, gy - 23, 4.4, 1.6); fill(img, milk, NP.wool.slice(3), { edge: false });
+        const cup = shape(); box(cup, img, mx + 18, gy - 34, 8, 10, 0.2); fill(img, cup, NP.oak.slice(1), { outline: NP.oak[0] }); rectFill(img, mx + 19, gy - 34, 6, 1, NP.oak[0]);
+    }
+
+
+    // --- Bjarki's Barrow (the inside of the Járnmyr mound) ---
+    const TOMB = R(['#151312', '#1e1b19', '#282421', '#332e2a', '#3f3934', '#4b443e', '#585049', '#665d55', '#766c63']);
+    const TOMB_DIRT = R(['#1d140e', '#291c13', '#362518', '#432e1e', '#513825', '#5f422c']);
+    const T_OPEN = new Set(['flagstones', 'rubble', 'barrow_mouth', 'dais_steps']);
+    function knot(S, x0, y0, w, h, seed, ramp) {
+        // An interlace panel: two bands crossing over and under down the middle, a border round it.
+        for (let py = y0; py < y0 + h; py++) for (let px = x0; px < x0 + w; px++) if (px === x0 || px === x0 + w - 1 || py === y0 || py === y0 + h - 1) put(S, px, py, ramp[1]);
+        const cx = x0 + w / 2, amp = w / 2 - 3;
+        for (let py = y0 + 2; py < y0 + h - 2; py++) {
+            const a = Math.sin(((py - y0) / (h - 4)) * Math.PI * 2 * Math.max(1, Math.round(h / 22))) * amp;
+            for (const sg of [-1, 1]) { const px = Math.round(cx + sg * a); put(S, px, py, ramp[1]); put(S, px + 1, py, ramp[6], 0.6); }
+        }
+    }
+    function bjarkiBarrow(map, nameAt) {
+        const L = layersFor(map), seed = 5011, img = L.base, N = (x, y) => nameAt(map, x, y), cw = map.tiles[0].length, ch = map.tiles.length;
+        const open = (x, y) => T_OPEN.has(N(x, y));
+        const nearOpen = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (open(x + dx, y + dy) || ['dais', 'flame_altar', 'stone_coffin'].includes(N(x + dx, y + dy))) return true; return false; };
+        // Floors first: square flags in offset courses, worn, with grave-earth trodden over them.
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const cx = Math.floor(x / C), cy = Math.floor(y / C), n = N(cx, cy);
+            if (n === 'knot_wall' || n === 'grave_slab' && !open(cx - 1, cy) && !open(cx + 1, cy)) { put(img, x, y, [6, 5, 5]); continue; }
+            const row = Math.floor(y / 16), off = (row & 1) * 8, col = Math.floor((x + off) / 16), fx = (x + off) % 16, fy = y % 16;
+            let t = 0.42 + (hash(col, row, seed) - 0.5) * 0.25 + (vnoise(x / 6, y / 6, seed + 1) - 0.5) * 0.18;
+            if (fx === 0 || fy === 0) t = 0.12; else if (fx === 1 || fy === 1) t += 0.12;
+            put(img, x, y, pick(TOMB, t));
+            const dirt = fbm(x / 26, y / 20, seed + 2) + (n === 'rubble' ? 0.25 : 0);
+            if (dirt > 0.62) put(img, x, y, pick(TOMB_DIRT, 0.3 + vnoise(x / 3, y / 3, seed + 3) * 0.5), Math.min(0.85, (dirt - 0.62) * 4));
+            if (n === 'rubble' && hash(x >> 1, y >> 1, seed + 4) < 0.08) put(img, x, y, TOMB[6]);
+        }
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows }, seen = new Set();
+        const firebowl = (S, cx, top, small) => {
+            const b = shape(); ellipse(b, S, cx, top, small ? 5 : 10, small ? 2.5 : 4); fill(S, b, PAL.iron.slice(1), { outline: PAL.iron[0] });
+            const f = shape(); ellipse(f, S, cx, top - (small ? 4 : 8), small ? 2.5 : 6, small ? 4 : 9); fill(S, f, NP.glow.slice(1), { edge: false });
+            const f2 = shape(); ellipse(f2, S, cx, top - (small ? 3 : 6), small ? 1.2 : 3, small ? 2 : 5); fill(S, f2, NP.glow.slice(3), { edge: false });
+            flames.push({ x: cx, y: top - (small ? 4 : 8), big: !small }); glows.push({ x: cx, y: top, r: small ? 40 : 110, a: small ? 0.5 : 0.9 });
+        };
+        const BLOCKS = {
+            dais: (b) => ({ y: b.y0 - 0.5, draw: () => {
+                const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, Y1 = (b.y1 + 1) * C;
+                shadow(img, (X0 + X1) / 2 + 6, Y1 + 2, (X1 - X0) / 2 + 6, 8, 0.6);
+                for (let py = Y0; py < Y1; py++) for (let px = X0; px < X1; px++) { const r = Math.floor((py - Y0) / 12), c = Math.floor((px - X0 + (r & 1) * 10) / 20), e = (py - Y0) % 12 === 0 || (px - X0 + (r & 1) * 10) % 20 === 0; put(img, px, py, e ? TOMB[1] : pick(TOMB, 0.55 + (hash(c, r, seed + 7) - 0.5) * 0.2 + (vnoise(px / 5, py / 5, seed + 8) - 0.5) * 0.12)); }
+                for (let px = X0; px < X1; px++) { put(img, px, Y0, TOMB[8]); put(img, px, Y1 - 1, TOMB[0]); }
+                for (let py = Y0; py < Y1; py++) { put(img, X0, py, TOMB[7]); put(img, X1 - 1, py, TOMB[0]); }
+            } }),
+            dais_steps: (b) => ({ y: b.y0 - 0.4, draw: () => {
+                const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, Y1 = (b.y1 + 1) * C;
+                for (let py = Y0; py < Y1; py++) for (let px = X0; px < X1; px++) { const s2 = (py - Y0) % 12; put(img, px, py, s2 < 2 ? TOMB[0] : s2 < 4 ? TOMB[7] : pick(TOMB, 0.5 + (py - Y0) / (Y1 - Y0) * 0.15 + (hash(px >> 3, py, seed) - 0.5) * 0.12)); }
+                for (const [dx, dy] of [[-30, 10], [36, 20]]) { const r = shape(); poly(r, img, [[(X0 + X1) / 2 + dx, Y0 + dy], [(X0 + X1) / 2 + dx + 14, Y0 + dy + 2], [(X0 + X1) / 2 + dx + 10, Y0 + dy + 18], [(X0 + X1) / 2 + dx + 2, Y0 + dy + 14]], () => 0); fill(img, r, NP.madder.slice(1, 5), { tex: 0.5, seed: seed + dx, outline: NP.madder[0] }); }
+            } }),
+            stone_coffin: (b) => ({ y: b.y1 + 0.2, draw: () => {
+                const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, Y0 = b.y0 * C + 4, Y1 = (b.y1 + 1) * C - 2, W = X1 - X0;
+                shadow(img, (X0 + X1) / 2 + 4, Y1 + 2, W / 2 + 4, 5, 0.6);
+                const body = shape(); box(body, img, X0, Y0 + 14, W, Y1 - Y0 - 14, -0.1); fill(img, body, TOMB.slice(2), { tex: 0.4, seed, outline: TOMB[0] });
+                const lid = shape(); box(lid, img, X0 - 4, Y0, W + 8, 18, 0.35); fill(img, lid, TOMB.slice(3), { tex: 0.35, seed: seed + 1, outline: TOMB[0] });
+                knot(img, X0 + 8, Y0 + 3, W - 16, 12, seed, TOMB);
+                for (let k = 0; k < 3; k++) knot(img, X0 + 6 + k * (W / 3), Y0 + 20, W / 3 - 8, Y1 - Y0 - 24, seed + k, TOMB);
+                for (const dx of [10, W - 26]) for (let py = Y0 + 14; py < Y1 + 6; py++) for (let px = X0 + dx; px < X0 + dx + 14; px++) if (hash(px, py >> 2, seed) < 0.9 && !(py > Y1 && (px + py) % 4 === 0)) put(img, px, py, pick(NP.madder, 0.3 + (vnoise(px / 3, py / 6, seed) - 0.5) * 0.4));
+                const bar = shape(); thick(bar, img, X1 - 6, Y0 + 2, X1 + 12, Y0 - 10, 1.2); fill(img, bar, PAL.iron.slice(1), { outline: PAL.iron[0] });
+            } }),
+            flame_altar: (b) => ({ y: b.y1 + 0.9, draw: () => tall(L, [b.x0 * C - 10, b.y0 * C - 50, (b.x1 + 1) * C + 10, (b.y1 + 1) * C + 6], b.y0 * C + 4, false, (S) => {
+                const cx = (b.x0 + b.x1 + 1) * C / 2, B = (b.y1 + 1) * C - 2;
+                RK.blocks(S, cx - 22, B - 10, 44, 10, seed + 5, TOMB.slice(1));
+                const p = shape(); box(p, S, cx - 13, B - 56, 26, 46, 0); for (const [i] of p.px) p.px.set(i, (((i % S.w) - cx) / 13) * -0.5); fill(S, p, TOMB.slice(2), { tex: 0.35, seed, outline: TOMB[0] });
+                knot(S, cx - 9, B - 50, 18, 34, seed + 2, TOMB);
+                firebowl(S, cx, B - 58, false);
+            }) }),
+            fire_pillar: (b) => ({ y: b.y1 + 0.9, draw: () => tall(L, [b.x0 * C - 16, b.y0 * C - 60, (b.x1 + 1) * C + 16, (b.y1 + 1) * C + 8], b.y0 * C + 8, true, (S) => {
+                const cx = (b.x0 + b.x1 + 1) * C / 2, B = (b.y1 + 1) * C + 2;
+                shadow(S, cx + 6, B, 36, 7, 0.55);
+                RK.blocks(S, cx - 34, B - 10, 68, 10, seed + 9, TOMB.slice(1)); RK.blocks(S, cx - 26, B - 18, 52, 8, seed + 10, TOMB.slice(2));
+                for (let px = cx - 34; px < cx + 34; px++) put(S, px, B - 10, TOMB[8]);
+                const p = shape(); box(p, S, cx - 14, B - 74, 28, 56, 0); for (const [i] of p.px) p.px.set(i, (((i % S.w) - cx) / 14) * -0.5); fill(S, p, TOMB.slice(2), { tex: 0.35, seed, outline: TOMB[0] });
+                knot(S, cx - 10, B - 68, 20, 44, seed + 3, TOMB);
+                const cap = shape(); box(cap, S, cx - 17, B - 80, 34, 7, 0.4); fill(S, cap, TOMB.slice(3), { outline: TOMB[0] });
+                firebowl(S, cx, B - 82, false);
+            }) }),
+            grave_coffin: (b) => ({ y: b.y1 + 0.5, draw: () => {
+                const X0 = b.x0 * C + 2, X1 = (b.x1 + 1) * C - 2, Y0 = b.y0 * C + 6, Y1 = (b.y1 + 1) * C - 4, W = X1 - X0;
+                shadow(img, (X0 + X1) / 2 + 4, Y1 + 2, W / 2 + 4, 4, 0.55);
+                const body = shape(); box(body, img, X0, Y0 + 10, W, Y1 - Y0 - 10, -0.1); fill(img, body, TOMB.slice(2), { tex: 0.4, seed: seed + b.x0, outline: TOMB[0] });
+                const lid = shape(); poly(lid, img, [[X0 + 6, Y0 - 2], [X1 + 4, Y0 + 4], [X1 - 2, Y0 + 18], [X0, Y0 + 12]], () => 0.3); fill(img, lid, TOMB.slice(3), { tex: 0.35, seed: seed + b.x0 + 1, outline: TOMB[0] });
+                knot(img, X0 + 12, Y0 + 3, W - 24, 10, seed + b.x0, TOMB);
+                for (let k = 0; k < 14; k++) put(img, X0 + W / 2 + Math.sin(k) * 3, Y0 + 2 + k, TOMB[0]);                       // cracked across
+            } }),
+            grave_goods: (b) => ({ y: b.y1 + 0.6, draw: () => tall(L, [b.x0 * C - 6, b.y0 * C - 34, (b.x1 + 1) * C + 6, (b.y1 + 1) * C + 4], b.y0 * C, false, (S) => {
+                const X0 = b.x0 * C, gy = (b.y1 + 1) * C - 4;
+                for (let k = 0; k < 3; k++) { const sx = X0 + 10 + k * 9, sp = shape(); thick(sp, S, sx, gy, sx + 6, gy - 44, 0.8); fill(S, sp, NP.oak.slice(2), { outline: NP.oak[0] }); const hd = shape(); poly(hd, S, [[sx + 5, gy - 44], [sx + 8, gy - 44], [sx + 7, gy - 52]], () => 0.2); fill(S, hd, PAL.iron.slice(2), { outline: PAL.iron[0] }); }
+                const sh = shape(); ellipse(sh, S, X0 + 50, gy - 14, 13, 13); fill(S, sh, NP.plank.slice(1, 6), { tex: 0.4, seed, outline: NP.oak[0] });
+                for (const [i] of sh.px) { const px = i % S.w, py = (i / S.w) | 0; if (Math.abs(px - X0 - 50) < 2 || Math.abs(py - gy + 14) < 2) put(S, px, py, NP.madder[3]); }
+                const boss = shape(); ellipse(boss, S, X0 + 50, gy - 14, 3, 3); fill(S, boss, PAL.iron.slice(2), { outline: PAL.iron[0] });
+                const sw = shape(); thick(sw, S, X0 + 68, gy - 2, X0 + 76, gy - 34, 1); fill(S, sw, PAL.iron.slice(2), { outline: PAL.iron[0] }); rectFill(S, X0 + 68, gy - 30, 12, 2, NP.oak[3]);
+                const pot = shape(); ellipse(pot, S, X0 + 84, gy - 5, 6, 5); fill(S, pot, CLAY.slice(1, 6), { outline: CLAY[0] });
+            }) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P = {
+                knot_wall: () => { if (nearOpen(x, y)) tombWall(L, x, y, N, open, seed); },
+                grave_slab: () => tall(L, [x * C - 4, y * C - 30, x * C + 36, y * C + 34], y * C, true, (S) => graveSlab(S, cx, gy + 2, seed + x * 3 + y, open(x - 1, y) ? 1 : -1)),
+                candle_stand: () => { const st = shape(); box(st, img, cx - 3, gy - 12, 6, 12, 0); fill(img, st, TOMB.slice(2), { outline: TOMB[0] }); firebowl(img, cx, gy - 13, true); },
+                urn: () => { shadow(img, cx + 3, gy + 1, 9, 3, 0.5); const u = shape(); ellipse(u, img, cx, gy - 9, 8, 9); box(u, img, cx - 4, gy - 20, 8, 4); fill(img, u, CLAY.slice(1, 6), { tex: 0.3, seed: seed + x, outline: CLAY[0] }); for (let px = cx - 7; px < cx + 7; px++) put(img, px, gy - 11, CLAY[1]); },
+                barrow_mouth: () => {
+                    for (const sx of [-30, 26]) { const p = shape(); box(p, img, cx + sx, gy - 34, 6, 38, 0); fill(img, p, TOMB.slice(2), { outline: TOMB[0] }); firebowl(img, cx + sx + 3, gy - 18, true); }
+                }
+            }[n];
+            if (P) items.push({ x, y: y + (n === 'knot_wall' ? 0.95 : 0.5), draw: P });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // Underground: dark everywhere the fires don't reach.
+        for (const im of [img, L.over]) { const d = im.data; for (let y = 0; y < im.h; y++) for (let x = 0; x < im.w; x++) { const i = (y * im.w + x) * 4; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] *= 0.8; } }
+        overcast([img, L.over], glows);
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water: [], animate: animator(flames, smoke) };
+    }
+    /** A wall cell beside the floor: a north wall is a face of tall knotwork stones; a side wall is a rim of rough blocks. */
+    function tombWall(L, x, y, N, open, seed) {
+        const img = L.base, X0 = x * C, Y0 = y * C;
+        if (open(x, y + 1) || ['dais', 'flame_altar'].includes(N(x, y + 1))) {
+            tall(L, [X0 - 2, Y0 - 30, X0 + C + 2, Y0 + C + 2], Y0 + C, false, (S) => {
+                const s = shape(); box(s, S, X0 + 1, Y0 - 24, C - 2, C + 24, 0); for (const [i] of s.px) s.px.set(i, (((i % S.w) - X0 - 16) / 16) * -0.4 + (vnoise((i % S.w) / 3, ((i / S.w) | 0) / 4, seed + x) - 0.5) * 0.3);
+                fill(S, s, TOMB.slice(2), { outline: TOMB[0] });
+                if (hash(x, y, seed) < 0.75) knot(S, X0 + 7, Y0 - 16, 18, 36, seed + x * 3, TOMB); else for (let k = 0; k < 4; k++) rectFill(S, X0 + 9 + k * 4, Y0 - 12 + k * 7, 2, 5, TOMB[1]);   // runes
+                const cap = shape(); ellipse(cap, S, X0 + 16, Y0 - 24, 17, 6); fill(S, cap, TOMB.slice(3), { tex: 0.4, seed: seed + x + y, outline: TOMB[0] });
+                for (let px = X0 + 1; px < X0 + C - 1; px++) put(S, px, Y0 + C - 1, TOMB[0]);
+            });
+            return;
+        }
+        for (const [dx, dy, r] of [[8, 8, 10], [24, 10, 9], [10, 24, 9], [24, 24, 10]]) {
+            const b = shape(); ellipse(b, img, X0 + dx, Y0 + dy, r, r * 0.85); for (const [i, v] of b.px) b.px.set(i, v * 0.8 + (vnoise((i % img.w) / 2.5, ((i / img.w) | 0) / 2.5, seed + x * 7 + y) - 0.5) * 0.5);
+            fill(img, b, TOMB.slice(1), { outline: TOMB[0] });
+            for (const [i] of b.px) if (hash(i, 2, seed) < 0.03) put(img, i % img.w, (i / img.w) | 0, RP.moss[1], 0.6);
+        }
+    }
+    function graveSlab(S, cx, gy, seed, side) {
+        shadow(S, cx + 4, gy, 10, 3, 0.5);
+        const s = shape(); poly(s, S, [[cx - 8, gy], [cx - 8, gy - 34], [cx - 4, gy - 40], [cx + 4, gy - 40], [cx + 8, gy - 34], [cx + 8, gy]], (px) => ((px - cx) / 8) * -0.5 * side);
+        fill(S, s, TOMB.slice(2), { tex: 0.4, seed, outline: TOMB[0] });
+        for (let py = gy - 32; py < gy - 8; py += 4) put(S, cx + Math.round(Math.sin(py / 3) * 3), py, TOMB[1]);
+        if (hash(seed, 1, 2) < 0.4) for (let py = gy - 30; py < gy - 4; py++) for (let px = cx - 2; px < cx + 5; px++) if (hash(px, py >> 2, seed) < 0.8) put(S, px, py, pick(NP.madder, 0.3 + (vnoise(px / 2, py / 5, seed) - 0.5) * 0.4));
+    }
+
+
+    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr, silent_field: silentField, birkholt, runadal, bjarki_barrow: bjarkiBarrow });
+    if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr, silent_field: silentField, birkholt, runadal, bjarki_barrow: bjarkiBarrow };
 })(typeof window !== 'undefined' ? window : globalThis);

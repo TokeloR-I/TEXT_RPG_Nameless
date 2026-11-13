@@ -576,7 +576,9 @@
         ironmaster: { cloak: '#5a4232', hair: '#8a5a32', scarf: '#2a2018', belt: '#1a1612', prop: 'hammer', skin: '#d0a888' },
         collier: { cloak: '#2e2c2a', hood: '#3e3a36', belt: '#5a4a38', prop: 'staff', skin: '#a88a70' },
         bloomer: { cloak: '#6a3a24', hood: '#8a5a3a', scarf: '#c8a050', belt: '#2a2018', prop: 'hammer' },
-        quarrier: { cloak: '#6a6a66', hair: '#c8b890', belt: '#3a3a38', prop: 'staff' }
+        quarrier: { cloak: '#6a6a66', hair: '#c8b890', belt: '#3a3a38', prop: 'staff' },
+        // Act II (2026-11-13): Yrsa Thornstaff, the völva of Rúnadal, in a dark-blue hooded cloak with her staff.
+        seeress: { cloak: '#2a3448', hood: '#1e2636', scarf: '#c8c0a8', belt: '#6a4a2a', prop: 'staff', skin: '#d8b89a' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -712,7 +714,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
