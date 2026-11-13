@@ -16,8 +16,9 @@
  *     ones' names and think it is grief. Seeded, never explained here (the why is a [mid] reveal).
  * Dialogue reviewed by Ashby, Wick and Cairn on 2026-11-11 (docs/design/CHAPTER_TWO_NARRATIVE_REVIEW.md, which also
  * sets out Hrafnholm's politics). XP and Gold are CANDIDATES for Gauge.
- * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03. Hrafnholm is built (Tokelo's reference maps,
- * 2026-11-13): C203 takes you there, to Ragnhild in the hall and Torvald in the yard; the Thing itself comes next.
+ * Quest ids: C201 = the lore doc's C2-01, C202 = C2-02, C203 = C2-03, C204 = C2-04; side quests keep the lore doc's
+ * ids (C2-S02, C2-S04). Hrafnholm is built (Tokelo's reference maps, 2026-11-13): C203 takes you there, to Ragnhild in
+ * the hall and Torvald in the yard, and ends Act I at the Thing (2026-11-13). C204 is a pointer until Járnmyr's picture.
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -76,16 +77,61 @@
             onComplete: [{ say: "Press T to change wolf: Sköll, Hati, or Fenrir's own stance. Stay with one and its bond grows.", notice: 'quest' }]
         },
         C203: {
-            title: 'The Hall of Winter', kind: 'main', xp: 0, teaser: true,
+            title: 'The Hall of Winter', kind: 'main', xp: 60, candidate: true,
             summary: 'The assembly meets at Hrafnholm, where the Jarl keeps her hall. Eydis means to read the stolen names aloud there, in front of the man she thinks took them.',
             objectives: [
                 { id: 'hrafnholm', text: 'Take the south-west road to Hrafnholm', on: { type: 'story', id: 'hrafnholm_reached' }, marker: { map: 'skeldvik', x: 0, y: 36 } },
                 { id: 'ragnhild', text: 'Present yourself to Jarl Ragnhild in the Hall of Winter', on: { type: 'story', id: 'ragnhild_met' }, marker: { map: 'hall_of_winter', x: 19, y: 6 } },
                 { id: 'torvald', text: 'Find Torvald Redhand at the Training Yard', on: { type: 'story', id: 'torvald_met' }, marker: { map: 'hrafnholm', x: 6, y: 28 } },
-                // The Thing itself (C2-03's verdict and the three first positions) is the next part of Chapter Two.
-                { id: 'thing', text: 'Wait for the Thing to sit (the next part of Chapter Two)', on: { type: 'story', id: 'thing_sits' }, marker: { map: 'hrafnholm', x: 25, y: 23 } }
+                // The Thing (2026-11-13; review doc 4.4). Ids kept from the pointer this step used to be, so a save waiting
+                // here walks straight on: Arnkel blows the horn (`thing_sits`), and the player takes a side (`thing_position`).
+                { id: 'thing', text: 'Ask Arnkel at the law rock to call the Thing', on: { type: 'story', id: 'thing_sits' }, marker: { map: 'hrafnholm', x: 24, y: 23 } },
+                { id: 'position', text: 'Speak at the Thing: choose where you stand', on: { type: 'story', id: 'thing_position' }, marker: { map: 'hrafnholm', x: 24, y: 23 } }
+            ],
+            // Act I ends. Whatever you said, the Thing makes you its witness (no position can softlock the chapter).
+            onComplete: [{ flag: 'thing_heard' }, { gold: 30, key: 'c203_reward' },
+                { say: 'From the top of the ring wall, the crow watches the households file out.', important: true },
+                { say: "'The Thing's witness,' it says. 'I'll try to keep a straight face.'" },
+                { say: "The Jarl's household will keep a bench for you in the Hall of Winter.", when: { flags: ['thing_backed_ragnhild'] } },
+                { say: "The Wolf-Banner's crews will let you walk among them now.", when: { flags: ['thing_backed_torvald'] } },
+                { say: 'Arnkel will hear you at the law rock whenever you come back with something.', when: { flags: ['thing_asked_inquiry'] } },
+                { start: 'C204' }]
+        },
+        // Act II begins at Járnmyr, which has no map yet: Tokelo's rule is no new area before its picture (2026-11-13).
+        C204: {
+            title: 'Iron for the Wolf', kind: 'main', xp: 0, teaser: true,
+            summary: 'Name boards and iron are going missing from the North together, and the iron goes through Járnmyr, where the bog-iron is smelted. The Thing has made you its witness. Follow the iron.',
+            objectives: [
+                { id: 'jarnmyr', text: 'Follow the iron to Járnmyr (the next part of Chapter Two)', on: { type: 'story', id: 'jarnmyr_reached' } }
             ],
             onComplete: []
+        },
+        // ----- C2-S02 The Price of an Oath (lore doc section 7): a vanished warrior's land, after the Thing said "not yet".
+        'C2-S02': {
+            title: 'The Price of an Oath', kind: 'side', xp: 35, candidate: true,
+            summary: "Hild of the Green Pine has waited twenty winters for the Thing, and her daughter marries at midsummer. Her husband's brother holds their land for a man who has not come home.",
+            objectives: [
+                { id: 'kolgrim', text: "Hear her husband's brother Kolgrim in the Training Yard", on: { type: 'story', id: 'oath_kolgrim' }, marker: { map: 'hrafnholm', x: 10, y: 27 } },
+                { id: 'stick', text: "Find the oath-stick on the Lawspeaker's table in the Hall of Winter", on: { type: 'story', id: 'oath_stick' }, marker: { map: 'hall_of_winter', x: 29, y: 8 } },
+                { id: 'judge', text: 'Bring the stick to Arnkel at the law rock, and say how the land should be held', on: { type: 'story', id: 'oath_judged' }, marker: { map: 'hrafnholm', x: 24, y: 23 } }
+            ],
+            onComplete: [{ gold: 20, key: 'c2s02_reward' },
+                { say: 'Hild holds the Green Pine land in Orm\'s name, as he swore. Kolgrim has not spoken to her since.', when: { flags: ['oath_for_hild'] } },
+                { say: 'Kolgrim holds the Green Pine land until someone has seen the Silent Field. Hild will marry her daughter off with a cow and a promise.', when: { flags: ['oath_for_kolgrim'] } },
+                { say: "Hild holds the land in Orm's name, and Kolgrim farms the upper field. Neither of them thanked you; Arnkel says that is how you know it was fair.", when: { flags: ['oath_shared'] } }]
+        },
+        // ----- C2-S04 The Fisherman's Debt (lore doc section 7): a Skeldvik captain owes Osric Vane in the old Crown's plate.
+        'C2-S04': {
+            title: "The Fisherman's Debt", kind: 'side', xp: 30, candidate: true,
+            summary: "Bersi Grimsson borrowed thirty in silver from a southern factor for a new mast. The herring never came, and the factor's paper says Bersi's ship is his at the thaw.",
+            objectives: [
+                { id: 'osric', text: "Ask Osric Vane in Hrafnholm about Bersi's debt", on: { type: 'story', id: 'debt_osric' }, marker: { map: 'hrafnholm', x: 12, y: 15 } },
+                { id: 'settle', text: 'Settle the debt: pay Osric, or give him a reason to wait', on: { type: 'story', id: 'debt_settled' }, marker: { map: 'hrafnholm', x: 12, y: 15 } },
+                { id: 'bersi', text: 'Tell Bersi at the north dock that his ship is his', on: { type: 'story', id: 'debt_told' }, marker: { map: 'skeldvik', x: 48, y: 16 } }
+            ],
+            onComplete: [{ flag: 'bersi_passage' },
+                { item: 'Mead', key: 'item:c2s04_mead', when: { flags: ['debt_paid'] } }, { item: 'Gravlax', key: 'item:c2s04_gravlax', when: { flags: ['debt_paid'] } },
+                { say: 'When the ice goes out, the Sea-Hare will carry you to any coast you like.', notice: 'quest' }]
         },
         // James the bard (Tokelo, 2026-11-13: "in chapter 2 introduce a bard that will join you at your homestead after
         // recruiting him"). A southerner who came north to learn the skalds' songs; met outside the Stormtide Inn in
@@ -191,11 +237,24 @@
         { text: 'Where does your silver come from?', if: { flags: ['southern_friends_heard', 'leif_told'] }, to: 'silver' },
         { text: 'Goodbye.', end: true }
     ];
+    // The three first positions at the Thing (review doc 4.4); exactly one is ever set.
+    const POSITIONS = ['thing_backed_ragnhild', 'thing_backed_torvald', 'thing_asked_inquiry'];
+    // Osric's choices: C2-S04 The Fisherman's Debt is put to him here.
+    const OSRIC = [
+        { text: "Bersi Grimsson's debt.", if: { quests: { 'C2-S04': 'active' }, notFlags: ['debt_paid', 'debt_leaned'] }, to: 'debt' },
+        { text: 'Where are you from?', to: 'south' },
+        { text: 'Goodbye.', end: true }
+    ];
     const npcs = {
         // ------------------------------------------------------------- Eydis Namesinger, keeper of the Roll
         eydis: {
             name: 'Eydis Namesinger', title: 'Skald',
             talk: [
+                // Up at Hrafnholm once Act I's decision is made (C2-03): before the Thing, and after it by where you stood.
+                { if: { flags: ['thing_backed_ragnhild'] }, node: 'thing_ragnhild' },
+                { if: { flags: ['thing_backed_torvald'] }, node: 'thing_torvald' },
+                { if: { flags: ['thing_asked_inquiry'] }, node: 'thing_inquiry' },
+                { if: { quests: { C203: 'active+' } }, node: 'thing_before' },
                 { if: { notFlags: ['caravan_saved', 'eydis_in_skeldvik'] }, node: 'hiding' },
                 { if: { flags: ['eydis_in_skeldvik'], notFlags: ['eydis_harbor_met'] }, node: 'harbor' },
                 { if: { notFlags: ['eydis_met'] }, node: 'meet' },
@@ -340,6 +399,41 @@
                         ['npc', "All right. But you'll stand beside me at Hrafnholm when I read it; that's the price."]
                     ],
                     choices: [{ text: 'What happens now?', to: 'next' }, { text: 'Goodbye.', end: true }]
+                },
+                thing_before: {
+                    lines: [
+                        ['npc', "Redhand is here, and so am I. When Arnkel blows the horn I'll read, and he can look me in the eye while I do it."],
+                        ['npc', "Talk to the Jarl and to Redhand first. The Thing hears a guest better if both sides have looked at them."]
+                    ],
+                    choices: [{ text: 'Who is Hallvard?', if: { flags: ['heard_of_hallvard'] }, to: 'hallvard_up' }, { text: 'Goodbye.', end: true }]
+                },
+                hallvard_up: {
+                    lines: [
+                        ['npc', "Eirik's skald, and the only one who walked off the Silent Field. He keeps a barrow out past it now and lets nobody near."],
+                        ['npc', "His daughter Runa is here, sworn to Sigrun. Be kind if you ask her about him; everybody else asks."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                thing_ragnhild: {
+                    lines: [
+                        ['npc', "You told them to bury the six hundred. I still can't decide whether that was kind."],
+                        ['npc', "I'll go on reading the names either way. Buried or not, somebody has to say them."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                thing_torvald: {
+                    lines: [
+                        ['npc', "You stood with Redhand. I don't blame you; he's the only one in that ring who sounds as if he misses them."],
+                        ['npc', "Just remember he still has four of my boards."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                thing_inquiry: {
+                    lines: [
+                        ['npc', "You asked them to look before they decide. I'd have asked the same, if anyone let a skald speak at the Thing."],
+                        ['npc', "Go where the boards went. I'll be here, copying what's left."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 next: {
                     lines: [
@@ -843,6 +937,9 @@
                 { if: { flags: ['tablet_with_eydis'], notFlags: ['ragnhild_met'] }, node: 'meet_eydis' },
                 { if: { flags: ['tablet_kept'], notFlags: ['ragnhild_met'] }, node: 'meet_kept' },
                 { if: { notFlags: ['ragnhild_met'] }, node: 'meet' },
+                { if: { flags: ['thing_backed_ragnhild'] }, node: 'after_backed' },
+                { if: { flags: ['thing_backed_torvald'] }, node: 'after_redhand' },
+                { if: { flags: ['thing_asked_inquiry'] }, node: 'after_inquiry' },
                 { node: 'again' }
             ],
             nodes: {
@@ -881,6 +978,18 @@
                     lines: [['npc', "The Thing sits when the Lawspeaker calls it. Until then you are a guest of this hall, and you eat at its tables."]],
                     choices: RAGNHILD
                 },
+                after_backed: {
+                    lines: [['npc', "There is a bench for you at my table, guest, the third from the fire. That is closer than most of my cousins get."]],
+                    choices: RAGNHILD
+                },
+                after_redhand: {
+                    lines: [['npc', "You stood on the Redhand's side of the ring. You may still eat at my tables; I punish noise, not honesty."]],
+                    choices: RAGNHILD
+                },
+                after_inquiry: {
+                    lines: [['npc', "You asked for a witness and were given the job. That is how the Thing works, and why nobody asks."]],
+                    choices: RAGNHILD
+                },
                 seat: {
                     lines: [
                         ['npc', "Eirik's seat. My husband marched to the Silent Field with six hundred, and nobody has drunk his grave-ale, so nobody may sit there."],
@@ -917,6 +1026,9 @@
             talk: [
                 { if: { flags: ['ulfrun_beaten'], notFlags: ['torvald_met'] }, node: 'meet_ulfrun' },
                 { if: { notFlags: ['torvald_met'] }, node: 'meet' },
+                { if: { flags: ['thing_backed_ragnhild'] }, node: 'after_hall' },
+                { if: { flags: ['thing_backed_torvald'] }, node: 'after_backed' },
+                { if: { flags: ['thing_asked_inquiry'] }, node: 'after_inquiry' },
                 { node: 'again' }
             ],
             nodes: {
@@ -938,6 +1050,18 @@
                 },
                 again: {
                     lines: [['npc', "The Thing sits soon. Stand where you like, southerner, but stand somewhere."]],
+                    choices: TORVALD
+                },
+                after_hall: {
+                    lines: [['npc', "You handed the Jarl her spade. I'll still drink with you, southerner, but I won't tell you anything."]],
+                    choices: TORVALD
+                },
+                after_backed: {
+                    lines: [['npc', "My crews know your face now. Walk where you like among them, and if anyone asks, you're with the Redhand."]],
+                    choices: TORVALD
+                },
+                after_inquiry: {
+                    lines: [['npc', "A witness. Fine: go and look, and when you've seen that field, come back and tell me they're dead."]],
                     choices: TORVALD
                 },
                 boards: {
@@ -966,13 +1090,17 @@
         // ------------------------------------------------------------- Sigrun Frostmark, the heir who won't be
         sigrun: {
             name: 'Sigrun Frostmark', title: "The Jarl's daughter",
-            talk: [{ node: 'memorial' }],
+            talk: [{ if: { flags: ['thing_heard'] }, node: 'after' }, { node: 'memorial' }],
             nodes: {
                 memorial: {
                     lines: [
                         ['npc', "My father's name is on the middle board, top row, cut by someone who spelled it wrong. I've never asked them to mend it."],
                         ['npc', "I'm Sigrun. Everyone will tell you I'm the heir; please don't."]
                     ],
+                    choices: [{ text: 'What do you want from the Thing?', to: 'want' }, { text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "I said 'hear them', and my mother looked at me as if I'd drawn a knife. Best day I've had in years."]],
                     choices: [{ text: 'What do you want from the Thing?', to: 'want' }, { text: 'Goodbye.', end: true }]
                 },
                 want: {
@@ -1002,10 +1130,18 @@
                 }
             }
         },
-        // ------------------------------------------------------------- Arnkel the Lawspeaker
+        // ------------------------------------------------------------- Arnkel the Lawspeaker, and the Thing (C2-03)
+        // The Thing is spoken through Arnkel: he blows the horn, and the assembly's voices (Ragnhild, Torvald, Eydis, Sigrun,
+        // Ulfrun) speak in his conversation. Review doc 4.4: three first positions, and whichever you take the Thing says
+        // "not yet" and makes you its witness, so the main road (C2-04 on) never closes.
         arnkel: {
             name: 'Arnkel the Lawspeaker', title: 'Lawspeaker',
-            talk: [{ node: 'meet' }],
+            talk: [
+                { if: { flags: ['thing_heard'] }, node: 'after' },
+                { if: { flags: ['thing_sat'] }, node: 'resume' },
+                { if: { quests: { C203: 'active' }, flags: ['ragnhild_met', 'torvald_met'] }, node: 'call' },
+                { node: 'meet' }
+            ],
             nodes: {
                 meet: {
                     lines: [
@@ -1028,6 +1164,187 @@
                 speak: {
                     lines: [['npc', "Any free person with a claim, and any guest the Thing agrees to hear. You'll have to be heard, southerner, before you're listened to."]],
                     choices: [{ text: 'What is the law of twenty winters?', to: 'twenty' }, { text: 'Goodbye.', end: true }]
+                },
+                call: {
+                    lines: [
+                        ['npc', "The households are in and the benches are full. You've stood in front of the Jarl and the Redhand both, which is more than most guests manage."],
+                        ['npc', "When I blow the horn, the Thing sits. Once it sits, it does not rise until it has heard every claim."]
+                    ],
+                    choices: [
+                        { text: 'Blow the horn.', effects: [{ flag: 'thing_sat' }, { event: { type: 'story', id: 'thing_sits' } }], to: 'open' },
+                        { text: 'What is the law of twenty winters?', to: 'twenty' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                // Came back mid-assembly (a load, a closed window): the Thing is still sitting, and the guest is still to speak.
+                resume: {
+                    lines: [['npc', "The Thing is still sitting, guest, and it is waiting for you."]],
+                    choices: [
+                        { text: 'Step into the ring.', if: { notFlags: POSITIONS }, to: 'stand' },
+                        { text: 'Hear the verdict.', if: { any: POSITIONS.map((f) => ({ flags: [f] })) }, to: 'verdict' }
+                    ]
+                },
+                open: {
+                    lines: [
+                        [null, 'The horn goes twice across the town, and the households come down the benches into the ring.'],
+                        [null, "The hall's banners on the west, the free farmers' on the east, and the red wolf among them."],
+                        [null, 'Six hundred places on the benches stay empty. Nobody sits in them, and nobody has to be told.'],
+                        ['npc', "This is the twentieth winter since the Silent Field. Under the law of twenty winters the Jarl has a claim, and the Thing will hear it."],
+                        ['ragnhild', "I ask the Thing to declare the six hundred dead. Let us drink their grave-ale, settle what has waited, and let their widows mourn like widows."],
+                        ['ragnhild', "I ask it for Eirik too. I have set his bowl at my table for twenty winters, and I would like to put it away."]
+                    ],
+                    choices: [{ text: 'Listen.', to: 'redhand' }]
+                },
+                redhand: {
+                    lines: [
+                        ['torvald', "And I say no. You can't drink the grave-ale of a man who isn't dead, and there wasn't one body on that field."],
+                        ['torvald', "Give me the summer and every board in the North. I'll march to the Silent Field and bring them home, or come back and tell you why not."],
+                        ['ragnhild', "With whose spears, Torvald? No host leaves this hall again without the law and the families behind it."],
+                        [null, 'Half the benches shout for him. The other half shout at him, and some of them are the same people.']
+                    ],
+                    choices: [
+                        { text: 'Listen.', if: { flags: ['tablet_with_eydis'] }, to: 'board_eydis' },
+                        { text: 'Listen.', if: { flags: ['tablet_with_reeve'] }, to: 'board_reeve' },
+                        { text: 'Listen.', if: { flags: ['tablet_kept'] }, to: 'board_kept' },
+                        { text: 'Listen.', if: { notFlags: ['tablet_with_eydis', 'tablet_with_reeve', 'tablet_kept'] }, to: 'board_roll' }
+                    ]
+                },
+                // Eydis reads the Birkholt board, wherever the stranger left it (C2-02's choice; review doc section 5).
+                // Names live in wood: read off the board, a name comes back to someone who had lost it (bible 4.1, seeded only).
+                board_eydis: {
+                    lines: [
+                        ['eydis', "Before the Thing decides who is dead, it can hear who they were. This is Birkholt's board, and a Wolf-Banner crew tipped a dead woman out of her wagon for it."],
+                        [null, 'She reads all forty names, slowly, one breath each.'],
+                        [null, "At the eleventh, a woman on the farmers' bench says 'Ketil' a beat after Eydis does, as if she had only just remembered."],
+                        ['ulfrun', 'My brother is the twenty-third. Read him again.'],
+                        [null, 'Eydis does. Nobody on either bench says a word until she has finished.']
+                    ],
+                    choices: [{ text: 'Go on.', to: 'guest' }]
+                },
+                board_reeve: {
+                    lines: [
+                        [null, "Two of Thora's guards carry a locked chest into the ring. Arnkel opens it with the reeve's key and lifts out Birkholt's board."],
+                        ['npc', "Evidence held under the harbour's law, and brought here unopened. The Thing will hear its names."],
+                        [null, "He reads the forty in the voice he uses for the law. At the eleventh, a woman on the farmers' bench says 'Ketil' a beat after him."],
+                        ['eydis', "So the hall reads its own evidence now. At least it's read."]
+                    ],
+                    choices: [{ text: 'Go on.', to: 'guest' }]
+                },
+                board_kept: {
+                    lines: [
+                        ['eydis', "The stranger carries Birkholt's board, and stands with me. Hold it up, so the Thing can see I'm not making these names up."],
+                        [null, 'You hold up the board, and Eydis reads it off the wood, all forty, one breath each.'],
+                        [null, "At the eleventh, a woman on the farmers' bench says 'Ketil' a beat after her, as if she had only just remembered."],
+                        ['ulfrun', "We'd have bought that board off you, southerner. I'm glad now that you wouldn't sell."],
+                        ['ragnhild', 'The hall still asks for it, formally. Keep it until the Thing has finished; then we will talk.']
+                    ],
+                    choices: [{ text: 'Go on.', to: 'guest' }]
+                },
+                board_roll: {
+                    lines: [
+                        ['eydis', "I have the Roll, if not every board. Before the Thing decides who is dead, it can hear who they were."],
+                        [null, "She reads Birkholt's forty from her book, slowly, one breath each."],
+                        [null, "At the eleventh, a woman on the farmers' bench says 'Ketil' a beat after Eydis does, as if she had only just remembered."]
+                    ],
+                    choices: [{ text: 'Go on.', to: 'guest' }]
+                },
+                guest: {
+                    lines: [
+                        ['npc', "The Thing has heard the Jarl and the Redhand. The stranger who came down the Frostspine with the Birkholt board asks to be heard."],
+                        ['npc', 'Will the Thing hear a guest?'],
+                        [null, "A long silence. Then Sigrun Frostmark, on the hall's bench, says 'Hear them,' just loudly enough that it would be rude not to."],
+                        ['sigrun', 'My mother and the Redhand have had twenty years to say this. Let somebody new say it badly.']
+                    ],
+                    choices: [{ text: 'Step into the ring.', to: 'stand' }]
+                },
+                stand: {
+                    lines: [[null, 'The ring goes quiet. Ragnhild on the west, Torvald on the east, Arnkel at the law rock between them, and every empty place watching you.']],
+                    choices: [
+                        // What Skeldvik told you can be said here, in front of everyone (review doc section 5). Never required.
+                        { text: 'Ask Torvald, in front of everyone, where his silver comes from.', if: { flags: ['southern_friends_heard', 'leif_told'], notFlags: ['thing_silver_asked'] },
+                            effects: [{ flag: 'thing_silver_asked' }], to: 'silver' },
+                        { text: 'Ask Torvald how old Arni was when he marched.', if: { flags: ['wolfbanner_heard'], notFlags: ['thing_arni_asked'] },
+                            effects: [{ flag: 'thing_arni_asked' }], to: 'arni' },
+                        { text: 'Stand with the Jarl: let the families bury them.', effects: [{ flag: 'thing_backed_ragnhild' }], to: 'pos_ragnhild' },
+                        { text: 'Stand with Torvald: nobody is dead until someone has looked.', effects: [{ flag: 'thing_backed_torvald' }], to: 'pos_torvald' },
+                        { text: 'Ask the Lawspeaker to hold the verdict until someone has seen the Field.', effects: [{ flag: 'thing_asked_inquiry' }], to: 'pos_inquiry' }
+                    ]
+                },
+                silver: {
+                    lines: [
+                        [null, "At the edge of the farmers' bench, a man in a southern coat stops counting on his fingers."],
+                        ['torvald', "Friends in the south, who remember how the North fought. I said I'd say it in front of everyone, and I have."],
+                        ['ragnhild', "Friends who pay in the old Crown's plate. The Thing will remember that you said it, Torvald."]
+                    ],
+                    choices: [{ text: 'Go on.', to: 'stand' }]
+                },
+                arni: {
+                    lines: [
+                        ['torvald', 'Nineteen. He walked in the front rank, because he wanted Eirik to see him do it.'],
+                        ['torvald', "I was fourteen, and too young to march. I've been old enough every day since."],
+                        [null, 'Nobody shouts for a while after that, on either bench.']
+                    ],
+                    choices: [{ text: 'Go on.', to: 'stand' }]
+                },
+                pos_ragnhild: {
+                    lines: [
+                        ['ragnhild', 'Thank you. A hard thing is easier to say when a stranger has said it first.'],
+                        ['torvald', 'So the south wants them buried too. Remember who handed you the spade, Jarl.'],
+                        [null, "The Birkholt families on the farmers' bench nod, slowly. Ulfrun gets up and walks out of the ring."]
+                    ],
+                    choices: [{ text: 'Wait for the Lawspeaker.', to: 'verdict' }]
+                },
+                pos_torvald: {
+                    lines: [
+                        ['torvald', "There, a stranger with eyes. They aren't dead until somebody has gone and looked."],
+                        ['ragnhild', 'Then you have chosen your bench, guest. The hall will still feed you; it will not listen to you as closely.'],
+                        [null, 'The red cloaks on the east bench stamp on the stone until Arnkel lifts his staff.']
+                    ],
+                    choices: [{ text: 'Wait for the Lawspeaker.', to: 'verdict' }]
+                },
+                pos_inquiry: {
+                    lines: [
+                        ['npc', 'A guest asks the Thing not to decide what it cannot see. That is a lawful request, and an old one.'],
+                        ['eydis', "Somebody should look before anyone is buried or brought home. I'd like it to be someone who doesn't need either answer."],
+                        ['sigrun', "That's the first sensible thing anyone has said today."],
+                        [null, "Ragnhild says nothing. Torvald laughs once, without much in it, and doesn't argue."]
+                    ],
+                    choices: [{ text: 'Wait for the Lawspeaker.', to: 'verdict' }]
+                },
+                verdict: {
+                    lines: [
+                        ['npc', 'Hear the Thing. The law of twenty winters says may, not must, and today the Thing says not yet.'],
+                        ['npc', "The six hundred are not declared dead this summer. And no host marches to the Silent Field without the Thing's word."],
+                        ['npc', 'Name boards and iron are going missing from the North together, and the iron goes through Járnmyr.'],
+                        ['npc', 'The guest who carried the Birkholt board will follow both, as the Thing\'s witness, and say here what they find.'],
+                        [null, 'The horn goes once. The Thing rises.']
+                    ],
+                    choices: [{ text: 'Leave the ring.', effects: [{ event: { type: 'story', id: 'thing_position' } }], end: true }]
+                },
+                after: {
+                    lines: [['npc', "The Thing's witness. Come to the rock when you have something, and say it plainly; the law has no ear for adjectives."]],
+                    choices: [
+                        { text: "Orm's oath-stick, for the Green Pine land.", if: { quests: { 'C2-S02': 'active' }, flags: ['oath_stick_read'] }, to: 'oath_case' },
+                        { text: 'What is the law of twenty winters?', to: 'twenty' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                // C2-S02 The Price of an Oath: the case is put to the rock, and the guest says how it should go.
+                oath_case: {
+                    lines: [
+                        [null, 'Arnkel turns the stick over twice, and runs his thumb along the second row of cuts.'],
+                        ['npc', "The old Lawspeaker's hand, and a sworn oath: Hild holds the land, in Orm's name. Kolgrim says he holds it in Orm's name too."],
+                        ['npc', 'The law can read it either way, so the law will hear a witness. How should the Green Pine land be held?']
+                    ],
+                    choices: [
+                        { text: 'Hild holds it, as Orm swore.', effects: [{ flag: 'oath_for_hild' }], to: 'oath_ruled' },
+                        { text: 'Kolgrim keeps it until someone has seen the Field.', effects: [{ flag: 'oath_for_kolgrim' }], to: 'oath_ruled' },
+                        { text: "Hild holds it in Orm's name, and Kolgrim farms the upper field.", effects: [{ flag: 'oath_shared' }], to: 'oath_ruled' }
+                    ]
+                },
+                oath_ruled: {
+                    lines: [['npc', "So it's said, and so I'll cut it. Neither of them will thank you; that's usually how you know it was the law."]],
+                    choices: [{ text: 'Goodbye.', effects: [{ event: { type: 'story', id: 'oath_judged' } }], end: true }]
                 }
             }
         },
@@ -1041,17 +1358,227 @@
                         ['npc', "Osric Vane, factor, at your service and at everyone else's. I buy wool and amber, and sell the North what it forgets it needs."],
                         ['npc', "Hrafnholm is a fine place to do business in a bad year. Everyone owes someone."]
                     ],
-                    choices: [{ text: 'Where are you from?', to: 'south' }, { text: 'Goodbye.', end: true }]
+                    choices: OSRIC
                 },
                 known: {
                     lines: [
                         ['npc', "You've heard my name already, I can see it. Leif Ropehand, I expect: he owes me and hates it, which is the usual arrangement."],
                         ['npc', "Osric Vane, factor. I lend, I buy, I keep accounts."]
                     ],
-                    choices: [{ text: 'Where are you from?', to: 'south' }, { text: 'Goodbye.', end: true }]
+                    choices: OSRIC
                 },
                 south: {
                     lines: [['npc', "The south, which is a large place. I go where coin is thin and need is thick."]],
+                    choices: OSRIC
+                },
+                // C2-S04 The Fisherman's Debt. Osric is the Broken Oath's money (review doc 4.2, hidden): he backs off from
+                // anyone who says "the old Crown's plate" in a town full of people about to sit at the Thing.
+                debt: {
+                    lines: [
+                        ['npc', "Bersi owes me thirty in silver, for a mast and a winter's cargo. I lent in good faith, and I'll take his ship in the same spirit."],
+                        ['npc', "Pay it for him, if you like. I'm not particular whose purse it comes from."]
+                    ],
+                    effects: [{ event: { type: 'story', id: 'debt_osric' } }],
+                    choices: [
+                        { text: 'Pay the thirty. (30 Gold)', if: { gold: 30 },
+                            effects: [{ pay: 30 }, { flag: 'debt_paid' }, { event: { type: 'story', id: 'debt_settled' } }], to: 'paid' },
+                        { text: "You lend in the old Crown's plate. Should the Thing hear about that?", if: { flags: ['leif_told'] },
+                            effects: [{ flag: 'debt_leaned' }, { flag: 'osric_wary' }, { event: { type: 'story', id: 'debt_settled' } }], to: 'leaned' },
+                        { text: "I'll think about it.", end: true }
+                    ]
+                },
+                paid: {
+                    lines: [['npc', "A pleasure. I'll send his paper down with the next cart; tell him to mind the ice."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                leaned: {
+                    lines: [
+                        [null, "Osric smiles with his mouth, and counts something on his fingers that isn't money."],
+                        ['npc', "The spring fair, then. Tell Bersi I'm a patient man; it's true more often than people think."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Ulfrun Grey-Mantle, at the Thing among the Wolf-Banner
+        // Beaten in the gap, not killed (C2-01), she remembers it (review doc section 5, `ulfrun_beaten`).
+        ulfrun: {
+            name: 'Ulfrun Grey-Mantle', title: 'Wolf-Banner',
+            talk: [
+                { if: { flags: ['thing_backed_ragnhild'] }, node: 'after_hall' },
+                { if: { flags: ['thing_backed_torvald'] }, node: 'after_backed' },
+                { if: { flags: ['thing_asked_inquiry'] }, node: 'after_inquiry' },
+                { node: 'meet' }
+            ],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "You. You put me down in the gap and let me walk off the mountain."],
+                        ['npc', "I've been trying to work out why for a week. Redhand says it's southern manners."]
+                    ],
+                    choices: [{ text: 'Your brother is on the Birkholt board?', to: 'brother' }, { text: 'Goodbye.', end: true }]
+                },
+                brother: {
+                    lines: [
+                        ['npc', "Twenty-third from the top. I can say his name with my thumb on the board, and not otherwise."],
+                        ['npc', "So we take the boards. If the hall burns them at a grave-ale, who is going to remember him?"]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after_hall: {
+                    lines: [
+                        ['npc', "You told them to bury him. I walked out, so I didn't hear the rest."],
+                        ['npc', "I'm not angry. I just wanted one person in that ring to say no who wasn't a Redhand."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after_backed: {
+                    lines: [['npc', "'Nobody is dead until someone has looked.' I'm going to have that cut on my shield."]],
+                    choices: [{ text: 'Your brother is on the Birkholt board?', to: 'brother' }, { text: 'Goodbye.', end: true }]
+                },
+                after_inquiry: {
+                    lines: [['npc', "A witness, then. When you've seen the Field, tell me first, before you tell the hall."]],
+                    choices: [{ text: 'Your brother is on the Birkholt board?', to: 'brother' }, { text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- C2-S02 The Price of an Oath: Hild, Kolgrim, the stick
+        // Orm of the Green Pine marched with the six hundred. Names live in wood: neither his wife nor his brother can say
+        // his name without his board, so the stick is the first place the player reads it.
+        hild: {
+            name: 'Hild', title: 'Of the Green Pine',
+            talk: [
+                { if: { quests: { 'C2-S02': 'complete' } }, node: 'done' },
+                { if: { quests: { 'C2-S02': 'active' } }, node: 'waiting' },
+                { if: { flags: ['thing_heard'] }, node: 'case' },
+                { node: 'before' }
+            ],
+            nodes: {
+                before: {
+                    lines: [['npc', "After the Thing, stranger. Everyone in this town is waiting for the Thing, and I've been waiting longest."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                case: {
+                    lines: [
+                        ['npc', "The Thing said not yet. I've heard 'not yet' for twenty winters, and my daughter marries at midsummer with no land to bring."],
+                        ['npc', "My husband swore something before he marched. I remember that he did, and not what; I can't even say his name without the board."],
+                        ['npc', "His brother Kolgrim holds our land 'for him', and won't let me sell a sheep. Will you hear us both?"]
+                    ],
+                    choices: [
+                        { text: "I'll hear you both.", effects: [{ start: 'C2-S02' }], to: 'go' },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                go: {
+                    lines: [
+                        ['npc', "Kolgrim drills with the Redhand's crews in the Training Yard."],
+                        ['npc', "The old Lawspeaker cut every oath on a stick before the host marched. They're on the table in the hall, if anyone kept them."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                waiting: {
+                    lines: [['npc', "Have you heard him yet? He'll tell you he's holding it for his brother, and he's been holding it for twenty years."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                done: {
+                    lines: [['npc', "Orm. I said it this morning with the stick in my hand, and I said it again without."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        kolgrim: {
+            name: 'Kolgrim', title: 'Of the Green Pine',
+            talk: [
+                { if: { quests: { 'C2-S02': 'complete' } }, node: 'done' },
+                { if: { quests: { 'C2-S02': 'active' } }, node: 'case' },
+                { node: 'drill' }
+            ],
+            nodes: {
+                drill: {
+                    lines: [['npc', "I'm drilling. If you want to fight, pick up a spear; if you want to talk, the Redhand's over there."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                case: {
+                    lines: [
+                        ['npc', "Hild sent you. She wants to sell my brother's land before he's home to stop her."],
+                        ['npc', "I hold it for him, the way you'd hold a man's cloak while he swims. When the Redhand brings them back, he gets his land and his wife both."],
+                        ['npc', "And if he doesn't come back, I'll have held it for nothing. I'd rather that than give it away."]
+                    ],
+                    effects: [{ event: { type: 'story', id: 'oath_kolgrim' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                done: {
+                    lines: [['npc', "The Lawspeaker cut it, so that's the law. I don't have to like the law; I only have to keep it."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        orm_stick: {
+            name: "Orm's oath-stick", title: "The Lawspeaker's table",
+            talk: [{ node: 'stick' }],
+            nodes: {
+                stick: {
+                    lines: [
+                        [null, 'In the bundle tied with grey wool, one stick is cut with a pine and a ring, and a name: Orm of the Green Pine.'],
+                        [null, 'Under the marks for his land, a second row, cut deeper: "If I am not home by the third winter, Hild holds the pine land, and holds it in my name."']
+                    ],
+                    effects: [{ flag: 'oath_stick_read' }, { event: { type: 'story', id: 'oath_stick' } }],
+                    choices: [{ text: 'Take it to the Lawspeaker.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- C2-S04 The Fisherman's Debt: Bersi of the Sea-Hare
+        bersi: {
+            name: 'Bersi Grimsson', title: 'Master of the Sea-Hare',
+            talk: [
+                { if: { quests: { 'C2-S04': 'complete' } }, node: 'done' },
+                { if: { quests: { 'C2-S04': 'active' } }, node: 'waiting' },
+                { node: 'dock' }
+            ],
+            nodes: {
+                dock: {
+                    lines: [['npc', "Bersi Grimsson, master of the Sea-Hare. And the Sea-Hare isn't going anywhere."]],
+                    choices: [{ text: 'Why not?', to: 'debt' }, { text: 'Goodbye.', end: true }]
+                },
+                debt: {
+                    lines: [
+                        ['npc', "I borrowed thirty in silver from a factor at Hrafnholm for a new mast. The herring never came, and now his paper says my ship is his at the thaw."],
+                        ['npc', "I'd sell the cargo, but that's his too, apparently."],
+                        ['npc', "Would you talk to him for me? He listens to strangers; he only lends to us."]
+                    ],
+                    choices: [
+                        { text: "I'll talk to him.", effects: [{ start: 'C2-S04' }], to: 'who' },
+                        { text: 'Not my business.', end: true }
+                    ]
+                },
+                who: {
+                    lines: [['npc', "Osric Vane, up at Hrafnholm. He counts on his fingers so you can watch him do it."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                waiting: {
+                    lines: [['npc', "Well? Is she still mine?"]],
+                    choices: [
+                        { text: 'Your ship is yours. I paid him.', if: { flags: ['debt_paid'] }, effects: [{ event: { type: 'story', id: 'debt_told' } }], to: 'thanks_paid' },
+                        { text: "Your ship is yours. He'll wait until the spring fair.", if: { flags: ['debt_leaned'] }, effects: [{ event: { type: 'story', id: 'debt_told' } }], to: 'thanks_leaned' },
+                        { text: 'Not yet.', if: { notFlags: ['debt_paid', 'debt_leaned'] }, end: true }
+                    ]
+                },
+                thanks_paid: {
+                    lines: [
+                        ['npc', "You paid it? Out of your own purse, for a man you met on a dock?"],
+                        ['npc', "Then take this from the cargo he didn't get. And when the ice goes out, the Sea-Hare's deck is yours."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                thanks_leaned: {
+                    lines: [
+                        ['npc', "Osric Vane, waiting until spring? I'd give a lot to know what you said to him."],
+                        ['npc', "I can't pay you, but I can carry you. When the ice goes out, the Sea-Hare's deck is yours."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                done: {
+                    lines: [['npc', "New mast, old debt, same ship. When the ice goes out, you know where she's moored."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }

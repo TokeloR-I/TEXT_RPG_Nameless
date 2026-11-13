@@ -228,7 +228,10 @@
             ],
             encounters: [],
             interactables: [
-                { id: 'skeldvik_eydis', kind: 'npc', npc: 'eydis', x: 11, y: 10, name: 'Eydis Namesinger', sprite: 'skald', when: { flags: ['eydis_in_skeldvik'] } },
+                // Once the tablet is decided (C2-02 done, C2-03 begun) she goes up the road to read at the Thing.
+                { id: 'skeldvik_eydis', kind: 'npc', npc: 'eydis', x: 11, y: 10, name: 'Eydis Namesinger', sprite: 'skald', when: { flags: ['eydis_in_skeldvik'], quests: { C203: 'unseen' } } },
+                // C2-S04 The Fisherman's Debt: the trader's master, on the north dock beside his ship.
+                { id: 'skeldvik_bersi', kind: 'npc', npc: 'bersi', x: 48, y: 16, name: 'Bersi Grimsson', sprite: 'skipper' },
                 { id: 'skeldvik_leif', kind: 'npc', npc: 'leif', x: 8, y: 28, name: 'Leif Ropehand', sprite: 'shipwright' },
                 { id: 'skeldvik_solveig', kind: 'npc', npc: 'solveig', x: 28, y: 15, name: 'Solveig', sprite: 'fishwife' },
                 { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 37, y: 6, name: 'Thora Half-Oar', sprite: 'reeve' },
@@ -445,6 +448,12 @@
                 { id: 'hrafnholm_sigrun', kind: 'npc', npc: 'sigrun', x: 41, y: 21, name: 'Sigrun Frostmark', sprite: 'heir' },
                 { id: 'hrafnholm_runa', kind: 'npc', npc: 'runa', x: 46, y: 21, name: 'Runa Hallvardsdottir', sprite: 'shieldmaiden' },
                 { id: 'hrafnholm_osric', kind: 'npc', npc: 'osric', x: 12, y: 15, name: 'Osric Vane', sprite: 'factor' },
+                // The Thing (C2-03): Eydis by the law rock with the Roll, Ulfrun among the Wolf-Banner on the east benches.
+                { id: 'hrafnholm_eydis', kind: 'npc', npc: 'eydis', x: 27, y: 22, name: 'Eydis Namesinger', sprite: 'skald', when: { quests: { C203: 'active+' } } },
+                { id: 'hrafnholm_ulfrun', kind: 'npc', npc: 'ulfrun', x: 31, y: 24, name: 'Ulfrun Grey-Mantle', sprite: 'greymantle', when: { flags: ['ulfrun_beaten'] } },
+                // C2-S02 The Price of an Oath: Hild by the noble houses, Kolgrim drilling in the Training Yard.
+                { id: 'hrafnholm_hild', kind: 'npc', npc: 'hild', x: 10, y: 8, name: 'Hild', sprite: 'widow' },
+                { id: 'hrafnholm_kolgrim', kind: 'npc', npc: 'kolgrim', x: 10, y: 27, name: 'Kolgrim', sprite: 'farmer' },
                 // The Hrimvald kitchen (2026-11-13): Gudrun at the east stalls, the feast fire by the tables, berries on the slope.
                 { id: 'hrafnholm_gudrun', kind: 'npc', npc: 'gudrun', x: 33, y: 15, name: 'Gudrun', sprite: 'shepherd' },
                 { id: 'hrafnholm_feast_fire', kind: 'station', station: 'feast_fire', verb: 'Cook at', x: 38, y: 16, name: 'Feast fire', sprite: 'cookfire' },
@@ -547,6 +556,8 @@
             encounters: [],
             interactables: [
                 { id: 'hall_ragnhild', kind: 'npc', npc: 'ragnhild', x: 19, y: 5, name: 'Ragnhild Frostmark', sprite: 'jarl' },
+                // C2-S02: Orm's oath-stick, in the grey-wool bundle on the Lawspeaker's table, while the case is open.
+                { id: 'hall_orm_stick', kind: 'npc', npc: 'orm_stick', x: 29, y: 8, name: "Orm's oath-stick", when: { quests: { 'C2-S02': 'active' } } },
                 { id: 'hall_high_seat', kind: 'inspect', x: 17, y: 4, name: 'The high seat',
                     text: 'The jarl\'s seat: carved ash, a back like a gable end, the arms ending in ravens\' heads, a white fur folded on it that nobody has sat on. The step below it is where an heir sits until the grave-ale has been drunk. That step is empty too.' },
                 { id: 'hall_names', kind: 'inspect', x: 6, y: 21, name: 'The Six Hundred Remembered',

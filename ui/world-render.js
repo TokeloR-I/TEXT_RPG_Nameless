@@ -554,6 +554,12 @@
         shieldmaiden: { cloak: '#5a5a54', hair: '#4a3220', helm: '#8a8a92', belt: '#2a2018', prop: 'halberd' },
         lawspeaker: { cloak: '#9a907a', hair: '#e8e8e4', belt: '#5a4a38', prop: 'staff' },
         factor: { cloak: '#3a3638', hat: '#24222a', belt: '#c8a050', scarf: '#6a2a3a' },
+        // After the Thing (C2-03 to C2-S04): Ulfrun in her grey wolf pelt with the axe, Hild in mourning grey, her
+        // brother-in-law Kolgrim in a farmer's brown with a Wolf-Banner red hood, and Bersi the ship's master in salt-blue.
+        greymantle: { cloak: '#7a3a2e', hood: '#b8b4aa', scarf: '#8a8478', belt: '#2a2018', prop: 'hammer' },
+        widow: { cloak: '#8a8478', hood: '#5a5a54', belt: '#3e6a44', prop: 'basket' },
+        farmer: { cloak: '#6a5440', hood: '#7a3a2e', belt: '#2a2018', prop: 'staff' },
+        skipper: { cloak: '#2e4a5a', hat: '#3a3638', hair: '#c8b890', belt: '#8a6a3a' },
         // The Hrimvald kitchen (2026-11-13): Aslaug of the Stormtide Inn, apron and a mead basket; Gudrun the sheep-farmer.
         alewife: { cloak: '#7a4a2a', hair: '#d0a050', scarf: '#e0d8c0', belt: '#4a3020', prop: 'basket' },
         shepherd: { cloak: '#8a8478', hood: '#5a6a4a', belt: '#4a3a2a', prop: 'staff' },
