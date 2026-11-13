@@ -12,7 +12,10 @@
     const SLOTS = [
         { slot: 'mainHand', label: 'Weapon' },
         { slot: 'offHand', label: 'Offhand' },
+        { slot: 'head', label: 'Head' },
         { slot: 'bodyArmor', label: 'Armor' },
+        { slot: 'hands', label: 'Hands' },
+        { slot: 'feet', label: 'Feet' },
         { slot: 'accessory', label: 'Accessory' }
     ];
     const STATS = [

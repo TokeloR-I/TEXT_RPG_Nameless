@@ -95,6 +95,7 @@
                 case 'claim_loot': this.claimLoot(); return;
                 case 'buy': this.buyItem(String(a.shopId || ''), String(a.item || '')); return;
                 case 'sell': this.sellItem(String(a.shopId || ''), String(a.item || '')); return;
+                case 'temper': this.temperWeapon(String(a.shopId || ''), String(a.item || '')); return;   // weapon tempering (equipment.js)
                 case 'compare_item': this.compareItem(String(a.item || '')); return;
                 case 'build': this.buildUpgrade(String(a.upgradeId || '')); return;
                 case 'plant': this.plantCrop(String(a.plotId || ''), String(a.seed || '')); return;
