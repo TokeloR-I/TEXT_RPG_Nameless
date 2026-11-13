@@ -66,7 +66,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
             if (['inspect', 'defeat'].includes(o.on.type)) assert.ok(objs.has(o.on.id), `${id}.${o.id}: ${o.on.id}`);
             if (o.on.type === 'enter') assert.ok(ZONE1.maps[o.on.id], `${id}.${o.id}: map`);
             // A step that waits on a conversation is offered by some choice or node.
-            if (o.on.type === 'story' && !CH2.quests[id].teaser) assert.ok(JSON.stringify(CH2.npcs).includes(`"id":"${o.on.id}"`), `${id}.${o.id}: nobody fires ${o.on.id}`);
+            if (o.on.type === 'story' && !CH2.quests[id].teaser) assert.ok(JSON.stringify([CH2.npcs, CH2.triggers]).includes(`"id":"${o.on.id}"`), `${id}.${o.id}: nobody fires ${o.on.id}`);
         }
     }
     for (const [nid, npc] of Object.entries(CH2.npcs)) {
@@ -173,10 +173,9 @@ for (const [choice, flag, keeps] of [[/belongs with the Roll/, 'tablet_with_eydi
         assert.strictEqual(g.player.inventory.includes(TABLET), keeps);
         assert.strictEqual(g.questState('C202'), 'complete');
         assert.strictEqual(g.trackedObjective().questId, 'C203');
-        // The decision is made once, and Thora knows about it.
-        talk(s, 'skeldvik_eydis');
-        assert.ok(!(g.getAvailableActions().actions || []).some((a) => /I know who/.test(a.text || '')));
-        say(g, /Goodbye/);
+        // The decision is made once: Eydis goes up the road to read at the Thing (C2-03), and Thora knows about it.
+        assert.ok(!s.visibleObjects('skeldvik').some((o) => o.id === 'skeldvik_eydis'), 'Eydis has gone on to Hrafnholm');
+        assert.ok(s.visibleObjects('hrafnholm').some((o) => o.id === 'hrafnholm_eydis'));
         const r = talk(s, 'skeldvik_thora');
         assert.strictEqual(/dues chest/.test(text(r)), flag === 'tablet_with_reeve');
     });

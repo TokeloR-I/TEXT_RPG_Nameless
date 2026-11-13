@@ -90,6 +90,8 @@
             // inRegion: the food region of the map you're on (foodRules.regions; the camp kit's menu)
             if (cond.inRegion && this.foodRegion() !== cond.inRegion) return false;
             if (cond.questCount && this.questsDone(cond.questCount) < (cond.questCount.min ?? (cond.questCount.ids || []).length)) return false;
+            // gold: n: carrying at least n Gold (a debt you can settle from your own purse, C2-S04)
+            if (Number.isSafeInteger(cond.gold) && (!this.player || !(this.player.gold >= cond.gold))) return false;
             return true;
         }
         /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock
@@ -111,6 +113,7 @@
         //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
         //   { stance: id }: stand in that stance of your legendary web (Fenrir's Heir's first wolf, src/engine/stance.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
+        //   { pay: n }: hand over n Gold from your purse (gate the choice with the condition `gold: n`; never goes below 0)
         //   any effect may carry `when` (a condition): it runs only if that holds right now (an ending that remembers
         //   which choice you made, without a branch node for every combination)
         // =====================================================================
@@ -127,6 +130,7 @@
                 if (e.item) this.storyGiveItem(e.item, e.key || `item:${e.item}`);
                 if (e.removeItem) { const i = this.player.inventory.indexOf(e.removeItem); if (i !== -1) this.player.inventory.splice(i, 1); }
                 if (e.gold) this.storyGold(e.gold, e.key);
+                if (e.pay) this.storyPay(e.pay);
                 if (e.shop) this.storyShop(e.shop);
                 if (e.construction && this.story.dialogue) this.story.dialogue.construction = e.construction;
                 if (e.construction) this.storyConstruction(e.construction);
@@ -145,6 +149,16 @@
                 if (e.stance) this.setStance(String(e.stance));   // the first stance a legendary web gives you (stance.js)
                 if (e.event) this.storyEvent(e.event);
             }
+        }
+
+        /** Pay `gold` out of the player's purse for a story choice (C2-S04: settling a debt). The choice offering it
+         *  is gated by the condition `gold: n`; if the purse is short anyway, nothing is paid and the refusal says so. */
+        storyPay(gold) {
+            if (!Number.isSafeInteger(gold) || gold <= 0) throw new Error('Invalid authored Gold payment');
+            if (!this.player || !(this.player.gold >= gold)) { this.refuse('NOT_ENOUGH_GOLD', 'Not enough Gold.'); return false; }
+            this.player.gold -= gold;
+            this.say(`Paid: ${gold} Gold.`, { important: true, notice: 'item' });
+            return true;
         }
 
         /** What a merchant sells (Rook's shopDefinitions; buying is his `buy <shop> <item>` rule). */
