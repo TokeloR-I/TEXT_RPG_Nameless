@@ -147,3 +147,14 @@ test('Act II mini bosses: Hrolf, Hallgeir and the Bride are elites with turn sta
         assert.ok((line.match(/[.!?](\s|$)/g) || []).length <= 2, `${id}: "${line}" is more than two sentences`);
     }
 });
+
+test('Old saves: a run that laid Bjarki before C2-07 existed gets Verse and Witness on load', () => {
+    const { g } = run(['bjarki_laid'], ['C204', 'C205']);
+    const save = JSON.parse(JSON.stringify(g.serialize()));
+    const st = JSON.stringify(save);
+    const raw = JSON.parse(st.replace(/"catchup:c207_after_bjarki",?/g, '').replace(/,\]/g, ']'));
+    (function strip(v) { if (v && typeof v === 'object') { if (v.quests && v.quests.C207) delete v.quests.C207; Object.values(v).forEach(strip); } })(raw);
+    const g2 = new GameEngine({ seed: 1 });
+    g2.load(raw);
+    assert.strictEqual(g2.questState('C207'), 'active');
+});

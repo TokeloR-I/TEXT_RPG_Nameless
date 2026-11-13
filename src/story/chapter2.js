@@ -2498,7 +2498,9 @@
     const chapter2 = { id: 'ch2', title: 'Chapter Two: The Feast of Empty Seats', quests, npcs, triggers, anchors,
         merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun', bjorn: 'Bjorn Ironvein' },
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
-        q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' } };
+        q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' },
+        // A run that laid Bjarki before C2-07 existed (content revision 11/12) gets Verse and Witness on load.
+        catchUp: [{ id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] }] };
 
     (ENSO.story || (ENSO.story = {})).chapter2 = chapter2;
     if (isNode) module.exports = chapter2;
