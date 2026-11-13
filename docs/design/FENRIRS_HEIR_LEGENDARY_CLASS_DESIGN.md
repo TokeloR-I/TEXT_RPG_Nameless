@@ -99,38 +99,91 @@ The complete skill roster is a pool of **candidates**. Do not build every row au
 
 ## 4. How to unlock Fenrir's Heir — hidden quest design
 
-**Quest working title:** *The Hunt of Sun and Moon*  
-**Proposed location:** Gullstrand Coast → a hidden coastal shrine, *The Wolf's Wake* (working name).  
-**Unlock classification:** Optional, discoverable legendary quest; **not** a guaranteed main-story reward, monster loot drop, purchase or starting-class selection.  
-**Story prerequisite:** Reach Chapter Two and gain free access to coastal exploration. No specific starting class, alignment, political faction, or choice about the missing six hundred is required.  
-**Implementation status:** Proposed design only; actual map placements, flags and quest IDs need approval.
+**Quest working title:** *The Trial of the Weak Pup*  
+**Location:** A discoverable three-wolf shrine within **existing Chapter Two maps**. Exact map and coordinate are for world design to confirm; do not introduce a new region or lock it behind late acts.  
+**Entry:** Open exploration in Chapter Two; **no main-story quest chain, faction allegiance, character-class prerequisite, morality gate or extra trial quest**.  
+**Status:** Director-selected unlock concept (13 November 2026). Exact placement, scripting and numbers require implementation review.
 
-The premise: Gullstrand fishermen speak of two impossible howls, one at the brightest hour and one when the moon disappears. An old carved stone depicts two wolves chasing opposite celestial lights, while a broken chain binds their tracks together. The discovery is **not** another sealed door. It is a physical site of ancient wolf-worship, dangerous to approach and deliberately avoided by the local community.
+### 4.1 Shrine and two missing offerings
 
-### Unlock sequence
+The shrine depicts **Sköll** beneath the Sun, **Hati** beneath the Moon, and **Fenrir** as the large central wolf. Two shallow recesses are empty: one solar, one lunar.
 
-| Step | Player experience | Completion gate | Design purpose |
-|---|---|---|---|
-| **1. The First Howl** | Explore Gullstrand; find a weathered wolf-carving and hear an unexplained howl. A fisher or skald can provide an optional clue. | Inspect the carving and obtain the *Verse of the Two Hunters* (quest clue). | Reward curiosity; no quest-marker giveaway before discovery. |
-| **2. Two Hunts** | Follow two distinct leads: a sun-scorched coastal marker and a moon-darkened hollow. The player can complete them in either order. | Recover the **Sun Fang** and **Moon Fang** tokens (names provisional) through interaction/combat challenges. | Introduce Sköll and Hati as distinct powers; avoid fetch-only tasks. |
-| **3. The Broken Binding** | The two tokens reveal the Wolf's Wake. At the ritual site, a vision of Fenrir's chain fractures the ground. | Survive a self-contained encounter that alternates **solar pressure** and **consuming dark zones**. | Demonstrate both stance fantasies without requiring actual unlocked skills. |
-| **4. The Choice of the Hunt** | After the trial, two spectral wolves appear. The player accepts Fenrir's inheritance and selects **Sköll or Hati as their first active bond**. | Set one-time unlock flag `fenrir_heir_awakened` and grant the Fenrir's Heir legendary-web heart. | Provide an explicit, memorable class unlock and first-stance tutorial. |
-| **5. The First Bond** | A short safe tutorial shows switching, cooldown indication and bond growth; temporary spectral wolf attacks illustrate the two aspects. | Complete first stance switch and demonstrate bond UI; class remains unlocked even if tutorial is interrupted. | Teach the core system without requiring progression into another quest. |
+- Find a **Sunstone** in one existing Chapter Two area (suggested: **Járnmyr**, near an old forge).
+- Find a **Moonstone** in another existing Chapter Two area (suggested: **Rúnadal**, near a sacred grove).
+- Both stones are ordinary exploration rewards. Players can pick them up **before** discovering the shrine. Do not add mandatory NPC errands, bespoke boss fights, prerequisite clues or long errands.
+- Bring both back; place each in its matching recess. Placing one persists until the other arrives.
+- Fenrir's central statue wakes with a **howl** and addresses the player.
 
-**The chosen wolf in step 4 is an initial affinity, not a permanent restriction.** Both Sköll and Hati become accessible. If a neutral Fenrir stance is later approved, revise this step to offer that as a genuine third starting state; do not assume the neutral stance exists now.
+**Fenrir (proposed dialogue):**
 
-### Encounter specifics for Thorne and Gauge
+> “You have yet to join the hunt, young pup.”
+>
+> “Prove yourself worthy of joining the family.”
 
-- The trial can be delivered with existing 2D ground combat and telegraphed fields: **sun phase** uses visible burning ground and timed attacks; **moon phase** uses bounded attraction or dark zones. No aerial system or complex new movement axis is required.
-- A spectral **Chain-Warden** or Fenrir's **Binding Echo** is a *proposed* trial opponent, **not Fenrir himself**, and should not imply the player killed a mythic god or took loot from a corpse.
-- Include telegraphs, walkable escape routes and accessibility/readability checks. Pull strength, boss immunity, damage and phase timing are unspecified.
-- Failure may reset the trial encounter but **must not permanently lock out** the class; the player can retry. All four starter classes and viable hybrids must be able to finish it.
-- The bond mechanic should become active **after** the class heart unlock, not before. A quest tutorial may preview effects without creating lasting, hidden bond counters.
-- Save flags should distinguish `fenrir_quest_discovered`, the two trial tokens, `fenrir_trial_cleared`, `fenrir_heir_awakened`, and `fenrir_first_bond_tutorial_done` (illustrative data names; align to established naming conventions). Quest rewards, unlock flags and bonus points must only be granted once.
+### 4.2 The deliberately impossible trial
 
-### Narrative choice boundaries
+The shrine initiates a supernatural wolf attack. The player believes they are fighting normally, but **the intended outcome is death**, not beating all waves.
 
-The unlock tests endurance and understanding of both celestial wolves. It must **not** force the player to be heroic, condemn the dark empire, relinquish the six hundred, swear loyalty to Odin or become Fenrir's literal child. **Fenrir's Heir** denotes a claimed mythic inheritance, not biological parentage. This avoids locking a broadly usable legendary class behind a specific end-state of Chapter Two's unresolved moral choices.
+| Time from trial start | New wolves | Total summoned |
+|---|---:|---:|
+| **0 s** | 3 | 3 |
+| **10 s** | 5 | 8 |
+| **15 s** | 20 | 28 |
+
+The final wave swarms and overwhelms the player. This should look and feel vicious, not like a conventional fair boss. All player archetypes must reach the same story outcome; a high-level build that kills wolves quickly must **not** soft-lock the encounter or accidentally complete it as a normal victory. The exact handling of exceptionally long survival is for Thorne and Gauge to design; Fenrir may acknowledge it with variant dialogue.
+
+**Critical system rule:** When HP reaches zero *during this trial*, intercept normal death handling. Treat the event as a **scripted trial defeat**, never an ordinary death:
+
+1. Fade/transition safely and restore the player **at the shrine**.
+2. Restore combat viability (health/resource as appropriate) and end the event cleanly.
+3. Apply **no experience, inventory, currency, consumable-loss, durability or death penalty** attributable to the scripted defeat. Snapshot or refund trial consumables if needed.
+4. Do **not** display a conventional Game Over, eject to another respawn point, reload a pre-trial save, or force a replay.
+5. Record the successful *trial defeat* exactly once; make it safe across save/load and scene transition.
+
+The **28 wolves** are the intended narrative wave count, not automatically 28 simultaneous full AI simulations. Visual crowd actors, capped active agents or equivalent optimizations are acceptable if the attack reads as twenty more wolves arriving at 15 seconds.
+
+### 4.3 Fenrir's contempt and the gift
+
+The player wakes before the now-awake shrine. Fenrir mocks the player instead of praising a victory:
+
+> “Pathetic. Still a weak pup.”
+>
+> “I will grant you my strength. But you still have much to prove.”
+
+At this moment **Fenrir's Heir legendary web unlocks** with its initial nodes. The player can choose **Sköll or Hati as the first active wolf** (subject to the still-open neutral/base-stance decision). Both wolves remain accessible through normal stance switching; the first choice is **not** permanent.
+
+The unlock is intentionally paradoxical: the player joins the supernatural pack **by failing its impossible test**. Fenrir lends a fraction of his inheritance and explicitly refuses to recognize the pup as fully worthy. This should preserve Fenrir's mocking, intimidating personality through later ranks.
+
+### 4.4 Gradual legendary ranks — Fallen Seraphim precedent
+
+Unlocking the web grants only the **initial** abilities. Full spectral power and major forms open later through nodes/ranks, using the existing **additive legendary-web rank architecture** rather than mandatory follow-up quests.
+
+| Rank | Working title | Progression fantasy |
+|---|---|---|
+| **I** | Weak Pup | Initial Sköll/Hati stance access, starting skills and wolf bond. |
+| **II** | The Hunter | Expanded stance skills and more recognizable spectral wolf attacks. |
+| **III** | The Alpha's Fang | Advanced powers and larger manifestations; optional spectral pack skills subject to balance. |
+| **IV** | Heir of Fenrir | Full-form manifestations and capstone abilities unlocked through legendary web progression. |
+
+These rank names are **provisional**. Designers should use the existing Fallen Seraphim rank/skill-web conventions, choose rank gates appropriate to Chapter Two progression, and avoid repeating the shrine quest or requiring Fenrir to be killed. A capstone voice line can acknowledge the player's growth (“So… the pup has learned to bare its fangs.”).
+
+### 4.5 Implementation acceptance criteria
+
+- Shrine and both stones are explorable **early enough in Chapter Two** for the class to be enjoyed during the chapter.
+- Stone pickup/placement is save-persistent, order independent, and cannot duplicate rewards.
+- The encounter spawns **3 wolves at 0 s, +5 at 10 s, +20 at 15 s**, with visible escalation.
+- Death **inside this trial** returns the player to the shrine, without normal death penalties, and grants the web **once**.
+- Death **outside this trial** retains normal handling; no global immortality or death interception leaks.
+- The player cannot accidentally bypass unlock or permanently fail it by high DPS, low DPS, save/load, leaving the scene, or unusual equipment/build.
+- All four base classes can discover and unlock the legendary web.
+- Skill ranks unlock progressively through the established web. The class is **not** fully powered immediately after the forced defeat.
+- Wolf bond persists across encounters per current director direction; exact decay and numbers remain for Gauge.
+
+**Suggested quest flags (illustrative, not mandated code names):** `fenrir_shrine_found`, `fenrir_sunstone_placed`, `fenrir_moonstone_placed`, `fenrir_trial_active`, `fenrir_trial_defeated`, `fenrir_heir_awakened`. Distinguish retryable interruption from deliberate HP-zero defeat. Trigger class unlock only after Fenrir's post-defeat speech.
+
+### Narrative boundaries
+
+The shrine initiation must **not** force heroic alignment, reveal the player's former identity, change the six hundred's fate or require allegiance to Odin. “Heir” refers to mythical inheritance, not an established literal blood relation. No door motif is involved.
 
 **Continuity safeguards:**
 
@@ -142,13 +195,13 @@ The unlock tests endurance and understanding of both celestial wolves. It must *
 
 ## 5. Implementation handoff
 
-**Narrative and game design:** Confirm class epithet, wolf interpretations, neutral/base stance question, discovery and progression fiction; update Chapter Two lore only after director approval.
+**Narrative and game design:** Preserve the director-selected shrine, two stones, escalating wolf ambush, forced-defeat initiation and rank fantasy. Confirm exact map placements, neutral/base stance and dialogue; reconcile Chapter Two lore references without claiming unreviewed quest placements are canon.
 
 **Thorne — mechanics:** Specify one additive legendary web with stance state, cooldown gating, bond state, available skills, save compatibility, and shared Fenrir abilities. Reuse engine primitives where feasible. Do not implement a new flight system. Ensure existing character build and six-slot skill-bar behavior remain intact.
 
 **Gauge — balance:** Own all numerical constants; benchmark Sköll DPS and Hati mobility/survivability against existing peak evolved builds and Fallen Seraphim unlock expectations. Evaluate short/long encounters, bond buildup, persistence, cooldown length, initial stance, summon caps, crowd-control immunity, and hybrid stacking. Report recommended numbers separately before they are treated as final.
 
-**Tally — QA:** Verify cooldown prevents repeated swaps; bonds correctly track each wolf; bonuses apply only under intended conditions; no unintended reset between combats; save/load, death, scene transition, respec and legendary unlock function; no infinite damage, invulnerable Hati builds, permanent wolf summons or boss soft-locks.
+**Tally — QA:** Verify cooldown prevents repeated swaps; bonds correctly track each wolf; bonuses apply only under intended conditions; no unintended reset between combats; save/load, trial-only scripted death, no losses, scene transition, respec and one-time legendary unlock function; no infinite damage, invulnerable Hati builds, permanent wolf summons or boss soft-locks. Validate 0/10/15-second waves and performance.
 
 **Morrigan / visual team:** Create a consistent three-wolf identity with Sköll's fire-gold, Hati's consuming shadow and Fenrir's monumental spectral silhouette; all manifestations should preserve the customized playable character and directional-animation readability.
 
@@ -157,7 +210,8 @@ The unlock tests endurance and understanding of both celestial wolves. It must *
 1. Is there a **neutral Fenrir/base stance** with neither Sköll nor Hati active, or must one wolf always be selected?
 2. Does bond remain indefinitely between encounters, or persist with limited decay? **Current directive: persist for now; Gauge to propose balance.**
 3. Do stance changes alter the equipped skill slots or only activate/deactivate eligible legendary skills?
-4. Does the proposed **Gullstrand / Wolf's Wake** unlock quest replace or coexist with the existing Chapter Two **Allfather's Chosen** proposal? The sequence above is ready for creative review but is not automatically canon.
+4. Which **existing Chapter Two map** hosts Fenrir's shrine, and where exactly are the Sunstone and Moonstone? Járnmyr and Rúnadal are suggestions, not locked locations.
+5. Does Fenrir's Heir replace or coexist with Chapter Two's earlier **Allfather's Chosen** proposal? Reconcile before implementing conflicting legendary content.
 
 ## 6. Reference material
 
