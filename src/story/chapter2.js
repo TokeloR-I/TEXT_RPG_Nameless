@@ -80,6 +80,32 @@
                 { id: 'thing', text: 'Wait for the Thing to sit (the next part of Chapter Two)', on: { type: 'story', id: 'thing_sits' }, marker: { map: 'hrafnholm', x: 25, y: 23 } }
             ],
             onComplete: []
+        },
+        // James the bard (Tokelo, 2026-11-13: "in chapter 2 introduce a bard that will join you at your homestead after
+        // recruiting him"). A southerner who came north to learn the skalds' songs; met outside the Stormtide Inn in
+        // Skeldvik (no new area: the inn's interior has no picture yet), he moves to the homestead grounds once asked.
+        CB1: {
+            title: 'A Bard in Skeldvik', kind: 'side', xp: 20, candidate: true,
+            summary: 'A southern bard plays outside the Stormtide Inn for fishermen who do not tip. The skalds will not teach him, and he has nowhere in particular to be.',
+            objectives: [
+                { id: 'meet', text: 'Listen to the bard outside the Stormtide Inn', on: { type: 'story', id: 'james_met' }, marker: { map: 'skeldvik', x: 27, y: 10 } },
+                { id: 'invite', text: 'Offer James a place at your homestead', on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 27, y: 10 } },
+                { id: 'home', text: 'Find James at your homestead', on: { type: 'story', id: 'james_home' }, marker: { map: 'grounds', x: 26, y: 9 } }
+            ],
+            onComplete: []
+        },
+        // PLACEHOLDER (Tokelo, 2026-11-13): "a quest he will give you where you get to make a deal with a dark being called
+        // demonkore. I dont know how the quest goes but for now this is what I got". UNFINISHED ON PURPOSE: only James's
+        // hook exists. Who or what Demonkore is, where the deal is made and what it costs are Tokelo's to decide; nobody
+        // fires `demonkore_deal` yet, so the quest stays open in the Journal. Don't fill it in without Tokelo.
+        CB2: {
+            title: 'A Deal with Demonkore', kind: 'side', xp: 0, teaser: true, placeholder: true,
+            summary: 'James has heard of a dark being called Demonkore, who makes deals. (This quest is not finished yet: what happens next is still being written.)',
+            objectives: [
+                { id: 'hear', text: 'Hear James out about Demonkore', on: { type: 'story', id: 'demonkore_heard' }, marker: { map: 'grounds', x: 26, y: 9 } },
+                { id: 'deal', text: 'Make a deal with Demonkore (not written yet: the rest of this quest is coming)', on: { type: 'story', id: 'demonkore_deal' } }
+            ],
+            onComplete: []
         }
     };
 
@@ -719,6 +745,103 @@
             }
         }
     };
+
+    // ------------------------------------------------------------- James, a bard from the south (CB1, CB2)
+    // Voice: warm, quick, a little vain about his playing; an outsider in Hrimvald who knows he is one. He does not know
+    // who the player was (lore guardrail), and he knows nothing about Demonkore beyond a story told at a fire.
+    const JAMES_HOME = [
+        { text: 'Play something.', to: 'song_home' },
+        { text: 'You look like something is on your mind.', if: { notFlags: ['demonkore_heard'] }, to: 'demonkore' },
+        { text: 'Tell me again about Demonkore.', if: { flags: ['demonkore_heard'] }, to: 'demonkore_again' },
+        { text: 'Goodbye.', end: true }
+    ];
+    Object.assign(npcs, {
+        james: {
+            name: 'James', title: 'Bard',
+            talk: [
+                { if: { flags: ['james_recruited'], notFlags: ['james_settled'] }, node: 'arrive' },
+                { if: { flags: ['james_settled'] }, node: 'home' },
+                { if: { flags: ['james_met'] }, node: 'again' },
+                { node: 'meet' }
+            ],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "James, a bard from the south. I came north on a wool ship to learn the skalds' songs, and not one skald will teach a southerner."],
+                        ['npc', "So I play outside the Stormtide for whoever walks past. Mostly that's fishermen, and fishermen don't tip."]
+                    ],
+                    effects: [{ flag: 'james_met' }, { start: 'CB1' }, { event: { type: 'story', id: 'james_met' } }],
+                    choices: [
+                        { text: "Why won't they teach you?", to: 'skalds' },
+                        { text: 'Play something.', to: 'song' },
+                        { text: 'There is room at my homestead, if you want it.', to: 'invite' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                again: {
+                    lines: [['npc', "Back for more? I take requests, as long as the request is something I already know."]],
+                    choices: [
+                        { text: "Why won't the skalds teach you?", to: 'skalds' },
+                        { text: 'Play something.', to: 'song' },
+                        { text: 'There is room at my homestead, if you want it.', to: 'invite' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                skalds: {
+                    lines: [
+                        ['npc', "A skald keeps names, and up here the names belong to the families. A stranger singing them would be a thief with a lute."],
+                        ['npc', "Fair enough. But I'd like to know one song in this town that isn't about somebody missing."]
+                    ],
+                    choices: [{ text: 'Play something.', to: 'song' }, { text: 'There is room at my homestead, if you want it.', to: 'invite' }, { text: 'Goodbye.', end: true }]
+                },
+                song: {
+                    lines: [
+                        [null, 'He plays a southern tune, quick and bright, and lets it slow into something sadder that the harbour seems to know. Two fishermen stop mending nets to listen.'],
+                        ['npc', "That's all you get for free. I learned the sad half here."]
+                    ],
+                    choices: [{ text: 'There is room at my homestead, if you want it.', to: 'invite' }, { text: 'Goodbye.', end: true }]
+                },
+                invite: {
+                    lines: [
+                        ['npc', "A homestead? With a roof, a hearth, and nobody asking me to stop playing at night?"],
+                        ['npc', "I've said yes to worse offers from people I liked less. Tell me the way, and I'll be on the next cart south over the pass."]
+                    ],
+                    effects: [{ flag: 'james_recruited' }, { event: { type: 'story', id: 'james_recruited' } }],
+                    choices: [{ text: 'See you there.', end: true }]
+                },
+                arrive: {
+                    lines: [
+                        ['npc', "You weren't lying, there is a roof. Most of one."],
+                        ['npc', "I've claimed the spot by the well: good echo, and the crows make a polite audience. Come and listen when you're home."]
+                    ],
+                    effects: [{ flag: 'james_settled' }, { event: { type: 'story', id: 'james_home' } }],
+                    choices: JAMES_HOME
+                },
+                home: {
+                    lines: [['npc', "Sit down a moment. I'm halfway through a song, and I need someone to tell me it's good."]],
+                    choices: JAMES_HOME
+                },
+                song_home: {
+                    lines: [[null, 'James plays something new: half a southern dance, half a northern lament. It does not quite fit together yet, and he knows it.']],
+                    choices: JAMES_HOME
+                },
+                // PLACEHOLDER hook for CB2 (see the quest): only what James heard. Nothing here says what Demonkore is.
+                demonkore: {
+                    lines: [
+                        ['npc', "On the road south I shared a fire with a man who wouldn't stop talking about something called Demonkore. A dark thing, he said, that makes deals."],
+                        ['npc', "It gives you what you ask for. Nobody would tell me what it takes in return."],
+                        ['npc', "Every bard wants the song of a bargain like that, and I can't write it without someone to make one. When I learn more, you'll hear it first."]
+                    ],
+                    effects: [{ flag: 'demonkore_heard' }, { start: 'CB2' }, { event: { type: 'story', id: 'demonkore_heard' } }],
+                    choices: JAMES_HOME
+                },
+                demonkore_again: {
+                    lines: [['npc', "Demonkore makes deals; that's all I have, and a story told at a fire isn't much. I'm listening for the rest."]],
+                    choices: JAMES_HOME
+                }
+            }
+        }
+    });
 
     // Fenrir's Heir (CL1). Spoken by stone and by the two wolves; the wolves never say what you were (lore bible).
     const BOTH = { flags: ['fenrir_sun_fang', 'fenrir_moon_fang'] };

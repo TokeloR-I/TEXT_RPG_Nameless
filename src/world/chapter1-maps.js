@@ -853,6 +853,8 @@
                     looks: [{ when: { built: ['homestead_gate'] }, name: 'Mended gate', sprite: 'mended_gate' }] },
                 { id: 'grounds_orin', kind: 'npc', npc: 'orin', x: 18, y: 10, name: 'Orin Vale', sprite: 'mason', when: { flags: ['fragment_one'] } },
                 { id: 'grounds_shane', kind: 'npc', npc: 'shane', x: 9, y: 11, name: 'Shane', sprite: 'shane', when: { flags: ['shane_recruited'] } },
+                // James the bard (Chapter Two, CB1): by the well once you've recruited him in Skeldvik.
+                { id: 'grounds_james', kind: 'npc', npc: 'james', x: 26, y: 9, name: 'James', sprite: 'bard', when: { flags: ['james_recruited'] } },
                 // The kitchen (Tokelo, 2026-11-02): your hearth, two fields on the old tilled soil, a pigsty and a hen coop.
                 { id: 'grounds_hearth', kind: 'station', station: 'homestead_hearth', verb: 'Cook at', x: 17, y: 6, name: 'Cooking hearth', sprite: 'cookfire' },
                 { id: 'grounds_field_west', kind: 'station', station: 'homestead_field_west', verb: 'Tend', x: 3, y: 11, name: 'West field', sprite: 'garden_bed' },
