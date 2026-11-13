@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -67,7 +67,11 @@
         // the Grave-Bound himself, big, in mail under a pelt (no horned helm).
         draugr: {kind:'knight', body:'bone', coat:'undyed', tall:38, wide:9},
         grave_ward: {kind:'shade', body:'shade', tall:36, wide:8},
-        bjarki_grave_bound: {kind:'warden', body:'metal', coat:'pelt', tall:41, wide:11}
+        bjarki_grave_bound: {kind:'warden', body:'metal', coat:'pelt', tall:41, wide:11},
+        // Act II mini bosses: Bjarki's shield-bearer, the diggers' foreman in muddy undyed wool, the Bride of the Mound.
+        draugr_champion: {kind:'knight', body:'bone', coat:'pelt', tall:40, wide:10},
+        grave_foreman: {kind:'watch', body:'leather', coat:'undyed', tall:39, wide:9},
+        mound_bride: {kind:'shade', body:'shade', tall:39, wide:9}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

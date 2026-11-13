@@ -910,7 +910,12 @@
                 { id: 'silent_field_south', x: 35, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field' },
                 { id: 'silent_field_south_2', x: 36, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field_2' }
             ],
-            encounters: [],
+            encounters: [
+                // C2-07: the diggers Bjarki's chalk pointed at, at the disturbed grave, once Bjarki is laid to rest.
+                { id: 'silent_field_diggers', x: 44, y: 13, name: 'Hallgeir Spade', enemies: ['grave_foreman', 'wolfbanner_raider', 'wolfbanner_raider'], trigger: 'contact', sprite: 'constables',
+                    detect: 130, when: { flags: ['bjarki_laid'], notFlags: ['field_diggers_beaten'] },
+                    text: 'Three men in the grass with spades and a lantern, a square of turf cut back, and a fourth leaning on his spade with a list. "Not the field rites, lads," he says. "The field\'s rites. Dig."' }
+            ],
             interactables: [
                 { id: 'silent_ring', kind: 'inspect', x: 28, y: 17, name: 'The memorial ring',
                     text: 'Six stones stood up in a ring by the survivors, the first spring after, each one dragged here from a different steading. There are no names on them. The names are on the boards at home, where the families could reach them.' },
@@ -1001,9 +1006,18 @@
             exits: [
                 { id: 'birkholt_east_boardwalk', x: 53, y: 15, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_birkholt' }
             ],
-            encounters: [],
+            encounters: [
+                // C2-S06: the Bride of the Mound, when you bring her brooch back to the stones.
+                { id: 'birkholt_mound_bride', x: 31, y: 14, name: 'The Bride of the Mound', enemies: ['mound_bride'], trigger: 'contact', sprite: 'shade',
+                    detect: 120, when: { flags: ['bride_returning'], notFlags: ['bride_laid'] },
+                    text: 'A woman in a bride\'s crown of birch twigs stands in the middle of the stones, her face turned away. When she turns, there is nothing in the crown but cold, and she reaches for what you are carrying.' }
+            ],
             interactables: [
                 { id: 'birkholt_sigrid', kind: 'npc', npc: 'sigrid', x: 31, y: 12, name: 'Sigrid', sprite: 'widow' },
+                { id: 'birkholt_ragna', kind: 'npc', npc: 'ragna', x: 34, y: 7, name: 'Ragna', sprite: 'shepherd' },
+                { id: 'birkholt_eyvind', kind: 'npc', npc: 'eyvind', x: 40, y: 24, name: 'Eyvind', sprite: 'farmer' },
+                { id: 'birkholt_asta_house', kind: 'inspect', x: 4, y: 34, name: "Asta's house",
+                    text: 'A small turf-roofed house at the edge of the birches, the shutters closed. A chest stands just inside, under a folded cloak.' },
                 { id: 'birkholt_hearth', kind: 'station', station: 'birkholt_hearth', verb: 'Cook at', x: 21, y: 7, name: 'Longhouse hearth', sprite: 'cookfire' },
                 { id: 'birkholt_stones', kind: 'inspect', x: 31, y: 10, name: 'The standing stones',
                     text: 'Three stones where the paths meet, cut with knotwork and one name each: the three families who cleared the birch wood here. Every steading\'s board hangs in a longhouse, but the stones are where you swear.' },
@@ -1099,6 +1113,7 @@
             encounters: [],
             interactables: [
                 { id: 'runadal_yrsa', kind: 'npc', npc: 'yrsa', x: 40, y: 9, name: 'Yrsa Thornstaff', sprite: 'seeress' },
+                { id: 'runadal_thorvi', kind: 'npc', npc: 'thorvi', x: 29, y: 16, name: 'Thorvi', sprite: 'farmer' },
                 { id: 'runadal_table', kind: 'inspect', x: 26, y: 15, name: 'The offering table',
                     text: 'A flat stone on three smaller ones, a woven cloth over it, and on the cloth a round loaf, a bowl of milk and a cup. The loaf is fresh. People come a long way to leave bread here.' },
                 { id: 'runadal_stone', kind: 'inspect', x: 25, y: 8, name: 'Rune stone',
@@ -1191,8 +1206,8 @@
                     text: 'Grey daylight, the smell of the bog, and the hammers of Járnmyr going on as if nothing were under the hill at all.' }
             ],
             encounters: [
-                { id: 'barrow_passage_dead', x: 15, y: 31, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 96,
-                    text: 'Two of the slabs have been pulled out of the passage wall, and what was laid behind them has stood up. Grave-cloth, iron rings, and eyes like cold coals.' },
+                { id: 'barrow_passage_dead', x: 15, y: 31, name: 'Hrolf Shield-Bearer', enemies: ['draugr_champion', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 96,
+                    text: 'Two slabs have been pulled out of the passage wall, and what lay behind them has stood up: a big man behind a shield of black oak, and another at his back. Eyes like cold coals.' },
                 { id: 'barrow_west_dead', x: 9, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
                     text: 'Bjarki\'s hearth-men, still in their mail, with the shields they were buried with. They turn to face you together, the way they were taught.' },
                 { id: 'barrow_east_dead', x: 22, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
