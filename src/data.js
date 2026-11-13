@@ -1789,6 +1789,10 @@
         };
 
         // Items you can `use`. Anything not listed is a keepsake (for now).
+        // An armor set's pieces: { name: [slot, sellPrice, statModifiers, description] } -> item definitions (Armor sets).
+        const ARMOR = (set, legalClasses, level, pieces) => Object.fromEntries(Object.entries(pieces).map(([name, [slot, sellPrice, statModifiers, description]]) => [name,
+            { type: 'armor', slot, weaponType: 'armor', hands: 0, damageType: null, legalClasses, set, itemBaseId: name, itemLevel: level, requiredLevel: level,
+                rarity: 'uncommon', affixes: [], unique: false, bound: false, sellable: true, sellPrice, statModifiers, description }]));
         const KINDLE = (dormant) => ({ flag: 'seraph_rank_six', dormant,
             dormantText: 'Dormant: it wakes to full strength when every Fallen Seraphim skill is learned.' });
         const itemDefinitions = {
@@ -1873,6 +1877,60 @@
                 itemBaseId: 'Nameless Stone', itemLevel: 3, requiredLevel: 3, rarity: 'rare', affixes: [], unique: true, bound: true, sellable: false,
                 statModifiers: { magicDamage: 2, intelligence: 2, maxHp: 15 },
                 description: 'Shamefield\'s thanks. A blackthorn staff set with a chip of the memorial stone, the one with no names on it. Something under the chip hums when you hold it, like a crowd heard through a wall.' },
+            // ----- Armor sets (Tokelo, 2026-11-13: "we are missing armor sets"; docs/design/ARMOR_AND_TEMPERING.md).
+            // Four pieces per class per chapter (head, body, hands, feet); wearing 2 and 4 pieces of one set adds the
+            // bonuses in `armorSets` below. Chapter One is Bragg's forge, Chapter Two is Bjorn Ironvein's (CHAPTER_TWO_LORE.md
+            // 8.2 armor families). Stats and prices are CANDIDATES for Gauge.
+            ...ARMOR('tollwatch', ['warrior'], 2, {
+                'Tollwatch Kettle Hat': ['head', 7, { def: 1 }, 'A broad-brimmed iron hat of the kind the old crown\'s toll guards wore at the bridge. Bragg beat the crest flat. Rain runs off it, and so do most crossbow bolts.'],
+                'Tollwatch Brigandine': ['bodyArmor', 10, { def: 2, maxHp: 5 }, 'Canvas lined with small riveted plates, the rust scrubbed off. Toll guards paid for their own; Bragg found six in the tollhouse loft and kept the best one.'],
+                'Tollwatch Gauntlets': ['hands', 6, { strength: 1 }, 'Mitten gauntlets with the crown\'s mark ground off the cuff. Look closely and you can still find it.'],
+                'Tollwatch Boots': ['feet', 6, { maxHp: 6 }, 'Heavy boots with iron-studded soles, for standing all day at a barrier nobody wanted to pass.']
+            }),
+            ...ARMOR('vale_poacher', ['rogue'], 2, {
+                "Poacher's Gugel": ['head', 7, { critChance: 0.02 }, 'A hooded shoulder-cape of green loden with a long tail wound round the neck. Vale hunters wear the hood up; poachers wear it lower.'],
+                'Loden Hunting Coat': ['bodyArmor', 10, { def: 1, agility: 1 }, 'Wool felted and boiled until it sheds rain and briar alike. It smells of woodsmoke, and faintly of other people\'s deer.'],
+                "Poacher's Gloves": ['hands', 6, { agility: 1 }, 'Thin kid leather, with the thumb and first finger cut away for working snare-wire.'],
+                'Bundschuh': ['feet', 6, { maxHp: 5 }, 'Laced peasant shoes, one hide gathered round the foot. In the old songs, the lords hanged men for painting one on a banner.']
+            }),
+            ...ARMOR('kloster_scriptorium', ['mage'], 2, {
+                "Lector's Cowl": ['head', 7, { intelligence: 1 }, 'The cowl of a Kloster lector, who reads aloud at meals while everyone else eats in silence.'],
+                'Scriptorium Habit': ['bodyArmor', 10, { def: 1, maxHp: 6 }, 'Undyed wool with a scapular over it, ink-stained at the right cuff. The Kloster has more habits than novices these days.'],
+                "Copyist's Mitts": ['hands', 6, { magicDamage: 1 }, 'Fingerless wool mitts for copying in a cold scriptorium. The ink on them has dried into letters nobody wrote.'],
+                "Pilgrim's Shoes": ['feet', 6, { maxHp: 6 }, 'Sturdy shoes for the road between Kloster houses, with a scallop shell scratched into each heel.']
+            }),
+            ...ARMOR('beinhaus_sexton', ['necromancer'], 2, {
+                "Sexton's Hat": ['head', 7, { intelligence: 1 }, 'A wide black hat, its brim gone soft with graveside rain.'],
+                "Gravedigger's Coat": ['bodyArmor', 10, { def: 1, maxHp: 8 }, 'Oilcloth over wool, heavy with clay at the hem. The old Kloster sexton dug in it for thirty years, and asked to be buried without it.'],
+                "Bone-Stacker's Gloves": ['hands', 6, { magicDamage: 1 }, 'From the Kloster Beinhaus, where old bones go when the churchyard runs out of room and each skull is painted with its name. These never dropped one.'],
+                'Charnel Boots': ['feet', 6, { def: 1 }, 'Boots for standing in fresh graves. The soles are thick, the sexton says, so you don\'t feel who is underneath.']
+            }),
+            ...ARMOR('hird', ['warrior'], 5, {
+                'Hird Spectacle Helm': ['head', 15, { def: 2 }, 'A rounded iron cap with a spectacle guard over the eyes and nose, and no horns, whatever the southern songs say. Bjorn rivets them for the Jarl\'s hall-guard.'],
+                'Hird Byrnie': ['bodyArmor', 21, { def: 3, maxHp: 10 }, 'Riveted mail to the hip, every ring closed by hand. A winter\'s work for one smith, and often a man\'s whole inheritance.'],
+                'Hird Vambraces': ['hands', 13, { strength: 1, def: 1 }, 'Splinted leather over the forearms, where a shield-wall man is hit when the rim does not cover him.'],
+                'Hird Leg-Wraps': ['feet', 13, { maxHp: 10 }, 'Wool wound from ankle to knee over turnshoes. They keep the snow out and the shins whole.']
+            }),
+            ...ARMOR('fjord_hunter', ['rogue'], 5, {
+                'Sealskin Hood': ['head', 15, { critChance: 0.03 }, 'Grey sealskin, oiled. Fjord hunters say a seal hears a boat a mile off, and the hood is meant to return the favour.'],
+                'Vaðmál Hunting Tunic': ['bodyArmor', 21, { def: 2, agility: 1 }, 'Homespun vaðmál, woven so tight it was once paid as tax in place of silver. Two layers over the chest.'],
+                'Nålbound Mittens': ['hands', 13, { agility: 2 }, 'Wool mittens looped with a single bone needle, the thumb and first finger split for a bowstring or a knife.'],
+                'Fjord Turnshoes': ['feet', 13, { maxHp: 8 }, 'Soft shoes sewn inside out and turned, so the seams hide. Quiet on a deck, and quieter on snow.']
+            }),
+            ...ARMOR('runesinger', ['mage'], 5, {
+                "Runesinger's Hood": ['head', 15, { intelligence: 2 }, 'Black lambswool lined with white cat fur, the way the old sagas dress a seeress. The fur is for warmth, the runesingers say, and nothing else.'],
+                'Tablet-Woven Mantle': ['bodyArmor', 21, { def: 1, maxHp: 10, intelligence: 1 }, 'A blue mantle with a tablet-woven border of runes that never read the same way twice.'],
+                'Amber-Bead Cuffs': ['hands', 13, { magicDamage: 2 }, 'Cuffs strung with Gullstrand amber. The fisherwives call amber the sea\'s sap; it warms when galdr is sung over it.'],
+                "Runesinger's Calfskins": ['feet', 13, { maxHp: 8 }, 'Calfskin shoes with long laces and tin knobs on the ends, as the sagas tell it.']
+            }),
+            ...ARMOR('gravebound', ['necromancer'], 5, {
+                'Grave-Silver Circlet': ['head', 15, { intelligence: 2 }, 'A thin band of grave-silver, the pale alloy Hrimvald buries with its dead. Bjorn made this one new, from coin, and says so twice.'],
+                'Barrow Shroud': ['bodyArmor', 21, { def: 2, maxHp: 12 }, 'Dark wool layered like a burial cloak and pinned with a bone clasp. Hrimvald dresses its dead for a journey; this is cut for the living who walk beside them.'],
+                'Bone-Clasp Bracers': ['hands', 13, { magicDamage: 2 }, 'Leather bracers closed with carved bone toggles, each cut with one rune for one name.'],
+                "Mound-Walker's Boots": ['feet', 13, { def: 1, maxHp: 6 }, 'Heavy boots greased against the wet of a barrow floor.']
+            }),
+            // Tempering (docs/design/ARMOR_AND_TEMPERING.md): Bragg tempers with scrap metal, Bjorn with bog iron.
+            'Bog Iron': { type: 'material', sellable: true, sellPrice: 3, description: 'Iron won from the red mire at Járnmyr and folded clean of slag. Bjorn tempers blades with it.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             // C2-05: Bjarki's own ring, given back to you by nobody (CANDIDATE stats for Gauge).
             // Act II quest items (C2-S01 The Last Loom, C2-S06 The Bride of the Mound).
@@ -2762,8 +2820,43 @@
         }
         const starterEquipment = { warrior: ['Rusty Sword', 'Wooden Shield'], rogue: ['Short Sword'], mage: ['Wooden Staff'], necromancer: ['Cracked Bone Staff'] };
 
+        // Armor sets (docs/design/ARMOR_AND_TEMPERING.md): the bonus for wearing 2 and 4 pieces of one set. CANDIDATES for Gauge.
+        const armorSets = {
+            tollwatch:           { name: 'Tollwatch', chapter: 1, bonuses: { 2: { maxHp: 8 }, 4: { def: 1, physicalDamage: 1 } } },
+            vale_poacher:        { name: 'Vale Poacher', chapter: 1, bonuses: { 2: { critChance: 0.02 }, 4: { def: 1, maxHp: 6 } } },
+            kloster_scriptorium: { name: 'Kloster Scriptorium', chapter: 1, bonuses: { 2: { maxHp: 8 }, 4: { intelligence: 1, def: 1 } } },
+            beinhaus_sexton:     { name: 'Beinhaus Sexton', chapter: 1, bonuses: { 2: { maxHp: 10 }, 4: { intelligence: 1, magicDamage: 1 } } },
+            hird:                { name: 'Hird', chapter: 2, bonuses: { 2: { maxHp: 15 }, 4: { def: 2, physicalDamage: 1 } } },
+            fjord_hunter:        { name: 'Fjord Hunter', chapter: 2, bonuses: { 2: { critChance: 0.03 }, 4: { def: 2, physicalDamage: 1 } } },
+            runesinger:          { name: 'Runesinger', chapter: 2, bonuses: { 2: { maxHp: 10 }, 4: { intelligence: 2, magicDamage: 1 } } },
+            gravebound:          { name: 'Gravebound', chapter: 2, bonuses: { 2: { maxHp: 12 }, 4: { intelligence: 2, magicDamage: 1 } } }
+        };
+        // A smith's stock of every piece of the given sets: one of each, offered only to the set's classes, at twice the resale price.
+        const armorStock = (...sets) => Object.fromEntries(Object.entries(itemDefinitions).filter(([, d]) => sets.includes(d.set))
+            .map(([name, d]) => [name, { buyPrice: d.sellPrice * 2, quantity: 1, classes: d.legalClasses }]));
+        // Weapon tempering (docs/design/ARMOR_AND_TEMPERING.md). A smith raises a main-hand weapon one rank at a time, up to
+        // their `maxRank`. Each rank adds `damagePerRank` to the weapon's damage (physical or magic, by its damage type), and
+        // the ranks in `attributeRanks` add 1 to its main attribute too. ranks[n-1] is the price of rank n. CANDIDATES for Gauge.
+        const smithingRules = {
+            temper: {
+                damagePerRank: 1,
+                attributeRanks: [2, 4],
+                ranks: [
+                    { gold: 12, materials: { 'Scrap Metal': 2 } },
+                    { gold: 24, materials: { 'Scrap Metal': 4 } },
+                    { gold: 40, materials: { 'Bog Iron': 2 } },
+                    { gold: 60, materials: { 'Bog Iron': 3 } },
+                    { gold: 85, materials: { 'Bog Iron': 5 } }
+                ]
+            },
+            forges: {
+                bragg: { maxRank: 2, line: 'Bragg works the edge on his wheel, then quenches it in the trough. It comes out sharper than it went in.' },
+                bjorn: { maxRank: 5, line: 'Bjorn folds bog iron into the edge, quenches it in mire water, and grinds it bright.' }
+            }
+        };
+
         const data = {
-            lootProfiles, lootTables, equipmentAffixes, equipmentRarities, starterEquipment,
+            lootProfiles, lootTables, equipmentAffixes, equipmentRarities, starterEquipment, armorSets, smithingRules,
             shopDefinitions: {
                 // Dairy is store-bought or a quest gift (Tokelo): Mara keeps milk, cheese, butter and eggs.
                 mara: { stock: { 'Moldy Bread': { buyPrice: 3, quantity: 6 }, 'Bandages': { buyPrice: 8, quantity: 4 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 },
@@ -2772,7 +2865,9 @@
                 // Bragg's forge (2026-11-09, WEAPONS_BEFORE_THE_WARDEN.md): one weapon per class; `classes` lists it only for them.
                 bragg: { stock: { 'Roadworn Blade': { buyPrice: 10, quantity: 2 }, 'Padded Jerkin': { buyPrice: 12, quantity: 2 },
                     'Tollgate Arming Sword': { buyPrice: 24, quantity: 1, classes: ['warrior'] }, "Poacher's Hook-Knife": { buyPrice: 24, quantity: 1, classes: ['rogue'] },
-                    'Iron-Shod Ashwood Staff': { buyPrice: 24, quantity: 1, classes: ['mage'] }, "Sexton's Bone Rod": { buyPrice: 24, quantity: 1, classes: ['necromancer'] } } },
+                    'Iron-Shod Ashwood Staff': { buyPrice: 24, quantity: 1, classes: ['mage'] }, "Sexton's Bone Rod": { buyPrice: 24, quantity: 1, classes: ['necromancer'] },
+                    // Armor sets and tempering material (ARMOR_AND_TEMPERING.md).
+                    'Scrap Metal': { buyPrice: 4, quantity: 8 }, ...armorStock('tollwatch', 'vale_poacher', 'kloster_scriptorium', 'beinhaus_sexton') } },
                 iona: { stock: { 'Healing Herb Bundle': { buyPrice: 12, quantity: 5 }, 'Bandages': { buyPrice: 8, quantity: 3 }, 'Wild Herbs': { buyPrice: 3, quantity: 6 } } },
                 shane: { stock: { 'Healing Herb Bundle': { buyPrice: 10, quantity: 4 }, 'Wild Herbs': { buyPrice: 2, quantity: 8 }, 'Apprentice Charm': { buyPrice: 9, quantity: 1 },
                     // Shane grows what he sells (Tokelo): seed for your field, and his own cannabis.
@@ -2792,7 +2887,8 @@
                 // Bjorn Ironvein's forge at Járnmyr (C2-04): open once the bill of sale is in his hands. Prices are CANDIDATES for Gauge.
                 bjorn: { stock: { 'Mire-Iron Bearded Axe': { buyPrice: 48, quantity: 1, classes: ['warrior'] }, 'Bog-Iron Seax': { buyPrice: 48, quantity: 1, classes: ['rogue'] },
                     "Charcoal-Burner's Staff": { buyPrice: 48, quantity: 1, classes: ['mage'] }, 'Slag-Glass Wand': { buyPrice: 48, quantity: 1, classes: ['necromancer'] },
-                    'Padded Jerkin': { buyPrice: 12, quantity: 2 } } },
+                    'Padded Jerkin': { buyPrice: 12, quantity: 2 },
+                    'Bog Iron': { buyPrice: 6, quantity: 15 }, ...armorStock('hird', 'fjord_hunter', 'runesinger', 'gravebound') } },
                 gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
                     'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {

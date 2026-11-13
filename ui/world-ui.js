@@ -802,20 +802,38 @@
         if (isAct(ev)) talkAdvance();
         else if (ev.key === 'Escape') talkSkip();
     }
-    /** Shop goods and refusals come from the same engine checks as buy(). */
-    function renderShop(avail, message = '', selected = 0, selling = false) {
+    /** Shop goods and refusals come from the same engine checks as buy(). A smith's forge adds a Temper page
+     *  (weapon tempering, docs/design/ARMOR_AND_TEMPERING.md). `page` is 'buy', 'sell' or 'temper'
+     *  (true/false are the older sell/buy flags). */
+    function renderShop(avail, message = '', selected = 0, page = 'buy') {
+        if (page === true) page = 'sell';
+        if (page === false) page = 'buy';
         const back = () => renderTalk([], true);
-        const goods = selling ? avail.shop.selling : avail.shop.goods;
+        const tempering = avail.shop.tempering || [];
+        const pages = ['buy', 'sell', ...(tempering.length ? ['temper'] : [])];
+        if (!pages.includes(page)) page = 'buy';
+        const goods = page === 'sell' ? avail.shop.selling : page === 'temper' ? tempering : avail.shop.goods;
+        const title = { buy: 'Buy', sell: 'Sell', temper: 'Temper' }[page];
+        const row = (good) => page === 'temper'
+            ? { label: `${good.name}${good.equipped ? ' (in hand)' : ''} · to +${good.rank}${good.cost ? ` · ${good.cost.gold} Gold` : ''}`,
+                sub: good.enabled ? Object.entries((good.cost && good.cost.materials) || {}).map(([m, n]) => `${n} ${m}`).join(', ') : good.reason.message }
+            : { label: `${good.name || good.item} · ${good.price} Gold`,
+                sub: `${page === 'sell' ? '' : `${good.remaining} left · `}Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}` };
+        const done = (good, result) => {
+            if (!result.ok) return result.error.message;
+            if (page === 'temper') return `Tempered ${good.name} to +${good.rank}.`;
+            return `${page === 'sell' ? 'Sold' : 'Purchased'} ${good.name || good.item} for ${good.price} Gold.`;
+        };
+        const others = pages.filter((p) => p !== page).map((p) => ({ label: { buy: 'Buy goods', sell: 'Sell from bag', temper: 'Temper a weapon' }[p], action: () => renderShop(avail, '', 0, p) }));
         menu = makeMenu([...goods.map((good, index) => ({
-            label: `${good.name || good.item} · ${good.price} Gold`,
-            sub: `${selling ? '' : `${good.remaining} left · `}Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}`,
+            ...row(good),
             disabled: !good.enabled,
             action: () => {
-                const result = engine.act({ type: selling ? 'sell' : 'buy', shopId: good.shopId, item: good.item });
+                const result = engine.act({ type: page, shopId: good.shopId, item: good.item });
                 updateHud();
-                renderShop(engine.getAvailableActions(), result.ok ? `${selling ? 'Sold' : 'Purchased'} ${good.name || good.item} for ${good.price} Gold.` : result.error.message, index, selling);
+                renderShop(engine.getAvailableActions(), done(good, result), index, page);
             }
-        })), { label: selling ? 'Buy goods' : 'Sell from bag', action: () => renderShop(avail, '', 0, !selling) }, { label: 'Back to conversation', action: back }], { back, render: draw });
+        })), ...others, { label: 'Back to conversation', action: back }], { back, render: draw });
         menu.index = Math.min(selected, menu.items.length - 1);
         draw();
         function draw() {
@@ -823,11 +841,11 @@
             stopTyping();
             els.dialog.hidden = false;
             els.dialog.className = 'dialog';
-            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · ${selling ? 'Sell' : 'Buy'} <span class="dialog-role">${avail.shop.gold} Gold</span></div>
+            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · ${title} <span class="dialog-role">${avail.shop.gold} Gold</span></div>
                 ${menuHtml(menu, 'shop-goods')}
                 <div class="shop-detail">${esc(good ? good.description : menu.items[menu.index].label)}</div>
                 <div class="shop-message" role="status">${esc(message)}</div>
-                <div class="dialog-keys">↑ ↓ choose · Enter ${selling ? 'sell' : 'buy'} one · Esc back</div>`;
+                <div class="dialog-keys">↑ ↓ choose · Enter ${page === 'temper' ? 'temper' : page === 'sell' ? 'sell one' : 'buy one'} · Esc back</div>`;
             bindMenuClicks(els.dialog, menu);
             const selectedRow = els.dialog.querySelector('.selected');
             if (selectedRow) selectedRow.scrollIntoView({ block: 'nearest' });

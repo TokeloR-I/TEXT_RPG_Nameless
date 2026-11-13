@@ -24,7 +24,7 @@ test('Main menu: the Use list is the engine\'s use_item options for things with 
 test('Main menu: equipment slots and choices come from getEquipment(), with readable stat changes', () => {
     const g = explorer();
     const rows = MM.slotsView(g.getEquipment());
-    assert.deepStrictEqual(rows.map((r) => r.label), ['Weapon', 'Offhand', 'Armor', 'Accessory']);
+    assert.deepStrictEqual(rows.map((r) => r.label), ['Weapon', 'Offhand', 'Head', 'Armor', 'Hands', 'Feet', 'Accessory']);
     const weapon = rows[0];
     assert.strictEqual(weapon.item, 'Rusty Sword');
     assert.deepStrictEqual(weapon.candidates.map((c) => [c.item, c.diffText]), [['Roadworn Blade', '−1 Physical dmg · +1 STR']]);

@@ -169,6 +169,7 @@
             if (this.story && this.story.dialogue) this.story.dialogue.shopId = id;
             this.say(`For sale: ${items.map(([name, e]) => `${name} (${e.buyPrice} Gold)`).join(', ')}.`);
             this.say(`(To buy: 'buy ${id} <item>'.)`);
+            if (((this.data.smithingRules || {}).forges || {})[id]) this.say(`(To temper a weapon: 'temper ${id} <weapon>'.)`);
         }
 
         /** A construction on Orin's ledger (Rook's constructionDefinitions; building is his `build <id>` rule). */
@@ -489,6 +490,7 @@
                 if (a.type === 'dialogue_leave') { this.endDialogue(true); return true; }
                 if (a.type === 'sell' && a.shopId === s.dialogue.shopId) { this.sellItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
+                if (a.type === 'temper' && a.shopId === s.dialogue.shopId) { this.temperWeapon(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'cook') { this.cookAtStation(String(a.recipeId || '')); return true; }   // the cooking menu (kitchen)
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
@@ -578,11 +580,12 @@
                 return { type: 'sell', shopId, item, name: this.itemName(item), price: def?.sellPrice || 0,
                     owned: this.player.inventory.filter(id => id === item).length, description: this.itemDetails(item), enabled: !reason, ...(reason ? { reason } : {}) };
             }) : [];
-            actions.push(...goods, ...selling);
+            const tempering = shop ? this.temperOptions(shopId) : [];   // a smith's forge (ARMOR_AND_TEMPERING.md)
+            actions.push(...goods, ...selling, ...tempering);
             const kitchen = this.kitchenView();
             if (kitchen) actions.push(...kitchen.recipes.map((r) => ({ type: 'cook', recipeId: r.id, enabled: r.enabled, ...(r.reason ? { reason: r.reason } : {}) })));
             return {
-                shop: shop ? { shopId, gold: this.player.gold, goods, selling } : null,
+                shop: shop ? { shopId, gold: this.player.gold, goods, selling, tempering } : null,
                 kitchen,
                 dialogue: {
                     npcId: d.npcId, name: npc.name, title: npc.title || null,
