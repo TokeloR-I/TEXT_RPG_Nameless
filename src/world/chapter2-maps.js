@@ -33,7 +33,8 @@
         hrimvald_frostspine: { name: 'Frostspine Pass', mapIds: ['frostspine_pass'] },
         hrimvald_skeldvik: { name: 'Skeldvik', mapIds: ['skeldvik', 'stormtide_inn'] },
         hrimvald_hrafnholm: { name: 'Hrafnholm', mapIds: ['hrafnholm', 'hall_of_winter'] },
-        hrimvald_gullstrand: { name: 'Gullstrand Coast', mapIds: ['gullstrand_coast'] }
+        hrimvald_gullstrand: { name: 'Gullstrand Coast', mapIds: ['gullstrand_coast'] },
+        hrimvald_jarnmyr: { name: 'Járnmyr', mapIds: ['jarnmyr'] }
     };
 
     const maps = {
@@ -398,8 +399,8 @@
                 '^FFFFF::::::::::::::::::SSSS:::::::::::::::::^^^^^^^',
                 '^FFFFF:::::b:::::::::WWWSSSSWWW::tttt:::::::T^^^^^^^',
                 '^l::::Axx::::::,,,,WWWBBBBBBBBWWW,,,,::::::::^^^^^^^',
-                '^::::::::::::::,,WWWBBBBBBBBBBBBWWW,,:::MMMMMMMM,^^^',
-                '^::::::::::::::,WWnnnnBBiBBiBBnnnnWW,::iMMMMMMMMi^^^',
+                ':::::::::::::::,,WWWBBBBBBBBBBBBWWW,,:::MMMMMMMM,^^^',
+                ':::::::::::::::,WWnnnnBBiBBiBBnnnnWW,::iMMMMMMMMi^^^',
                 '^::::::::::::::,WBnnnnBBBRRBBBnnnnBW,::::::::::::^^^',
                 '^::::::::::::::WWBnnnnBBBRRBBBnnnnBWW::::::::::::^^^',
                 '^::::::::::::::WWBnnnnBiBBBBiBnnnnBWW::::::::,,,,^^^',
@@ -431,11 +432,20 @@
                 from_skeldvik: { x: 25, y: 38, facing: 'up' },
                 from_skeldvik_2: { x: 26, y: 38, facing: 'up' },
                 from_hall: { x: 25, y: 10, facing: 'down' },
-                from_hall_2: { x: 26, y: 10, facing: 'down' }
+                from_hall_2: { x: 26, y: 10, facing: 'down' },
+                from_jarnmyr: { x: 1, y: 18, facing: 'right' },
+                from_jarnmyr_2: { x: 1, y: 19, facing: 'right' }
             },
             exits: [
                 { id: 'hrafnholm_south_road', x: 25, y: 39, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_hrafnholm' },
                 { id: 'hrafnholm_south_road_2', x: 26, y: 39, trigger: 'step', toMap: 'skeldvik', toSpawn: 'from_hrafnholm_2' },
+                // C2-04 (2026-11-13): the west road past the forge, to Járnmyr. Open once the Thing has made you its witness.
+                { id: 'hrafnholm_west_road', x: 0, y: 18, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_hrafnholm', requires: { flags: ['thing_heard'] },
+                    lockedText: 'The west road runs down past the forge toward Járnmyr, where the bog iron is smelted. The Thing has not sat yet; whatever is going on at the forges, it is not your business until somebody makes it so.',
+                    text: 'The west road drops off the ridge and follows a stream through birch and pine. Long before you see Járnmyr you smell it: woodsmoke, hot clay, and something like blood that turns out to be the bog.' },
+                { id: 'hrafnholm_west_road_2', x: 0, y: 19, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_hrafnholm_2', requires: { flags: ['thing_heard'] },
+                    lockedText: 'The west road runs down past the forge toward Járnmyr, where the bog iron is smelted. The Thing has not sat yet; whatever is going on at the forges, it is not your business until somebody makes it so.',
+                    text: 'The west road drops off the ridge and follows a stream through birch and pine. Long before you see Járnmyr you smell it: woodsmoke, hot clay, and something like blood that turns out to be the bog.' },
                 { id: 'hrafnholm_hall_entry', x: 25, y: 9, trigger: 'interact', prompt: 'Go into the Hall of Winter', toMap: 'hall_of_winter', toSpawn: 'from_hrafnholm',
                     text: 'Inside, the heat and the smoke meet you together. A long hall under a high roof, a fire in the middle of it, tables down both sides, and at the far end a carved seat that nobody is sitting in.' },
                 { id: 'hrafnholm_hall_entry_2', x: 26, y: 9, trigger: 'interact', prompt: 'Go into the Hall of Winter', toMap: 'hall_of_winter', toSpawn: 'from_hrafnholm_2',
@@ -683,7 +693,142 @@
                 { id: 'gullstrand_herbs', kind: 'forage', forage: 'wild_herbs', x: 4, y: 3, name: 'Wild herbs', sprite: 'herbs',
                     text: 'Thyme and sea-pink in the turf above the village, where the wind keeps the grass short.' }
             ]
+        },
+
+        // -----------------------------------------------------------------
+        // C2-04 Iron for the Wolf. Járnmyr, after Tokelo's picture (2026-11-13, "Járnmyr"): the bog in the west, red-brown
+        // pools crossed by boardwalks, with the peat cuttings below them; the charcoal kilns smoking in the north with the
+        // woodsheds under them; the work yard in the middle with its three bloomery furnaces, the bog-ore and slag heaps,
+        // the stone hut and the ore cart; Bjorn Ironvein's great smithy and its weapon racks in the east; the stepped
+        // quarry with its two cranes behind it; and up the north-east path, the burial mound with its stone entrance.
+        // The road from Hrafnholm comes in from the south. The barrow's inside (C2-05), Birkholt across the bog and the
+        // track to Rúnadal have no pictures yet, so they are boundaries (area-art-first rule, Tokelo 2026-11-13).
+        jarnmyr: {
+            zoneId: 'hrimvald_jarnmyr',
+            name: 'Járnmyr',
+            scene: 'jarnmyr',                  // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(120, 90, 60, 0.06)', particles: { kind: 'snow', count: 8 },
+                grade: { ambient: 0.94, exposure: 1.04, highlights: [0.05, 0.02, -0.02] } },
+            legend: {
+                ',': { name: 'moor' }, ':': { name: 'path' }, ';': { name: 'yard' }, '=': { name: 'boardwalk' }, 'p': { name: 'peat' },
+                'u': { name: 'quarry_floor' }, 'E': { name: 'barrow_mouth' },
+                '~': { name: 'bog', solid: true }, '^': { name: 'crag', solid: true }, 'T': { name: 'fir', solid: true },
+                'K': { name: 'kiln', solid: true }, 'w': { name: 'woodshed', solid: true }, 'c': { name: 'charcoal', solid: true }, 'L': { name: 'log_pile', solid: true },
+                'F': { name: 'furnace', solid: true }, 's': { name: 'slag', solid: true }, 'r': { name: 'ore', solid: true }, 'H': { name: 'stone_hut', solid: true },
+                'k': { name: 'shed', solid: true }, 'S': { name: 'smithy', solid: true }, 'W': { name: 'smithy_wing', solid: true }, 'R': { name: 'weapon_rack', solid: true }, 'A': { name: 'anvil', solid: true },
+                'x': { name: 'ingots', solid: true }, 'v': { name: 'ore_cart', solid: true }, 'b': { name: 'barrel', solid: true }, 'j': { name: 'fence', solid: true },
+                'Q': { name: 'quarry', solid: true }, 'n': { name: 'crane', solid: true }, 'q': { name: 'blocks', solid: true }, 'M': { name: 'barrow', solid: true },
+                'P': { name: 'peat_stack', solid: true }
+            },
+            tiles: [
+                '^^^^^^^^^^^^^^::^^^^^^^^^^^^^^^^^^^^^^MMMMMMMMMMM^^^^^',
+                '^^^^^^^^^^^^^^::^^^^^^^^^^^^^^^^^^^^^^MMMMMMMMMMM^^^^^',
+                '^,,~~~~~~~T~,^::^,,,,,,T,TT^,,,T,,T,T^MMMMMMMMMMM,,,T^',
+                '~~~~~~~~~~~~,,:::::,,,,,,,,,,,,,,,T,,,MMMMMMMMMMMT,T,^',
+                '~~~~~~~~~~~~,,::,,:,,,,,,,:KKK,,,,,,,,,,MMMEMMM,,,,,T^',
+                '~~~~~~~~~~~,,,,T,,:,,KKK,,:KKK,,,,,,::::::::QQQQQQQQQ^',
+                '~~~~~~~~~~,,,,,,,T:,,KKK,,:KKK,,,::::QQQQQQQQQQQQQQQQ^',
+                '~~~~~~~~~~,,,,,,,,:,,KKK,,:,,,,,,:,,QQQQQQQQQQQQQQuuQ^',
+                '~~,,,,~~~~=======,:,,,,,,,:,KKK,,:,,QQQQQQQQQQQQQQuuQ^',
+                '~~~,,,~~~~=~~,,,,,:::::::::,KKK,,:,,QQQQQQQQQQQqQQunQ^',
+                '~~~,,~~~~~=~~,,,,,,L,,,,,,:,KKK,,:,,QQQQQQQQQuuuuuuuQ^',
+                '~~~,~~~~~~=~~~,,,wwwwwwww,:,,,,,,:,,QQQQQQQQQuuuuuuuQ^',
+                '===========,,,,,,wwwwwwwwc:,,,,,,:,,QQQQQQQQquuQQQQQQ^',
+                '~~~~~=~~~~~,,~,,T,,,,,,,,,:,,,,,,:,,QQQQuuuuuuuQQQQQQ^',
+                '~~~~~=~~~~,,,,,,,,,,,,,,,,::::::::,,QQQQuuquuuuQQQQQQ^',
+                '~~~~,=,~~~,,,;;;;;;;;;;;;;;:;;;;;;:::uuuuuuuuQqQQQQQQ^',
+                '~~~,,=~~~~~,,;;wwwwww;;;;;;;;kkkkk:::uuuuuuuuuuuuuQQQ^',
+                '~~~,,=~~~~~,,;;wwwwww;cccc;;;kkkkk;,QQQQQQQuuuuuuunQQ^',
+                '~~~,,=~~~~,,,;bFF;;;;;ccccFF;kkkkk;,QQQQQQQQQQQQuqQQQ^',
+                '~~~~~=~~~~,,,;;FF;;;;;;;;;FF;;;;;;;,QQQQQQQQQQQQuuQQQ^',
+                '~~~~~=~~~~~,,;;;;;;;;;;;;;;;;;;;;SSSSSSSSSS,,,,,::,T,^',
+                '~~~~~==pppppp;;;;;;;;;;;;;;;;;;;;SSSSSSSSSS,,,,,::,,,^',
+                '~~~~~=pPppPpp;;;;HHHH;kkk;;;;;;;;SSSSSSSSSSWWWW,::,,T^',
+                '~~~~,=ppppppp;;;;HHHH;kkk;;;;;;;;SSSSSSSSSSWWWW,::,,,^',
+                '~~~,,=~~~p~~,;;;;HHHH;;;;;;;;FF;;SSSSSSSSSSWWWW,::,,,^',
+                '~~~,,=ppPppPp;;;;;;;;;;;;;;;;FF;;;;,,A,,,,,:::::::,,,^',
+                '~~~~~==pppppp;;;;rrrrb;;;;;;b;;;;;;,,,,,,xxRRRRRRR,,,^',
+                '~~~~~=~~~p~~,;;;;rrrr;;;;;;;;;;;;;;,,,,,,,,RRRRRRR,T,^',
+                '~~~~~=pPppPpp;;;;;;;;;;;;;;;;;;;;;;,,kkkk,,,,,,,,,,,T^',
+                '~~~~~=ppppppp;;;;;sss;;v;;;;;;;;;;;,,kkkk,,,xxx,,,,,,^',
+                '~~~~~=,~~~~~~;;;;;;;;;;;;;;::;;;;;;,T,,,,,,,,,,T,,,,T^',
+                '~~~~,,,,,~~~~~,,,,,,,,,,,,,::,,,jjjjjjjjjjjjjjjj,,,,,^',
+                '~~~~,,,,~~~~~~~,,,,,,,,,,,,::,,,,T,,,,,,,,,,,,,,,T,,,^',
+                '^T^,^TT,^T,^,,,,,TT^^^^T,T^::^^,,T^^,,T^^,^,,,,T,,T^,^',
+                '^^^^^^^^^^^^^^^^^^^^^^^^^^^::^^^^^^^^^^^^^^^^^^^^^^^^^',
+                '^^^^^^^^^^^^^^^^^^^^^^^^^^^::^^^^^^^^^^^^^^^^^^^^^^^^^',
+            ],
+            lights: [
+                { x: 15, y: 19, radius: 2.6, color: 'rgba(255, 140, 50, 0.28)' }, { x: 26, y: 19, radius: 2.6, color: 'rgba(255, 140, 50, 0.28)' },
+                { x: 29, y: 25, radius: 2.6, color: 'rgba(255, 140, 50, 0.28)' }, { x: 38, y: 23, radius: 3, color: 'rgba(255, 150, 60, 0.26)' }
+            ],
+            spawns: {
+                from_hrafnholm: { x: 27, y: 34, facing: 'up' },
+                from_hrafnholm_2: { x: 28, y: 34, facing: 'up' }
+            },
+            exits: [
+                { id: 'jarnmyr_south_road', x: 27, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr' },
+                { id: 'jarnmyr_south_road_2', x: 28, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr_2' }
+            ],
+            encounters: [
+                // C2-04: the buyers, on the barrow path with an empty cart, once you know where the iron goes.
+                { id: 'jarnmyr_buyers', x: 36, y: 6, name: 'Skuli Tally-Hand', detect: 150, when: { flags: ['jarnmyr_trail_found'] },
+                    enemies: ['wolfbanner_ringleader', 'wolfbanner_raider', 'wolfbanner_raider'], trigger: 'contact', sprite: 'constables',
+                    text: 'Three men with an empty cart on the path up to the mound, and a fourth with a tally-stick behind his ear. He sees you looking at the cart and sighs. "Bjorn sent you? No. Bjorn never sends anyone."' }
+            ],
+            interactables: [
+                { id: 'jarnmyr_bjorn', kind: 'npc', npc: 'bjorn', x: 39, y: 25, name: 'Bjorn Ironvein', sprite: 'ironmaster' },
+                { id: 'jarnmyr_asger', kind: 'npc', npc: 'asger', x: 24, y: 8, name: 'Asger', sprite: 'collier' },
+                { id: 'jarnmyr_thyri', kind: 'npc', npc: 'thyri', x: 25, y: 20, name: 'Thyri', sprite: 'bloomer' },
+                { id: 'jarnmyr_vigdis', kind: 'npc', npc: 'vigdis', x: 43, y: 13, name: 'Vigdis', sprite: 'quarrier' },
+                { id: 'jarnmyr_hearth', kind: 'station', station: 'jarnmyr_hearth', verb: 'Cook at', x: 21, y: 25, name: 'Bloomers\' cookfire', sprite: 'cookfire' },
+                { id: 'jarnmyr_ore_cart', kind: 'inspect', x: 23, y: 29, name: 'Ore cart',
+                    text: 'A cart heaped with roasted bog ore, red as rust, waiting for the furnaces. It sits lower on its axle than ore alone would make it.' },
+                { id: 'jarnmyr_furnace_one', kind: 'inspect', x: 16, y: 19, name: 'Bloomery furnace',
+                    text: 'A furnace of clay and stone, taller than a man, built like a beehive with its top cut off. Charcoal and ore go in at the top in turns, all day, and at the end of it they break the front open and drag out a bloom of iron like a spongy loaf, spitting slag.' },
+                { id: 'jarnmyr_furnace_two', kind: 'inspect', x: 26, y: 18, name: 'Bloomery furnace',
+                    text: 'This one is running. The bellows wheeze at its foot and the mouth glows yellow. Somebody has scratched a tally on the clay: blooms this month. There are a great many.' },
+                { id: 'jarnmyr_furnace_three', kind: 'inspect', x: 29, y: 24, name: 'Bloomery furnace',
+                    text: 'The newest furnace, the clay still pale. Járnmyr has built a third this year to keep up with its orders, and has not yet asked itself why there are so many.' },
+                { id: 'jarnmyr_kilns', kind: 'inspect', x: 23, y: 7, name: 'Charcoal kilns',
+                    text: 'Mounds of stacked wood under turf and earth, smoking from the top. A kiln burns for days and must not flare, so somebody sits up with it every night. That somebody sees everything that goes up the path.' },
+                { id: 'jarnmyr_woodshed', kind: 'inspect', x: 20, y: 12, name: 'Woodsheds',
+                    text: 'Split birch and pine stacked to the roof beams, a winter of it, for the kilns. The forest round Járnmyr has gone back a mile in twenty years.' },
+                { id: 'jarnmyr_ore', kind: 'inspect', x: 18, y: 26, name: 'Bog ore',
+                    text: 'Lumps of bog iron, raked out of the mire and roasted on the fire till they go red and brittle. It is the bog that makes the iron here: the water carries it and the reeds catch it, a little every year.' },
+                { id: 'jarnmyr_slag', kind: 'inspect', x: 19, y: 29, name: 'Slag heap',
+                    text: 'Black glassy slag, knocked out of the blooms. Children pick the shiny pieces out for beads. One of them has left a row of them on the fence, lined up by size.' },
+                { id: 'jarnmyr_hut', kind: 'inspect', x: 18, y: 24, name: 'Stone hut',
+                    text: 'The bloomers\' hut, dry-stone with a turf roof, where the furnace crews eat and sleep in shifts. Boots in a row by the step, and a cat that belongs to all of them.' },
+                { id: 'jarnmyr_smithy', kind: 'inspect', x: 38, y: 24, name: 'The great smithy',
+                    text: 'Bjorn Ironvein\'s smithy: a long open hall of oak with three hearths and a dozen hammers going. Scythe blades, pot hooks, hinges, nails by the barrel, and down one wall, racked as neat as a shield-wall, spearheads.' },
+                { id: 'jarnmyr_racks', kind: 'inspect', x: 45, y: 26, name: 'Weapon racks',
+                    text: 'Axes, spears and seaxes cooling on the racks under an awning. Most carry Bjorn\'s mark, a vein of three strokes. Every fourth spearhead has a second mark under it, very small, filed off and not filed quite well enough: a running wolf.' },
+                { id: 'jarnmyr_peat', kind: 'inspect', x: 7, y: 22, name: 'Peat cuttings',
+                    text: 'Peat cut in long steps out of the bog and stacked in cross-piles to dry. The cuttings fill with red water as soon as the spade comes out. In one face, a hand\'s depth down, there is a cut stake older than anyone\'s grandmother.' },
+                { id: 'jarnmyr_mire', kind: 'inspect', x: 12, y: 9, name: 'The mire',
+                    text: 'Red-brown water under the reeds, so full of iron it leaves a skin on your boots. Járnmyr means the iron mire. It is the only reason anyone lives here.' },
+                { id: 'jarnmyr_crane', kind: 'inspect', x: 51, y: 9, name: 'Quarry crane',
+                    text: 'A crane of pine trunks with a windlass, for lifting cut stone out of the pit. One of its ropes is new, and the old one is missing.' },
+                { id: 'jarnmyr_barrow', kind: 'inspect', x: 41, y: 4, name: 'The burial mound',
+                    text: 'A long mound under turf and snow, older than the forges, older than the old Crown. The kerbstones round its foot have been dug out on the near side, and someone has wedged open the stone mouth at the end.' },
+                { id: 'jarnmyr_cloudberries', kind: 'forage', forage: 'cloudberries', x: 12, y: 14, name: 'Cloudberries', sprite: 'cloudberries',
+                    text: 'Cloudberries on the edge of the mire, where the moss is dry enough to hold them.' },
+                { id: 'jarnmyr_lingonberries', kind: 'forage', forage: 'lingonberries', x: 50, y: 31, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Lingonberries under the rocks below the smithy, red even under the snow.' },
+                { id: 'jarnmyr_juniper', kind: 'forage', forage: 'juniper', x: 31, y: 3, name: 'Juniper', sprite: 'juniper',
+                    text: 'A juniper bush above the kilns, smelling of smoke as much as of itself.' }
+            ],
+            boundaries: [
+                { id: 'jarnmyr_barrow_mouth', x: 43, y: 4, w: 1, h: 1, title: 'The barrow',
+                    text: 'The stone mouth of the mound has been wedged open with quarry wedges. Cold air comes out of it, and a smell like old coins. You are not going in there yet. (The inside of the barrow is coming in a later part of Chapter Two.)' },
+                { id: 'jarnmyr_birkholt_boardwalk', x: 0, y: 12, w: 1, h: 1, title: 'The boardwalk to Birkholt',
+                    text: 'The boardwalk goes on west across the mire toward Birkholt\'s barley fields. That way is not open yet. (Coming in a later part of Chapter Two.)' },
+                { id: 'jarnmyr_runadal_track', x: 14, y: 0, w: 2, h: 1, title: 'The track to Rúnadal',
+                    text: 'The track climbs north into the pines toward Rúnadal and its grove. That way is not open yet. (Coming in a later part of Chapter Two.)' }
+            ]
         }
+
 
     };
 
