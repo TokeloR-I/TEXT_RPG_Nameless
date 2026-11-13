@@ -21,6 +21,8 @@
     const MODES = ['auto', 'pixel', 'fill'];
     const AUTO_MIN = 0.85;
     const PORTRAIT_W = 288;
+    /** Widest canvas shape a landscape phone gets (width / height): about 21:9. */
+    const WIDE_MAX = 2.34;
     const LABELS = { auto: 'Auto', pixel: 'Pixel-perfect', fill: 'Fill the window' };
     const HELP = {
         auto: 'Crisp whole-pixel scaling when it fits well, otherwise fills the window.',
@@ -33,8 +35,15 @@
      * w × h is the stage in screen pixels, canvasW × canvasH the canvas in its own pixels, and
      * `scale` screen pixels per canvas pixel. `tall` is the portrait layout.
      */
-    function fit(availW, availH, mode = 'auto', base = BASE) {
+    function fit(availW, availH, mode = 'auto', base = BASE, opts = {}) {
         const aw = Math.max(1, availW), ah = Math.max(1, availH);
+        // Landscape phones (Tokelo, 2026-11-13): the stage fills the whole screen height and the canvas grows wider
+        // instead of leaving bars at the sides, so more of the map shows left and right. Capped at WIDE_MAX.
+        if (opts.wide && aw / ah > base.w / base.h) {
+            const scale = ah / base.h;
+            const canvasW = Math.min(2 * Math.round(base.h * WIDE_MAX / 2), 2 * Math.floor(aw / scale / 2));
+            return { w: Math.floor(canvasW * scale), h: Math.floor(ah), canvasW, canvasH: base.h, scale, integer: Number.isInteger(scale), tall: false, wide: true };
+        }
         if (aw < 720 && aw / ah < 0.9) {
             const scale = aw / PORTRAIT_W;
             const h = Math.max(base.h * (aw / base.w), Math.min(ah, aw * 2.2));
@@ -51,7 +60,7 @@
     /** The next mode in the Display setting's cycle. */
     const nextMode = (mode) => MODES[(MODES.indexOf(mode) + 1) % MODES.length];
 
-    const api = { fit, nextMode, MODES, LABELS, HELP, BASE, AUTO_MIN, PORTRAIT_W };
+    const api = { fit, nextMode, MODES, LABELS, HELP, BASE, AUTO_MIN, PORTRAIT_W, WIDE_MAX };
     ENSO.display = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
