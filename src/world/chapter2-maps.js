@@ -23,6 +23,10 @@
  *   gullstrand_coast  Fenrir's Heir (CL1), after Tokelo's picture (2026-11-13): a fishing village and harbour under a carved
  *                     headland, the Wolf's Wake (the wolf-carving, the bright and dark caves, the binding stone and the ring),
  *                     a wrecked longship on the beach. West of Skeldvik by the cliff path.
+ *   uplands           C2-S07 country, after Tokelo's picture (2026-11-13): heath, spruce and birch east of the Silent Field,
+ *                     the hunter's stand, the summer pasture, a stream and a wolf den under the ledges.
+ *   wolfbanner_camp   C2-06 The Wolf's Bargain, after Tokelo's picture (2026-11-13): Torvald's war camp in its ring of stakes,
+ *                     up the uplands' north-east trail.
  * Every map is painted whole by ui/scene-hrimvald.js (no tile art; tests/63 requires a scene on every map).
  * ========================================================================= */
 (function (global) {
@@ -39,7 +43,9 @@
         hrimvald_silent_field: { name: 'The Silent Field', mapIds: ['silent_field'] },
         hrimvald_birkholt: { name: 'Birkholt', mapIds: ['birkholt'] },
         hrimvald_runadal: { name: 'Rúnadal', mapIds: ['runadal'] },
-        hrimvald_bjarki_barrow: { name: "Bjarki's Barrow", mapIds: ['bjarki_barrow'] }
+        hrimvald_bjarki_barrow: { name: "Bjarki's Barrow", mapIds: ['bjarki_barrow'] },
+        hrimvald_uplands: { name: 'The Uplands', mapIds: ['uplands'] },
+        hrimvald_wolfbanner_camp: { name: 'The Wolf-Banner Camp', mapIds: ['wolfbanner_camp'] }
     };
 
     const maps = {
@@ -434,6 +440,7 @@
                 { x: 35, y: 15, radius: 2.4, color: 'rgba(255, 180, 90, 0.2)' }
             ],
             spawns: {
+                flight_memorial: { x: 44, y: 20, facing: 'up' },
                 from_skeldvik: { x: 25, y: 38, facing: 'up' },
                 from_skeldvik_2: { x: 26, y: 38, facing: 'up' },
                 from_hall: { x: 25, y: 10, facing: 'down' },
@@ -854,8 +861,8 @@
         // memorial ring of six standing stones on a patch of turned earth with a carved round stone at its heart, graves
         // and markers scattered through the grass, broken shields and spears where they fell, torn banners, the ruined
         // bell tower on its stone footing (north-east), the field hospital's rotten tent with its cots (south-west), and a
-        // stream along the south crossed by a plank bridge. Up the north-east track from Hrafnholm. The west path to
-        // Hallvard's Barrow and the east path to the uplands are boundaries until they are built.
+        // stream along the south crossed by a plank bridge. Up the north-east track from Hrafnholm. The east path climbs to
+        // the uplands; the west path to Hallvard's Barrow is a boundary until it is built.
         silent_field: {
             zoneId: 'hrimvald_silent_field',
             name: 'The Silent Field',
@@ -904,11 +911,18 @@
             spawns: {
                 from_hrafnholm: { x: 35, y: 28, facing: 'up' },
                 from_hrafnholm_2: { x: 36, y: 28, facing: 'up' },
-                flight_bell: { x: 43, y: 6, facing: 'up' }
+                flight_bell: { x: 43, y: 6, facing: 'up' },
+                from_uplands: { x: 52, y: 17, facing: 'left' },
+                from_uplands_2: { x: 52, y: 18, facing: 'left' }
             },
             exits: [
                 { id: 'silent_field_south', x: 35, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field' },
-                { id: 'silent_field_south_2', x: 36, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field_2' }
+                { id: 'silent_field_south_2', x: 36, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field_2' },
+                // The east path climbs into the uplands (C2-S07, and on to the Wolf-Banner camp for C2-06).
+                { id: 'silent_field_east_path', x: 53, y: 17, trigger: 'step', toMap: 'uplands', toSpawn: 'from_silent_field',
+                    text: 'The path climbs out of the mist into pine and birch, and the air smells of resin instead of wet grass.' },
+                { id: 'silent_field_east_path_2', x: 53, y: 18, trigger: 'step', toMap: 'uplands', toSpawn: 'from_silent_field_2',
+                    text: 'The path climbs out of the mist into pine and birch, and the air smells of resin instead of wet grass.' }
             ],
             encounters: [],
             interactables: [
@@ -933,9 +947,7 @@
             ],
             boundaries: [
                 { id: 'silent_field_west_path', x: 0, y: 7, w: 1, h: 2, title: "The path to Hallvard's Barrow",
-                    text: "The path goes west across the field toward a great mound on the skyline: Hallvard's Barrow. That way is not open yet. (Coming in a later part of Chapter Two.)" },
-                { id: 'silent_field_east_path', x: 53, y: 15, w: 1, h: 4, title: 'The path to the uplands',
-                    text: 'The path climbs east out of the field into the uplands, where the herds go in summer. That way is not open yet. (Coming in a later part of Chapter Two.)' }
+                    text: "The path goes west across the field toward a great mound on the skyline: Hallvard's Barrow. That way is not open yet. (Coming in a later part of Chapter Two.)" }
             ]
         },
 
@@ -1228,8 +1240,193 @@
                     text: 'Clay urns of ash and bone, sealed with wax, and one of them broken open. Someone looked inside, found ash, and kicked it over.' }
             ],
             boundaries: []
-        }
+        },
 
+        // -----------------------------------------------------------------
+        // The uplands, east of the Silent Field, after Tokelo's picture (2026-11-13): pine and birch woods, a trail with wolf
+        // tracks in the mud, a hunter's raised stand to the north-west, a fenced summer pasture to the west, a stream under a
+        // plank bridge, and grey ledges to the east with a second trail climbing between them to the Wolf-Banner camp.
+        // C2-S07 The Winter Hunt is played here.
+        uplands: {
+            zoneId: 'hrimvald_uplands',
+            name: 'The Uplands',
+            scene: 'uplands',                  // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(120, 110, 60, 0.05)', particles: { kind: 'snow', count: 3 },
+                grade: { ambient: 0.94, exposure: 1.04, highlights: [0.06, 0.04, -0.02] } },
+            legend: {
+                ',': { name: 'heath' }, ':': { name: 'path' }, ';': { name: 'pasture' }, '=': { name: 'bridge' },
+                'T': { name: 'pine', solid: true }, 'b': { name: 'birch', solid: true }, 'o': { name: 'boulder', solid: true },
+                'K': { name: 'ledge', solid: true }, '~': { name: 'stream', solid: true }, 'f': { name: 'fence', solid: true },
+                'S': { name: 'sheep', solid: true }, 'H': { name: 'hunting_stand', solid: true }, 'l': { name: 'fallen_log', solid: true },
+                'D': { name: 'den', solid: true }
+            },
+            tiles: [
+                ',TbTob,T,,TTbTTTTT,TbbTT,o,TboTTTTbT,bTTT,KKKT,bTT,::,',
+                'T,bTTTTbT,T,,TTb,T,Tb,,T,T,,T,T,T,,TTbTTb,KKKKK,T,,::,',
+                'TbTbT,TT,,T,,,,,b,TbTTTbTTT,TTTTT,Tb,,TT,T,KKKKTT,,::,',
+                'TTTT,TT,TTTTb,,TTb,TTT,,,T,,,,,,,,,,,,,,,,KKKK,,,,:::,',
+                ',TTTTTTTTTTT,,TToTTTbT,,,,,,::::::::::,,,bKbK,K,T:::,,',
+                'T,,TT,ToTTHH,TT,b,,,,,::::::::::::::::::,,TT,,,,:::,TT',
+                ',b,,,T,TT,HHoTbT,,::::::::::::,,,,,,,::::,,TTT,:::,,TT',
+                ',,,,,,,,,b,,,,b,::::::::,,,,,,,T,KTTKKK:::,,b,,::,,bT,',
+                ',,,,,,,TTb,T,,,:::::,,,,,TTb,TTbT,KKKKKK::,,T,:::,bTTT',
+                ',,,,T,T,,,,TT,::::,,,T,,,,TTT~~TTKKKKKK,:::,,:::,,TT,T',
+                ',,,,,,,,,b,,,,:::,,,TT,,,,T,T~~,,KKKKKK,,::,:::,KK,bbK',
+                ',,,,,,b,T,,,,:::,,,,,,,,,,,,o~~~bKKKKKKK,::::::KKKKKKT',
+                'TbT,,,,,,,,,,:::,T,,Tb,b,T,,,T~~TTKKKKKKT,::::KKKKKKKK',
+                ',,,TT,,,T,,,,::,T,,,,T,,,,TT,T~~,TKKKKKT,,:::,KKKKKKKK',
+                'T,,,,,,,T,,,:::,T,,,,,,,,b,,,T~~,KKKKKKK,,::,,TKKKKKKT',
+                ',,,,,,,,,,,,:::,,b,,,,,,,,,,,~~,TK,KKKKK,:::,TTKKKKKKK',
+                'T,bTlll,,,o,::,,,b,,,,T,,,,,,~~,,,oTTTT,:::,,bKKKKKKKK',
+                'T,,,,,,,,b,,::,,,T,,T,,T,,,,,~~T,oTT,TT,::,,T,KKKKKKKK',
+                ',,,ToTb,T,T,:::,T,,TT,,,,,,,bT~~T,,T,,,:::,T,,KKKKKKKK',
+                'oTTT,T,,,TT,:::,bb,,,,T,b,,,,,~~bTT,,::::,T,TTK,KKKKKK',
+                'ffffffffff,,,::,T,T,,TbTb,oTbT~~T,,,::::,TTTTT,,TTb,T,',
+                ';;;;;;;;;fTT,::,,,TTTb,,,,,,,,,~~,::::,,,,,,TbT,Tb,o,,',
+                ';;;S;;;;;;,,,:::,,,,,,,::::::::==::::,TTTb,,,,,,,bKKKK',
+                ';;;;;;S;;fTo,:::,::::::::::::::==::,,,TTT,,,,,,,bKKKKT',
+                ';;;;;;;;ff,,,::::::::::::,,,,,~~,,,,bTTTKKKKDKKKK,,KKK',
+                ';;S;;;fff,,::::::::,,,,,,b,,TT~~bT,T,,KKKKKKKKKKKKKKKT',
+                ';;;;fff,,::::::,T,,bT,,TT,T,b~~,,TT,,T,KKKKKKKKKKKKKK,',
+                ';;fff,:::::::,,T,,TTTb,TbbTTT~~TTb,,,TTKKKKKKKKKKKKKKK',
+                'fff,:::::::,,,T,b,bT,,,b,bTT~~TobT,TTbKKKKKKKKKKKKKKKT',
+                ',:::::::,,,T,,bT,Tb,TbT,TTT~~,TbTT,ToTTKKKKKKKKKKKKKKT',
+                '::::::,,bT,T,TTTTo,,bT,T,bT~~T,TTT,b,,,KKKKKKKKKKKKKKK',
+                ':::,,,,,,bTTb,,,,T,TTT,,b,~~TTTTTTTTTTTKKKKKKKKKKKKKKT',
+                ',,,,TT,,T,,oTT,,bT,b,bT,o~~~bT,T,T,TTTKKKKKKKKKKKKKKKK',
+                ',,,oTTTTT,TTTTb,,T,bTToT,~~,T,T,TT,bT,KKKKKKKKKKKKKKKK',
+                'T,TT,TTTT,,,,,,oTboT,bbb~~~,,,,T,TT,TbbKKKKKKKKKKKKKKT',
+                'TT,TT,,T,T,ToT,,TTTb,Tbb~~TTbToT,Tbb,,KKbKTTKKKKKKbKKo'
+            ],
+            lights: [],
+            spawns: {
+                from_silent_field: { x: 1, y: 30, facing: 'right' },
+                from_silent_field_2: { x: 1, y: 31, facing: 'right' },
+                from_camp: { x: 51, y: 1, facing: 'down' },
+                from_camp_2: { x: 52, y: 1, facing: 'down' }
+            },
+            exits: [
+                { id: 'uplands_west_trail', x: 0, y: 30, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_uplands' },
+                { id: 'uplands_west_trail_2', x: 0, y: 31, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_uplands_2' },
+                { id: 'uplands_camp_trail', x: 51, y: 0, trigger: 'step', toMap: 'wolfbanner_camp', toSpawn: 'from_uplands' },
+                { id: 'uplands_camp_trail_2', x: 52, y: 0, trigger: 'step', toMap: 'wolfbanner_camp', toSpawn: 'from_uplands_2' }
+            ],
+            encounters: [
+                { id: 'uplands_wolves', x: 24, y: 5, name: 'Hungry wolves', enemies: ['pack_wolf', 'pack_wolf', 'pack_wolf'], trigger: 'contact', sprite: 'wolf', detect: 96 }
+            ],
+            interactables: [
+                { id: 'uplands_tracks', kind: 'inspect', x: 19, y: 24, name: 'Tracks in the mud',
+                    text: 'Wolf tracks in the soft mud of the trail, a whole family of them, and one set far bigger than the rest. The big one drags a hind foot.' },
+                { id: 'uplands_stand', kind: 'inspect', x: 11, y: 6, name: "The hunter's stand",
+                    text: 'A platform of split pine on four legs, a ladder, a roof of boards. From up there you can see the whole trail, the pasture, and the ledges to the east.' },
+                { id: 'uplands_den', kind: 'inspect', x: 44, y: 24, name: 'A den under the ledge',
+                    text: 'A low hole under the grey rock, the earth in front of it worn smooth and scattered with bones. It smells of wolf, strongly.' },
+                { id: 'uplands_den_smoke', kind: 'inspect', x: 46, y: 23, name: 'The den mouth', when: { flags: ['greymane_drive'] },
+                    text: 'The wind comes up the ledge and straight into the den. A good place for a smoke-pot.' },
+                { id: 'uplands_pasture', kind: 'inspect', x: 9, y: 21, name: 'Pasture fence',
+                    text: 'A split-rail fence round the summer grazing, mended in three places with fresh wood. Wool on the rails, and on one rail, dried blood.' },
+                { id: 'uplands_juniper', kind: 'forage', forage: 'juniper', x: 21, y: 19, name: 'Juniper', sprite: 'juniper',
+                    text: 'Juniper at the edge of the glade, blue berries under the needles.' },
+                { id: 'uplands_lingonberries', kind: 'forage', forage: 'lingonberries', x: 34, y: 25, name: 'Lingonberries', sprite: 'lingonberries',
+                    text: 'Lingonberries in the moss by the stream.' }
+            ],
+            boundaries: []
+        },
+
+        // -----------------------------------------------------------------
+        // The Wolf-Banner war camp, up the uplands trail, after Tokelo's picture (2026-11-13): a ring of sharpened stakes with
+        // the road in from the south and on to the north, a muster ground with braziers and bonfires, the north-east stretch
+        // of stakes broken down, Torvald's command tent with its map table to the east, weapon racks, tents, a horse line, a
+        // supply cart, a cookfire in the middle and wolf banners everywhere. C2-06 The Wolf's Bargain is played here.
+        wolfbanner_camp: {
+            zoneId: 'hrimvald_wolfbanner_camp',
+            name: 'The Wolf-Banner Camp',
+            scene: 'wolfbanner_camp',          // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(120, 80, 50, 0.06)', particles: { kind: 'snow', count: 3 },
+                grade: { ambient: 0.9, exposure: 1.02, highlights: [0.08, 0.03, -0.03] } },
+            legend: {
+                ',': { name: 'grass' }, ':': { name: 'path' }, '.': { name: 'muster' },
+                'P': { name: 'stakes', solid: true }, 'X': { name: 'broken_stakes', solid: true }, 'T': { name: 'pine', solid: true },
+                'o': { name: 'rock', solid: true }, 'B': { name: 'brazier', solid: true }, 'F': { name: 'bonfire', solid: true },
+                'A': { name: 'tent', solid: true }, 'C': { name: 'command_tent', solid: true }, 'M': { name: 'map_table', solid: true },
+                'W': { name: 'weapon_rack', solid: true }, 'N': { name: 'wolf_banner', solid: true }, 'h': { name: 'horse_line', solid: true },
+                'w': { name: 'cart', solid: true }, 'L': { name: 'log_shelter', solid: true }, 'K': { name: 'cookfire', solid: true },
+                'n': { name: 'bench', solid: true }, 'b': { name: 'barrel', solid: true }, 'c': { name: 'crate', solid: true },
+                'G': { name: 'cage', solid: true }
+            },
+            tiles: [
+                ',TT,,TTT,,,T,oTTT,T,TTTTT,::To,,TTTT,,TTT,TTTTT,TT,To,',
+                'To,,T,Toooo,,,,T,o,ToT,T,,::oT,,oTT,,,TT,T,,TTToTTooTo',
+                ',TTToTTTT,TTTo,TT,oTPPPPP,::,PPPXX,,,,,TToT,,o,o,TT,,,',
+                'oTT,T,,,oooToo,,PPPPP,,,,,::,,,,,XXXXXooo,T,TTTToT,To,',
+                'T,T,,,,To,TTTPPPP,,,B.....::.....B,,,XXXX,T,ToTToT,,,T',
+                ',,,oT,,,,ToPPP,,,...................,,,,XXXT,,,,,T,,TT',
+                ',ToT,To,oPPP,,,.......................,,,,XXPoTT,,,ToT',
+                'T,,T,ToPPP,,,,FF.......................FF,,,PP,To,TTT,',
+                ',,ToT,PPN,,,,...........................,,,,,PP,,TToT,',
+                'o,TTT,P,,,,,,...........................,,,,,,,N,oT,,,',
+                ',TT,AAAA,,WW,...........................,,,,,,,,P,T,T,',
+                ',T,TAAAA,,WW,...........................CCCCCCC,PPT,TT',
+                ',ToPP,,,,,,,,,.........................,CCCCCCC,,PP,oT',
+                ',T,AAA,,,,,,,,,.......................,,CCCCCCC,,,P,To',
+                'TTPAAA,,,,,,,::,,...................,,,cCCCCCCCc,,PP,o',
+                'TTP,,,,,::,:::,,,,,,B............B,,,,,,,,,M,,,,,,,P,T',
+                ',oLLLL,,,:::,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,,,,,,,,,PTo',
+                ',,LLLL,,,:::AAAA,,,,,,,,,::,,,NAAA,,,,,,,,,,,,,,,,,PTT',
+                'T,P,,,,,,,::AAAAb,,,,,,,,::,,,,AAA,WW,,,,,,::,,,,,,Poo',
+                'TTP,,,,,,,,::,,,,,,,,,,,,::,,,,,,,,,,,,,,:::,AAAA,,P,T',
+                ',oPhhhhhh,,,:::,,,,,,,KKK::,,,,,,,,,,,,:::,,,AAAA,,P,o',
+                'ooPP,,,,,,,,,,::::,,n,KKK::n,,,,,,,,,:::,,,,,,,,,,PP,,',
+                ',,TP,,,,,,,,,,,,,::::,,,,::,,,,AAA:N::,,,,,,,,,N,,PTTT',
+                ',T,PP,,,,wwww,,,,,,,::::,::,,::AAAc,,,,,,,,,,,,,,PP,,T',
+                ',T,oPP,,,wwww,bb,,,,,,,:::::::,,,,,,,,,,,,,,,,,,PP,,oT',
+                'TTT,,P,,,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,AAAA,,,,,P,TT,T',
+                ',,T,,PP,,,,,,,,,,,,,,,,,,::,,,,,,,,,,,,AAAAG,,,PP,,TTT',
+                'oo,o,TPPP,,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,,,PPPoo,,,T',
+                ',TT,T,TTPP,,,,,,,,,,,,,,,::,,,,,,,,,,,,,,,,,PPT,,ToT,,',
+                ',,,,T,oT,PPP,,,,,,,,,,,N,::,,,,,,,,,,,,,,,PPP,T,o,oTTT',
+                'o,TT,,o,o,TPPP,,,,,,,,,,,::,,N,,,,,,,,,,PPP,TTT,,,ToT,',
+                ',TT,o,,oT,TToPPPP,,,,,,,,::,,,,,,,,,,PPPP,T,T,,,oTo,T,',
+                'T,,,,,To,TTTT,ToPPPPP,,,,::,,,,,,PPPPPT,,,,oTT,,o,,,T,',
+                ',T,TT,,ooT,T,TTo,,T,PPP,,:::,,PPPPoT,oTT,,TTTT,T,T,o,T',
+                ',,,,o,,oTT,,TTT,TTTTToo,,:::,oTT,,T,,o,oo,T,,,ToTT,o,T',
+                ',,ToT,,,,T,oT,oT,,TTTTToT:::,o,oo,TT,Too,,,T,T,,,TTTTT'
+            ],
+            lights: [
+                { x: 20, y: 4, radius: 2.4, color: 'rgba(255, 150, 60, 0.3)' }, { x: 33, y: 4, radius: 2.4, color: 'rgba(255, 150, 60, 0.3)' },
+                { x: 20, y: 15, radius: 2.4, color: 'rgba(255, 150, 60, 0.3)' }, { x: 33, y: 15, radius: 2.4, color: 'rgba(255, 150, 60, 0.3)' },
+                { x: 14, y: 7, radius: 3, color: 'rgba(255, 140, 50, 0.32)' }, { x: 39, y: 7, radius: 3, color: 'rgba(255, 140, 50, 0.32)' },
+                { x: 23, y: 20, radius: 2.6, color: 'rgba(255, 150, 60, 0.28)' }
+            ],
+            spawns: {
+                from_uplands: { x: 25, y: 34, facing: 'up' },
+                from_uplands_2: { x: 26, y: 34, facing: 'up' }
+            },
+            exits: [
+                { id: 'camp_south_road', x: 25, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp' },
+                { id: 'camp_south_road_2', x: 26, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp_2' }
+            ],
+            encounters: [],
+            interactables: [
+                { id: 'camp_torvald', kind: 'npc', npc: 'torvald', x: 44, y: 16, name: 'Torvald Redhand', sprite: 'warchief',
+                    when: { flags: ['torvald_at_camp'], notFlags: ['bargain_made'] } },
+                { id: 'camp_table', kind: 'inspect', x: 43, y: 15, name: 'The map table',
+                    text: 'A table of planks under the awning of the big tent, a lamp, and a map of Hrimvald painted on hide, weighted with stones.' },
+                { id: 'camp_hearth', kind: 'station', station: 'warcamp_fire', verb: 'Cook at', x: 23, y: 20, name: 'Camp cookfire', sprite: 'cookfire' },
+                { id: 'camp_cage', kind: 'inspect', x: 43, y: 26, name: 'A cage of poles',
+                    text: 'A cage of lashed poles, empty, the straw in it fresh. Someone was kept here not long ago, and taken somewhere else.' },
+                { id: 'camp_cart', kind: 'inspect', x: 10, y: 23, name: 'Supply cart',
+                    text: 'A cart of sacks and crates: barley, salt fish, arrowheads from Járnmyr in a bag. Under the sacks, wrapped in a cloak, three name boards that belong to someone.' },
+                { id: 'camp_horses', kind: 'inspect', x: 5, y: 20, name: 'Horse line',
+                    text: 'Six shaggy northern horses on a picket line, rugged against the cold. More pickets than horses: the rest are out on the roads.' },
+                { id: 'camp_racks', kind: 'inspect', x: 10, y: 10, name: 'Weapon rack',
+                    text: 'Spears, bearded axes and round shields painted red and white. The spearheads are new, bog iron from Járnmyr, still blue from the quench.' }
+            ],
+            boundaries: [
+                { id: 'camp_north_road', x: 26, y: 0, w: 2, h: 1, title: 'The north road',
+                    text: "The road goes on north toward the fells and the old mounds. That way is not open yet. (Coming in a later part of Chapter Two.)" }
+            ]
+        }
 
     };
 
