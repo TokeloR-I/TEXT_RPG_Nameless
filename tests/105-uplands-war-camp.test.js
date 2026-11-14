@@ -74,3 +74,16 @@ test('Black Flight: the War Memorial attunes Hrafnholm, the lore\'s fourth ancho
     assert.ok(a && ZONE1.maps[a.map].spawns[a.spawn]);
     for (const id of ['skeldvik', 'hrafnholm', 'runadal', 'silent_field']) assert.ok(CH2.anchors[id], id);
 });
+
+test("Hallvard's Barrow: across the Silent Field's west path into the kept hall, a dais for C2-13, and out again", () => {
+    const { s } = run();
+    assert.ok(!ZONE1.maps.silent_field.boundaries.some((b) => b.id === 'silent_field_west_path'), 'the west path is a road now');
+    const m = ZONE1.maps.hallvard_barrow;
+    assert.strictEqual(m.scene, 'hallvard_barrow'); assert.ok(SA.scenes.hallvard_barrow);
+    assert.ok(data.foodRules.regions.hrimvald.maps.includes('hallvard_barrow'));
+    assert.ok(m.spawns.dais, 'a spawn on the dais for the guardian fight');
+    takeExit(s, 'hrafnholm_silent_field');
+    takeExit(s, 'silent_field_west_path'); assert.strictEqual(s.mapId, 'hallvard_barrow');
+    for (const id of ['hallvard_chairs', 'hallvard_frieze', 'hallvard_keepers_table']) assert.strictEqual(inspect(s, id).type, 'message', id);
+    takeExit(s, 'hallvard_barrow_out'); assert.strictEqual(s.mapId, 'silent_field');
+});

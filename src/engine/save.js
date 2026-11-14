@@ -35,7 +35,7 @@
     // Which content release wrote a save. Bump it when a PR adds or removes story content (quests, NPCs, items,
     // maps), so a save carried back to an older copy of the game is recognised as newer, not "updated" (playtest
     // 2026-11-11). A save that names quests or items this build doesn't know is newer whatever the number says.
-    const CONTENT_REVISION = 14;   // 5: the Hrimvald kitchen and Sour Herring (C2S1); 6: Gullstrand Coast and the Wolf's Wake; 7: James the bard (CB1, CB2); 8: the Thing (C203 ends Act I), C204 pointer, C2-S02, C2-S04; 9: the Stormtide Inn (PR #261); 10: Járnmyr and C204, C205 pointer; 11: the Silent Field, Birkholt, Rúnadal, Bjarki's Barrow and C205; 12: armor sets, Bog Iron and weapon tempering; 13: the uplands, the Wolf-Banner camp, the Hrafnholm anchor; 14: C2-07, C2-S01, C2-S06 and the Act II mini bosses
+    const CONTENT_REVISION = 15;   // 5: the Hrimvald kitchen and Sour Herring (C2S1); 6: Gullstrand Coast and the Wolf's Wake; 7: James the bard (CB1, CB2); 8: the Thing (C203 ends Act I), C204 pointer, C2-S02, C2-S04; 9: the Stormtide Inn (PR #261); 10: Járnmyr and C204, C205 pointer; 11: the Silent Field, Birkholt, Rúnadal, Bjarki's Barrow and C205; 12: armor sets, Bog Iron and weapon tempering; 13: the uplands, the Wolf-Banner camp, the Hrafnholm anchor; 14: C2-07, C2-S01, C2-S06 and the Act II mini bosses; 15: Hallvard's Barrow
     const ENGINE_VERSION = '0.1.0';          // package.json "version" (kept in step by tests/33-save-load.test.js)
     const STATE_KEYS = ['rooms', 'currentRoom', 'mode', 'player', 'combat', 'pendingBranchChoice', 'flags', 'stats', 'progression', 'world', 'story'];
     // Fields a save must have to be loaded at all (story/world may be null: the text game).

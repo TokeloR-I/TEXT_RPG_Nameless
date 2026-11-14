@@ -2091,7 +2091,7 @@
             // and a map in no region below, belong to homeRegion. The camp kit cooks the region you stand in.
             homeRegion: 'blackbriar',
             regions: { hrimvald: { name: 'Hrimvald', maps: ['frostspine_pass', 'skeldvik', 'stormtide_inn', 'hrafnholm', 'hall_of_winter', 'gullstrand_coast',
-                'jarnmyr', 'silent_field', 'birkholt', 'runadal', 'bjarki_barrow', 'uplands', 'wolfbanner_camp'] } }
+                'jarnmyr', 'silent_field', 'birkholt', 'runadal', 'bjarki_barrow', 'uplands', 'wolfbanner_camp', 'hallvard_barrow'] } }
         };
         const gameRules = {
             statDamagePer: 4,          // +1 damage per 4 points of the scaling stat
