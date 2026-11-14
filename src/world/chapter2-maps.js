@@ -475,7 +475,8 @@
             encounters: [],
             interactables: [
                 { id: 'hrafnholm_arnkel', kind: 'npc', npc: 'arnkel', x: 24, y: 22, name: 'Arnkel the Lawspeaker', sprite: 'lawspeaker' },
-                { id: 'hrafnholm_torvald', kind: 'npc', npc: 'torvald', x: 6, y: 27, name: 'Torvald Redhand', sprite: 'warchief' },
+                { id: 'hrafnholm_torvald', kind: 'npc', npc: 'torvald', x: 6, y: 27, name: 'Torvald Redhand', sprite: 'warchief',
+                    when: { any: [{ notFlags: ['torvald_at_camp'] }, { flags: ['bargain_made'] }] } },
                 { id: 'hrafnholm_sigrun', kind: 'npc', npc: 'sigrun', x: 41, y: 21, name: 'Sigrun Frostmark', sprite: 'heir' },
                 { id: 'hrafnholm_runa', kind: 'npc', npc: 'runa', x: 46, y: 21, name: 'Runa Hallvardsdottir', sprite: 'shieldmaiden' },
                 { id: 'hrafnholm_osric', kind: 'npc', npc: 'osric', x: 12, y: 15, name: 'Osric Vane', sprite: 'factor' },
@@ -924,7 +925,12 @@
                 { id: 'silent_field_east_path_2', x: 53, y: 18, trigger: 'step', toMap: 'uplands', toSpawn: 'from_silent_field_2',
                     text: 'The path climbs out of the mist into pine and birch, and the air smells of resin instead of wet grass.' }
             ],
-            encounters: [],
+            encounters: [
+                // C2-07: the diggers Bjarki's chalk pointed at, at the disturbed grave, once Bjarki is laid to rest.
+                { id: 'silent_field_diggers', x: 44, y: 13, name: 'Hallgeir Spade', enemies: ['grave_foreman', 'wolfbanner_raider', 'wolfbanner_raider'], trigger: 'contact', sprite: 'constables',
+                    detect: 130, when: { flags: ['bjarki_laid'], notFlags: ['field_diggers_beaten'] },
+                    text: 'Three men in the grass with spades and a lantern, a square of turf cut back, and a fourth leaning on his spade with a list. "Not the field rites, lads," he says. "The field\'s rites. Dig."' }
+            ],
             interactables: [
                 { id: 'silent_ring', kind: 'inspect', x: 28, y: 17, name: 'The memorial ring',
                     text: 'Six stones stood up in a ring by the survivors, the first spring after, each one dragged here from a different steading. There are no names on them. The names are on the boards at home, where the families could reach them.' },
@@ -1013,9 +1019,18 @@
             exits: [
                 { id: 'birkholt_east_boardwalk', x: 53, y: 15, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_birkholt' }
             ],
-            encounters: [],
+            encounters: [
+                // C2-S06: the Bride of the Mound, when you bring her brooch back to the stones.
+                { id: 'birkholt_mound_bride', x: 31, y: 14, name: 'The Bride of the Mound', enemies: ['mound_bride'], trigger: 'contact', sprite: 'shade',
+                    detect: 120, when: { flags: ['bride_returning'], notFlags: ['bride_laid'] },
+                    text: 'A woman in a bride\'s crown of birch twigs stands in the middle of the stones, her face turned away. When she turns, there is nothing in the crown but cold, and she reaches for what you are carrying.' }
+            ],
             interactables: [
                 { id: 'birkholt_sigrid', kind: 'npc', npc: 'sigrid', x: 31, y: 12, name: 'Sigrid', sprite: 'widow' },
+                { id: 'birkholt_ragna', kind: 'npc', npc: 'ragna', x: 34, y: 7, name: 'Ragna', sprite: 'shepherd' },
+                { id: 'birkholt_eyvind', kind: 'npc', npc: 'eyvind', x: 40, y: 24, name: 'Eyvind', sprite: 'farmer' },
+                { id: 'birkholt_asta_house', kind: 'inspect', x: 4, y: 34, name: "Asta's house",
+                    text: 'A small turf-roofed house at the edge of the birches, the shutters closed. A chest stands just inside, under a folded cloak.' },
                 { id: 'birkholt_hearth', kind: 'station', station: 'birkholt_hearth', verb: 'Cook at', x: 21, y: 7, name: 'Longhouse hearth', sprite: 'cookfire' },
                 { id: 'birkholt_stones', kind: 'inspect', x: 31, y: 10, name: 'The standing stones',
                     text: 'Three stones where the paths meet, cut with knotwork and one name each: the three families who cleared the birch wood here. Every steading\'s board hangs in a longhouse, but the stones are where you swear.' },
@@ -1111,6 +1126,7 @@
             encounters: [],
             interactables: [
                 { id: 'runadal_yrsa', kind: 'npc', npc: 'yrsa', x: 40, y: 9, name: 'Yrsa Thornstaff', sprite: 'seeress' },
+                { id: 'runadal_thorvi', kind: 'npc', npc: 'thorvi', x: 29, y: 16, name: 'Thorvi', sprite: 'farmer' },
                 { id: 'runadal_table', kind: 'inspect', x: 26, y: 15, name: 'The offering table',
                     text: 'A flat stone on three smaller ones, a woven cloth over it, and on the cloth a round loaf, a bowl of milk and a cup. The loaf is fresh. People come a long way to leave bread here.' },
                 { id: 'runadal_stone', kind: 'inspect', x: 25, y: 8, name: 'Rune stone',
@@ -1203,8 +1219,8 @@
                     text: 'Grey daylight, the smell of the bog, and the hammers of Járnmyr going on as if nothing were under the hill at all.' }
             ],
             encounters: [
-                { id: 'barrow_passage_dead', x: 15, y: 31, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 96,
-                    text: 'Two of the slabs have been pulled out of the passage wall, and what was laid behind them has stood up. Grave-cloth, iron rings, and eyes like cold coals.' },
+                { id: 'barrow_passage_dead', x: 15, y: 31, name: 'Hrolf Shield-Bearer', enemies: ['draugr_champion', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 96,
+                    text: 'Two slabs have been pulled out of the passage wall, and what lay behind them has stood up: a big man behind a shield of black oak, and another at his back. Eyes like cold coals.' },
                 { id: 'barrow_west_dead', x: 9, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
                     text: 'Bjarki\'s hearth-men, still in their mail, with the shields they were buried with. They turn to face you together, the way they were taught.' },
                 { id: 'barrow_east_dead', x: 22, y: 20, name: 'Barrow-dead', enemies: ['draugr', 'draugr'], trigger: 'contact', sprite: 'ghoul', detect: 110,
@@ -1312,9 +1328,13 @@
                 { id: 'uplands_camp_trail_2', x: 52, y: 0, trigger: 'step', toMap: 'wolfbanner_camp', toSpawn: 'from_uplands_2' }
             ],
             encounters: [
+                { id: 'uplands_greymane', x: 44, y: 22, name: 'Old Greymane', enemies: ['old_greymane'], trigger: 'contact', sprite: 'wolf',
+                    when: { flags: ['greymane_hunt'] },
+                    text: "A wolf as big as a calf comes out of the den, white at the muzzle, one ear torn to a stub. She doesn't growl; she has done this before." },
                 { id: 'uplands_wolves', x: 24, y: 5, name: 'Hungry wolves', enemies: ['pack_wolf', 'pack_wolf', 'pack_wolf'], trigger: 'contact', sprite: 'wolf', detect: 96 }
             ],
             interactables: [
+                { id: 'uplands_gunnhild', kind: 'npc', npc: 'gunnhild', x: 5, y: 23, name: 'Gunnhild', sprite: 'shepherd' },
                 { id: 'uplands_tracks', kind: 'inspect', x: 19, y: 24, name: 'Tracks in the mud',
                     text: 'Wolf tracks in the soft mud of the trail, a whole family of them, and one set far bigger than the rest. The big one drags a hind foot.' },
                 { id: 'uplands_stand', kind: 'inspect', x: 11, y: 6, name: "The hunter's stand",
@@ -1406,8 +1426,12 @@
                 { id: 'camp_south_road', x: 25, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp' },
                 { id: 'camp_south_road_2', x: 26, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp_2' }
             ],
-            encounters: [],
+            encounters: [
+                { id: 'camp_skuli', x: 40, y: 6, name: 'Skuli Tally-Hand', enemies: ['skuli_tally_hand', 'wolfbanner_raider', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
+                    when: { flags: ['camp_map_read'] },
+                    text: "Skuli Tally-Hand comes over the broken stakes with two of his own, not Torvald's. 'That table is mine, witness, and so is what's written on it.'" },],
             interactables: [
+                { id: 'camp_steinar', kind: 'npc', npc: 'steinar', x: 26, y: 12, name: 'Steinar', sprite: 'warchief' },
                 { id: 'camp_torvald', kind: 'npc', npc: 'torvald', x: 44, y: 16, name: 'Torvald Redhand', sprite: 'warchief',
                     when: { flags: ['torvald_at_camp'], notFlags: ['bargain_made'] } },
                 { id: 'camp_table', kind: 'inspect', x: 43, y: 15, name: 'The map table',

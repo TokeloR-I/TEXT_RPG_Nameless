@@ -2053,6 +2053,7 @@
         Object.assign(anchors, ch2.anchors);
         Object.assign(chapter1.merchants, ch2.merchants || {});
         triggers.push(...ch2.triggers);
+        chapter1.catchUp.push(...(ch2.catchUp || []));
         const q08 = quests.Q08;
         delete q08.teaser;
         Object.assign(q08.objectives[0], { text: ch2.q08.objective, marker: ch2.q08.marker });

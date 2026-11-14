@@ -270,6 +270,42 @@
                 specialFlags: ['spirit', 'undead'],
                 skills: [{ name: 'Barrow Chill', base_damage: [6, 9] }]
             },
+            // Act II mini bosses (Tokelo 2026-11-13, "some mini bosses in between"): Bjarki's shield-bearer in the barrow
+            // passage, the grave-diggers' foreman on the Silent Field (C2-07) and the Bride of the Mound at Birkholt (C2-S06).
+            'draugr_champion': {
+                name: 'Hrolf Shield-Bearer',
+                hp: 140, maxHp: 140, xp: 100, atk: 12, def: 6, spd: 8, tier: 'elite',
+                critChance: 0.1, critMultiplier: 1.6,
+                specialFlags: ['undead', 'weak_to_light'],
+                skills: [{ name: 'Grave Sword', base_damage: [11, 15] }, { name: 'Shield Wall', base_damage: [7, 10] }]
+            },
+            'grave_foreman': {
+                name: 'Hallgeir Spade',
+                hp: 130, maxHp: 130, xp: 100, atk: 12, def: 5, spd: 10, tier: 'elite',
+                critChance: 0.14, critMultiplier: 1.7,
+                skills: [{ name: 'Spade Swing', base_damage: [11, 16] }, { name: 'Grave-Earth', base_damage: [5, 8] }]
+            },
+            'mound_bride': {
+                name: 'The Bride of the Mound',
+                hp: 150, maxHp: 150, xp: 110, atk: 13, def: 4, spd: 11, tier: 'elite',
+                critChance: 0.1, critMultiplier: 1.6,
+                specialFlags: ['spirit', 'undead'],
+                skills: [{ name: 'Bridal Wail', base_damage: [9, 13] }, { name: 'Cold Hands', base_damage: [10, 14] }]
+            },
+            // C2-06's mini boss: Skuli Tally-Hand, the Broken Oath's buyer in Torvald's camp (the bill of sale in C2-04 was his).
+            'skuli_tally_hand': {
+                name: 'Skuli Tally-Hand',
+                hp: 150, maxHp: 150, xp: 110, atk: 13, def: 5, spd: 12, tier: 'elite',
+                critChance: 0.15, critMultiplier: 1.7,
+                skills: [{ name: 'Tally Knife', base_damage: [10, 14] }, { name: 'Ash in the Eyes', base_damage: [5, 8] }]
+            },
+            // C2-S07's mini boss: Old Greymane, an old she-wolf driven down to the pasture by the camp's hunters.
+            'old_greymane': {
+                name: 'Old Greymane',
+                hp: 140, maxHp: 140, xp: 100, atk: 13, def: 4, spd: 13, tier: 'elite',
+                critChance: 0.12, critMultiplier: 1.7,
+                skills: [{ name: 'Throat Bite', base_damage: [11, 15] }, { name: 'Howl', base_damage: [4, 6] }]
+            },
             'bjarki_grave_bound': {
                 name: 'Bjarki the Grave-Bound',
                 id: 'bjarki_grave_bound',
@@ -1598,6 +1634,53 @@
                         { name: 'Barrow Chill', skill: 'Barrow Chill', shape: 'projectile', reach: 120, projSpeed: 150, radius: 5, projectile: 'arcane', windupMs: 700, activeMs: 0, recoveryMs: 700, cooldownMs: 2800, blockCost: 10 }
                     ]
                 },
+                // The three Act II mini bosses: each has one big, marked move to learn (every tell 600 ms or more).
+                draugr_champion: {
+                    speed: 42, detect: 110, alertMs: 800, reach: 24, arcDeg: 120, windupMs: 660, activeMs: 120, recoveryMs: 640, radius: 8, poise: 7, hyperArmor: true, leash: 260,
+                    keepDistance: [0, 22], group: 'direct', frontalShield: { arcDeg: 100, damageTaken: 0.5 },
+                    attacks: [
+                        { name: 'Grave Sword', skill: 'Grave Sword', shape: 'arc', reach: 24, arcDeg: 120, cooldownMs: 2000, useAt: [0, 26],
+                            combo: [{ windupMs: 660, activeMs: 120, recoveryMs: 240, blockCost: 18 }, { windupMs: 600, activeMs: 120, recoveryMs: 800, blockCost: 22, reverse: true }] },
+                        { name: 'Shield Wall', skill: 'Shield Wall', shape: 'line', reach: 52, width: 18, lunge: 40, windupMs: 800, activeMs: 160, recoveryMs: 900, cooldownMs: 5000, blockCost: 24, knockbackPx: 22, staggers: true, useAt: [24, 60] }
+                    ]
+                },
+                grave_foreman: {
+                    speed: 50, detect: 130, alertMs: 700, reach: 26, arcDeg: 140, windupMs: 640, activeMs: 120, recoveryMs: 640, radius: 8, poise: 6, hyperArmor: true, leash: 260,
+                    keepDistance: [0, 26], group: 'direct',
+                    attacks: [
+                        { name: 'Spade Swing', skill: 'Spade Swing', shape: 'arc', reach: 26, arcDeg: 150, windupMs: 640, activeMs: 120, recoveryMs: 640, cooldownMs: 1900, blockCost: 18, useAt: [0, 28] },
+                        // Grave-earth flung where you stand: two marked circles, a full second to step out.
+                        { name: 'Grave-Earth', skill: 'Grave-Earth', shape: 'ground', count: 2, radius: 18, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.2, useAt: [30, 140] }
+                    ]
+                },
+                skuli_tally_hand: {
+                    speed: 62, detect: 140, alertMs: 600, reach: 24, arcDeg: 120, windupMs: 620, activeMs: 110, recoveryMs: 600, radius: 7, poise: 4, leash: 280,
+                    keepDistance: [0, 30], group: 'direct',
+                    attacks: [
+                        // A quick told cut, then a step back out of reach.
+                        { name: 'Tally Knife', skill: 'Tally Knife', shape: 'arc', reach: 24, arcDeg: 120, windupMs: 620, activeMs: 110, recoveryMs: 600, cooldownMs: 1800, blockCost: 14, useAt: [0, 26] },
+                        // A fistful of grey ash thrown where you stand: one marked circle, a second to step out.
+                        { name: 'Ash in the Eyes', skill: 'Ash in the Eyes', shape: 'ground', count: 1, radius: 20, leadMs: 250, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.1, useAt: [30, 130] }
+                    ]
+                },
+                old_greymane: {
+                    speed: 80, detect: 140, smellRadius: 48, reach: 40, shape: 'line', width: 11, lunge: 42, windupMs: 640, activeMs: 200, recoveryMs: 700, radius: 7, poise: 4, leash: 260,
+                    keepDistance: [34, 56], group: 'circle',
+                    attacks: [
+                        { name: 'Throat Bite', skill: 'Throat Bite', shape: 'line', reach: 42, width: 11, lunge: 42, windupMs: 640, activeMs: 200, recoveryMs: 700, cooldownMs: 2600, blockCost: 16, useAt: [22, 56] },
+                        // Her howl: step out of 54 px (a long, low tell).
+                        { name: 'Howl', skill: 'Howl', shape: 'circle', radius: 54, windupMs: 1200, activeMs: 150, recoveryMs: 900, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.1, useAt: [0, 50] }
+                    ]
+                },
+                mound_bride: {
+                    speed: 58, detect: 150, alertMs: 600, reach: 22, arcDeg: 100, windupMs: 620, activeMs: 120, recoveryMs: 620, radius: 7, poise: 5, leash: 300,
+                    giveUpMs: null, keepDistance: [20, 60], group: 'solo',
+                    attacks: [
+                        { name: 'Cold Hands', skill: 'Cold Hands', shape: 'line', reach: 44, width: 10, lunge: 36, windupMs: 620, activeMs: 160, recoveryMs: 700, cooldownMs: 2400, blockCost: 14, useAt: [0, 48] },
+                        // Her wail: walk out of 58 px or dodge through (1.2 s to read).
+                        { name: 'Bridal Wail', skill: 'Bridal Wail', shape: 'circle', radius: 58, windupMs: 1200, activeMs: 150, recoveryMs: 1100, cooldownMs: 8500, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 54] }
+                    ]
+                },
                 bjarki_grave_bound: {
                     boss: true, speed: 42, detect: 150, reach: 30, arcDeg: 140, windupMs: 660, activeMs: 130, recoveryMs: 720, radius: 10, poise: 10, hyperArmor: true, leash: 400,
                     giveUpMs: null, keepDistance: [0, 40], group: 'solo', frontalShield: { arcDeg: 80, damageTaken: 0.7 },
@@ -1883,6 +1966,13 @@
             'Bog Iron': { type: 'material', sellable: true, sellPrice: 3, description: 'Iron won from the red mire at Járnmyr and folded clean of slag. Bjorn tempers blades with it.' },
             'Padded Jerkin': { type: 'armor', slot: 'bodyArmor', rarity: 'common', statModifiers: { def: 1 }, sellable: true, sellPrice: 4, description: 'Layers of patched leather and cloth.' },
             // C2-05: Bjarki's own ring, given back to you by nobody (CANDIDATE stats for Gauge).
+            // Act II quest items (C2-S01 The Last Loom, C2-S06 The Bride of the Mound).
+            'Madder Yarn': { type: 'quest', bound: true, unique: true, sellable: false, description: "Wool dyed madder-red on Birkholt's rack, for Asta's last sail." },
+            "Asta's Pattern Stick": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick: the count of every row of a memorial sail, cut by a weaver who could no longer see it.' },
+            'Memorial Cloth': { type: 'quest', bound: true, unique: true, sellable: false, description: "A strip cut from the end of Asta's sail by Sigrid, for the one who helped finish it." },
+            "Skuli's Tally": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick and a sheet of birch-bark: every memorial in Hrimvald, and what was bought from each.' },
+            'Smoke Pot': { type: 'quest', bound: true, unique: true, sellable: false, description: "Gunnhild's clay pot of juniper and pitch, to smoke a den out." },
+            "Bride's Brooch": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { critChance: 0.04, magicDamage: 2 }, sellable: false, description: 'A silver brooch from a bride\'s grave. It is always cold, however long you hold it.' },
             "Bjarki's Arm Ring": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 12, def: 1 }, sellable: false, description: 'A twisted arm ring of grave-iron, heavy as a promise. It was a chieftain\'s before there was a Crown.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
@@ -2703,6 +2793,31 @@
                 "undead",
                 "common"
             ],
+            "draugr_champion": [
+                3,
+                "undead",
+                "elite"
+            ],
+            "grave_foreman": [
+                3,
+                "humanoid",
+                "elite"
+            ],
+            "mound_bride": [
+                3,
+                "undead",
+                "elite"
+            ],
+            "skuli_tally_hand": [
+                3,
+                "humanoid",
+                "elite"
+            ],
+            "old_greymane": [
+                3,
+                "beast",
+                "elite"
+            ],
             "bjarki_grave_bound": [
                 4,
                 "undead",
@@ -2729,7 +2844,7 @@
         enemies.crow_touched_warden.materialDrops = false;
         // Meat for the pot (the kitchen, Tokelo 2026-11-02): rats and wolves always leave some. Goulash, not glory.
         for (const id of ['rust_rat', 'cellar_vermin']) enemies[id].foodDrops = [{ item: 'Rat Meat' }];
-        for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
+        for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf', 'old_greymane']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
             if (d.use !== 'meal' && d.use !== 'drink') continue;
