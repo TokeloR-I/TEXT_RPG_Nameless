@@ -3669,6 +3669,155 @@
         for (const px of [cx - 16, cx + 16]) { put(S, px, gy - 16, NP.wool[3]); put(S, px + 1, gy - 15, NP.wool[3]); }
     }
 
-    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, stormtide_inn: stormtideInn, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr, silent_field: silentField, birkholt, runadal, bjarki_barrow: bjarkiBarrow, uplands, wolfbanner_camp: wolfbannerCamp });
+    // --- Hallvard's Barrow, inside (after Tokelo's picture, 2026-11-13): a kept hall, warm with fire and candlelight ---
+    const DRESSED = R(['#1b1918', '#262321', '#322e2b', '#3e3935', '#4b4540', '#59524b', '#675f57', '#766d63', '#867c70']);
+    const H_OPEN = new Set(['flagstones', 'runner', 'dais', 'dais_steps', 'barrow_mouth']);
+    function hallvardBarrow(map, nameAt) {
+        const L = layersFor(map), seed = 6301, img = L.base, N = (x, y) => nameAt(map, x, y), cw = map.tiles[0].length, ch = map.tiles.length;
+        const open = (x, y) => H_OPEN.has(N(x, y));
+        const nearOpen = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const n = N(x + dx, y + dy); if (n && n !== 'barrow_wall') return true; } return false; };
+        // Floors: big square flags, swept; the dais is laid in longer, paler slabs.
+        for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+            const cx = Math.floor(x / C), cy = Math.floor(y / C), n = N(cx, cy);
+            if (n === 'barrow_wall') { put(img, x, y, [8, 7, 7]); continue; }
+            const dais = n === 'dais' || n === 'chair' || n === 'fire_pillar' || (n === 'candles' && cy < 8) || (n === 'vase' && cy < 8) || n === 'runner' && cy < 8;
+            const sw = dais ? 24 : 20, sh = dais ? 12 : 20, row = Math.floor(y / sh), off = (row & 1) * (sw / 2), col = Math.floor((x + off) / sw), fx = (x + off) % sw, fy = y % sh;
+            let t = (dais ? 0.55 : 0.45) + (hash(col, row, seed + (dais ? 9 : 0)) - 0.5) * 0.22 + (vnoise(x / 7, y / 7, seed + 1) - 0.5) * 0.14;
+            if (fx === 0 || fy === 0) t = 0.12; else if (fx === 1 || fy === 1) t += 0.1;
+            put(img, x, y, pick(DRESSED, t));
+            if (hash(x >> 1, y >> 1, seed + 2) < 0.03) put(img, x, y, DRESSED[2]);
+        }
+        // The runners: woven red with a pale border and a knot down the middle, from the passage to the vestibule, and on the dais.
+        const runners = []; const seenR = new Set();
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (N(x, y) === 'runner' && !seenR.has(`${x},${y}`)) runners.push(blockOf(map, nameAt, x, y, new Set(['runner']), seenR));
+        for (const b of runners) {
+            const X0 = b.x0 * C + 6, X1 = (b.x1 + 1) * C - 6, Y0 = b.y0 * C + (b.y0 < 8 ? 4 : 8), Y1 = (b.y1 + 1) * C - (b.y1 > 30 ? 0 : 8);
+            for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) {
+                const u = x - X0, w = X1 - X0, v = y - Y0, edge = u < 4 || u >= w - 4 || (b.y0 < 8 && (v < 4 || v >= Y1 - Y0 - 4));
+                let c = pick(RUNNER, 0.5 + (hash(x >> 1, y >> 1, seed + 5) - 0.5) * 0.3);
+                if (edge) c = (u === 1 || u === w - 2) ? [196, 170, 120] : RUNNER[1];
+                else if (Math.abs(((u - w / 2) + ((y >> 2) % 6) * 1.5)) % 9 < 1 || Math.abs(((u - w / 2) - ((y >> 2) % 6) * 1.5)) % 9 < 1) c = [190, 150, 96];
+                put(img, x, y, c);
+            }
+            if (b.y1 < 30 && b.y0 > 8) for (let x = X0; x < X1; x += 3) for (let k = 0; k < 4; k++) put(img, x, Y1 + k, [196, 170, 120], 0.8);   // fringe
+        }
+        const flames = [], smoke = [], glows = [], items = [], FX = { flames, smoke, glows }, seen = new Set();
+        const candle = (S, px, py, h) => { rectFill(S, px - 1, py - h, 3, h, [236, 226, 200]); put(S, px, py - h - 2, NP.glow[NP.glow.length - 1]); put(S, px, py - h - 1, NP.glow[4]); flames.push({ x: px, y: py - h - 2 }); glows.push({ x: px, y: py - h, r: 26, a: 0.35 }); };
+        const firebowl = (S, cx, top) => {
+            const b = shape(); ellipse(b, S, cx, top, 13, 5); fill(S, b, NP.bronze.slice(1).map((c) => [c[0] + 70, c[1] + 40, c[2]]), { outline: [40, 28, 12] });
+            const f = shape(); ellipse(f, S, cx, top - 10, 8, 11); fill(S, f, NP.glow.slice(1), { edge: false });
+            const f2 = shape(); ellipse(f2, S, cx, top - 7, 4, 6); fill(S, f2, NP.glow.slice(3), { edge: false });
+            flames.push({ x: cx, y: top - 10, big: true }); glows.push({ x: cx, y: top, r: 120, a: 0.9 });
+        };
+        const BLOCKS = {
+            dais: (b) => ({ y: b.y0 - 0.6, draw: () => { for (let px = b.x0 * C; px < (b.x1 + 1) * C; px++) { put(img, px, b.y0 * C, DRESSED[8]); } } }),
+            dais_front: (b) => ({ y: b.y1 + 0.3, draw: () => {
+                const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C, Y1 = (b.y1 + 1) * C;
+                RK.blocks(img, X0, Y0 + 6, X1 - X0, Y1 - Y0 - 6, seed + b.x0, DRESSED.slice(1));
+                for (let px = X0; px < X1; px++) { put(img, px, Y0 + 5, DRESSED[8]); put(img, px, Y0 + 6, DRESSED[6]); for (let k = 0; k < 5; k++) put(img, px, Y1 + k, NP.shadow, 0.45 - k * 0.08); }
+                for (let px = X0 + 18; px < X1 - 18; px += 48) knot(img, px, Y0 + 9, 22, Y1 - Y0 - 12, seed + px, DRESSED);
+            } }),
+            dais_steps: (b) => ({ y: b.y0 - 0.4, draw: () => {
+                const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, Y0 = b.y0 * C + 6, Y1 = (b.y1 + 1) * C;
+                for (let py = Y0; py < Y1; py++) for (let px = X0; px < X1; px++) { const s2 = (py - Y0) % 14; put(img, px, py, s2 < 2 ? DRESSED[0] : s2 < 4 ? DRESSED[8] : pick(DRESSED, 0.55 + (py - Y0) / (Y1 - Y0) * 0.15 + (hash(px >> 3, py, seed) - 0.5) * 0.1)); }
+                for (let px = X0; px < X1; px++) for (let k = 0; k < 4; k++) put(img, px, Y1 + k, NP.shadow, 0.35 - k * 0.08);
+            } }),
+            fire_pillar: (b) => ({ y: b.y1 + 0.9, draw: () => tall(L, [b.x0 * C - 16, b.y0 * C - 70, (b.x1 + 1) * C + 16, (b.y1 + 1) * C + 8], b.y0 * C + 8, false, (S) => {
+                const cx = (b.x0 + b.x1 + 1) * C / 2, B = (b.y1 + 1) * C - 2;
+                shadow(S, cx + 6, B, 28, 6, 0.55);
+                RK.blocks(S, cx - 24, B - 10, 48, 10, seed + 9, DRESSED.slice(2));
+                const p = shape(); box(p, S, cx - 15, B - 58, 30, 48, 0); for (const [i] of p.px) p.px.set(i, (((i % S.w) - cx) / 15) * -0.5); fill(S, p, DRESSED.slice(2), { tex: 0.3, seed, outline: DRESSED[0] });
+                knot(S, cx - 10, B - 52, 20, 36, seed + 3, DRESSED);
+                const cap = shape(); box(cap, S, cx - 18, B - 64, 36, 7, 0.4); fill(S, cap, DRESSED.slice(3), { outline: DRESSED[0] });
+                firebowl(S, cx, B - 66);
+            }) }),
+            offering_ledge: (b) => ({ y: b.y1 + 0.5, draw: () => tall(L, [b.x0 * C - 4, b.y0 * C - 40, (b.x1 + 1) * C + 4, (b.y1 + 1) * C + 6], 0, false, (S) => {
+                const X0 = b.x0 * C, X1 = (b.x1 + 1) * C, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+                RK.blocks(S, X0, B - 18, W, 18, seed + b.x0 + b.y0, DRESSED.slice(2));
+                for (let px = X0; px < X1; px++) { put(S, px, B - 18, DRESSED[8]); put(S, px, B + 1, NP.shadow, 0.4); }
+                if (W > 40) {
+                    const cl = shape(); box(cl, S, X0 + W * 0.55, B - 26, 22, 30, 0); fill(S, cl, RUNNER, { tex: 0.3, seed, outline: RUNNER[0] });
+                    for (let py = B - 24; py < B + 4; py++) { put(S, X0 + W * 0.55 + 3, py, [196, 170, 120]); put(S, X0 + W * 0.55 + 18, py, [196, 170, 120]); }
+                    for (let k = 0; k < 3; k++) { const f = shape(); box(f, S, X0 + 10, B - 24 - k * 4, 26, 4, 0.2); fill(S, f, NP.wool.slice(3), { outline: NP.wool[1] }); }
+                    const bw = shape(); ellipse(bw, S, X1 - 22, B - 21, 9, 4); fill(S, bw, NP.bronze.slice(1).map((c) => [c[0] + 70, c[1] + 40, c[2]]), { outline: [40, 28, 12] });
+                    for (let k = 0; k < 8; k++) put(S, X1 - 28 + k * 1.6, B - 23, [214, 180, 90]);
+                }
+                for (let k = 0; k < (W > 40 ? 4 : 2); k++) candle(S, X0 + 8 + k * (W > 40 ? W / 4 : 12), B - 18, 6 + (k % 2) * 4);
+            }) }),
+            bench: (b) => ({ y: b.y1 + 0.5, draw: () => tall(L, [b.x0 * C - 4, b.y0 * C - 20, (b.x1 + 1) * C + 4, (b.y1 + 1) * C + 6], 0, false, (S) => {
+                const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, B = (b.y1 + 1) * C - 6, W = X1 - X0;
+                shadow(S, X0 + W / 2 + 4, B + 2, W / 2 + 4, 5, 0.5);
+                const st = shape(); box(st, S, X0, B - 18, W, 10, 0.4); fill(S, st, NP.oak.slice(2), { tex: 0.3, seed: seed + b.y0, outline: NP.oak[0] });
+                for (const px of [X0 + 6, X1 - 10, X0 + W / 2 - 2]) rectFill(S, Math.round(px), B - 8, 4, 8, NP.oak[1]);
+                const rn = shape(); box(rn, S, X0 + W * 0.3, B - 19, W * 0.4, 14, 0); fill(S, rn, RUNNER, { tex: 0.3, seed: seed + b.y0 + 1, outline: RUNNER[0] });
+                for (const [i] of rn.px) { const px = i % S.w, py = (i / S.w) | 0; if ((px + py) % 6 === 0) put(S, px, py, [196, 170, 120]); }
+                for (let px = Math.round(X0 + W * 0.3); px < X0 + W * 0.7; px += 2) put(S, px, B - 5, [196, 170, 120]);
+            }) }),
+            keepers_table: (b) => ({ y: b.y1 + 0.5, draw: () => tall(L, [b.x0 * C - 4, b.y0 * C - 40, (b.x1 + 1) * C + 4, (b.y1 + 1) * C + 6], 0, false, (S) => {
+                const X0 = b.x0 * C + 4, X1 = (b.x1 + 1) * C - 4, B = (b.y1 + 1) * C - 4, W = X1 - X0;
+                shadow(S, X0 + W / 2 + 3, B + 1, W / 2 + 2, 4, 0.45);
+                const t = shape(); box(t, S, X0, B - 20, W, 8, 0.3); fill(S, t, NP.oak.slice(2), { tex: 0.3, seed, outline: NP.oak[0] });
+                for (const px of [X0 + 3, X1 - 6]) rectFill(S, px, B - 12, 3, 12, NP.oak[1]);
+                rectFill(S, X0 + W / 2 - 4, B - 34, 9, 13, PAL.iron[1]); rectFill(S, X0 + W / 2 - 2, B - 32, 5, 8, NP.glow[4]); rectFill(S, X0 + W / 2 - 3, B - 36, 7, 2, PAL.iron[3]);
+                flames.push({ x: X0 + W / 2, y: B - 28 }); glows.push({ x: X0 + W / 2, y: B - 24, r: 60, a: 0.6 });
+                for (let k = 0; k < 10; k++) put(S, X0 + 6 + k * 1.5, B - 21, [214, 194, 150]);                                       // the notched stick
+            }) })
+        };
+        for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+            const n = N(x, y), cx = x * C + 16, gy = y * C + 28, k = `${x},${y}`;
+            if (BLOCKS[n]) { if (seen.has(k)) continue; const b = blockOf(map, nameAt, x, y, new Set([n]), seen); items.push({ x, ...BLOCKS[n](b) }); continue; }
+            const P = {
+                barrow_wall: () => { if (nearOpen(x, y)) hallWall(L, x, y, N, seed); },
+                chair: () => tall(L, [cx - 16, gy - 50, cx + 16, gy + 6], 0, false, (S) => { chair(S, cx, gy, seed + x); const f = shape(); ellipse(f, S, cx, gy - 18, 11, 4); fill(S, f, NP.wool.slice(3), { outline: NP.wool[1] }); }),
+                brazier: () => tall(L, [cx - 16, gy - 70, cx + 16, gy + 6], 0, false, (S) => { if (N(x, y + 1) === 'brazier') return; RK.blocks(S, cx - 12, gy - 26, 24, 26, seed + x, DRESSED.slice(2)); knot(S, cx - 6, gy - 24, 12, 20, seed + x, DRESSED); brazier(S, cx, gy - 24, seed + x, FX); }),
+                candles: () => tall(L, [cx - 16, gy - 30, cx + 16, gy + 6], 0, false, (S) => { for (let k = 0; k < 4; k++) candle(S, cx - 9 + k * 6, gy - (k % 2) * 3, 6 + ((k * 7) % 3) * 3); }),
+                vase: () => tall(L, [cx - 16, gy - 50, cx + 16, gy + 6], 0, false, (S) => {
+                    shadow(S, cx + 3, gy + 1, 9, 3, 0.5);
+                    for (let k = 0; k < 7; k++) { const a = -Math.PI / 2 + (k - 3) * 0.22; const sx = cx, sy = gy - 16; for (let j = 0; j < 22; j++) { const px = sx + Math.cos(a) * j, py = sy + Math.sin(a) * j; put(S, px, py, NP.oak[2]); if (j > 6 && j % 3 === 0) { put(S, px + 1, py, [236, 230, 210]); put(S, px - 1, py, [210, 200, 176]); } } }   // pussy willow
+                    const v = shape(); ellipse(v, S, cx, gy - 8, 8, 9); box(v, S, cx - 4, gy - 20, 8, 5); fill(S, v, NP.bronze.slice(1).map((c) => [c[0] + 60, c[1] + 34, c[2]]), { tex: 0.3, seed: seed + x, outline: [40, 28, 12] });
+                }),
+                basket: () => { shadow(img, cx + 3, gy + 1, 9, 3, 0.45); const bk = shape(); ellipse(bk, img, cx, gy - 8, 10, 9); fill(img, bk, PAL.straw, { tex: 0.7, seed, outline: NP.oak[0] }); for (let py = gy - 16; py < gy; py += 3) for (let px = cx - 9; px < cx + 9; px++) if (alphaAt(img, px, py)) put(img, px, py, PAL.straw[0], 0.5); },
+                barrel: () => barrel(L, cx, gy, seed + x * 3 + y)
+            }[n];
+            if (P) items.push({ x, y: y + (n === 'barrow_wall' ? 0.95 : 0.5), draw: P });
+        }
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        for (const it of items) it.draw();
+        // The back wall: knotwork panels behind the dais, two red banners, and lanterns on the vestibule walls.
+        const frieze = (x0, x1, y0, h) => { for (let px = x0; px < x1; px++) for (let py = y0; py < y0 + h; py++) put(img, px, py, pick(DRESSED, 0.45 + (vnoise(px / 5, py / 5, seed + 30) - 0.5) * 0.2)); for (let px = x0 + 4; px < x1 - 30; px += 40) knot(img, px, y0 + 3, 34, h - 6, seed + px, DRESSED); };
+        frieze(18 * C, 30 * C, 1 * C + 4, 2 * C - 8);
+        frieze(5 * C + 8, 10 * C - 8, 3 * C + 10, C + 8); frieze(38 * C + 8, 43 * C - 8, 3 * C + 10, C + 8);
+        for (const bx of [13.5, 33.5]) { clothBanner(img, Math.round(bx * C - 12), 1 * C - 6, 24, 3 * C - 4, seed + bx, NP.madder); for (let py = C; py < 3 * C; py += 8) for (let px = Math.round(bx * C - 6); px < bx * C + 6; px += 3) put(img, px + ((py >> 3) & 1) * 2, py, [206, 176, 120], 0.6); }
+        for (const lx of [21, 26]) { const px = lx * C + 16, py = 21 * C - 2; rectFill(img, px - 4, py - 12, 9, 14, PAL.iron[1]); rectFill(img, px - 2, py - 10, 5, 9, NP.glow[4]); rectFill(img, px - 5, py - 14, 11, 2, PAL.iron[3]); flames.push({ x: px, y: py - 6 }); glows.push({ x: px, y: py, r: 70, a: 0.65 }); }
+        for (const py of [28, 30]) for (const px of [22 * C - 2, 26 * C + 1]) { rectFill(img, px - 1, py * C, 3, 6, PAL.iron[1]); rectFill(img, px - 1, py * C - 3, 3, 3, NP.glow[4]); flames.push({ x: px, y: py * C - 2 }); glows.push({ x: px, y: py * C + 6, r: 36, a: 0.5 }); }
+        // Firelight: dark toward the walls, warm wherever a flame is.
+        for (const im of [img, L.over]) { const d = im.data; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { d[i] = d[i] * 0.74 + 3; d[i + 1] = d[i + 1] * 0.72 + 2; d[i + 2] = d[i + 2] * 0.74 + 3; } }
+        for (const g of glows) {
+            const r = g.r, a = g.a == null ? 0.5 : g.a;
+            for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
+                const x = Math.round(g.x) + xx, y = Math.round(g.y) + yy, dd = Math.hypot(xx, yy) / r;
+                if (dd >= 1 || x < 0 || y < 0 || x >= img.w || y >= img.h) continue;
+                const w = (1 - dd) * (1 - dd) * a;
+                for (const im of [img, L.over]) { const i = (y * im.w + x) * 4, d = im.data; if (!d[i + 3]) continue; for (let j = 0; j < 3; j++) d[i + j] = Math.min(255, d[i + j] + WARM[j] * w * 0.5 + (WARM[j] - d[i + j]) * w * 0.2); }
+            }
+        }
+        return { w: img.w, h: img.h, base: img.data, over: L.over.data, water: [], animate: animator(flames, smoke) };
+    }
+    /** A wall cell of the barrow hall: facing the room, a face of dressed blocks with a coping; elsewhere, its top. */
+    function hallWall(L, x, y, N, seed) {
+        const img = L.base, X0 = x * C, Y0 = y * C, wall = (a, b) => { const n = N(a, b); return n === 'barrow_wall' || n === null; };
+        if (!wall(x, y + 1)) {
+            tall(L, [X0 - 2, Y0 - 20, X0 + C + 2, Y0 + C + 2], Y0 + C, false, (S) => {
+                RK.blocks(S, X0, Y0 - 14, C, C + 14, seed + x * 3 + y, DRESSED.slice(1));
+                for (let px = X0; px < X0 + C; px++) { put(S, px, Y0 - 15, DRESSED[8]); put(S, px, Y0 - 14, DRESSED[6]); put(S, px, Y0 + C - 1, DRESSED[0]); }
+            });
+            for (let px = X0; px < X0 + C; px++) for (let k = 0; k < 6; k++) put(img, px, Y0 + C + k, NP.shadow, 0.5 - k * 0.08);
+            return;
+        }
+        for (let py = Y0; py < Y0 + C; py++) for (let px = X0; px < X0 + C; px++) put(img, px, py, pick(DRESSED, 0.25 + (hash(px >> 3, py >> 3, seed + x) - 0.5) * 0.15 + (vnoise(px / 4, py / 4, seed) - 0.5) * 0.1));
+        for (const [dx, dy, ex, ey] of [[-1, 0, 0, -1], [1, 0, C - 1, -1], [0, -1, -1, 0]]) if (!wall(x + dx, y + dy)) for (let k = 0; k < C; k++) { const px = ex < 0 ? X0 + k : X0 + ex, py = ey < 0 ? Y0 + k : Y0 + ey; put(img, px, py, DRESSED[7]); }
+    }
+
+    Object.assign(SA.scenes, { frostspine_pass: frostspinePass, skeldvik, stormtide_inn: stormtideInn, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr, silent_field: silentField, birkholt, runadal, bjarki_barrow: bjarkiBarrow, uplands, wolfbanner_camp: wolfbannerCamp, hallvard_barrow: hallvardBarrow });
     if (isNode) module.exports = { frostspine_pass: frostspinePass, skeldvik, stormtide_inn: stormtideInn, hrafnholm, hall_of_winter: hallOfWinter, gullstrand_coast: gullstrand, jarnmyr, silent_field: silentField, birkholt, runadal, bjarki_barrow: bjarkiBarrow };
 })(typeof window !== 'undefined' ? window : globalThis);

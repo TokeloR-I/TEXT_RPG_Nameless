@@ -25,6 +25,8 @@
  *                     a wrecked longship on the beach. West of Skeldvik by the cliff path.
  *   uplands           C2-S07 country, after Tokelo's picture (2026-11-13): heath, spruce and birch east of the Silent Field,
  *                     the hunter's stand, the summer pasture, a stream and a wolf den under the ledges.
+ *   hallvard_barrow   Inside Hallvard's Barrow, after Tokelo's picture (2026-11-13): the kept hall of the mound, west of the
+ *                     Silent Field. Act IV (C2-13 The Last Verse of Hallvard) is played here.
  *   wolfbanner_camp   C2-06 The Wolf's Bargain, after Tokelo's picture (2026-11-13): Torvald's war camp in its ring of stakes,
  *                     up the uplands' north-east trail.
  * Every map is painted whole by ui/scene-hrimvald.js (no tile art; tests/63 requires a scene on every map).
@@ -45,7 +47,8 @@
         hrimvald_runadal: { name: 'Rúnadal', mapIds: ['runadal'] },
         hrimvald_bjarki_barrow: { name: "Bjarki's Barrow", mapIds: ['bjarki_barrow'] },
         hrimvald_uplands: { name: 'The Uplands', mapIds: ['uplands'] },
-        hrimvald_wolfbanner_camp: { name: 'The Wolf-Banner Camp', mapIds: ['wolfbanner_camp'] }
+        hrimvald_wolfbanner_camp: { name: 'The Wolf-Banner Camp', mapIds: ['wolfbanner_camp'] },
+        hrimvald_hallvard_barrow: { name: "Hallvard's Barrow", mapIds: ['hallvard_barrow'] }
     };
 
     const maps = {
@@ -863,7 +866,7 @@
         // and markers scattered through the grass, broken shields and spears where they fell, torn banners, the ruined
         // bell tower on its stone footing (north-east), the field hospital's rotten tent with its cots (south-west), and a
         // stream along the south crossed by a plank bridge. Up the north-east track from Hrafnholm. The east path climbs to
-        // the uplands; the west path to Hallvard's Barrow is a boundary until it is built.
+        // the uplands, and the west path crosses to Hallvard's Barrow.
         silent_field: {
             zoneId: 'hrimvald_silent_field',
             name: 'The Silent Field',
@@ -913,12 +916,19 @@
                 from_hrafnholm: { x: 35, y: 28, facing: 'up' },
                 from_hrafnholm_2: { x: 36, y: 28, facing: 'up' },
                 flight_bell: { x: 43, y: 6, facing: 'up' },
+                from_hallvard: { x: 1, y: 7, facing: 'right' },
+                from_hallvard_2: { x: 1, y: 8, facing: 'right' },
                 from_uplands: { x: 52, y: 17, facing: 'left' },
                 from_uplands_2: { x: 52, y: 18, facing: 'left' }
             },
             exits: [
                 { id: 'silent_field_south', x: 35, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field' },
                 { id: 'silent_field_south_2', x: 36, y: 29, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_silent_field_2' },
+                // The west path crosses the field to Hallvard's Barrow (Act IV).
+                { id: 'silent_field_west_path', x: 0, y: 7, trigger: 'step', toMap: 'hallvard_barrow', toSpawn: 'from_silent_field',
+                    text: 'The path runs west to the great mound on the skyline. Someone has swept the stones at its foot, and set a lantern burning in the passage.' },
+                { id: 'silent_field_west_path_2', x: 0, y: 8, trigger: 'step', toMap: 'hallvard_barrow', toSpawn: 'from_silent_field_2',
+                    text: 'The path runs west to the great mound on the skyline. Someone has swept the stones at its foot, and set a lantern burning in the passage.' },
                 // The east path climbs into the uplands (C2-S07, and on to the Wolf-Banner camp for C2-06).
                 { id: 'silent_field_east_path', x: 53, y: 17, trigger: 'step', toMap: 'uplands', toSpawn: 'from_silent_field',
                     text: 'The path climbs out of the mist into pine and birch, and the air smells of resin instead of wet grass.' },
@@ -951,10 +961,7 @@
                 { id: 'silent_stream', kind: 'inspect', x: 22, y: 26, name: 'The stream',
                     text: 'A slow brown stream between stones. The old Crown\'s host came across it at dawn, the songs say, and the North stood in the grass on this side and waited for them.' }
             ],
-            boundaries: [
-                { id: 'silent_field_west_path', x: 0, y: 7, w: 1, h: 2, title: "The path to Hallvard's Barrow",
-                    text: "The path goes west across the field toward a great mound on the skyline: Hallvard's Barrow. That way is not open yet. (Coming in a later part of Chapter Two.)" }
-            ]
+            boundaries: []
         },
 
         // -----------------------------------------------------------------
@@ -1450,6 +1457,103 @@
                 { id: 'camp_north_road', x: 26, y: 0, w: 2, h: 1, title: 'The north road',
                     text: "The road goes on north toward the fells and the old mounds. That way is not open yet. (Coming in a later part of Chapter Two.)" }
             ]
+        },
+
+        // -----------------------------------------------------------------
+        // Inside Hallvard's Barrow, after Tokelo's picture (2026-11-13): not a robbed tomb but a kept one. A swept passage
+        // and a little vestibule where the keepers sit (lanterns, a table, barrels of tallow, two chairs), then the hall of
+        // the mound: knotwork friezes, red banners, fire-bowls on carved pillars, candles and offerings on the side ledges,
+        // benches with red runners for the families, and the dais with two empty chairs on it. Hallvard the One-Handed is
+        // Guardian Two (CHAPTER_TWO_LORE 6.3): C2-13 The Last Verse of Hallvard is played on the dais (spawn 'dais').
+        hallvard_barrow: {
+            zoneId: 'hrimvald_hallvard_barrow',
+            name: "Hallvard's Barrow",
+            scene: 'hallvard_barrow',          // painted whole: ui/scene-hrimvald.js
+            ambient: { tint: 'rgba(40, 24, 14, 0.18)', particles: { kind: 'dust', count: 8 },
+                grade: { ambient: 0.72, exposure: 0.98, highlights: [0.08, 0.04, -0.03] } },
+            legend: {
+                '.': { name: 'flagstones' }, 'r': { name: 'runner' }, 'D': { name: 'dais' }, 'd': { name: 'dais_steps' }, 'm': { name: 'barrow_mouth' },
+                '#': { name: 'barrow_wall', solid: true }, 'w': { name: 'dais_front', solid: true }, 'h': { name: 'chair', solid: true },
+                'P': { name: 'fire_pillar', solid: true }, 'B': { name: 'brazier', solid: true }, 'L': { name: 'offering_ledge', solid: true },
+                'c': { name: 'candles', solid: true }, 'u': { name: 'vase', solid: true }, 'b': { name: 'bench', solid: true },
+                'T': { name: 'keepers_table', solid: true }, 'k': { name: 'basket', solid: true }, 'o': { name: 'barrel', solid: true }
+            },
+            tiles: [
+                '################################################',
+                '################################################',
+                '################################################',
+                '################################################',
+                '###########.DuDDPPDDDDDDDDDDDDPPDDuD.###########',
+                '###########.DDDDPPDhDDrrrrDDhDPPDDDD.###########',
+                '######LLLL..DDDDDDDDDDrrrrDDDDDDDDDD..LLLL######',
+                '######......DDccDDDDDDrrrrDDDDDDccDD......######',
+                '###.........wwwwwwwwddddddddwwwwwwww.........###',
+                '##..................dddddddd..................##',
+                '##B..........................................B##',
+                '##B....bbbbbb......................bbbbbb....B##',
+                '##............................................##',
+                '##............................................##',
+                '##c....bbbbbb......................bbbbbb....c##',
+                '##............................................##',
+                '##............................................##',
+                '##.u...bbbbbb......................bbbbbb...u.##',
+                '###.L......................................L.###',
+                '#####......................................#####',
+                '##################............##################',
+                '##################............##################',
+                '##################.....rr.....##################',
+                '##################.TTk.rr...h.##################',
+                '##################.....rr.....##################',
+                '##################.....rr...h.##################',
+                '##################.oo..rr.....##################',
+                '##################.....rr.....##################',
+                '######################.rr.######################',
+                '######################.rr.######################',
+                '######################.rr.######################',
+                '######################.mm.######################'
+            ],
+            lights: [
+                { x: 16.5, y: 4, radius: 3.4, color: 'rgba(255, 150, 60, 0.32)' }, { x: 30.5, y: 4, radius: 3.4, color: 'rgba(255, 150, 60, 0.32)' },
+                { x: 2, y: 10, radius: 3, color: 'rgba(255, 150, 60, 0.3)' }, { x: 45, y: 10, radius: 3, color: 'rgba(255, 150, 60, 0.3)' },
+                { x: 21, y: 21, radius: 2.4, color: 'rgba(255, 170, 80, 0.3)' }, { x: 26, y: 21, radius: 2.4, color: 'rgba(255, 170, 80, 0.3)' }
+            ],
+            spawns: {
+                from_silent_field: { x: 23, y: 30, facing: 'up' },
+                from_silent_field_2: { x: 24, y: 30, facing: 'up' },
+                dais: { x: 23, y: 10, facing: 'up' }
+            },
+            exits: [
+                { id: 'hallvard_barrow_out', x: 23, y: 31, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_hallvard',
+                    text: 'Out into the wind and the pale grass. Behind you the lantern in the passage keeps burning.' },
+                { id: 'hallvard_barrow_out_2', x: 24, y: 31, trigger: 'step', toMap: 'silent_field', toSpawn: 'from_hallvard_2',
+                    text: 'Out into the wind and the pale grass. Behind you the lantern in the passage keeps burning.' }
+            ],
+            encounters: [],
+            interactables: [
+                { id: 'hallvard_chairs', kind: 'inspect', x: 19, y: 5, name: 'Two chairs',
+                    text: 'Two chairs on the dais, carved alike, a fleece folded on each. Nobody sits in them, and the dust has been wiped from both this morning.' },
+                { id: 'hallvard_frieze', kind: 'inspect', x: 24, y: 3, name: 'The verse frieze',
+                    text: 'A long band of knotwork cut across the back wall, and between the knots a verse in old runes, worn smooth by hands. It names a ford, a morning, and two young men, and stops in the middle of a line.' },
+                { id: 'hallvard_fire_west', kind: 'inspect', x: 16, y: 5, name: 'Fire-bowl',
+                    text: 'A bowl of fire on a carved pillar, fed with tallow and juniper. It has been tended all winter by someone who knows how high it should burn.' },
+                { id: 'hallvard_fire_east', kind: 'inspect', x: 31, y: 5, name: 'Fire-bowl',
+                    text: 'A bowl of fire on a carved pillar, fed with tallow and juniper. It has been tended all winter by someone who knows how high it should burn.' },
+                { id: 'hallvard_offerings_west', kind: 'inspect', x: 7, y: 6, name: 'Offerings',
+                    text: 'Candles on the stone ledge, a bowl of barley, a folded cloth with a red border. The families leave something every year on the day, and the keepers keep it.' },
+                { id: 'hallvard_offerings_east', kind: 'inspect', x: 40, y: 6, name: 'Offerings',
+                    text: "A carved wooden horse, a comb, a child's shoe. Each has a strip of wool tied round it in the colour of a household." },
+                { id: 'hallvard_benches', kind: 'inspect', x: 9, y: 11, name: 'Benches',
+                    text: 'Long benches with red runners on them, set out for the families. On the day the hall is full, and the keepers stand along the walls.' },
+                { id: 'hallvard_wall_fire', kind: 'inspect', x: 2, y: 11, name: 'Wall fire',
+                    text: 'A fire on a stone footing in a niche of the wall, its smoke going up a shaft cut through the mound. The stone above it is black with twenty winters of it.' },
+                { id: 'hallvard_keepers_table', kind: 'inspect', x: 19, y: 23, name: "The keepers' table",
+                    text: 'A lantern, a basket of candles, and a stick notched for every family that came on the day. The last notches are fresh, and there are not many.' },
+                { id: 'hallvard_keepers_chairs', kind: 'inspect', x: 28, y: 23, name: 'Two chairs',
+                    text: 'Two plain chairs by the wall with fleeces on them, still warm. Whoever keeps watch here has only just stepped out.' },
+                { id: 'hallvard_barrels', kind: 'inspect', x: 19, y: 26, name: 'Barrels',
+                    text: 'Tallow for the candles and oil for the lamps, enough to keep the hall lit through a long winter.' }
+            ],
+            boundaries: []
         }
 
     };
