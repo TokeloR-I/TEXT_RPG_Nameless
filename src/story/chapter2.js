@@ -984,6 +984,9 @@
         },
         feast_fire: hearth('Feast fire', 'Hrafnholm',
             'The fire beside the feast tables, fed day and night while the households are in for the Thing. The cooks wave you to it.', 'hrimvald'),
+        // The cookfire in the middle of the Wolf-Banner camp (C2-06 country): the camp cooks what the North cooks.
+        warcamp_fire: hearth('Camp cookfire', 'The Wolf-Banner camp',
+            'A pot on a tripod over a ring of stones, benches either side, and a raider stirring it who does not look up. Nobody stops you using the edge of the fire.', 'hrimvald'),
         // Hakon's camp kit (C2S2): opened by using the Camp Kit item. It cooks the dishes of the region you stand in.
         camp_hearth: { ...hearth('Your camp', 'Camp kit',
             "A fire-pot on the ground, Hakon's tripod over it and the pot on its chain. It cooks what the land around you cooks.", 'here'), portable: true },
@@ -2362,7 +2365,8 @@
     const anchors = {
         skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' },
         silent_field: { name: 'The Silent Field, the field bell', region: 'Hrimvald', map: 'silent_field', spawn: 'flight_bell' },
-        runadal: { name: 'Rúnadal, the offering table', region: 'Hrimvald', map: 'runadal', spawn: 'flight_table' }
+        runadal: { name: 'Rúnadal, the offering table', region: 'Hrimvald', map: 'runadal', spawn: 'flight_table' },
+        hrafnholm: { name: 'Hrafnholm, the War Memorial', region: 'Hrimvald', map: 'hrafnholm', spawn: 'flight_memorial' }
     };
     // C2-05: putting out the burial anchors. Each one counts up (the highest first, so one fire only moves it one step).
     const anchorOut = (id, say) => ({ id: `c205_${id}`, on: { type: 'inspect', id }, if: { quests: { C205: 'active' } }, effects: [
@@ -2463,6 +2467,12 @@
             { flag: 'anchor:runadal' },
             { say: "The crow takes a crumb from the loaf and looks at you as if daring you to say something. 'An offering,' it says. 'It counts.'" },
             { say: '(Black Flight: Rúnadal is attuned.)', important: true }
+        ] },
+        // Hrafnholm, the fourth of the lore's safe anchors (CHAPTER_TWO_LORE 2.1): the War Memorial in the upper town.
+        { id: 'anchor_hrafnholm', on: { type: 'inspect', id: 'hrafnholm_memorial' }, if: { flags: ['aspect_nahemoth'] }, effects: [
+            { flag: 'anchor:hrafnholm' },
+            { say: "The crow walks along the top of the memorial, reading nothing, and settles at the end. 'Lots of people come here,' it says. 'I'll remember it.'" },
+            { say: '(Black Flight: Hrafnholm is attuned.)', important: true }
         ] },
         // Fenrir's Heir (CL1). Coming down into Gullstrand, the first howl; the carving starts the hunt and wakes the sun-mad
         // wolves at the bright cave; each hunt's wolves beaten; beating the Binding Echo opens the waking.
