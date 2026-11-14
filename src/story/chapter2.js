@@ -141,7 +141,28 @@
             onComplete: [{ gold: 40, key: 'c205_reward' },
                 { say: 'Outside, Járnmyr is still hammering. Up on the mound the two ravens have gone, and the crow sits alone on the lintel stone.', important: true },
                 { say: "'Nothing to do with you, that one,' it says. 'Or me. The North had its dead long before anybody came asking about the six hundred.'" },
-                { start: 'C207' }]
+                { start: 'C206' }, { start: 'C207' }]
+        },
+        // C2-06 The Wolf's Bargain (lore doc 5): confront Torvald with what Járnmyr and the barrow showed; he sends you to his
+        // camp in the uplands (Tokelo's picture, built in PR #267). Skuli Tally-Hand's map table shows the raiders want the
+        // complete memorial record. Then a real choice with Torvald: negotiate, expose him to the Thing, or feign cooperation.
+        // His grief for Arni is genuine; his answer is dangerous. Nothing here says who the player was.
+        C206: {
+            title: "The Wolf's Bargain", kind: 'main', xp: 120, candidate: true,
+            summary: "Bog iron for the Wolf-Banner and grave goods out of Bjarki's mound, all bought with the same southern silver. Torvald Redhand says he doesn't ask where his supplies come from. Somebody should ask him to his face.",
+            objectives: [
+                { id: 'confront', text: 'Put what you found at Járnmyr and in the barrow to Torvald Redhand', on: { type: 'story', id: 'torvald_confronted' }, marker: { map: 'hrafnholm', x: 6, y: 27 } },
+                { id: 'camp', text: 'Go to the Wolf-Banner camp: east from the Silent Field, up through the uplands', on: { type: 'enter', id: 'wolfbanner_camp' }, marker: { map: 'silent_field', x: 53, y: 17 } },
+                { id: 'table', text: "Look at the map table in Torvald's tent", on: { type: 'inspect', id: 'camp_table' }, marker: { map: 'wolfbanner_camp', x: 43, y: 15 },
+                    effects: [{ flag: 'camp_map_read' },
+                        { say: 'Every memorial in Hrimvald is marked on the hide: the Skeldvik boards, the Birkholt cloth, the Rúnadal stones, the Hrafnholm wall. Most are crossed through.', important: true },
+                        { say: "Under the lamp, a list in a neat southern hand: 'The whole record, every name, before the field rites.' It is sealed in grey ash." }] },
+                { id: 'skuli', text: 'Deal with Skuli Tally-Hand', on: { type: 'defeat', id: 'camp_skuli' }, marker: { map: 'wolfbanner_camp', x: 40, y: 6 } },
+                { id: 'bargain', text: "Have it out with Torvald in his tent", on: { type: 'story', id: 'bargain_made' }, marker: { map: 'wolfbanner_camp', x: 44, y: 16 } }
+            ],
+            onComplete: [{ gold: 40, key: 'c206_reward' },
+                { say: 'Whatever was agreed, the list is still true: somebody wants every name of the six hundred in one place, before the Feast.', important: true },
+                { say: "The crow, from the tent pole: 'Every name in one place. Funny thing to want, unless you mean to do something with them all at once.'" }]
         },
         // C2-07 Verse and Witness (lore doc 5): Bjarki's chalk said "for the field rites". Someone is digging on the Silent
         // Field, and the families of the six hundred remember everything about their missing but the names. Any three of four
@@ -176,6 +197,25 @@
                 { say: "Sigrid cuts a strip from the end of the sail and puts it in your hands. 'For the witness. Don't wash it.'", important: true }]
         },
         // ----- C2-S06 The Bride of the Mound (lore doc 7), Birkholt: a haunting, a stolen heirloom; restored burial or cursed relic.
+        // ----- C2-S07 The Winter Hunt (lore doc 7), the uplands (Tokelo's picture): an old she-wolf is taking Gunnhild's ewes,
+        // driven down out of the woods because the Wolf-Banner camp has hunted the deer out. Kill her, or smoke her up the fells.
+        'C2-S07': {
+            title: 'The Winter Hunt', kind: 'side', xp: 50, candidate: true,
+            summary: "Something is taking Gunnhild's ewes out of the summer pasture in the uplands, one a night, and the fence won't stop it.",
+            objectives: [
+                { id: 'tracks', text: 'Read the tracks on the trail', on: { type: 'inspect', id: 'uplands_tracks' }, marker: { map: 'uplands', x: 19, y: 24 },
+                    effects: [{ say: 'The big tracks drag a hind foot. An old wolf, then, alone or nearly, too slow now for deer.' }] },
+                { id: 'stand', text: "Look out from the hunter's stand", on: { type: 'inspect', id: 'uplands_stand' }, marker: { map: 'uplands', x: 11, y: 6 },
+                    effects: [{ say: 'From the stand: deer sign everywhere and no deer, horse dung on the camp trail, and the big tracks going east to the ledges.', important: true }] },
+                { id: 'den', text: 'Find the den under the east ledges', on: { type: 'inspect', id: 'uplands_den' }, marker: { map: 'uplands', x: 44, y: 24 },
+                    effects: [{ flag: 'greymane_found' }, { say: 'Fleece and bones at the mouth of the den, and inside, breathing, something big and old.', important: true }] },
+                { id: 'decide', text: 'Tell Gunnhild what you found', on: { type: 'story', id: 'greymane_decided' }, marker: { map: 'uplands', x: 5, y: 23 } },
+                { id: 'settle', text: 'Hunt Old Greymane at her den, or smoke her out and up the fells', on: { type: 'story', id: 'greymane_settled' }, marker: { map: 'uplands', x: 45, y: 23 } }
+            ],
+            onComplete: [{ gold: 25, key: 'c2s07_reward' },
+                { say: "Gunnhild counts her ewes twice. 'All there. I'll sleep tonight.'", important: true, when: { flags: ['greymane_down'] } },
+                { say: "Gunnhild counts her ewes twice. 'All there, and the old girl on the fells where she belongs. I'll sleep tonight.'", important: true, when: { flags: ['greymane_driven'] } }]
+        },
         'C2-S06': {
             title: 'The Bride of the Mound', kind: 'side', xp: 45, candidate: true,
             summary: "Every night a woman in a bride's crown stands weeping at Birkholt's stones, and the sheep will not go near them. Ragna wants to know why, and wants it to stop.",
@@ -1118,6 +1158,12 @@
         torvald: {
             name: 'Torvald Redhand', title: 'Wolf-Banner',
             talk: [
+                { if: { quests: { C206: 'active' }, flags: ['torvald_met'], notFlags: ['torvald_confronted'] }, node: 'confront' },
+                { if: { quests: { C206: 'active' }, flags: ['torvald_confronted', 'skuli_beaten'], notFlags: ['bargain_made'] }, node: 'bargain' },
+                { if: { quests: { C206: 'active' }, flags: ['torvald_confronted'], notFlags: ['bargain_made'] }, node: 'camp_wait' },
+                { if: { flags: ['bargain_negotiated'] }, node: 'after_negotiated' },
+                { if: { flags: ['bargain_exposed'] }, node: 'after_exposed' },
+                { if: { flags: ['bargain_feigned'] }, node: 'after_feigned' },
                 { if: { flags: ['ulfrun_beaten'], notFlags: ['torvald_met'] }, node: 'meet_ulfrun' },
                 { if: { notFlags: ['torvald_met'] }, node: 'meet' },
                 { if: { flags: ['thing_backed_ragnhild'] }, node: 'after_hall' },
@@ -1156,6 +1202,64 @@
                 },
                 after_inquiry: {
                     lines: [['npc', "A witness. Fine: go and look, and when you've seen that field, come back and tell me they're dead."]],
+                    choices: TORVALD
+                },
+                confront: {
+                    lines: [
+                        [null, "You tell him: Járnmyr spearheads bought for his crews, and Bjarki's mound dug open to pay for them."],
+                        ['npc', "My crews need spears, and Skuli finds them. I don't ask what he trades, any more than Ragnhild asks what twenty winters of waiting cost."],
+                        ['npc', "She called it caution while six hundred men went unlooked-for, Arni with them. Come to my camp in the uplands and ask Skuli yourself."]
+                    ],
+                    effects: [{ flag: 'torvald_confronted' }, { flag: 'torvald_at_camp' }, { event: { type: 'story', id: 'torvald_confronted' } }],
+                    choices: [{ text: "I'll see you there.", end: true }]
+                },
+                camp_wait: {
+                    lines: [['npc', "Look round all you like, witness. Skuli keeps the books; if anyone knows what's on that table, he does."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                bargain: {
+                    lines: [
+                        [null, "You put Skuli's tally on the map table. Torvald reads it twice, and his jaw works."],
+                        ['npc', "Every name in one place. Skuli told me it was for the march, so no one gets left on the field."],
+                        ['npc', "I'd still march tomorrow, and I'd still take the southerners' silver to do it. So, witness, what are you going to do with me?"]
+                    ],
+                    choices: [
+                        { text: 'Cut Skuli\'s people loose, and bring your claim to the Thing openly.', effects: [{ flag: 'bargain_negotiated' }], to: 'negotiated' },
+                        { text: 'This tally goes to the Thing, with your name read out beside it.', effects: [{ flag: 'bargain_exposed' }, { removeItem: "Skuli's Tally" }], to: 'exposed' },
+                        { text: "Keep the silver coming. I'll bring you what Skuli couldn't.", effects: [{ flag: 'bargain_feigned' }], to: 'feigned' }
+                    ]
+                },
+                negotiated: {
+                    lines: [
+                        ['npc', "No more grave goods, and no more southern seals in my tent. I'll stand up at the Thing and ask for the Field like a free man."],
+                        ['npc', "If they say no again, I'll go anyway. You'll have heard me say so."]
+                    ],
+                    choices: [{ text: 'That will do.', effects: [{ flag: 'bargain_made' }, { event: { type: 'story', id: 'bargain_made' } }], end: true }]
+                },
+                exposed: {
+                    lines: [
+                        ['npc', "Then read it, and read it loud. Let them hear how many names the hall let rot while it waited."],
+                        ['npc', "You'll have no friends in this camp after, witness. Walk out of it while I still remember you laid Bjarki."]
+                    ],
+                    choices: [{ text: 'Goodbye, Torvald.', effects: [{ flag: 'bargain_made' }, { event: { type: 'story', id: 'bargain_made' } }], end: true }]
+                },
+                feigned: {
+                    lines: [
+                        [null, 'He looks at you for a long time. Then he laughs, once, and pours two cups.'],
+                        ['npc', "A southerner who wants something, that I understand. Bring me the last whole tablet and you'll ride beside me to the Field."]
+                    ],
+                    choices: [{ text: 'To the Field.', effects: [{ flag: 'bargain_made' }, { event: { type: 'story', id: 'bargain_made' } }], end: true }]
+                },
+                after_negotiated: {
+                    lines: [['npc', "Skuli's lot have gone south with their silver. The camp eats worse, and I sleep better."]],
+                    choices: TORVALD
+                },
+                after_exposed: {
+                    lines: [['npc', "Arnkel has the tally. I hear the hall has gone very quiet, witness."]],
+                    choices: TORVALD
+                },
+                after_feigned: {
+                    lines: [['npc', 'Not here. When you have the tablet, come up to the camp.']],
                     choices: TORVALD
                 },
                 boards: {
@@ -2206,6 +2310,65 @@
                 }
             }
         },
+        // The Wolf-Banner camp: Steinar keeps the camp while Torvald is in Hrafnholm.
+        steinar: {
+            name: 'Steinar', title: 'Camp captain, Wolf-Banner',
+            talk: [
+                { if: { flags: ['skuli_beaten'] }, node: 'after' },
+                { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "The Thing's witness, is it? Torvald said you might come, so walk where you like and don't touch the horses."],
+                        ['npc', "The big tent is his. Skuli and his lot keep to the broken stakes up the north-east, and we let them."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "Skuli's gone, and half his crates with him. Nobody here is sorry; he never once ate at our fire."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // The uplands: Gunnhild, who brings Birkholt's ewes up to the summer pasture (C2-S07's giver).
+        gunnhild: {
+            name: 'Gunnhild', title: 'Herder',
+            talk: [
+                { if: { quests: { 'C2-S07': 'complete' } }, node: 'done' },
+                { if: { quests: { 'C2-S07': 'active' }, flags: ['greymane_found'], notFlags: ['greymane_hunt', 'greymane_drive'] }, node: 'found' },
+                { if: { quests: { 'C2-S07': 'active' } }, node: 'waiting' },
+                { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', 'Two ewes gone in three nights, out of a fenced pasture, and not a sound. Something big is coming over that fence.'],
+                        ['npc', "The hunter who sat in that stand went off to Torvald's camp. Will you find out what it is?"]
+                    ],
+                    choices: [
+                        { text: "I'll find it.", effects: [{ start: 'C2-S07' }], end: true },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                waiting: {
+                    lines: [['npc', 'The tracks are on the trail, if you know how to read them. The stand sees further than I do.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                found: {
+                    lines: [
+                        [null, 'You tell her: an old she-wolf, lame, under the east ledges, too slow for deer now the camp has hunted them out.'],
+                        ['npc', "Old Greymane, and my father said she was old when I was a girl. Kill her, or take my pot of juniper and pitch and smoke her up the fells."]
+                    ],
+                    choices: [
+                        { text: "I'll kill her. Your ewes come first.", effects: [{ flag: 'greymane_hunt' }, { event: { type: 'story', id: 'greymane_decided' } }], end: true },
+                        { text: "Give me the smoke-pot. She can live on the fells.", effects: [{ flag: 'greymane_drive' }, { item: 'Smoke Pot', key: 'item:c2s07_smoke' }, { event: { type: 'story', id: 'greymane_decided' } }], end: true }
+                    ]
+                },
+                done: {
+                    lines: [['npc', 'Not a ewe lost since. Come up in summer and I will give you cheese.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
         // Birkholt: Ragna the shepherd (two sons on the Silent Field; C2-S06's giver) and her grandson Eyvind.
         ragna: {
             name: 'Ragna', title: 'Shepherd of Birkholt',
@@ -2446,6 +2609,17 @@
             { say: 'And a word in the same chalk, "for the field rites", underlined twice.' },
             { event: { type: 'story', id: 'bjarki_laid' } }] })),
         // C2-07: the diggers on the Silent Field. C2-S01: the yarn and Asta's house. C2-S06: the stones and the bride.
+        { id: 'c206_skuli', on: { type: 'defeat', id: 'camp_skuli' }, effects: [
+            { flag: 'skuli_beaten' }, { item: "Skuli's Tally", key: 'item:c206_tally' },
+            { say: "Skuli Tally-Hand goes over the broken stakes and down the slope at a run. He leaves his tally behind: every memorial, and what was bought from each.", important: true }] },
+        { id: 'c2s07_greymane', on: { type: 'defeat', id: 'uplands_greymane' }, effects: [
+            { flag: 'greymane_down' },
+            { say: "Old Greymane lies down in the den mouth as if she meant to. Her teeth are worn to the gums.", important: true },
+            { event: { type: 'story', id: 'greymane_settled' } }] },
+        { id: 'c2s07_smoke', on: { type: 'inspect', id: 'uplands_den_smoke' }, if: { items: ['Smoke Pot'] }, effects: [
+            { flag: 'greymane_driven' }, { removeItem: 'Smoke Pot' },
+            { say: 'Juniper smoke rolls into the den. A grey shape comes out the far side, stiff and limping, and goes up the ledges toward the fells without looking back.', important: true },
+            { event: { type: 'story', id: 'greymane_settled' } }] },
         { id: 'c207_diggers', on: { type: 'defeat', id: 'silent_field_diggers' }, effects: [
             { flag: 'field_diggers_beaten' },
             { say: "Hallgeir Spade sits in his own spoil heap. 'Paid by the square,' he says. 'Dig where the round stone's spokes point, bring up whatever's iron or old.'", important: true },
@@ -2510,7 +2684,8 @@
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' },
         // A run that laid Bjarki before C2-07 existed (content revision 11/12) gets Verse and Witness on load.
-        catchUp: [{ id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] }] };
+        catchUp: [{ id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] },
+            { id: 'c206_after_bjarki', if: { quests: { C205: 'complete', C206: 'unseen' } }, effects: [{ start: 'C206' }] }] };
 
     (ENSO.story || (ENSO.story = {})).chapter2 = chapter2;
     if (isNode) module.exports = chapter2;

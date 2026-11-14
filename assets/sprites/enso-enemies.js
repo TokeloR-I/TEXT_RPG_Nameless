@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -32,7 +32,8 @@
         undyed: ['#2a2620','#544a3a','#84765a','#b4a580','#ddd2b0'],     // undyed northern wool
         chainlight: ['#120f1e','#32284a','#5e4a6a','#c89a48','#f6e2a0'],  // the Binding Echo: moon-dark links lit sun-gold
         sunsinged: ['#2a1a12','#5a3a24','#8e6a44','#c8a466','#f2dc9c'],  // Gullstrand's sun-mad wolves: grey fur singed pale gold
-        moonless: ['#0a0a14','#161628','#262640','#3c3a5e','#6a6094']    // the moonless wolves: shapes cut out of the evening
+        moonless: ['#0a0a14','#161628','#262640','#3c3a5e','#6a6094'],   // the moonless wolves: shapes cut out of the evening
+        frostgrey: ['#1c1f26','#3e4450','#6e7684','#a8b0b8','#e8ecee']   // Old Greymane: grey gone white at the muzzle
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -71,7 +72,9 @@
         // Act II mini bosses: Bjarki's shield-bearer, the diggers' foreman in muddy undyed wool, the Bride of the Mound.
         draugr_champion: {kind:'knight', body:'bone', coat:'pelt', tall:40, wide:10},
         grave_foreman: {kind:'watch', body:'leather', coat:'undyed', tall:39, wide:9},
-        mound_bride: {kind:'shade', body:'shade', tall:39, wide:9}
+        mound_bride: {kind:'shade', body:'shade', tall:39, wide:9},
+        skuli_tally_hand: {kind:'watch', body:'leather', coat:'wolfred', tall:39, wide:9},
+        old_greymane: {kind:'wolf', body:'frostgrey'}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

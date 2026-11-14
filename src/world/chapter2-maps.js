@@ -475,7 +475,8 @@
             encounters: [],
             interactables: [
                 { id: 'hrafnholm_arnkel', kind: 'npc', npc: 'arnkel', x: 24, y: 22, name: 'Arnkel the Lawspeaker', sprite: 'lawspeaker' },
-                { id: 'hrafnholm_torvald', kind: 'npc', npc: 'torvald', x: 6, y: 27, name: 'Torvald Redhand', sprite: 'warchief' },
+                { id: 'hrafnholm_torvald', kind: 'npc', npc: 'torvald', x: 6, y: 27, name: 'Torvald Redhand', sprite: 'warchief',
+                    when: { any: [{ notFlags: ['torvald_at_camp'] }, { flags: ['bargain_made'] }] } },
                 { id: 'hrafnholm_sigrun', kind: 'npc', npc: 'sigrun', x: 41, y: 21, name: 'Sigrun Frostmark', sprite: 'heir' },
                 { id: 'hrafnholm_runa', kind: 'npc', npc: 'runa', x: 46, y: 21, name: 'Runa Hallvardsdottir', sprite: 'shieldmaiden' },
                 { id: 'hrafnholm_osric', kind: 'npc', npc: 'osric', x: 12, y: 15, name: 'Osric Vane', sprite: 'factor' },
@@ -1327,9 +1328,13 @@
                 { id: 'uplands_camp_trail_2', x: 52, y: 0, trigger: 'step', toMap: 'wolfbanner_camp', toSpawn: 'from_uplands_2' }
             ],
             encounters: [
+                { id: 'uplands_greymane', x: 44, y: 22, name: 'Old Greymane', enemies: ['old_greymane'], trigger: 'contact', sprite: 'wolf',
+                    when: { flags: ['greymane_hunt'] },
+                    text: "A wolf as big as a calf comes out of the den, white at the muzzle, one ear torn to a stub. She doesn't growl; she has done this before." },
                 { id: 'uplands_wolves', x: 24, y: 5, name: 'Hungry wolves', enemies: ['pack_wolf', 'pack_wolf', 'pack_wolf'], trigger: 'contact', sprite: 'wolf', detect: 96 }
             ],
             interactables: [
+                { id: 'uplands_gunnhild', kind: 'npc', npc: 'gunnhild', x: 5, y: 23, name: 'Gunnhild', sprite: 'shepherd' },
                 { id: 'uplands_tracks', kind: 'inspect', x: 19, y: 24, name: 'Tracks in the mud',
                     text: 'Wolf tracks in the soft mud of the trail, a whole family of them, and one set far bigger than the rest. The big one drags a hind foot.' },
                 { id: 'uplands_stand', kind: 'inspect', x: 11, y: 6, name: "The hunter's stand",
@@ -1421,8 +1426,12 @@
                 { id: 'camp_south_road', x: 25, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp' },
                 { id: 'camp_south_road_2', x: 26, y: 35, trigger: 'step', toMap: 'uplands', toSpawn: 'from_camp_2' }
             ],
-            encounters: [],
+            encounters: [
+                { id: 'camp_skuli', x: 40, y: 6, name: 'Skuli Tally-Hand', enemies: ['skuli_tally_hand', 'wolfbanner_raider', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
+                    when: { flags: ['camp_map_read'] },
+                    text: "Skuli Tally-Hand comes over the broken stakes with two of his own, not Torvald's. 'That table is mine, witness, and so is what's written on it.'" },],
             interactables: [
+                { id: 'camp_steinar', kind: 'npc', npc: 'steinar', x: 26, y: 12, name: 'Steinar', sprite: 'warchief' },
                 { id: 'camp_torvald', kind: 'npc', npc: 'torvald', x: 44, y: 16, name: 'Torvald Redhand', sprite: 'warchief',
                     when: { flags: ['torvald_at_camp'], notFlags: ['bargain_made'] } },
                 { id: 'camp_table', kind: 'inspect', x: 43, y: 15, name: 'The map table',
