@@ -107,7 +107,15 @@
                 // The gate: Ulfrun holds the only gap in the crags (one tile wide), so the pass can't be walked.
                 { id: 'frostspine_ulfrun', gate: true, x: 18, y: 11, name: 'Ulfrun Grey-Mantle',
                     enemies: ['wolfbanner_ringleader', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
-                    text: 'A broad woman with a wolf pelt over her mail stands in the gap where the road goes through the rock, a two-hand axe resting on her shoulder. "The pass is closed, southerner. Go home and tell them the North is counting its dead again."' }
+                    text: 'A broad woman with a wolf pelt over her mail stands in the gap where the road goes through the rock, a two-hand axe resting on her shoulder. "The pass is closed, southerner. Go home and tell them the North is counting its dead again."' },
+                // C2-S12 Wolf-Coats on the Road (2026-11-16): wolf-skinned men turned out of the Wolf-Banner after the Thing,
+                // robbing the salt carts on the high pass. Only there once Thora has asked; never a gate.
+                { id: 'frostspine_wolfcoats_post', x: 27, y: 4, name: 'Wolf-Coats', detect: 130, when: { quests: { 'C2-S12': 'active' } },
+                    enemies: ['ulfhednar', 'ulfhednar', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
+                    text: 'Three men squat round a fire of cart-boards under the old watch post, a sack of salt split open beside them. Two wear whole wolf skins, the heads pulled over their own like hoods. They get up grinning.' },
+                { id: 'frostspine_wolfcoats_marker', x: 24, y: 9, name: 'Hrapp Wolf-Coat', detect: 130, when: { quests: { 'C2-S12': 'active' }, flags: ['wolfcoats_post_beaten'] },
+                    enemies: ['ulfhednar', 'ulfhednar', 'ulfhednar'], trigger: 'contact', sprite: 'constables',
+                    text: 'A big man sits on the fallen mile marker, a wolf\'s head for a hood and nothing under the skin but leather and scars. "You beat my boys at the post," Hrapp says. "Good. I was bored of them."' }
             ],
             interactables: [
                 { id: 'frostspine_eydis', kind: 'npc', npc: 'eydis', x: 8, y: 7, name: 'Eydis Namesinger', sprite: 'skald', when: { notFlags: ['eydis_in_skeldvik'] } },
@@ -689,10 +697,21 @@
                 // The Broken Binding: lay both fangs in the stone and what held Fenrir wakes on the ring.
                 { id: 'wolfs_wake_trial', x: 28, y: 8, name: 'The Binding Echo', enemies: ['binding_echo'], trigger: 'contact', sprite: 'shade',
                     when: { flags: ['fenrir_trial_called'], notFlags: ['fenrir_trial_cleared'] },
-                    text: 'A coil of chain turns slowly over the ring, links of sunlight and links of no light at all, wound into something with no face. It is not a wolf. It is the thing that held one.' }
+                    text: 'A coil of chain turns slowly over the ring, links of sunlight and links of no light at all, wound into something with no face. It is not a wolf. It is the thing that held one.' },
+                // C2-S11 Salt on the Shingle (2026-11-16): the drowned come up the beach at low water, once Ketil has asked.
+                { id: 'gullstrand_drowned', x: 43, y: 9, name: 'Drowned Oarsmen', detect: 120, when: { quests: { 'C2-S11': 'active' } },
+                    enemies: ['drowned_oarsman', 'drowned_oarsman'], trigger: 'contact', sprite: 'ghoul',
+                    text: 'Two men walk up out of the surf as if they had only been wading. Weed hangs from their hair, their eyes are white as salt, and each one carries an oar like a spear.' },
+                { id: 'gullstrand_drowned_boats', x: 50, y: 12, name: 'Drowned Oarsmen', detect: 120, when: { quests: { 'C2-S11': 'active' }, flags: ['drowned_first_beaten'] },
+                    enemies: ['drowned_oarsman', 'drowned_oarsman', 'drowned_oarsman'], trigger: 'contact', sprite: 'ghoul',
+                    text: 'Three more stand round the drawn-up boats, leaning on their oars, waiting for a crew that is not coming. They turn their white eyes on you together.' }
             ],
             interactables: [
                 { id: 'gullstrand_brynja', kind: 'npc', npc: 'brynja', x: 12, y: 20, name: 'Brynja Net-Mender', sprite: 'netmender' },
+                // C2-S11: Ketil, an old fisherman who can't launch his boat, and the wrack line the drowned leave behind.
+                { id: 'gullstrand_ketil', kind: 'npc', npc: 'ketil', x: 41, y: 13, name: 'Ketil', sprite: 'fisher' },
+                { id: 'gullstrand_wrack', kind: 'inspect', x: 43, y: 14, name: 'Wrack line',
+                    text: 'Weed and driftwood along the high-water mark, the way any beach has. Then footprints in the wet shingle, bare and heavy, walking up out of the sea and back down into it.' },
                 { id: 'gullstrand_wolf_carving', kind: 'inspect', x: 28, y: 5, name: 'The wolf-carving',
                     text: 'The whole cliff face has been cut back flat and carved. On the left a sun, rayed like a wheel, and a wolf running at it with its jaws open. On the right a crescent moon and a second wolf, darker, running the other way. A chain crosses the rock between them, link by link, and breaks in the middle.' },
                 { id: 'gullstrand_sun_cairn', kind: 'npc', npc: 'sun_marker', x: 21, y: 5, name: 'The bright cave',
@@ -810,7 +829,14 @@
                 // C2-04: the buyers, on the barrow path with an empty cart, once you know where the iron goes.
                 { id: 'jarnmyr_buyers', x: 36, y: 6, name: 'Skuli Tally-Hand', detect: 150, when: { flags: ['jarnmyr_trail_found'] },
                     enemies: ['wolfbanner_ringleader', 'wolfbanner_raider', 'wolfbanner_raider'], trigger: 'contact', sprite: 'constables',
-                    text: 'Three men with an empty cart on the path up to the mound, and a fourth with a tally-stick behind his ear. He sees you looking at the cart and sighs. "Bjorn sent you? No. Bjorn never sends anyone."' }
+                    text: 'Three men with an empty cart on the path up to the mound, and a fourth with a tally-stick behind his ear. He sees you looking at the cart and sighs. "Bjorn sent you? No. Bjorn never sends anyone."' },
+                // C2-S03 Iron Beneath the Mire (2026-11-16): the lights over the boardwalk, then what comes up out of the deep cut.
+                { id: 'jarnmyr_bog_lights', x: 13, y: 8, name: 'Bog Lights', detect: 130, when: { quests: { 'C2-S03': 'active' } },
+                    enemies: ['bog_light', 'bog_light', 'bog_light', 'mire_dead'], trigger: 'contact', sprite: 'shade',
+                    text: 'Three green lights hang over the boardwalk at the height of a lantern in a hand. There is no hand. Behind them something heavy stands up out of the red water and starts toward you, dripping.' },
+                { id: 'jarnmyr_peat_king', x: 9, y: 26, name: 'The Man in the Peat', detect: 120, when: { flags: ['mire_bjorn_asked'] },
+                    enemies: ['peat_king', 'mire_dead', 'mire_dead'], trigger: 'contact', sprite: 'ghoul',
+                    text: 'The deep cut has filled with red water to the brim. A man stands up out of it, slowly, the way a sleeper sits up: dark as old leather, his hair gone red, a plaited cord round his throat. Two more come up behind him.' }
             ],
             interactables: [
                 { id: 'jarnmyr_bjorn', kind: 'npc', npc: 'bjorn', x: 39, y: 25, name: 'Bjorn Ironvein', sprite: 'ironmaster' },
@@ -840,6 +866,10 @@
                     text: 'Bjorn Ironvein\'s smithy: a long open hall of oak with three hearths and a dozen hammers going. Scythe blades, pot hooks, hinges, nails by the barrel, and down one wall, racked as neat as a shield-wall, spearheads.' },
                 { id: 'jarnmyr_racks', kind: 'inspect', x: 45, y: 26, name: 'Weapon racks',
                     text: 'Axes, spears and seaxes cooling on the racks under an awning. Most carry Bjorn\'s mark, a vein of three strokes. Every fourth spearhead has a second mark under it, very small, filed off and not filed quite well enough: a running wolf.' },
+                // C2-S03: Oddny the peat-cutter by the cuttings, and the new deep cut Bjorn's men opened.
+                { id: 'jarnmyr_oddny', kind: 'npc', npc: 'oddny', x: 13, y: 23, name: 'Oddny', sprite: 'peatcutter' },
+                { id: 'jarnmyr_deep_cut', kind: 'inspect', x: 11, y: 25, name: 'The deep cut',
+                    text: 'A new cut, far deeper than the old peat steps, dug square for the ore under the peat. It has filled with red water. At the bottom edge, where the spade stopped, something brown and smooth that is not wood.' },
                 { id: 'jarnmyr_peat', kind: 'inspect', x: 7, y: 22, name: 'Peat cuttings',
                     text: 'Peat cut in long steps out of the bog and stacked in cross-piles to dry. The cuttings fill with red water as soon as the spade comes out. In one face, a hand\'s depth down, there is a cut stake older than anyone\'s grandmother.' },
                 { id: 'jarnmyr_mire', kind: 'inspect', x: 12, y: 9, name: 'The mire',

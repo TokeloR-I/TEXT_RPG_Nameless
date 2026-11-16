@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane', 'bog_light', 'mire_dead', 'peat_king', 'drowned_oarsman', 'ulfhednar'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -33,7 +33,12 @@
         chainlight: ['#120f1e','#32284a','#5e4a6a','#c89a48','#f6e2a0'],  // the Binding Echo: moon-dark links lit sun-gold
         sunsinged: ['#2a1a12','#5a3a24','#8e6a44','#c8a466','#f2dc9c'],  // Gullstrand's sun-mad wolves: grey fur singed pale gold
         moonless: ['#0a0a14','#161628','#262640','#3c3a5e','#6a6094'],   // the moonless wolves: shapes cut out of the evening
-        frostgrey: ['#1c1f26','#3e4450','#6e7684','#a8b0b8','#e8ecee']   // Old Greymane: grey gone white at the muzzle
+        frostgrey: ['#1c1f26','#3e4450','#6e7684','#a8b0b8','#e8ecee'],  // Old Greymane: grey gone white at the muzzle
+        bogfire: ['#14201a','#2c4a2e','#5a8a3e','#a8d060','#eef8b0'],    // Járnmyr's bog lights: cold green marsh-fire
+        peat: ['#1a120c','#3a2416','#64402a','#8e6440','#b88e5e'],       // skin tanned dark by the bog, like old leather
+        bogiron: ['#1e100c','#4a1e14','#7a3420','#a8552e','#d08850'],    // red mire water and rust
+        brine: ['#0e1a20','#1e3440','#36586a','#5e8a94','#a8c8c4'],      // the drowned: sea-grey and salt-white
+        kelp: ['#0e1810','#1e3220','#34502e','#567640','#86a060']        // weed in their hair, wrack on their shoulders
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -74,7 +79,15 @@
         grave_foreman: {kind:'watch', body:'leather', coat:'undyed', tall:39, wide:9},
         mound_bride: {kind:'shade', body:'shade', tall:39, wide:9},
         skuli_tally_hand: {kind:'watch', body:'leather', coat:'wolfred', tall:39, wide:9},
-        old_greymane: {kind:'wolf', body:'frostgrey'}
+        old_greymane: {kind:'wolf', body:'frostgrey'},
+        // Chapter Two enemies (2026-11-16). Járnmyr: a small cold marsh-fire, the mire-dead in peat and rust, and the
+        // Man in the Peat, tall and bog-dark with his cord. Gullstrand: drowned oarsmen under wrack. Frostspine: the
+        // Wolf-Coats, a wolf skin over bare leather and no mail.
+        bog_light: {kind:'shade', body:'bogfire', coat:'bogfire', tail:'bogfire', tall:30, wide:6},
+        mire_dead: {kind:'ghoul', body:'peat', coat:'bogiron', tall:35, wide:8, unshackled:true},
+        peat_king: {kind:'ghoul', body:'peat', coat:'bogiron', tall:40, wide:10, scar:true},
+        drowned_oarsman: {kind:'ghoul', body:'brine', coat:'kelp', tall:37, wide:9, unshackled:true},
+        ulfhednar: {kind:'watch', body:'leather', coat:'pelt', hood:'pelt', tall:38, wide:9, noShield:true, bare:true}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {
@@ -206,7 +219,7 @@
                 let f=-stride*side*3+power*(side===1?8:3),z=shoulder-8+(wind?side===1?8:3:strike?3:0);
                 if(warden && /crow|summon|burst/i.test(attack||'')){f=2;z=shoulder+6+(wind?3:0);}
                 if(warden && /chain/i.test(attack||'')){f=side===1?-2:wind?-5:strike?8:4;z=side===1?shoulder-7:shoulder+(wind?5:0);}
-                ell(side*(w-1),0,shoulder,3.8,3.6,warden||c.kind==='watch'||c.kind==='knight'?'metal':c.coat||c.body);
+                ell(side*(w-1),0,shoulder,3.8,3.6,c.bare?c.coat:warden||c.kind==='watch'||c.kind==='knight'?'metal':c.coat||c.body);
                 limb([side*w,0,shoulder-2],[side*(w+2),f*.4,z+3],ghoul?2:2.4,c.coat||c.body);
                 limb([side*(w+2),f*.4,z+3],[side*(w+1),f,z],2,c.body);
                 ell(side*(w+1),f,z,2.4,2.5,c.body);
@@ -230,7 +243,7 @@
                     }
                 }
                 if(warden && side===-1 && /chain/i.test(attack||'')){for(let i=0;i<9;i++)ell(-w-1+Math.sin(i*1.2)*1.6,f+i*(strike?1.3:0.5),z-i*(strike?1:2),1.2,1.5,'metal');}
-                if(side===-1&&(c.kind==='watch'||c.kind==='knight')){
+                if(side===-1&&(c.kind==='watch'||c.kind==='knight')&&!c.noShield){
                     poly([[-w-4,f+2,z+5],[-w+2,f+2,z+5],[-w+3,f+2,z-3],[-w-1,f+2,z-7],[-w-5,f+2,z-3]],c.kind==='watch'?'watch':'metal');ell(-w-1,f+3,z,1.8,2,'metal');
                 }
             }
@@ -238,7 +251,7 @@
             if(robe){poly([[-8,-1,head-6],[-8,-1,head+3],[0,-1,head+10],[8,-1,head+3],[8,-1,head-6],[4,3,head+3],[-4,3,head+3]],c.coat||c.body);}
             if(goblin){for(const side of [-1,1])poly([[side*5,0,head+2],[side*14,-1,head+5],[side*8,1,head-2]],'skin');}
             if(c.kind==='watch'||c.kind==='knight'||warden){
-                ell(0,-1,head+3,8,5,'metal');limb([-8,1,head+1],[8,1,head+1],1.1,'metal');
+                ell(0,-1,head+3,8,5,c.hood||'metal');limb([-8,1,head+1],[8,1,head+1],1.1,c.hood||'metal');
                 if(warden){for(let i=-3;i<=3;i++)poly([[i*2,-2,head+5],[i*3,-3,head+11-Math.abs(i)],[i*2+2,-2,head+4]],'feather');}
             }
             if(front){
@@ -247,8 +260,8 @@
                 if(ghoul){for(let i=-2;i<=2;i+=2)ell(i,5,head-4,.7,1.3,'bone');}
                 if(warden){const q=pt(-3,4,head+1),r=pt(3,4,head+1);dot(q[0],q[1],'#c49159');dot(r[0],r[1],'#c49159');}
             }else{for(let i=-2;i<=2;i++)limb([i*2,-2,head+3],[i*2,-2,head-3],.6,warden?'feather':c.coat||c.body);}
-            if(ghoul){for(const side of [-1,1]){ell(side*(w+1),power*3,shoulder-8,3,1.2,'metal');for(let i=0;i<4;i++)ell(side*(w+2)+Math.sin(i)*2,-1,shoulder-11-i*2,1,1.2,'metal');}if(c.scar)for(let i=0;i<4;i++)limb([-5+i,4,head+2-i],[i,4,head-1-i],.7,'rust');}
-            if(shade){for(let i=-3;i<=3;i++)limb([i*2,-1,12],[i*3+Math.sin(phase+i)*2,-1,2+(i%2)*2],1.4,'shade');}
+            if(ghoul){if(!c.unshackled)for(const side of [-1,1]){ell(side*(w+1),power*3,shoulder-8,3,1.2,'metal');for(let i=0;i<4;i++)ell(side*(w+2)+Math.sin(i)*2,-1,shoulder-11-i*2,1,1.2,'metal');}if(c.scar)for(let i=0;i<4;i++)limb([-5+i,4,head+2-i],[i,4,head-1-i],.7,'rust');}
+            if(shade){for(let i=-3;i<=3;i++)limb([i*2,-1,12],[i*3+Math.sin(phase+i)*2,-1,2+(i%2)*2],1.4,c.tail||'shade');}
             // Warden's independently flapping crows: separate wing/head silhouettes from the halberd.
             if(warden){for(const side of [-1,1]){const z=shoulder+4+(wind?2:0),l=side*18;ell(l,-3,z,3,2,'feather');ell(l+side*2,-1,z+1,1.5,1.6,'feather');poly([[l,-3,z],[l+side*7,-5,z+3+(p.n%2)*3],[l+side*5,-2,z-1]],'feather');}}
         }
