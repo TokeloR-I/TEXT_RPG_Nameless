@@ -306,6 +306,49 @@
                 critChance: 0.12, critMultiplier: 1.7,
                 skills: [{ name: 'Throat Bite', base_damage: [11, 15] }, { name: 'Howl', base_damage: [4, 6] }]
             },
+            // Chapter Two enemies and side quests (Tokelo 2026-11-16, "add enemies and side quests"), placed on maps that
+            // already exist. CANDIDATE numbers for Gauge, pitched beside the barrow-dead (Act II, level 5-7).
+            // Járnmyr (C2-S03 Iron Beneath the Mire): bog lights (the lyktgubbe of Scandinavian bog lore, a will-o'-wisp)
+            // and the mire-dead out of the deep peat cut, led by the Man in the Peat, an offering the bog was given long
+            // before the barrow was raised (after the real Iron Age bog bodies of the North).
+            'bog_light': {
+                name: 'Bog Light',
+                hp: 24, maxHp: 24, xp: 18, atk: 8, def: 1, spd: 12,
+                critChance: 0.08, critMultiplier: 1.5,
+                specialFlags: ['spirit'],
+                skills: [{ name: 'Marsh Glow', base_damage: [6, 9] }]
+            },
+            'mire_dead': {
+                name: 'Mire-Dead',
+                hp: 60, maxHp: 60, xp: 40, atk: 10, def: 5, spd: 6,
+                critChance: 0.06, critMultiplier: 1.6,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Peat Grip', base_damage: [8, 12] }, { name: 'Mire Reach', base_damage: [5, 8] }]
+            },
+            'peat_king': {
+                name: 'The Man in the Peat',
+                hp: 150, maxHp: 150, xp: 110, atk: 13, def: 5, spd: 9, tier: 'elite',
+                critChance: 0.1, critMultiplier: 1.6,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Offering Cord', base_damage: [10, 14] }, { name: 'The Bog Rises', base_damage: [7, 10] }, { name: 'Iron Water', base_damage: [9, 13] }]
+            },
+            // Gullstrand (C2-S11 Salt on the Shingle): the sea-draug of Norwegian coast lore, drowned men who come up the
+            // shingle with weed in their hair and their oars still in their hands.
+            'drowned_oarsman': {
+                name: 'Drowned Oarsman',
+                hp: 56, maxHp: 56, xp: 38, atk: 10, def: 4, spd: 8,
+                critChance: 0.08, critMultiplier: 1.6,
+                specialFlags: ['undead'],
+                skills: [{ name: 'Oar Sweep', base_damage: [8, 12] }, { name: 'Undertow', base_damage: [6, 9] }]
+            },
+            // Frostspine Pass (C2-S12 Wolf-Coats on the Road): úlfheðnar, the wolf-skinned warriors of Haraldskvæði,
+            // turned out of the Wolf-Banner after the Thing. No shield, no mail, fast and reckless.
+            'ulfhednar': {
+                name: 'Wolf-Coat',
+                hp: 58, maxHp: 58, xp: 42, atk: 11, def: 3, spd: 12,
+                critChance: 0.15, critMultiplier: 1.7,
+                skills: [{ name: 'Wolf-Coat Fury', base_damage: [8, 12] }, { name: 'Pounce', base_damage: [7, 10] }]
+            },
             'bjarki_grave_bound': {
                 name: 'Bjarki the Grave-Bound',
                 id: 'bjarki_grave_bound',
@@ -1681,6 +1724,55 @@
                         { name: 'Bridal Wail', skill: 'Bridal Wail', shape: 'circle', radius: 58, windupMs: 1200, activeMs: 150, recoveryMs: 1100, cooldownMs: 8500, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 54] }
                     ]
                 },
+                // Chapter Two enemies (2026-11-16). Bog lights drift and spit marsh-fire from range; the mire-dead are slow
+                // and grab; the Man in the Peat whips his offering cord, calls the bog up under you and breathes iron water.
+                bog_light: {
+                    speed: 44, detect: 130, alertMs: 700, ranged: true, keepDistance: [56, 100], reach: 120, shape: 'projectile', projectile: 'arcane', projSpeed: 140,
+                    windupMs: 680, activeMs: 0, recoveryMs: 700, radius: 4, poise: 1, leash: 240, group: 'ranged_keeps_distance', backOffBelow: 40, wander: 30,
+                    attacks: [
+                        { name: 'Marsh Glow', skill: 'Marsh Glow', shape: 'projectile', reach: 120, projSpeed: 140, radius: 5, projectile: 'arcane', windupMs: 680, activeMs: 0, recoveryMs: 700, cooldownMs: 2600, blockCost: 10 }
+                    ]
+                },
+                mire_dead: {
+                    speed: 34, detect: 100, alertMs: 900, reach: 20, arcDeg: 100, windupMs: 660, activeMs: 120, recoveryMs: 660, radius: 6, poise: 5, leash: 220,
+                    keepDistance: [0, 18], group: 'pincer',
+                    attacks: [
+                        { name: 'Peat Grip', skill: 'Peat Grip', shape: 'arc', reach: 20, arcDeg: 100, windupMs: 660, activeMs: 120, recoveryMs: 660, cooldownMs: 1800, blockCost: 14, useAt: [0, 22] },
+                        // A long, slow reach out of the mud: step back or to the side.
+                        { name: 'Mire Reach', skill: 'Mire Reach', shape: 'line', reach: 44, width: 10, lunge: 20, windupMs: 760, activeMs: 150, recoveryMs: 800, cooldownMs: 5000, blockCost: 14, useAt: [22, 48] }
+                    ]
+                },
+                peat_king: {
+                    speed: 40, detect: 130, alertMs: 700, reach: 40, shape: 'line', width: 8, windupMs: 640, activeMs: 140, recoveryMs: 700, radius: 8, poise: 7, hyperArmor: true, leash: 280,
+                    giveUpMs: null, keepDistance: [18, 40], group: 'solo',
+                    attacks: [
+                        // The plaited cord he was given to the bog with, cracked out like a whip: a long, thin line.
+                        { name: 'Offering Cord', skill: 'Offering Cord', shape: 'line', reach: 46, width: 8, windupMs: 640, activeMs: 140, recoveryMs: 700, cooldownMs: 2200, blockCost: 16, useAt: [0, 48] },
+                        // The bog comes up where you stand: three marked circles, a full second to step out.
+                        { name: 'The Bog Rises', skill: 'The Bog Rises', shape: 'ground', count: 3, radius: 18, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.2, useAt: [30, 150] },
+                        // Red water breathed out all round him: walk out of 52 px or dodge through (1.2 s to read).
+                        { name: 'Iron Water', skill: 'Iron Water', shape: 'circle', radius: 52, windupMs: 1200, activeMs: 150, recoveryMs: 1000, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.2, useAt: [0, 48] }
+                    ]
+                },
+                // Gullstrand's drowned: a wide oar sweep you can step back from, and a lunge like a wave going out.
+                drowned_oarsman: {
+                    speed: 40, detect: 110, alertMs: 900, reach: 28, arcDeg: 150, windupMs: 680, activeMs: 120, recoveryMs: 680, radius: 6, poise: 4, leash: 220,
+                    keepDistance: [0, 24], group: 'pincer',
+                    attacks: [
+                        { name: 'Oar Sweep', skill: 'Oar Sweep', shape: 'arc', reach: 28, arcDeg: 150, windupMs: 680, activeMs: 120, recoveryMs: 680, cooldownMs: 1900, blockCost: 16, useAt: [0, 30] },
+                        { name: 'Undertow', skill: 'Undertow', shape: 'line', reach: 46, width: 12, lunge: 34, windupMs: 700, activeMs: 150, recoveryMs: 780, cooldownMs: 4600, blockCost: 14, knockbackPx: 14, useAt: [26, 52] }
+                    ]
+                },
+                // The Wolf-Coats: no shield to hide behind, so they come in fast with a two-cut fury and pounce from range.
+                ulfhednar: {
+                    speed: 62, detect: 130, alertMs: 700, reach: 22, arcDeg: 110, windupMs: 560, activeMs: 100, recoveryMs: 560, radius: 6, poise: 3, leash: 240,
+                    keepDistance: [0, 22], group: 'pincer',
+                    attacks: [
+                        { name: 'Wolf-Coat Fury', skill: 'Wolf-Coat Fury', shape: 'arc', reach: 22, arcDeg: 110, cooldownMs: 2000, useAt: [0, 24],
+                            combo: [{ windupMs: 560, activeMs: 100, recoveryMs: 220, blockCost: 12 }, { windupMs: 440, activeMs: 100, recoveryMs: 700, blockCost: 14, reverse: true }] },
+                        { name: 'Pounce', skill: 'Pounce', shape: 'line', reach: 50, width: 12, lunge: 42, windupMs: 600, activeMs: 160, recoveryMs: 760, cooldownMs: 4200, blockCost: 14, staggers: true, useAt: [26, 56] }
+                    ]
+                },
                 bjarki_grave_bound: {
                     boss: true, speed: 42, detect: 150, reach: 30, arcDeg: 140, windupMs: 660, activeMs: 130, recoveryMs: 720, radius: 10, poise: 10, hyperArmor: true, leash: 400,
                     giveUpMs: null, keepDistance: [0, 40], group: 'solo', frontalShield: { arcDeg: 80, damageTaken: 0.7 },
@@ -1971,6 +2063,9 @@
             "Asta's Pattern Stick": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick: the count of every row of a memorial sail, cut by a weaver who could no longer see it.' },
             'Memorial Cloth': { type: 'quest', bound: true, unique: true, sellable: false, description: "A strip cut from the end of Asta's sail by Sigrid, for the one who helped finish it." },
             "Skuli's Tally": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick and a sheet of birch-bark: every memorial in Hrimvald, and what was bought from each.' },
+            // Chapter Two side quests (2026-11-16): C2-S03's cord, C2-S11's oar-blade, C2-S12's wolf-pelt token.
+            'Plaited Cord': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A cord of three plaited leather thongs, dark as tea, from the throat of the man in the peat.' },
+            'Wolf-Coat Pelt': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A wolf skin worn as a cloak, the head for a hood. Thora wants it on her dues chest, where the carters can see it.' },
             'Smoke Pot': { type: 'quest', bound: true, unique: true, sellable: false, description: "Gunnhild's clay pot of juniper and pitch, to smoke a den out." },
             "Bride's Brooch": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { critChance: 0.04, magicDamage: 2 }, sellable: false, description: 'A silver brooch from a bride\'s grave. It is always cold, however long you hold it.' },
             "Bjarki's Arm Ring": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 12, def: 1 }, sellable: false, description: 'A twisted arm ring of grave-iron, heavy as a promise. It was a chieftain\'s before there was a Crown.' },
@@ -2837,7 +2932,12 @@
                 3,
                 "beast",
                 "common"
-            ]
+            ],
+            "bog_light": [3, "undead", "common"],
+            "mire_dead": [3, "undead", "common"],
+            "peat_king": [3, "undead", "elite"],
+            "drowned_oarsman": [3, "undead", "common"],
+            "ulfhednar": [3, "humanoid", "common"]
         };
         for (const [id, [lootLevel, lootProfile, lootRank]] of Object.entries(enemyLoot))
             Object.assign(enemies[id], { lootLevel, lootProfile, lootRank, lootTable: 'chapter1' });

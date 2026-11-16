@@ -581,7 +581,11 @@
         bloomer: { cloak: '#6a3a24', hood: '#8a5a3a', scarf: '#c8a050', belt: '#2a2018', prop: 'hammer' },
         quarrier: { cloak: '#6a6a66', hair: '#c8b890', belt: '#3a3a38', prop: 'staff' },
         // Act II (2026-11-13): Yrsa Thornstaff, the völva of Rúnadal, in a dark-blue hooded cloak with her staff.
-        seeress: { cloak: '#2a3448', hood: '#1e2636', scarf: '#c8c0a8', belt: '#6a4a2a', prop: 'staff', skin: '#d8b89a' }
+        seeress: { cloak: '#2a3448', hood: '#1e2636', scarf: '#c8c0a8', belt: '#6a4a2a', prop: 'staff', skin: '#d8b89a' },
+        // Chapter Two side quests (2026-11-16): Oddny the peat-cutter in mud-brown with her spade, Ketil the old fisherman
+        // in oiled sea-blue.
+        peatcutter: { cloak: '#5a4232', hood: '#7a5a3a', belt: '#2a2018', prop: 'staff', skin: '#c8a888' },
+        fisher: { cloak: '#2e4a5a', hat: '#5a5040', hair: '#d8d6cc', belt: '#4a3a2a', prop: 'basket' }
     };
     Object.assign(creatures, {
         goblin(g, px, py, t, flip) {
@@ -717,7 +721,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).

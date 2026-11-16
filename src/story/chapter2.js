@@ -258,6 +258,59 @@
                 { item: 'Mead', key: 'item:c2s04_mead', when: { flags: ['debt_paid'] } }, { item: 'Gravlax', key: 'item:c2s04_gravlax', when: { flags: ['debt_paid'] } },
                 { say: 'When the ice goes out, the Sea-Hare will carry you to any coast you like.', notice: 'quest' }]
         },
+        // ----- Chapter Two enemies and side quests (Tokelo, 2026-11-16: "add enemies and side quests"), all on maps that
+        // already exist. C2-S03 is the lore doc's Iron Beneath the Mire; C2-S11 and C2-S12 are new ids after the lore's ten.
+        // ----- C2-S03 Iron Beneath the Mire (lore doc 7), Járnmyr: mining hazards and land rights. Bjorn bought six Birkholt
+        // households' peat-right (no grave-ale, so no inheritance, so they sold) and cut down past the peat for ore. The cut
+        // opened on a man the bog was given long ago, after the real Iron Age bog bodies; the bog has woken round him.
+        'C2-S03': {
+            title: 'Iron Beneath the Mire', kind: 'side', xp: 55, candidate: true,
+            summary: "Bjorn's men cut down past the peat for ore and found a man lying in it. Since then there are lights on the mire at dusk, and Oddny's cutters won't go out.",
+            objectives: [
+                { id: 'cut', text: 'Look at the deep cut in the peat', on: { type: 'inspect', id: 'jarnmyr_deep_cut' }, marker: { map: 'jarnmyr', x: 11, y: 25 },
+                    effects: [{ say: 'A hand, brown as a saddle, with the nails still on it. Above it, a plaited cord goes down into the red water.', important: true }] },
+                { id: 'lights', text: 'Put out the lights over the boardwalk', on: { type: 'defeat', id: 'jarnmyr_bog_lights' }, marker: { map: 'jarnmyr', x: 13, y: 8 } },
+                { id: 'bjorn', text: 'Ask Bjorn Ironvein whose peat it is', on: { type: 'story', id: 'mire_bjorn' }, marker: { map: 'jarnmyr', x: 39, y: 25 } },
+                { id: 'peatman', text: 'Face what comes up out of the deep cut', on: { type: 'defeat', id: 'jarnmyr_peat_king' }, marker: { map: 'jarnmyr', x: 9, y: 26 } },
+                { id: 'decide', text: 'Tell Oddny, and say what is done with him', on: { type: 'story', id: 'mire_settled' }, marker: { map: 'jarnmyr', x: 13, y: 23 } }
+            ],
+            onComplete: [
+                { gold: 35, key: 'c2s03_reward', when: { flags: ['mire_reburied'] } },
+                { gold: 15, key: 'c2s03_reward', when: { flags: ['mire_cut'] } },
+                { item: 'Bog Iron', key: 'item:c2s03_iron_1', when: { flags: ['mire_cut'] } },
+                { item: 'Bog Iron', key: 'item:c2s03_iron_2', when: { flags: ['mire_cut'] } },
+                { item: 'Bog Iron', key: 'item:c2s03_iron_3', when: { flags: ['mire_cut'] } },
+                { say: 'No lights on the mire tonight. Out on the cuttings somebody is singing, badly, and nobody tells them to stop.', important: true, when: { flags: ['mire_reburied'] } },
+                { say: "Bjorn's lads cut through the deep cut by noon. The ore under it is the best Járnmyr has seen in a lifetime.", important: true, when: { flags: ['mire_cut'] } }]
+        },
+        // ----- C2-S11 Salt on the Shingle (new, 2026-11-16), Gullstrand: the sea-draug of Norwegian coast lore. Drowned
+        // men nobody grieved walk up the beach at low water looking for a crew. Who they were is left open for C2-S10.
+        'C2-S11': {
+            title: 'Salt on the Shingle', kind: 'side', xp: 45, candidate: true,
+            summary: "Every low tide this month, drowned men walk up Gullstrand's shingle and stand round the boats. Ketil hasn't put to sea since the new moon.",
+            objectives: [
+                { id: 'wrack', text: 'Look at the wrack line on the shingle', on: { type: 'inspect', id: 'gullstrand_wrack' }, marker: { map: 'gullstrand_coast', x: 43, y: 14 },
+                    effects: [{ say: 'Bare footprints, heavy and deep, coming up out of the sea. None of them goes back down.', important: true }] },
+                { id: 'drowned', text: 'Meet the drowned when they come up by the wreck', on: { type: 'defeat', id: 'gullstrand_drowned' }, marker: { map: 'gullstrand_coast', x: 43, y: 9 } },
+                { id: 'boats', text: 'Clear the drowned from round the boats', on: { type: 'defeat', id: 'gullstrand_drowned_boats' }, marker: { map: 'gullstrand_coast', x: 50, y: 12 } },
+                { id: 'ketil', text: 'Tell Ketil the shingle is clear', on: { type: 'story', id: 'drowned_told' }, marker: { map: 'gullstrand_coast', x: 41, y: 13 } }
+            ],
+            onComplete: [{ gold: 25, key: 'c2s11_reward' }, { item: 'Stockfish', key: 'item:c2s11_fish_1' }, { item: 'Stockfish', key: 'item:c2s11_fish_2' },
+                { item: 'Smoked Herring', key: 'item:c2s11_herring' }]
+        },
+        // ----- C2-S12 Wolf-Coats on the Road (new, 2026-11-16), Skeldvik and the Frostspine Pass: úlfheðnar who wanted to
+        // march on the Field the night of the Thing, and stopped waiting for Torvald when he said wait. Thora's to settle.
+        'C2-S12': {
+            title: 'Wolf-Coats on the Road', kind: 'side', xp: 50, candidate: true,
+            summary: "Men in wolf skins are robbing the salt carts on the Frostspine Pass. Thora Half-Oar has eight guards and a harbour to keep, and the pass is a day's climb.",
+            objectives: [
+                { id: 'hakon', text: 'Ask Hakon on the Frostspine Pass what he has seen', on: { type: 'story', id: 'wolfcoats_hakon' }, marker: { map: 'frostspine_pass', x: 10, y: 7 } },
+                { id: 'post', text: 'Drive the Wolf-Coats from the old watch post', on: { type: 'defeat', id: 'frostspine_wolfcoats_post' }, marker: { map: 'frostspine_pass', x: 27, y: 4 } },
+                { id: 'hrapp', text: 'Find their leader at the fallen mile marker', on: { type: 'defeat', id: 'frostspine_wolfcoats_marker' }, marker: { map: 'frostspine_pass', x: 24, y: 9 } },
+                { id: 'thora', text: "Bring the leader's wolf skin to Thora in Skeldvik", on: { type: 'story', id: 'wolfcoats_told' }, marker: { map: 'skeldvik', x: 37, y: 6 } }
+            ],
+            onComplete: [{ gold: 30, key: 'c2s12_reward' }, { flag: 'pass_road_safe' }]
+        },
         // James the bard (Tokelo, 2026-11-13: "in chapter 2 introduce a bard that will join you at your homestead after
         // recruiting him"). A southerner who came north to learn the skalds' songs; met outside the Stormtide Inn in
         // Skeldvik (no new area: the inn's interior has no picture yet), he moves to the homestead grounds once asked.
@@ -591,10 +644,20 @@
                         { text: 'Did you know the raiders?', to: 'raiders' },
                         // A Fire of Your Own (C2S2, Tokelo 2026-11-13): a carter teaches you to cook on the road.
                         { text: "How do you eat out here, with no hearth?", if: { quests: { C2S2: 'unseen' } }, to: 'camp_offer' },
+                        // C2-S12 Wolf-Coats on the Road: Hakon saw them take two salt carts above the gap.
+                        { text: 'Have you seen men in wolf skins on the road?', if: { quests: { 'C2-S12': 'active' }, notFlags: ['wolfcoats_hakon_heard'] },
+                            effects: [{ flag: 'wolfcoats_hakon_heard' }, { event: { type: 'story', id: 'wolfcoats_hakon' } }], to: 'wolfcoats' },
                         { text: 'Juniper, for your tinder.', if: { quests: { C2S2: 'active' }, items: ['Juniper Berries'] },
                             effects: [{ removeItem: 'Juniper Berries' }, { event: { type: 'story', id: 'hakon_camp' } }], to: 'camp_done' },
                         { text: 'Goodbye.', end: true }
                     ]
+                },
+                wolfcoats: {
+                    lines: [
+                        ['npc', "Wolf skins, heads and all, and no red on them, so not Torvald's. They had two salt carts off the road above the gap last week."],
+                        ['npc', 'They camp under the old watch post. Their big one sits on the fallen mile marker as if it owed him money.']
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 camp_offer: {
                     lines: [
@@ -773,7 +836,8 @@
         // ------------------------------------------------------------- Thora Half-Oar, harbour reeve
         thora: {
             name: 'Thora Half-Oar', title: 'Harbour reeve',
-            talk: [{ if: { flags: ['tablet_with_reeve'] }, node: 'keeping' }, { if: { flags: ['tablet_decided'] }, node: 'after' }, { node: 'post' }],
+            talk: [{ if: { quests: { 'C2-S12': 'active' }, items: ['Wolf-Coat Pelt'] }, node: 'wolfcoats_done' },
+                { if: { flags: ['tablet_with_reeve'] }, node: 'keeping' }, { if: { flags: ['tablet_decided'] }, node: 'after' }, { node: 'post' }],
             nodes: {
                 post: {
                     lines: [
@@ -785,6 +849,7 @@
                         { text: 'Whose law is it?', to: 'law' },
                         { text: 'What is the bell for?', to: 'bell' },
                         { text: 'What is that smell on the wharf?', if: { flags: ['herring_tapped'] }, to: 'smell' },
+                        { text: 'Is there trouble on the roads I could help with?', if: { flags: ['thing_heard'], quests: { 'C2-S12': 'unseen' } }, to: 'wolfcoats' },
                         { text: 'Goodbye.', end: true }
                     ]
                 },
@@ -823,11 +888,30 @@
                         ['npc', "The Birkholt tablet is in the dues chest, under two locks and my bed."],
                         ['npc', "If the Jarl asks, I'll tell her I have it, and if Redhand asks, the same. Then we'll see what eight guards are worth."]
                     ],
-                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'Is there trouble on the roads I could help with?', if: { flags: ['thing_heard'], quests: { 'C2-S12': 'unseen' } }, to: 'wolfcoats' }, { text: 'Goodbye.', end: true }]
                 },
                 after: {
                     lines: [['npc', "The skald says you can be trusted with things. I'd have locked it up myself, but I lock everything up; it's the job."]],
-                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'What is the bell for?', to: 'bell' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: 'Whose law is it?', to: 'law' }, { text: 'What is the bell for?', to: 'bell' }, { text: 'Is there trouble on the roads I could help with?', if: { flags: ['thing_heard'], quests: { 'C2-S12': 'unseen' } }, to: 'wolfcoats' }, { text: 'Goodbye.', end: true }]
+                },
+                // C2-S12 Wolf-Coats on the Road.
+                wolfcoats: {
+                    lines: [
+                        ['npc', "There is. Men in wolf skins are taking the salt carts on the Frostspine Pass, and Redhand swears they aren't his."],
+                        ['npc', "Eight guards, one harbour, and the pass is a day's climb. Hakon the carter saw them; start with him."]
+                    ],
+                    choices: [
+                        { text: "I'll clear the road.", effects: [{ start: 'C2-S12' }], end: true },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                wolfcoats_done: {
+                    lines: [
+                        [null, "You lay the wolf skin on Thora's dues chest, its head looking out at the wharf."],
+                        ['npc', "Turned out by Redhand for being too eager to march. That's a thing to tell the Thing, and I will."],
+                        ['npc', "The carters will see that skin and come down the pass singing. Here: the harbour's thanks, counted twice."]
+                    ],
+                    choices: [{ text: 'Goodbye.', effects: [{ removeItem: 'Wolf-Coat Pelt' }, { event: { type: 'story', id: 'wolfcoats_told' } }], end: true }]
                 }
             }
         },
@@ -1789,6 +1873,106 @@
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
+        },
+        // C2-S03: Oddny, who has cut peat on the Járnmyr mire for forty winters (the shallow steps, her mother's way).
+        oddny: {
+            name: 'Oddny', title: 'Peat-cutter',
+            talk: [
+                { if: { quests: { 'C2-S03': 'complete' }, flags: ['mire_reburied'] }, node: 'done_reburied' },
+                { if: { quests: { 'C2-S03': 'complete' } }, node: 'done_cut' },
+                { if: { quests: { 'C2-S03': 'active' }, flags: ['peat_king_laid'] }, node: 'decide' },
+                { if: { quests: { 'C2-S03': 'active' } }, node: 'waiting' },
+                { if: { flags: ['jarnmyr_forge_open'] }, node: 'meet' },
+                { node: 'idle' }],
+            nodes: {
+                idle: {
+                    lines: [['npc', 'Peat for the furnaces, and for every hearth from here to Birkholt. Mind the stacks; they fall on strangers.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                meet: {
+                    lines: [
+                        ['npc', "Oddny. I've cut peat on this mire forty winters, the shallow steps, the way my mother did."],
+                        ['npc', "Bjorn's lads dug a cut a spade deeper than ours, for ore. They found a man in it, and since then there are lights on the mire at dusk."],
+                        ['npc', 'Kollr followed them, and we found him at dawn up to his chest in red water. None of my cutters will go out now.']
+                    ],
+                    choices: [
+                        { text: "I'll see what is in the cut.", effects: [{ start: 'C2-S03' }], end: true },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                waiting: {
+                    lines: [['npc', 'The deep cut is past the stacks, by the water. Mind the boardwalk at dusk; the lights like it.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                decide: {
+                    lines: [
+                        [null, 'You tell her: the man in the peat stood up, and lay down again. His cord is in your hand.'],
+                        ['npc', 'My grandmother said the bog gives iron because somebody, long ago, gave the bog a man. A gift for a gift.'],
+                        ['npc', 'Put him back deep and fill the cut, and the iron keeps coming slowly. Or let Bjorn cut through him and take it all now.']
+                    ],
+                    choices: [
+                        { text: 'Put him back. The bog was given him.', effects: [{ flag: 'mire_reburied' }, { removeItem: 'Plaited Cord' }, { event: { type: 'story', id: 'mire_settled' } }], to: 'reburied' },
+                        { text: 'Let Bjorn cut. The living need the iron.', effects: [{ flag: 'mire_cut' }, { removeItem: 'Plaited Cord' }, { event: { type: 'story', id: 'mire_settled' } }], to: 'cut' }
+                    ]
+                },
+                reburied: {
+                    lines: [
+                        [null, "You lay him back in the deep cut with his cord, and Oddny's cutters fill it with peat by lantern-light."],
+                        ['npc', "There. Bjorn will shout, and then he'll cut somewhere else; he always does."]
+                    ],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                cut: {
+                    lines: [['npc', "So be it. Bjorn will be glad, and my cutters will cut wherever he isn't."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                done_reburied: {
+                    lines: [['npc', 'No lights since, and Kollr is up and about. Bjorn cuts on the east side now and calls me a witch.']],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                done_cut: {
+                    lines: [['npc', "The lights are gone, and so is he. Bjorn's ore is good, and I don't go near that cut."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // C2-S11: Ketil, an old Gullstrand fisherman who has rowed out of the cove for fifty years.
+        ketil: {
+            name: 'Ketil', title: 'Fisherman of Gullstrand',
+            talk: [
+                { if: { quests: { 'C2-S11': 'complete' } }, node: 'done' },
+                { if: { quests: { 'C2-S11': 'active' }, flags: ['drowned_cleared'] }, node: 'told' },
+                { if: { quests: { 'C2-S11': 'active' } }, node: 'waiting' },
+                { node: 'meet' }],
+            nodes: {
+                meet: {
+                    lines: [
+                        ['npc', "Ketil. Fifty years I've rowed out of this cove, and I've never once been afraid of the beach."],
+                        ['npc', "Every low tide this month, drowned men walk up the shingle and stand round the boats. Not ours; I know every man this sea took."],
+                        ['npc', "Old folk say a drowned man nobody grieved comes looking for a crew. I'd rather he found someone else's."]
+                    ],
+                    choices: [
+                        { text: "I'll meet them at low water.", effects: [{ start: 'C2-S11' }], end: true },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                waiting: {
+                    lines: [['npc', "They come up by the wreck first. They won't go back down till they've stood by the boats."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                told: {
+                    lines: [
+                        [null, 'You tell him: they came up, and they went back down, and they left their oars on the shingle.'],
+                        ['npc', "Then I'll burn the oars on the beach tonight, the old way. I'll grieve them a little, since nobody else did."],
+                        ['npc', 'Take a share of the last catch. Whoever meets the drowned for a stranger should not go hungry.']
+                    ],
+                    choices: [{ text: 'Goodbye.', effects: [{ event: { type: 'story', id: 'drowned_told' } }], end: true }]
+                },
+                done: {
+                    lines: [['npc', "Boats out every morning now. Brynja says I row like a man who's seen something, and I tell her I have."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
         }
     };
 
@@ -2074,6 +2258,8 @@
         bjorn: {
             name: 'Bjorn Ironvein', title: 'Master smith of Járnmyr',
             talk: [
+                // C2-S03: whose peat it is, once the lights over the boardwalk are out.
+                { if: { quests: { 'C2-S03': 'active' }, flags: ['mire_lights_out'], notFlags: ['mire_bjorn_asked'] }, node: 'mire' },
                 { if: { flags: ['jarnmyr_forge_open'] }, node: 'smith' },
                 { if: { quests: { C204: 'active' }, flags: ['buyers_beaten'] }, node: 'confront' },
                 { if: { flags: ['bjorn_met'] }, node: 'again' },
@@ -2119,6 +2305,15 @@
                         ['npc', "And the mound: Vigdis says it's quiet in there. It wasn't quiet the last night they went in."]
                     ],
                     choices: [{ text: 'Goodbye.', effects: [{ removeItem: 'Bill of Sale' }, { event: { type: 'story', id: 'bjorn_confronted' } }], end: true }]
+                },
+                mire: {
+                    lines: [
+                        [null, 'You tell him about the hand in the deep cut, and the lights over the boardwalk.'],
+                        ['npc', "Six Birkholt households sold me their peat-right this winter. No grave-ale, no inheritance, and the law won't feed them, so they sold."],
+                        ['npc', "The best ore lies under the old peat, a spade deeper than anyone cut before. I paid fair, and I'll cut it."],
+                        ['npc', "As for a dead man in my cut: the bog keeps what it's given. If he's getting up, you're the witness, so go and see."]
+                    ],
+                    choices: [{ text: "I'll go and see.", effects: [{ flag: 'mire_bjorn_asked' }, { event: { type: 'story', id: 'mire_bjorn' } }], end: true }]
                 },
                 smith: {
                     lines: [['npc', "Bog iron, folded and quenched in the mire. Nothing here went near a grave."]],
@@ -2632,6 +2827,29 @@
             { flag: 'bride_laid' }, { removeItem: "Bride's Brooch" },
             { say: 'The brooch goes out of your hand and into hers. She pins it at her throat, and is not there any more.', important: true },
             { event: { type: 'story', id: 'bride_settled' } }] },
+        // Chapter Two side quests (2026-11-16): C2-S03's lights and the Man in the Peat, C2-S11's drowned, C2-S12's Wolf-Coats.
+        { id: 'c2s03_lights', on: { type: 'defeat', id: 'jarnmyr_bog_lights' }, effects: [
+            { flag: 'mire_lights_out' },
+            { say: 'The last light goes out with a sound like a candle pinched. Where it hung, the boardwalk is wet with red water.', important: true },
+            { say: "Bjorn's lads cut that peat, and Bjorn will know whose it is." }] },
+        { id: 'c2s03_peat_king', on: { type: 'defeat', id: 'jarnmyr_peat_king' }, effects: [
+            { flag: 'peat_king_laid' }, { item: 'Plaited Cord', key: 'item:c2s03_cord' },
+            { say: 'The man in the peat sits down in the red water, then lies back in it, as if he had only got up to see who was cutting.', important: true },
+            { say: 'The cord round his throat comes away in your hand: three thongs, plaited, dark as tea. Oddny should hear of it.' }] },
+        { id: 'c2s11_first', on: { type: 'defeat', id: 'gullstrand_drowned' }, effects: [
+            { flag: 'drowned_first_beaten' },
+            { say: 'They fall like men too tired to stand, and the sea comes up the shingle and takes them back. Their oars stay where they fell.', important: true },
+            { say: 'Further along the beach, round the drawn-up boats, three more are waiting.' }] },
+        { id: 'c2s11_boats', on: { type: 'defeat', id: 'gullstrand_drowned_boats' }, effects: [
+            { flag: 'drowned_cleared' },
+            { say: 'The last of them lays his oar down on the shingle, very carefully, and walks back into the sea without looking round.', important: true }] },
+        { id: 'c2s12_post', on: { type: 'defeat', id: 'frostspine_wolfcoats_post' }, effects: [
+            { flag: 'wolfcoats_post_beaten' },
+            { say: 'The Wolf-Coats leave the salt and run downhill, toward the mile marker and the big man sitting on it.', important: true }] },
+        { id: 'c2s12_hrapp', on: { type: 'defeat', id: 'frostspine_wolfcoats_marker' }, effects: [
+            { flag: 'wolfcoats_broken' }, { item: 'Wolf-Coat Pelt', key: 'item:c2s12_pelt' },
+            { say: "'We wanted to march on the Field the night of the Thing,' Hrapp says from the snow. 'Redhand said wait, so we stopped waiting for Redhand.'", important: true },
+            { say: "He pulls the wolf skin off his head and throws it at your feet. 'Take it to your reeve, then. A wolf-coat doesn't sit on a bench.'" }] },
         { id: 'anchor_silent_field', on: { type: 'inspect', id: 'silent_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:silent_field' },
             { say: "The crow settles on the bell's little roof and is quiet for a while. 'All right,' it says. 'I'll remember this one.'" },
