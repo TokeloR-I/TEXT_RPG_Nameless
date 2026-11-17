@@ -308,12 +308,22 @@
                         }
                     }
                     if (a.resolve) this.stepResolve(a);
+                    // Rage (Tokelo, 2026-11-17, docs/design/BOSS_DIFFICULTY.md): once, below `rage.atHpPct`, for good.
+                    if (b && b.rage && !a.illusionOf && !a.rageUsed && en.hp > 0 && en.hp / en.maxHp <= b.rage.atHpPct + 1e-9) this.beginRage(a, b.rage);
+                    if (this.ragedCfg(a)) a.speedMult = (a.speedMult || 1) * (this.ragedCfg(a).speedMult || 1);
+                    const rgc = !a.illusionOf && this.ragedCfg(a);   // and again every cleanseEveryMs while he rages
+                    if (rgc && rgc.cleanse && rgc.cleanseEveryMs && en.hp > 0 && this.now >= (a.nextCleanseAt || 0)) {
+                        a.nextCleanseAt = this.now + rgc.cleanseEveryMs;
+                        this.collect(this.engine.actionBossCleanse(a.engineId, rgc.cleanse, { reason: rgc.cleanseText || 'shakes it off' }).events);
+                        this.fx.push({ type: 'rage', x: a.x, y: a.y });
+                    }
                     const ill = b && b.illusion;
                     if (ill && !a.illusionOf && !a.illusionUsed && en.hp > 0 && en.hp / en.maxHp <= ill.atHpPct + 1e-9) this.castIllusion(a, ill);
                     if (a.illusionUntil && this.now >= a.illusionUntil) { a.illusionUntil = null; this.collect(this.engine.actionDispelIllusions(a.engineId).events); }
                     if (en.hp <= 0) this.kill(a);
                 }
             }
+            this.watchHeals(v);
             this.syncMinions(v);
             if (this.respawned) { this.respawned = false; this.onRespawn(); return; }
             for (const g of Object.values(this.groups)) {
@@ -350,7 +360,7 @@
                 // you killed before it gave up stand up too. Left dead here, they'd be invisible engine enemies the
                 // group can never clear without, and the chest they guard stays shut (Tokelo's toll register, playtest 2026-11-11).
                 if (a.dead) Object.assign(a, { dead: false, deadAt: 0, x: a.homeX, y: a.homeY, hurtUntil: 0 });
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, raged: false, rageUsed: false, nextCleanseAt: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -813,7 +823,14 @@
             if (this.groupLost(g)) { this.leash(g); return; }
             if (a.state === 'windup') {
                 if (a.windup.mark && !a.windup.mark.locked) this.trackMark(a);
-                if (this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200))) a.angle = angleTo(a, this.liveBody(a.windup.foe) || p);   // tracks, then locks (Thorne §4)
+                const tracking = this.now < a.stateEnd - (a.windup.atk.lockMs != null ? a.windup.atk.lockMs : (pr.lockMs != null ? pr.lockMs : 200));
+                if (tracking) a.angle = angleTo(a, this.liveBody(a.windup.foe) || p);   // tracks, then locks (Thorne §4)
+                const rg = tracking && this.ragedCfg(a);   // rage: he walks his close blows in after you while he winds up (the telegraph moves with him)
+                const ws = a.windup.atk;
+                if (rg && rg.windupStepSpeed && (ws.shape === 'arc' || ws.shape === 'circle' || (!ws.shape && !a.windup.mark))) {
+                    const foe = this.liveBody(a.windup.foe) || p;
+                    if (dist(a, foe) > (ws.reach || ws.radius || 24) * 0.6) this.walkTo(a, foe, dt, rg.windupStepSpeed / (pr.speed || 42) / (a.speedMult || 1));
+                }
                 if (this.now >= a.stateEnd) this.enemyActive(a);
                 return;
             }
@@ -829,7 +846,7 @@
             if (atk) { a.lostSince = null; this.enemyWindup(a, atk); return; }
             const [kmin, kmax] = this.keepRange(a);
             if (dt2 < kmin - 2) { this.walkTo(a, { x: a.x - Math.cos(a.angle) * 20, y: a.y - Math.sin(a.angle) * 20 }, dt, 0.8); return; }
-            if (dt2 > kmax + t.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, t))) this.chase(a, dt, t);
+            if (dt2 > kmax + t.r + a.r * 0.5 || (this.attackRanged(a) && !this.lineOfSight(a, t))) this.chase(a, dt, t, this.pursuitMult(a, dt2 - kmax - t.r - a.r * 0.5));
             else a.lostSince = null;   // in its range: it has you
         }
 
@@ -868,14 +885,23 @@
                 let names = Object.keys(b.attacks), drop = [];
                 for (const x of b.phases || []) if (a.hp != null && a.maxHp && a.hp / a.maxHp <= x.fromHpPct + 1e-9) { if (x.attacks) names = x.attacks; if (x.drop) drop = drop.concat(x.drop); }
                 const over = (this.bossPhase(a) || {}).attackOverrides || {};   // a phase can speed a move up (phase 3 crows)
-                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n], ...(over[n] || {}) }));
+                const rg = this.ragedCfg(a);
+                if (rg && rg.add) names = rg.add.filter((n) => typeof n === 'string' && !names.includes(n)).concat(names);   // rage moves first: they take their turn when ready
+                const rOver = (rg && rg.attackOverrides) || {};
+                return names.filter((n) => !drop.includes(n) && b.attacks[n]).map((n) => ({ name: n, ...b.attacks[n], ...(over[n] || {}), ...(rOver[n] || {}) }));
             }
             const pr = a.prof;
-            if (Array.isArray(pr.attacks) && pr.attacks.length) return pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
+            if (Array.isArray(pr.attacks) && pr.attacks.length) {
+                const list = pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
+                const rg = b && this.ragedCfg(a);   // a boss with an attack list: rage adds whole moves and can retune old ones
+                if (!rg) return list;
+                const over = rg.attackOverrides || {};
+                return (rg.add || []).filter((x) => x && typeof x === 'object').map((x) => ({ ...x })).concat(list.map((x) => ({ ...x, ...(over[x.name] || {}) })));
+            }
             return [{ name: 'primary', shape: pr.shape, reach: pr.reach, arcDeg: pr.arcDeg, width: pr.width, lunge: pr.lunge, windupMs: pr.windupMs, activeMs: pr.activeMs, recoveryMs: pr.recoveryMs, projSpeed: pr.projSpeed, projectile: pr.projectile }];
         }
         keepRange(a) {
-            const b = this.bossOf(a), k = (b && b.keepDistance) || a.prof.keepDistance;
+            const b = this.bossOf(a), rg = this.ragedCfg(a), k = (rg && rg.keepDistance) || (b && b.keepDistance) || a.prof.keepDistance;
             if (Array.isArray(k)) return k;
             if (typeof k === 'number') return [k, Math.max(k, a.prof.reach || 18)];
             return [0, (a.prof.reach || 18) * 0.8];
@@ -892,6 +918,7 @@
             }
             if (a.openWith) { const o = list.find((x) => x.name === a.openWith); a.openWith = null; if (o) return o; }
             const fits = (x) => {
+                if (x.followUpOnly) return false;   // only ever thrown as a follow-up (openWith)
                 const reach = (x.reach || 18) + (x.lunge ? 0 : 0);
                 if (x.shape === 'ground') return d <= Math.max(140, reach);
                 if (x.shape === 'arena') return true;
@@ -930,6 +957,8 @@
             let windup = st.windupMs || a.prof.windupMs || 520;
             if (b && b.minWindupMs) windup = Math.max(b.minWindupMs, windup);
             if (a.resolve && this.now < a.resolve.until) windup = Math.round(windup * (a.resolve.cfg.windupMult || 1));   // Guardian's Resolve: deliberate blows
+            const rg = this.ragedCfg(a);
+            if (rg && rg.windupMult) windup = Math.max(rg.minWindupMs || 450, Math.round(windup * rg.windupMult));   // rage: quicker, never unreadable
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
@@ -959,6 +988,43 @@
                 out.push({ x: p.x + (p.vx || 0) * lead * k + j, y: p.y + (p.vy || 0) * lead * k + (this.rng() * 2 - 1) * 16 });
             }
             return out;
+        }
+
+        // ---- Boss rage (Tokelo, 2026-11-17: "Dark Souls difficult"; docs/design/BOSS_DIFFICULTY.md) ----
+        /** The boss's `rage` block while it (or the Warden a false copy belongs to) is enraged, else null. */
+        ragedCfg(a) {
+            const src = a && a.illusionOf ? a.illusionOf : a;
+            if (!src || !src.raged) return null;
+            const b = this.bossOf(src);
+            return (b && b.rage) || null;
+        }
+        /** Once, below rage.atHpPct: quicker steps, shorter wind-ups and rests, harder blows and new moves, to the end. */
+        beginRage(a, cfg) {
+            a.raged = a.rageUsed = true;
+            if (cfg.openWith) { a.openWith = cfg.openWith; a.atkReady[cfg.openWith] = 0; }
+            if (cfg.cleanse && this.engine.actionBossCleanse) { this.collect(this.engine.actionBossCleanse(a.engineId, cfg.cleanse, { reason: cfg.cleanseText || 'shakes it off' }).events); a.nextCleanseAt = this.now + (cfg.cleanseEveryMs || Infinity); }
+            this.fx.push({ type: 'rage', x: a.x, y: a.y });
+            this.fx.push({ type: 'notice', text: cfg.notice || `${a.name || 'It'} flies into a rage!` });
+            if (this.engine.say) this.engine.say(cfg.notice || `${a.name || 'It'} flies into a rage!`, { important: true });
+        }
+        /** Damage share of a landed blow: the attack's own damageMult, times the rage's while enraged. */
+        strikeMult(a, st) {
+            const rg = this.ragedCfg(a), b = this.bossOf(a.illusionOf || a);
+            return (st.damageMult || 1) * ((b && b.damageMult) || 1) * ((rg && rg.damageMult) || 1);
+        }
+        /** An enraged boss that sees you heal comes for you at once (no cooldown or cap on healing: the boss is the price). */
+        watchHeals(v) {
+            const hp = v && this.engine.player ? this.engine.player.hp : null;
+            const before = this.lastPlayerHp;
+            this.lastPlayerHp = hp;
+            if (hp == null || before == null || hp - before < 8) return;
+            for (const a of this.actors) {
+                const rg = !a.dead && a.engineId && !a.illusionOf && this.ragedCfg(a);
+                if (!rg || !rg.punishHeal || a.state === 'windup' || a.state === 'active') continue;
+                a.openWith = rg.punishHeal; a.atkReady[rg.punishHeal] = 0;
+                a.attackReadyAt = Math.min(a.attackReadyAt || 0, this.now + (rg.punishHealMs || 150));
+                if (a.state === 'recover') a.stateEnd = Math.min(a.stateEnd, this.now + (rg.punishHealMs || 150));
+            }
         }
 
         // ---- Crow Warden phases 2 and 3 (Tokelo, 2026-11-02; docs/design/CROW_WARDEN_PHASES.md) ----
@@ -1119,10 +1185,12 @@
             if (combo && w.step + 1 < combo.length && !a.dead && a.engineId) { this.enemyWindup(a, { ...base, combo }, w.step + 1); return; }
             let rec = (w && w.atk.recoveryMs != null ? w.atk.recoveryMs : a.prof.recoveryMs) || 600;
             for (const x of (b && b.phases) || []) if (x.recoveryMult && a.hp / a.maxHp <= x.fromHpPct + 1e-9) rec = Math.max(500, rec * x.recoveryMult);
+            const rg = this.ragedCfg(a);
+            if (rg && rg.recoveryMult) rec = Math.max(rg.minRecoveryMs || 400, rec * rg.recoveryMult);
             a.state = 'recover';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + rec;
-            const gap = a.illusionOf && b.illusion && b.illusion.attackGapMs != null ? b.illusion.attackGapMs : b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700;
+            const gap = a.illusionOf && b.illusion && b.illusion.attackGapMs != null ? b.illusion.attackGapMs : rg && rg.attackGapMs != null ? rg.attackGapMs : b && b.attackGapMs != null ? b.attackGapMs : 200 + this.rng() * 700;
             a.attackReadyAt = a.stateEnd + gap;
         }
 
@@ -1164,7 +1232,7 @@
             const raised = p.guarding && facingIt && st.guardable !== false && p.stamina > 0;
             const parried = raised && !!g.parry && st.parryable !== false && p.guardSince != null && this.now - p.guardSince <= (g.parry.windowMs || 160);
             const guarded = raised && (!g.parryOnly || parried);
-            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: st.damageMult || 1, targetId: this.engine.player.id });
+            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, guarded, parried, damageMult: this.strikeMult(a, st), targetId: this.engine.player.id });
             this.collect(r.events);
             if (!r.ok) return;
             if (r.result === 'evaded') { this.fx.push({ type: 'evade', x: p.x, y: p.y, why: r.why }); return; }   // Evasion or a blinded swing: no flinch
@@ -1186,6 +1254,8 @@
                     if (st.onHit.pullPx) this.moveBody(p, -Math.cos(away) * st.onHit.pullPx, -Math.sin(away) * st.onHit.pullPx);
                     this.fx.push({ type: 'notice', text: 'Chained! You can\'t move.' });
                 }
+                const fu = this.ragedCfg(a) && st.followUp;   // rage: a blow that lands is followed straight up (Chain Lock -> Gallows Drop)
+                if (fu && !a.dead) { a.openWith = fu; a.atkReady[fu] = 0; a.attackReadyAt = Math.min(a.attackReadyAt || 0, this.now + (st.followUpMs || 250)); }
                 this.fx.push({ type: 'player_hit', x: p.x, y: p.y });
             }
         }
@@ -1212,15 +1282,24 @@
             return a.x === bx && a.y === by;   // stuck counts as there
         }
 
+        /** Pursuit: an engaged (non-boss) enemy far behind its range runs you down (combat.pursuit). A walk multiplier. */
+        pursuitMult(a, behindPx) {
+            const pu = (this.rules.combat || {}).pursuit;
+            if (!pu || a.prof.boss || behindPx <= (pu.beyondPx || 0)) return 1;
+            if (!a.prof.speed) return 1;   // a body that doesn't walk (speed 0) stays put
+            const base = a.prof.speed * (a.speedMult || 1);
+            return base > 0 && base < pu.speed ? pu.speed / base : 1;
+        }
+
         /** Chase the player: straight when the way is clear, else follow a grid path (refreshed every 250 ms). */
-        chase(a, dt, p = this.player) {
-            if (this.lineOfSight(a, p, true)) { a.path = null; a.lostSince = null; this.walkTo(a, p, dt); return; }
+        chase(a, dt, p = this.player, mult = 1) {
+            if (this.lineOfSight(a, p, true)) { a.path = null; a.lostSince = null; this.walkTo(a, p, dt, mult); return; }
             if (!a.path || this.now >= a.repathAt) { a.path = this.findPath(a, p); a.repathAt = this.now + 250 + this.rng() * 100; }
             if (!a.path || !a.path.length) { if (a.lostSince == null) a.lostSince = this.now; return; }   // can't reach: see groupLost
             a.lostSince = null;
             const next = a.path[0];
             if (dist(a, next) < 3) { a.path.shift(); return; }
-            this.walkTo(a, next, dt);
+            this.walkTo(a, next, dt, mult);
         }
 
         /** BFS over walkable cells (8-way, no corner cutting) of the whole map. Returns tile centres to walk, or null (no way there). */
@@ -1228,15 +1307,21 @@
             const T = this.T, W = this.w, H = this.h;
             const sx = Math.floor(a.x / T), sy = Math.floor(a.y / T), tx = Math.floor(target.x / T), ty = Math.floor(target.y / T);
             const gate = this.gateCellOf(a);
-            const free = (x, y) => !this.solidAt(x, y) || (gate && gate(x, y));
+            // A body wider than a tile (the big bosses, r 10 on 16 px tiles) can't pass a one-tile gap: walking it there
+            // left it pressed against the corner with a path it could never follow, for the rest of the fight (QA #18).
+            const wide = (a.r || 6) > T / 2;
+            const fits = (x, y) => !wide || !this.bodyBlocked((x + 0.5) * T, (y + 0.5) * T, a.r, gate);
+            const free = (x, y) => (!this.solidAt(x, y) || (gate && gate(x, y))) && fits(x, y);
             const start = sy * W + sx, goal = ty * W + tx;
+            // ...and when the target stands where the body won't fit, the cell next to it is close enough to swing from.
+            const near = wide ? (c) => { const cx = c % W, cy = (c - cx) / W; return Math.max(Math.abs(cx - tx), Math.abs(cy - ty)) <= 1; } : (c) => c === goal;
             const prev = new Int32Array(W * H).fill(-1);
             prev[start] = start;
             const q = [start];
             let found = false;
             for (let qi = 0; qi < q.length; qi++) {   // the whole map (≤ ~8k cells): no path means truly unreachable
                 const c = q[qi];
-                if (c === goal) { found = true; break; }
+                if (near(c)) { found = c; break; }
                 const cx = c % W, cy = (c - cx) / W;
                 for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
                     const nx = cx + dx, ny = cy + dy;
@@ -1248,9 +1333,10 @@
                     q.push(n);
                 }
             }
-            if (!found) return null;
+            if (found === false) return null;
+            if (found === start) return [{ x: target.x, y: target.y }];   // already beside it: step straight in
             const path = [];
-            for (let c = goal; c !== start; c = prev[c]) path.push({ x: (c % W + 0.5) * T, y: (Math.floor(c / W) + 0.5) * T });
+            for (let c = found; c !== start; c = prev[c]) path.push({ x: (c % W + 0.5) * T, y: (Math.floor(c / W) + 0.5) * T });
             return path.reverse();
         }
 
@@ -1370,6 +1456,8 @@
             const p = this.player;
             const mins = this.liveMinions().filter((m) => m.state !== 'rise');
             if (!mins.length) return p;
+            const rg = this.ragedCfg(a);
+            if (rg && rg.huntsPlayer) return (a.foe = p);   // an enraged boss steps past your summons, taunt or not, to get at you
             const taunter = mins.find((m) => m.taunting);
             if (taunter) return taunter;
             const cur = a.foe && (a.foe === p || mins.includes(a.foe)) ? a.foe : p;
@@ -1390,7 +1478,7 @@
 
         /** A blow lands on a minion: no guard or parry, just damage (the engine's rules) and a small shove. */
         strikeMinion(a, m, st = {}) {
-            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, damageMult: st.damageMult || 1, targetId: m.engineId });
+            const r = this.engine.actionEnemyStrike(a.engineId, { hit: true, damageMult: this.strikeMult(a, st), targetId: m.engineId });
             this.collect(r.events);
             if (!r.ok || r.result !== 'hit') return;
             const away = angleTo(a, m);
