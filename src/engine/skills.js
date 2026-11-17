@@ -273,6 +273,8 @@
         // ---------- primitives the effect registry uses ----------
         damage(target, amount, source, options = {}) {
             if (amount <= 0 || target.hp <= 0) return 0;
+            if (target.isPlayer && this.flags.godMode) return 0;   // dev cheat (src/engine/cheats.js)
+            if (this.flags.oneHit && source && source !== target && !target.isPlayer && this.isPlayerSide && this.isPlayerSide(source)) amount = Math.max(amount, target.hp * 10);   // dev cheat
             if (target.ghoul) return this.ghoulAbsorb(target, amount), 0;   // Raise Ghoul: it stores what it takes, it never loses HP
             if (target.actionStance && this.actionStanceScale) { amount = this.actionStanceScale(target, amount); if (amount <= 0) return 0; }   // Guardian's Resolve
             if (target.isPlayer && this.combat) {

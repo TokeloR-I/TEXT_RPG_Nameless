@@ -71,7 +71,10 @@ engine.act({ type: 'skill', skillId: 'Grave Bolt', targetId: 'enemy_1' });  // -
 ## Commands
 `go <dir>` or `n/s/e/w`, `take <item>`, `use <item>`, `i`, `look`, `engage`, `cl`, `help`, `quit`, `start`
 Combat: `attack 1`, `<skill or alias> <target>`, `use <item>`, `flee`
-Dev cheats: `add_xp <n>`, `become_hollow_king`, `unlock_events`
+Dev cheats: `add_xp <n>`, `become_hollow_king`, `unlock_events`; any other cheat as `cheat <name> [arg]` (src/engine/cheats.js).
+In the world game, open `world.html?dev=1` (or tap Settings → Version 5 times) to get a **Cheats** tab in the Esc menu
+(` opens it from the map): god mode, one-hit kills, level, gold, Skill Web points, whole webs, legendary classes,
+Devil Union contracts, items, free tempering, teleport to bosses and areas, start/finish quests.
 
 ## Balance testing
 `node tools/balance.js` — a bot plays the full dungeon many times per class and prints win rates.

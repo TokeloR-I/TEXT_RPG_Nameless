@@ -1047,24 +1047,30 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
+        { id: 'cheats', label: 'Cheats', sub: 'Dev cheats for testing powers. Not part of normal play.' },   // only in dev mode (see devMode below)
         { id: 'settings', label: 'Settings', sub: 'Display, controls, save files and this run.' },
         { id: 'save', label: 'Save game', sub: 'Keeps your place in this browser. It also saves itself every minute and in each new area. Settings can export a save file.' },
         { id: 'quit', label: 'Quit to title', sub: 'Anything since your last save is lost.' }
     ];
     let mmTabs = MM_TABS_ALL;
     let mm = { tab: 0, focus: 'tabs', slot: null, note: '', fly: null };
-    function openPause(note) {
+    function menuTabs() {
+        const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
+        const bar = engine.combatMode !== 'turn';
+        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode));
+    }
+    function openPause(note, tabId) {
         modal = 'pause'; syncActionHudVisibility();
         muteHeldKeys();
         els.hud.hidden = true;
-        const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
-        const bar = engine.combatMode !== 'turn';
-        mmTabs = MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar));
-        mm = { tab: Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null };
+        mmTabs = menuTabs();
+        const want = tabId ? mmTabs.findIndex((t) => t.id === tabId) : -1;
+        mm = { tab: want !== -1 ? want : Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null, cheat: null };
         focusTabs();
+        if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1112,7 +1118,10 @@
             if (ENSO.gfx && ENSO.gfx.setQuality) items.push({ label: `Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}`, sub: 'High: lighting, bloom and grading. Low: plain canvas for weak devices. Applies on next load.',
                 action: again(() => { const q = gfxQuality() === 'low' ? 'high' : 'low'; ENSO.gfx.setQuality(q); mm.note = `Graphics: ${q === 'low' ? 'Low' : 'High'}. Reload the page to apply.`; }) });
             items.push({ label: 'Export save file', sub: 'Download your save. Load it from the title screen of a newer version of the game, or on another computer.', action: again(() => { mm.note = exportSave(); }) });
+            items.push({ label: `Version ${GAME_VERSION}`, sub: devMode ? 'Dev cheats are on: the Cheats tab is in this menu.' : "Enso's Last Stand.", action: again(() => { mm.note = versionTap(); }) });
+            if (devMode) items.push({ label: 'Dev cheats: On', sub: 'Hide the Cheats tab again. What cheats already changed stays.', action: () => { setDevMode(false); mm.note = 'Dev cheats hidden. Tap the version 5 times to bring them back.'; refreshTabs('settings'); } });
         }
+        if (id === 'cheats') items = cheatItems();
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
             items = [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and return there.', action: () => blackFlight(f) },
@@ -1129,7 +1138,8 @@
         const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
-            : mm.fly ? () => { mm.fly = null; enterList('crow', 0); } : null;
+            : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
+            : mm.cheat ? () => { const at = CHEAT_TOP.indexOf(mm.cheat.top || mm.cheat); mm.cheat = mm.cheat.top ? mm.cheat.top : null; enterList('cheats', mm.cheat ? 0 : Math.max(0, at)); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
@@ -1355,9 +1365,10 @@
                 : `${v.talk ? `<p>Talk to the crow <span class="mm-dim">· ${esc(v.talk.enabled ? 'ask about this place, your quest or where you have been' : v.talk.reason)}</span></p>` : ''}<h3>Black Flight</h3>${v.flights.length ? `<ul class="mm-plain">${v.flights.map((f) => `<li>${f.here ? '◆ ' : ''}${esc(f.name)} <span class="mm-dim">· ${esc(f.why)}</span></li>`).join('')}</ul>` : '<p class="mm-dim">No perches yet.</p>'}
                     <p class="mm-dim">The crow can take you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`;
         }
+        if (tab === 'cheats') page = cheatsPage(inList, list);
         if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
         const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'journal', 'settings', 'crow'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'journal', 'settings', 'crow', 'cheats'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
         els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
             <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
@@ -1411,6 +1422,142 @@
         });
     }
     function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; syncActionHudVisibility(); menu = null; muteHeldKeys(); }
+
+    // ---------------------------------------------------------------------
+    // Dev cheats (Tokelo 2026-11-17: test powers without playing the story). Hidden from normal play: the Cheats tab
+    // only shows in dev mode, which you turn on with world.html?dev=1, or by tapping Settings → Version 5 times
+    // (phones). Then ` (backquote) opens it straight from the map. The engine runs every cheat (src/engine/cheats.js);
+    // this only lists them. Teleport is here because the world owns space (it moves you as Black Flight does).
+    // ---------------------------------------------------------------------
+    const DEV_KEY = 'enso.dev';
+    const GAME_VERSION = (ENSO.engineModules && ENSO.engineModules.save && ENSO.engineModules.save.ENGINE_VERSION) || '?';
+    let devMode = (() => {
+        const asked = /[?&]dev(=1|=true|=on)?(&|$)/.test(location.search || '');
+        try { if (asked) localStorage.setItem(DEV_KEY, '1'); return asked || localStorage.getItem(DEV_KEY) === '1'; } catch (e) { return asked; }
+    })();
+    let versionTaps = { n: 0, at: 0 };
+    function setDevMode(on) { devMode = !!on; try { if (on) localStorage.setItem(DEV_KEY, '1'); else localStorage.removeItem(DEV_KEY); } catch (e) { /* this session only */ } }
+    function versionTap() {
+        if (devMode) return 'Dev cheats are already on. Open the Cheats tab.';
+        const now = performance.now();
+        versionTaps = now - versionTaps.at < 2500 ? { n: versionTaps.n + 1, at: now } : { n: 1, at: now };
+        if (versionTaps.n < 5) return versionTaps.n >= 2 ? `${5 - versionTaps.n} more…` : '';
+        setDevMode(true);
+        setTimeout(() => refreshTabs('settings'), 0);
+        return 'Dev cheats on. The Cheats tab is now in this menu (and ` opens it from the map).';
+    }
+    /** The tab list changed (dev mode on or off): rebuild it and stay on `tabId`. */
+    function refreshTabs(tabId) {
+        const note = mm.note;
+        mmTabs = menuTabs();
+        mm.tab = Math.max(0, mmTabs.findIndex((t) => t.id === tabId));
+        focusTabs();
+        mm.note = note;
+        enterList(tabId, 0);
+    }
+    let CHEAT_TOP = [];
+    function cheat(name, amount) {
+        const r = engine.act({ type: 'cheat', cheat: name, amount });
+        updateHud();
+        if (view.cosmetics) view.cosmetics = { ...view.cosmetics, held: heldWeapon() };
+        mm.note = readable(r.events).map((l) => l.text).filter((t) => !/^You have \d+ unspent/.test(t)).join(' ') || (r.ok ? 'Done.' : (r.error && r.error.message) || 'Not now.');
+        if (engine.mode === 'branch_select') { closePause(); openBranchMenu(); return false; }   // a level-up reached the path choice, as in play
+        return true;
+    }
+    const BOSS_KEYS = new Set([...Object.keys((DATA.actionRules || {}).bosses || {}), ...Object.entries((DATA.actionRules || {}).enemies || {}).filter(([, e]) => e.boss).map(([k]) => k)]);
+    function cheatBosses() {
+        const out = [];
+        for (const [mapId, map] of Object.entries(WORLD.maps)) for (const e of map.encounters || []) {
+            const boss = (e.enemies || []).find((k) => BOSS_KEYS.has(k));
+            if (boss && !out.some((x) => x.mapId === mapId && x.label === (e.name || boss))) out.push({ mapId, label: e.name || boss, sub: map.name || mapId });   // one entry per boss and map (phases share a map)
+        }
+        return out;
+    }
+    function cheatTeleport(mapId) {
+        const busy = engine.mode !== 'explore' ? 'Finish the fight first.' : engine.story && engine.story.dialogue ? 'Finish the conversation first.' : null;
+        const map = WORLD.maps[mapId], spawn = map && Object.keys(map.spawns || {})[0];
+        if (busy || !spawn) { mm.note = busy || `${(map && map.name) || mapId} has no place to arrive.`; renderMain(); return; }
+        engine.flags.devCheats = true;
+        closePause();
+        const from = session.mapId;
+        session.place(mapId, spawn);
+        const events = engine.act({ type: 'world_enter', mapId }).events;
+        startFade({ type: 'transition', exit: null, from, to: mapId, text: null, events });
+    }
+    function cheatItems() {
+        const c = engine.cheatCatalog();
+        const sub = mm.cheat && mm.cheat.top ? mm.cheat.top : mm.cheat;
+        const go = (id) => () => { mm.cheat = id; enterList('cheats', 0); };
+        const stay = (fn) => () => { const i = menu.index; if (fn() !== false) enterList('cheats', i); };
+        const run = (name, amount) => stay(() => cheat(name, amount));
+        const onOff = (b) => (b ? 'On' : 'Off');
+        if (!mm.cheat) {
+            const top = [
+                ['god', `God mode: ${onOff(c.godMode)}`, 'Nothing can hurt you. Works mid-fight.', run('god_mode')],
+                ['onehit', `One-hit kills: ${onOff(c.oneHit)}`, 'Every hit you land kills. Works mid-fight.', run('one_hit')],
+                ['heal', 'Full heal, cooldowns ready', 'HP, resource, skill and union cooldowns. Works mid-fight.', run('full_heal')],
+                ['level', `Level: ${c.level}`, 'Level up to any level (stats grow as in play).', go('level')],
+                ['gold', `Gold: ${c.gold.toLocaleString()}`, 'Add gold (James\'s grimoire costs 1,000,000).', go('gold')],
+                ['points', `Skill Web points: ${c.webPoints}`, 'Extra points to spend in the Skill Web.', go('points')],
+                ['webs', 'Learn a whole web', 'Every skill of a class or legendary web, ignoring level and points.', go('webs')],
+                ['legends', 'Legendary classes', 'Open Fallen Seraphim, Fenrir\'s Heir, Devil Union and the rest; pass trials.', go('legends')],
+                ['unions', 'Devil Union demons', 'Bind Lucifero, Beelzebub, Slotos, Plumede; Demonkore\'s Favor.', go('unions')],
+                ['legcramp', c.legCramp ? 'LEG CRAMP! (known)' : 'Teach LEG CRAMP!', 'Shane\'s shout, as his quest teaches it.', run('teach_leg_cramp')],
+                ['items', 'Give items', 'Weapons, armor sets, signets, food, materials, quest items.', go('items')],
+                ['temper', c.weapon ? `Temper ${c.weapon.name} (+${c.weapon.tempered}/${c.weapon.max})` : 'Temper weapon', 'One rank up, free. Holy weapons can\'t be tempered.', run('temper_weapon')],
+                ['bosses', 'Teleport to a boss', 'Arrive at the boss\'s map. Some bosses only appear once their quest is active.', go('bosses')],
+                ['areas', 'Teleport to an area', 'Any map in the game.', go('areas')],
+                ['finish', 'Finish a quest', 'Runs its remaining steps with their rewards.', go('finish')],
+                ['start', 'Start a quest', 'Makes it active from its first step.', go('start')]
+            ];
+            CHEAT_TOP = top.map((t) => t[0]);
+            return top.map(([, label, s, action]) => ({ label, sub: s, action }));
+        }
+        if (sub === 'level') return [1, 3, 5, 10, 15, 20, 25, 30].map((d, i) => (i === 0 ? c.level + 1 : d)).filter((l, i, a) => l > c.level && a.indexOf(l) === i)
+            .map((l) => ({ label: l === c.level + 1 ? `+1 level (to ${l})` : `Level ${l}`, sub: 'Stats, HP and Skill Web points as if you had played there.', action: run('set_level', l) }));
+        if (sub === 'gold') return [1000, 10000, 100000, 1000000].map((n) => ({ label: `+${n.toLocaleString()} Gold`, sub: `You have ${c.gold.toLocaleString()}.`, action: run('add_gold', n) }));
+        if (sub === 'points') return [1, 5, 20].map((n) => ({ label: `+${n} Skill Web point${n === 1 ? '' : 's'}`, sub: `${c.webPoints} to spend now.`, action: run('web_points', n) }));
+        if (sub === 'webs') return c.webs.map((w) => ({ label: `${w.legendary ? '★ ' : ''}${w.label}${w.own ? ' (your class)' : ''}`, sub: w.left ? `${w.left} not learned yet.` : 'All learned.', disabled: !w.left, action: run('learn_web', w.id) }))
+            .concat([{ label: 'Legendary webs show here once open', sub: 'Open one under Legendary classes first.', disabled: true }].filter(() => !c.webs.some((w) => w.legendary)));
+        if (sub === 'legends') {
+            const out = [];
+            for (const l of c.legends) {
+                if (l.id === 'fenrirs_heir' && !l.open && l.stances) for (const st of l.stances) out.push({ label: `Open ${l.label}: ${st.name}`, sub: `As the Wolf\'s Wake awakening, starting in ${st.name}'s stance.`, action: run('awaken_legend', `fenrirs_heir ${st.id}`) });
+                else out.push({ label: l.open ? `${l.label} (open)` : `Open ${l.label}`, sub: l.open ? 'Learn its skills under Learn a whole web.' : l.id === 'devil_union' ? 'Binds Lucifero (the other demons are under Devil Union).' : l.flag ? 'As its story event does.' : 'Its story event isn\'t built yet: this needs its required evolutions too.', disabled: l.open, action: run('awaken_legend', l.id) });
+                if (l.trial) out.push({ label: `${l.trialPassed ? '✓ ' : ''}Pass ${l.trial.name}`, sub: `Unseals the second half of ${l.label}.`, disabled: l.trialPassed, action: run('pass_trial', l.id) });
+            }
+            out.push({ label: c.hollowKing ? 'The Hollow King (you are)' : 'Become the Hollow King', sub: 'A full transformation outside the webs: it replaces your class skills. Can\'t be undone in this save.', disabled: c.hollowKing, action: run('become_hollow_king') });
+            out.push({ label: `${c.eventsUnlocked ? '✓ ' : ''}Unlock story-event evolutions`, sub: 'Every evolution and node that waits on a story event.', disabled: c.eventsUnlocked, action: run('unlock_events') });
+            return out;
+        }
+        if (sub === 'unions') return [...c.unions.map((u) => ({ label: `${u.bound ? '✓ ' : 'Bind '}${u.name}`, sub: u.title, disabled: u.bound, action: run('bind_contract', u.id) })),
+            { label: 'Bind all four', sub: 'Every contract, as the Dominions give them.', disabled: c.unions.every((u) => u.bound), action: run('bind_all_contracts') },
+            { label: `${c.favor ? '✓ ' : ''}Demonkore's Favor`, sub: 'Unions last 3× as long and come back 30% sooner.', disabled: c.favor, action: run('demonkore_favor') }];
+        if (sub === 'items' && !mm.cheat.group) return c.itemGroups.map((g) => ({ label: g.label, sub: `${g.items.length} items`, action: () => { mm.cheat = { top: 'items', group: g.id }; enterList('cheats', 0); } }));
+        if (sub === 'items') {
+            const g = c.itemGroups.find((x) => x.id === mm.cheat.group) || { items: [] };
+            const defs = engine.itemDefinitions();
+            const have = (id) => engine.getState().player.inventory.filter((x) => x === id).length;
+            return g.items.map((id) => ({ label: `${engine.itemName(id)}${have(id) ? ` ×${have(id)}` : ''}`, sub: (defs[id] || {}).description || '', action: run('give_item', id) }));
+        }
+        if (sub === 'bosses') { const b = cheatBosses(); return b.length ? b.map((x) => ({ label: x.label, sub: x.sub, action: () => cheatTeleport(x.mapId) })) : [{ label: 'No bosses found', disabled: true }]; }
+        if (sub === 'areas') return Object.entries(WORLD.maps).map(([id, m]) => ({ id, name: m.name || id })).sort((a, b) => a.name.localeCompare(b.name))
+            .map((m) => ({ label: `${m.id === session.mapId ? '◆ ' : ''}${m.name}`, sub: m.id, action: () => cheatTeleport(m.id) }));
+        if (sub === 'finish' || sub === 'start') {
+            const order = { active: 0, available: 1, unseen: 2, complete: 3 };
+            return c.quests.filter((q) => (sub === 'finish' ? q.state !== 'complete' : q.state !== 'complete' && q.state !== 'active'))
+                .sort((a, b) => order[a.state] - order[b.state])
+                .map((q) => ({ label: q.title, sub: `${q.id} · ${q.kind} · ${q.state}`, action: run(sub === 'finish' ? 'finish_quest' : 'start_quest', q.id) }));
+        }
+        return [];
+    }
+    function cheatsPage(inList, list) {
+        const c = engine.cheatCatalog();
+        const title = !mm.cheat ? 'Dev cheats' : { level: 'Level', gold: 'Gold', points: 'Skill Web points', webs: 'Learn a whole web', legends: 'Legendary classes', unions: 'Devil Union',
+            items: 'Give items', bosses: 'Teleport to a boss', areas: 'Teleport to an area', finish: 'Finish a quest', start: 'Start a quest' }[mm.cheat.top || mm.cheat] || 'Dev cheats';
+        return `<h3>${esc(title)}</h3>${inList ? list : `<ul class="mm-plain"><li>God mode ${c.godMode ? 'on' : 'off'} · one-hit kills ${c.oneHit ? 'on' : 'off'}</li><li>Level ${c.level} · ${c.gold.toLocaleString()} Gold · ${c.webPoints} Skill Web points</li></ul>`}
+            <p class="mm-dim">For testing only. Cheats change this save the way play would, and mark it as cheated. Export a save first (Settings) if this is a run you care about.${c.inFight ? ' In a fight only god mode, one-hit, heal, gold and items work.' : ''}</p>`;
+    }
 
     // ---------------------------------------------------------------------
     // The crow (Nahemoth's first aspect, docs/design/ENSO_NAHEMOTH_CROW_ASPECT_AND_BLACK_FLIGHT.md).
@@ -2428,6 +2575,7 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
+        if (devMode && ev.key === '`' && !ev.repeat && !fade && !anim && !flash && !feathering) { openPause(null, 'cheats'); return; }   // dev cheats (devMode)
         if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
         if (isAct(ev)) interact();
