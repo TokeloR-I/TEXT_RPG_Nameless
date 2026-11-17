@@ -1986,6 +1986,7 @@
             hud.onAttack(() => { press.attack = true; });
             hud.onHeal(quickHeal);
             if (hud.onStance) hud.onStance(nextStance);
+            if (hud.onUnion) hud.onUnion(unionKey);
         }
     }
 
@@ -2001,6 +2002,7 @@
         if ((ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') && !fade && !flash && !feathering) { press.interact = true; return true; }
         if (ev.code === 'KeyH' || ev.key === 'h' || ev.key === 'H') { quickHeal(); return true; }
         if ((ev.code === 'KeyT' || ev.key === 't' || ev.key === 'T') && engine.getStance && engine.getStance()) { nextStance(); return true; }
+        if ((ev.code === 'KeyU' || ev.key === 'u' || ev.key === 'U') && engine.getUnion && engine.getUnion()) { unionKey(); return true; }
         return false;
     }
 
@@ -2012,6 +2014,19 @@
         const r = engine.act({ type: 'switch_stance', stance: cell.next });
         const line = (r.events || []).find((e) => e.type === 'text');
         toast(r.ok ? (line ? line.text : 'Stance changed.') : (r.error ? r.error.message : 'Not now.'));
+        updateHud();
+    }
+
+    /** U: Devil Union. In a fight, merge with the equipped demon; out of one, equip the next contracted demon. */
+    function unionKey() {
+        if (screen !== 'explore' || modal) return;
+        const cell = ENSO.actionHud && ENSO.actionHud.unionCell ? ENSO.actionHud.unionCell(engine) : null;
+        if (!cell) return;
+        const inFight = engine.getState().mode === 'combat';
+        if (!inFight && !cell.next) { toast(`Union: ${cell.id}. Call it in a fight.`); return; }
+        const r = engine.act(inFight ? { type: 'union' } : { type: 'equip_union', union: cell.next });
+        const line = (r.events || []).find((e) => e.type === 'text');
+        toast(r.ok ? (line ? line.text : 'Done.') : (r.error ? r.error.message : 'Not now.'));
         updateHud();
     }
 

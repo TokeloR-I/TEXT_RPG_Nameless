@@ -74,7 +74,17 @@ game says so yet (the reveal timing is Tokelo's call).
   only when the last is beaten, then the ruler **Lucifero** (candidate first ruler, Dark Souls tier boss). Beaten,
   he kneels in the binding circle; opening the grimoire there seals the first contract (`devil_union_contract`,
   `contract:lucifero`) and finishes CB2. The Devil Union class itself comes in the follow-up PR.
-- Saves: `CONTENT_REVISION` 18. A save that recruited James on the old easy invitation keeps him at home (catch-up
+- **Devil Union** (legendary class, prototype per `DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md`): Lucifero's
+  binding opens the `devil_union` web (`src/engine/union.js`). Equip one contracted demon out of a fight (U, or
+  `contract <name>`); in a fight U merges for 20 s on a 60 s cooldown (6 / 18 turns in turn fights): the demon's mods
+  apply and its three skills take the first bar slots. Two Qliphoth Resonance slots (`resonance <slot> <aspect>`;
+  Nahemoth: +5% speed while merged). Kits built: Lucifero (gravity), Beelzebub (space), Slotos (toughness), Plumede
+  (agility). Only Lucifero's Dominion exists, so the other three contracts come only from the `bind_contract` cheat
+  until their arenas are built. Varkhiel, Nerezza, Zareth, Malachar and Morvath are later steps of the brief.
+- **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
+  recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
+  **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.
+- Saves: `CONTENT_REVISION` 19 (catch-ups `devil_union_web`, `grimoire_origin`). A save that recruited James on the old easy invitation keeps him at home (catch-up
   `james_terms_kept`). Tests: `tests/101-james-bard.test.js`, scene in `tests/63-original-art.test.js`.
 
 ## How it joins Chapter One

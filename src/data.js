@@ -678,6 +678,27 @@
             'Gleipnir\'s Bane': { description: 'Break the chain: shed every stun, slow and debuff, and the next hit on you is absorbed.', liveDescription: 'Break the chain: shed every stun, slow and debuff, and absorb the next hit (12 s). 18 s cooldown.', cost: 1, cooldown: 18, resource: 'any', effects: [{ type: 'cleanse', categories: ['control', 'debuff'] }, { type: 'absorb_hit', duration: 2, say: 'breaks the chain, and the broken links hang round you like armour.' }], target: 'self' },
             'Twin Eclipse': { description: 'Sun and moon go dark at once: 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Sun and moon go dark at once around you (100 px): 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown. Any stance.', cost: 3, cooldown: 20, resource: 'any', base_damage: [14, 20], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
 
+            // Devil Union (Tokelo 2026-11-17, docs/design/DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md, prototype: "build now,
+            // rework later"). `union` = the demon you must be merged with (src/engine/union.js); while merged, its three skills sit
+            // over the first slots of your bar. Free to cast (the union's own 20 s window and 60 s cooldown are the budget).
+            // Numbers are the brief's candidate defaults turned into ENSO units (1 tile = 16 px in a live fight); Gauge tunes.
+            // Lucifero, gravity
+            'Gravity Well': { description: 'Gravity folds where you point: 8–12 dmg to every enemy there, dragged to its centre. Lucifero only.', liveDescription: 'Gravity folds on a spot up to 96 px away (48 px wide): 8–12 dmg to each enemy, dragged toward its centre (bosses hold). 15 s cooldown. Union with Lucifero.', cost: 0, cooldown: 15, resource: 'any', union: 'lucifero', base_damage: [8, 12], target: 'enemy_aoe', damage_type: 'shadow' },
+            'Heavy Field': { description: 'The air around you grows heavy as lead: 6–9 dmg to every enemy and slow them 25% for 2 turns. Lucifero only.', liveDescription: 'The air around you (48 px) grows heavy as lead: 6–9 dmg to each enemy, slowed 25% for 6 s. 18 s cooldown. Union with Lucifero.', cost: 0, cooldown: 18, resource: 'any', union: 'lucifero', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.25, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+            'Gravity Crush': { description: 'A falling star of weight on one spot: 24–32 dmg to every enemy there. Lucifero only.', liveDescription: 'Bring the weight of a falling star down on a spot up to 96 px away (32 px wide): 24–32 dmg to each enemy. 12 s cooldown. Union with Lucifero.', cost: 0, cooldown: 12, resource: 'any', union: 'lucifero', base_damage: [24, 32], target: 'enemy_aoe', damage_type: 'shadow' },
+            // Beelzebub, space
+            'Spatial Step': { description: 'Fold space and step through it, cutting what you pass: 10–14 dmg. Beelzebub only.', liveDescription: 'Fold space and step 80 px through it, cutting what stands where you land: 10–14 dmg. 8 s cooldown. Union with Beelzebub.', cost: 0, cooldown: 8, resource: 'any', union: 'beelzebub', base_damage: [10, 14], target: 'enemy_aoe', damage_type: 'physical' },
+            'Rift Exchange': { description: 'A rift opens behind one enemy and you are already there: 14–18 dmg. Beelzebub only.', liveDescription: 'A rift opens behind one enemy up to 80 px away and you step out of it: 14–18 dmg. 15 s cooldown. Union with Beelzebub. (Prototype: you land behind it; the full position swap comes later.)', cost: 0, cooldown: 15, resource: 'any', union: 'beelzebub', base_damage: [14, 18], target: 'enemy_single', damage_type: 'physical' },
+            'Spatial Cut': { description: 'Cut space itself in a line: 22–28 dmg to everything on it, half its armour ignored. Beelzebub only.', liveDescription: 'Cut space in a line 80 px long: 22–28 dmg to each enemy on it, half its armour ignored. 12 s cooldown. Union with Beelzebub.', cost: 0, cooldown: 12, resource: 'any', union: 'beelzebub', base_damage: [22, 28], effects: [{ type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_aoe', damage_type: 'physical' },
+            // Slotos, toughness
+            'Iron Hide': { description: 'Your hide sets like iron: take 25% less damage for 2 turns. Slotos only.', liveDescription: 'Your hide sets like iron: take 25% less damage for 6 s. 18 s cooldown. Union with Slotos.', cost: 0, cooldown: 18, resource: 'any', union: 'slotos', effects: [{ type: 'damage_reduction', value: 0.25, duration: 2 }], target: 'self' },
+            'Brace': { description: 'Plant your feet: the next hit on you is absorbed. Slotos only.', liveDescription: 'Plant your feet: the next hit on you is absorbed (6 s). 20 s cooldown. Union with Slotos. (Prototype: a one-hit shield; the 20%-of-max-HP shield comes later.)', cost: 0, cooldown: 20, resource: 'any', union: 'slotos', effects: [{ type: 'absorb_hit', duration: 2, say: 'braces, and the ground braces with you.' }], target: 'self' },
+            'Stampede': { description: 'Trample everything around you: 16–22 dmg to every enemy. Slotos only.', liveDescription: 'Trample everything around you (32 px): 16–22 dmg to each enemy. 10 s cooldown. Union with Slotos.', cost: 0, cooldown: 10, resource: 'any', union: 'slotos', base_damage: [16, 22], target: 'enemy_aoe', damage_type: 'physical' },
+            // Plumede, agility
+            'Fleet Form': { description: 'Feathers of shadow at your heels: swings and cooldowns 25% faster for 2 turns. Plumede only.', liveDescription: 'Feathers of shadow at your heels: your swings and cooldowns run 25% faster for 6 s. 15 s cooldown. Union with Plumede.', cost: 0, cooldown: 15, resource: 'any', union: 'plumede', effects: [{ type: 'self_buff', name: 'Fleet Form', status_type: 'haste', value: 0.25, duration: 2 }], target: 'self' },
+            'Blink Feint': { description: 'Blink in and strike one enemy: 14–18 dmg. Plumede only.', liveDescription: 'Blink 48 px forward and strike one enemy in front of you: 14–18 dmg. 10 s cooldown. Union with Plumede.', cost: 0, cooldown: 10, resource: 'any', union: 'plumede', base_damage: [14, 18], target: 'enemy_single', damage_type: 'physical' },
+            'Quick Flurry': { description: 'Three strikes faster than the eye: 3 × 8–10 dmg to one enemy. Plumede only.', liveDescription: 'Three strikes faster than the eye at one enemy in front of you: 3 × 8–10 dmg. 12 s cooldown. Union with Plumede.', cost: 0, cooldown: 12, resource: 'any', union: 'plumede', base_damage: [8, 10], effects: [{ type: 'multi_hit', count: 3 }], target: 'enemy_single', damage_type: 'physical' },
+
             'Eternal Lich Unmake': { description: 'Eternal Lich erases one non-boss enemy from this fight.', cost: 5, resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'eternal_lich_unmake' }], target: 'enemy_single', damage_type: 'true' },
 
             // Hollow King Skills
@@ -1144,6 +1165,46 @@
                             trait: { name: 'Fenrir Unbound', effect: 'Gleipnir is broken: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
                 },
+                // Devil Union (Tokelo 2026-11-17, prototype authorized): opens with the first demon contract (CB2's binding circle,
+                // `devil_union_contract`). Additive like every legendary web. Rules: src/engine/union.js; brief:
+                // docs/design/DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md. All numbers are the brief's candidates (Gauge).
+                devil_union: {
+                    requires: { stages: [], flag: 'devil_union_contract', event: 'a first contract sealed in a Dominion\'s binding circle' },
+                    ranks: [{ name: 'Bound', at: 1 }],
+                    // A modest heart: the union window is the class's burst, so the always-on part stays small.
+                    heartTraits: [{ name: 'Infernal Contract', effect: 'A pact sits on your soul: +10% damage.', mods: { damageDealt: 0.1 } }],
+                    unions: {
+                        durationSeconds: 20, cooldownSeconds: 60, durationTurns: 6, cooldownTurns: 18, resonanceSlots: 2,
+                        // Demonkore's Favor (DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md): the director's exact multipliers.
+                        favor: { flag: 'demonkore_favor', durationMult: 3, cooldownMult: 0.7 },
+                        list: {
+                            lucifero: { name: 'Lucifero', title: 'Ruler of the First Dominion', power: 'Gravity', contract: 'contract:lucifero', mods: { damage: 0.15 },
+                                skills: ['Gravity Well', 'Heavy Field', 'Gravity Crush'], say: 'Lucifero\'s weight settles into your bones. The ground leans toward you.' },
+                            beelzebub: { name: 'Beelzebub', title: 'Ruler of a Dominion not yet found', power: 'Space', contract: 'contract:beelzebub', mods: { damage: 0.1, speed: 0.1 },
+                                skills: ['Spatial Step', 'Rift Exchange', 'Spatial Cut'], say: 'The distance between things stops meaning much.' },
+                            slotos: { name: 'Slotos', title: 'Ruler of a Dominion not yet found', power: 'Toughness', contract: 'contract:slotos', mods: { defence: 0.25 },
+                                skills: ['Iron Hide', 'Brace', 'Stampede'], say: 'Your skin thickens like old bark. Blows feel far away.' },
+                            plumede: { name: 'Plumede', title: 'Ruler of a Dominion not yet found', power: 'Agility', contract: 'contract:plumede', mods: { speed: 0.2, damage: 0.05 },
+                                skills: ['Fleet Form', 'Blink Feint', 'Quick Flurry'], say: 'Black feathers at your heels. Everything else moves slowly.' }
+                        },
+                        // Qliphoth Resonance: aspects you already hold, a small boost each while a union is active (two slots).
+                        resonance: {
+                            nahemoth: { name: 'Nahemoth', flag: 'aspect_nahemoth', mods: { speed: 0.05 }, text: '+5% movement speed while in union.' }
+                        }
+                    },
+                    nodes: [
+                        // Each union grows on its own branch (Bound -> Awakened -> Dominant -> Perfect Union), only with its contract.
+                        ...[['lucifero', 'Lucifero', 'Gravity'], ['beelzebub', 'Beelzebub', 'Space'], ['slotos', 'Slotos', 'Toughness'], ['plumede', 'Plumede', 'Agility']]
+                            .flatMap(([id, name, power]) => [
+                                { id: `devil_union.${id}_awakened`, kind: 'passive', union: id, contract: `contract:${id}`, minLevel: 6, links: ['heart.devil_union'],
+                                    unionMods: { damage: 0.05 }, trait: { name: `${name} Awakened`, effect: `In union with ${name}: +5% damage.`, mods: {} } },
+                                { id: `devil_union.${id}_dominant`, kind: 'passive', union: id, contract: `contract:${id}`, minLevel: 10, links: [`devil_union.${id}_awakened`],
+                                    unionMods: { damage: 0.05, defence: 0.05 }, trait: { name: `${name} Dominant`, effect: `In union with ${name}: +5% damage, 5% less damage taken.`, mods: {} } },
+                                { id: `devil_union.${id}_perfect`, kind: 'passive', union: id, contract: `contract:${id}`, minLevel: 14, links: [`devil_union.${id}_dominant`],
+                                    unionMods: { damage: 0.1, defence: 0.05, speed: 0.05 }, trait: { name: `Perfect Union: ${name}`, effect: `${power} made flesh. In union with ${name}: +10% damage, 5% less damage taken, +5% speed.`, mods: {} } }
+                            ])
+                    ]
+                },
                 // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
                 reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
             }
@@ -1194,6 +1255,15 @@
                 signatureSkill: 'Twin Eclipse',
                 ranks: ['Heir of the Wolf', 'Sun-and-Moon Hunter', 'Fenrir Unbound'],
                 lore: 'Not his child. His heir: the one who picked up what he left when the chain went on.'
+            },
+            'devil_union': {
+                name: 'Devil Union',
+                description: 'Contracts with the rulers of the Underworld\'s Dominions, and the power to become one with them for a short while.',
+                unlockPath: 'CB2: reach the First Dominion beneath the homestead well, survive its five waves and its ruler, and seal the first contract.',
+                mechanic: 'Equip one contracted demon out of a fight; in a fight, merge with it for 20 s (60 s cooldown): its skills take your first slots and its power is yours. Two Qliphoth Resonance slots add small boosts while merged.',
+                signatureSkill: 'Gravity Crush',
+                ranks: ['Bound', 'Awakened', 'Dominant', 'Perfect Union'],
+                lore: 'A contract is not ownership. It is two names written in the same book.'
             },
             'reality_breaker': {
                 name: 'Reality Breaker',
@@ -1555,6 +1625,19 @@
                     'Night\'s Dominion': { shape: 'circle', radius: 80, castMs: 400 },
                     'Devour the Moon':   { shape: 'circle', radius: 120, castMs: 600, pullPx: 48 },
                     'Twin Eclipse':      { shape: 'circle', radius: 100, castMs: 450 },
+                    // Devil Union (union.js): a ground shape with pullPx drags toward the spot (Gravity Well), not toward you.
+                    'Gravity Well':      { shape: 'ground', range: 96, radius: 48, castMs: 300, pullPx: 30 },
+                    'Heavy Field':       { shape: 'circle', radius: 48, castMs: 250 },
+                    'Gravity Crush':     { shape: 'ground', range: 96, radius: 32, castMs: 450 },
+                    'Spatial Step':      { shape: 'dash', dashPx: 80, dashMs: 120, reach: 24, arcDeg: 120, castMs: 80, iframeMs: 120 },
+                    'Rift Exchange':     { shape: 'dash', teleport: true, range: 80, behindPx: 16, aimConeDeg: 30, castMs: 150, iframeMs: 150, los: true },
+                    'Spatial Cut':       { shape: 'line', reach: 80, width: 16, castMs: 300 },
+                    'Iron Hide':         { shape: 'self', castMs: 150 },
+                    'Brace':             { shape: 'self', castMs: 150 },
+                    'Stampede':          { shape: 'circle', radius: 32, castMs: 250 },
+                    'Fleet Form':        { shape: 'self', castMs: 100 },
+                    'Blink Feint':       { shape: 'dash', dashPx: 48, dashMs: 100, reach: 22, arcDeg: 90, castMs: 80, maxTargets: 1 },
+                    'Quick Flurry':      { shape: 'arc', reach: 24, arcDeg: 90, castMs: 220, maxTargets: 1 },
                     'mirrorImage':       { shape: 'self', castMs: 200, decoyMs: 3000 },
                     'haste':             { shape: 'self', castMs: 200 },
                     'Whirlwind':         { shape: 'circle', radius: 30, castMs: 200 }

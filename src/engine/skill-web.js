@@ -307,6 +307,7 @@
             if (trial && !(this.hasStoryFlag && this.hasStoryFlag(trial.flag)) && !this.flags.eventsUnlocked) return { code: 'TRIAL_LOCKED', message: `${n.label} opens after ${trial.name}.` };
             const needed = (n.needs || []).filter((x) => !this.webOwns(x));
             if (needed.length) return { code: 'NEEDS_NODES', message: `${n.label} needs ${needed.map((x) => web.nodes.get(x).label).join(', ')} first.` };
+            if (n.contract && !(this.hasStoryFlag && this.hasStoryFlag(n.contract)) && !this.flags.eventsUnlocked) return { code: 'CONTRACT_LOCKED', message: `${n.label} needs a contract you don't hold yet.` };   // Devil Union branches (union.js)
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
             if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
             const pts = this.webPoints();

@@ -1195,3 +1195,7 @@ body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%,
 .ahud-slot.stance[data-stance="skoll"] .glyph { color: #ffb040; }
 .ahud-slot.stance[data-stance="hati"] .glyph { color: #a080e0; }
 .ahud-slot.stance .secs { position: absolute; right: calc(var(--ap) * 1); top: 0; font-size: clamp(9px, calc(var(--ap) * 4.5), 11px); color: var(--c-ink-dim); }
+.ahud-slot.union { cursor: pointer; }
+.ahud-slot.union .glyph { font-size: 1.05em; line-height: 1; top: 0; z-index: 3; color: #d0503a; }
+.ahud-slot.union.is-active { box-shadow: 0 0 0 2px #d0503a inset, 0 0 8px rgba(208, 80, 58, 0.6); }
+.ahud-slot.union .secs { position: absolute; right: calc(var(--ap) * 1); top: 0; font-size: clamp(9px, calc(var(--ap) * 4.5), 11px); color: var(--c-ink-dim); }

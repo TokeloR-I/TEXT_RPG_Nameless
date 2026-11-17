@@ -109,6 +109,9 @@
                 case 'set_specialization': this.setSpecialization(String(a.branchId || '')); return;
                 case 'set_web_guide': this.setWebGuide(a.branchId == null ? null : String(a.branchId)); return;
                 case 'switch_stance': this.switchStance(String(a.stance || '')); return;   // legendary stances (stance.js)
+                case 'equip_union': this.equipUnion(String(a.union || '')); return;   // Devil Union (union.js)
+                case 'set_resonance': this.setResonance(a.slot, a.aspect == null ? null : String(a.aspect)); return;
+                case 'union': this.activateUnion(); return;
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
                 case 'cheat': this.cheat(a.cheat, a.amount); return;
@@ -141,6 +144,13 @@
                     this.applyStoryEffects([{ flag: 'fenrir_heir_awakened' }, { legend: 'fenrirs_heir' }, { stance: String(amount || 'skoll') }]);
                     return;
                 }
+                case 'bind_contract': {   // a Devil Union contract without its Dominion (only Lucifero's arena is built)
+                    if (!this.story) { this.refuse('WRONG_MODE', 'Devil Union needs the story: play in the world.'); return; }
+                    const id = String(amount || 'lucifero').toLowerCase();
+                    this.say(`[cheat] A contract with ${id} is sealed.`);
+                    this.applyStoryEffects([{ flag: 'devil_union_contract' }, { flag: `contract:${id}` }, { legend: 'devil_union' }, { event: { type: 'story', id: 'devil_union_contract' } }]);
+                    return;
+                }
                 default: this.refuse('UNKNOWN_ACTION', `Unknown cheat '${name}'.`);
             }
         }
@@ -150,6 +160,8 @@
             const p = this.player;
             if (WEB_ACTIONS.has(a.type)) { const busy = this.webCombatProblem(); this.refuse(busy.code, busy.message); return; }
             if (a.type === 'switch_stance') { this.switchStance(String(a.stance || '')); return; }   // any fight mode; never uses the turn
+            if (a.type === 'union') { this.activateUnion(); return; }   // Devil Union (union.js): any fight mode; never uses the turn
+            if (a.type === 'equip_union' || a.type === 'set_resonance') { this.refuse('IN_COMBAT', "You can't change your contract or resonance in a fight."); return; }
             if (this.rtActive()) { if (a.type === 'set_skill_slot') this.setSkillSlot(a.slot, a.skillId); else this.rtPerformCombat(a); return; }   // combat v2 (realtime.js)
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
             if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)
@@ -167,7 +179,7 @@
                 case 'skill': {
                     const name = a.skillId;
                     if (!name || !this.data.skillDefinitions[name]) { this.refuseCombat('UNKNOWN_SKILL', `Unknown skill '${name}'.`); return; }
-                    if (!p.skills.includes(name) && name !== this.basicAttackName()) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return; }
+                    if (!p.skills.includes(name) && !this.unionGrants(name) && name !== this.basicAttackName()) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return; }
                     this.useSkill(name, { ids }, {});
                     return;
                 }
@@ -248,6 +260,8 @@
             }
             const stance = this.stanceProblem({ ...skill, name: skillName });   // legendary stances (stance.js)
             if (stance) { this.refuseCombat(stance.code, stance.message); return; }
+            const union = this.unionProblem({ ...skill, name: skillName });   // Devil Union skills (union.js)
+            if (union) { this.refuseCombat(union.code, union.message); return; }
             const timing = this.rtActionProblem(skillName, !!opts.viaAttack || skillName === basic);   // real-time only: stun, cooldowns
             if (timing) { this.refuseCombat(timing.code, timing.message); return; }
             const cost = this.skillCost(skill);
@@ -390,7 +404,7 @@
                 for (const item of room.items) actions.push({ type: 'take', item, enabled: true });
                 if (room.enemies.length) actions.push({ type: 'engage', enabled: true });
             }
-            actions.push(...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability());
+            actions.push(...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability(), ...this.unionAvailability());
             if (this.pendingLoot().length) {
                 const reason = this.lootCreditBlock();
                 actions.push({ type: 'claim_loot', enabled: !reason, ...(reason ? { reason } : {}) });
@@ -463,7 +477,7 @@
             const attack = this.skillAvailability(basic, true);
             attack.type = 'attack';
             const skills = p.skills.map((name) => this.skillAvailability(name, false));
-            return [attack, ...skills, ...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability(), { type: 'flee', enabled: true }];
+            return [attack, ...skills, ...this.itemAvailability(), ...[this.quickHealAvailability()].filter(Boolean), ...this.stanceAvailability(), ...this.unionAvailability(), { type: 'flee', enabled: true }];
         }
 
         /** One skill's option: same checks, same order and same messages as useSkill(). */
@@ -482,6 +496,8 @@
             if (skill.oncePerFight && c.usedOncePerFight[name]) return fail('ONCE_PER_FIGHT', `${name} can only be used once per fight!`);
             const stance = this.stanceProblem({ ...skill, name });
             if (stance) return fail(stance.code, stance.message);
+            const union = this.unionProblem({ ...skill, name });
+            if (union) return fail(union.code, union.message);
             if (this.rtActive()) {
                 const cdMs = opt.isBasic ? this.rtIntervalMs(p) : this.rtCooldownMs(name);
                 opt.cooldownMs = cdMs;
