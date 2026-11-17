@@ -372,13 +372,13 @@
         }
     });
 
-    function slow(ctx, t, value, duration) {
-        const inst = ctx.engine.applyStatus(ctx.caster, t, { name: 'Slow', type: 'slow', value, duration });
-        if (inst) ctx.engine.say(`${t.name} is slowed (-${Math.round(inst.value * 100)}% speed).`); // after Control Resistance
+    function slow(ctx, t, value, duration, name = 'Slow') {
+        const inst = ctx.engine.applyStatus(ctx.caster, t, { name, type: 'slow', value, duration });
+        if (inst) ctx.engine.say(name === 'Slow' ? `${t.name} is slowed (-${Math.round(inst.value * 100)}% speed).` : `${t.name} gets [${name}] (-${Math.round(inst.value * 100)}% speed).`); // after Control Resistance
     }
-    register('slow', { // Caltrops
+    register('slow', { // Caltrops. `status`: a Slow under its own name (LEG CRAMP! gives [Leg Cramp]); still type 'slow', movement only
         applies: { name: 'Slow', type: 'slow' }, // control status (Control Resistance hints in getAvailableActions)
-        apply(ctx) { for (const t of living(ctx)) slow(ctx, t, ctx.effect.value, ctx.effect.duration); }
+        apply(ctx) { for (const t of living(ctx)) slow(ctx, t, ctx.effect.value, ctx.effect.duration, ctx.effect.status || 'Slow'); }
     });
     register('slow_chance', { // Ice Lance: 30% chance to slow (by 50%)
         applies: { name: 'Slow', type: 'slow' }, // control status (Control Resistance hints in getAvailableActions)

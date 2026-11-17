@@ -749,6 +749,9 @@
             // Lucifero, gravity
             'Gravity Well': { description: 'Gravity folds where you point: 8–12 dmg to every enemy there, dragged to its centre. Lucifero only.', liveDescription: 'Gravity folds on a spot up to 96 px away (48 px wide): 8–12 dmg to each enemy, dragged toward its centre (bosses hold). 15 s cooldown. Union with Lucifero.', cost: 0, cooldown: 15, resource: 'any', union: 'lucifero', base_damage: [8, 12], target: 'enemy_aoe', damage_type: 'shadow' },
             'Heavy Field': { description: 'The air around you grows heavy as lead: 6–9 dmg to every enemy and slow them 25% for 2 turns. Lucifero only.', liveDescription: 'The air around you (48 px) grows heavy as lead: 6–9 dmg to each enemy, slowed 25% for 6 s. 18 s cooldown. Union with Lucifero.', cost: 0, cooldown: 18, resource: 'any', union: 'lucifero', base_damage: [6, 9], effects: [{ type: 'slow', value: 0.25, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+            // Shane's shout (docs/design/SHANE_LEG_CRAMP_SIDE_QUEST_DESIGN.md, Gauge/Thorne numbers 2026-11-17): every class learns it
+            // from his side quest S02. Movement only: attack speed is untouched. Bosses go through Control Resistance like any Slow.
+            'LEG CRAMP!': { description: 'Shout it at everything around you: every enemy nearby gets [Leg Cramp], 35% slower for 2 turns. No damage.', liveDescription: 'Shout it at everything within 64 px: each enemy gets [Leg Cramp], moving 35% slower for 6 s (their attacks are as fast as ever). 20 s cooldown. Shane taught you this. Sort of.', cost: 0, cooldown: 20, resource: 'any', effects: [{ type: 'slow', status: 'Leg Cramp', value: 0.35, duration: 2 }], target: 'enemy_aoe', damage_type: 'utility' },
             'Gravity Crush': { description: 'A falling star of weight on one spot: 24–32 dmg to every enemy there. Lucifero only.', liveDescription: 'Bring the weight of a falling star down on a spot up to 96 px away (32 px wide): 24–32 dmg to each enemy. 12 s cooldown. Union with Lucifero.', cost: 0, cooldown: 12, resource: 'any', union: 'lucifero', base_damage: [24, 32], target: 'enemy_aoe', damage_type: 'shadow' },
             // Beelzebub, space
             'Spatial Step': { description: 'Fold space and step through it, cutting what you pass: 10–14 dmg. Beelzebub only.', liveDescription: 'Fold space and step 80 px through it, cutting what stands where you land: 10–14 dmg. 8 s cooldown. Union with Beelzebub.', cost: 0, cooldown: 8, resource: 'any', union: 'beelzebub', base_damage: [10, 14], target: 'enemy_aoe', damage_type: 'physical' },
@@ -787,6 +790,8 @@
             'g': 'Guard',
             'ps': 'Power Strike',
             'wc': 'War Cry',
+            'lc': 'LEG CRAMP!',
+            'leg cramp': 'LEG CRAMP!',
             'bs': 'Backstab',
             'e': 'Evasion',
             'qs': 'Quick Slash',
@@ -1075,7 +1080,10 @@
                 { id: 'elementalist.ice_lance', kind: 'active', region: 'mage', branch: 'elementalist', skill: 'Ice Lance', minLevel: 5, links: ['elementalist.1.trait'] },
                 { id: 'bone_warden.shield_of_the_dead', kind: 'active', region: 'necromancer', branch: 'bone_warden', skill: 'Shield of the Dead', minLevel: 5, links: ['bone_warden.1.trait'] },
                 { id: 'plaguecaller.corpse_bloom', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Corpse Bloom', minLevel: 5, links: ['plaguecaller.1.trait'] },
-                { id: 'plaguecaller.plague_wind', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Plague Wind', minLevel: 11, links: ['plaguecaller.corpse_bloom'] }
+                { id: 'plaguecaller.plague_wind', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Plague Wind', minLevel: 11, links: ['plaguecaller.corpse_bloom'] },
+                // Taught, not bought (`taught`: the story flag that teaches it): Shane's LEG CRAMP! (side quest S02) joins your own
+                // class web free the moment his demonstration lands on you, and can't be unlearned. One node per class web.
+                ...['warrior', 'rogue', 'mage', 'necromancer'].map((c) => ({ id: `${c}.leg_cramp`, kind: 'active', region: c, skill: 'LEG CRAMP!', cost: 0, taught: 'leg_cramp_learned', links: [`heart.${c}`] }))
             ],
             // Gateways (Tokelo 2026-11-02): nodes at the edge of a class web that open a path into another class's web.
             // A gateway hangs from `from` (in its own web) and leads to `to` (in the other web). One way only: each class
@@ -1388,6 +1396,7 @@
             'Entranced':        { category: 'control', control: 'hard' },
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
             'Slow':             { category: 'debuff',  control: 'soft' },   // speed only, never skips a turn (Keel §2)
+            'Leg Cramp':        { category: 'debuff',  control: 'soft' },   // Shane's shout: a Slow by another name (movement only)
             'Blind':            { category: 'debuff',  control: false },    // a hit-chance debuff, not control
             'Possessed':        { category: 'control', control: 'hard', refuseTiers: ['boss'], refuseAtCr: 75 }, // N-5: refused before cost for bosses and at 75+ CR
             // --- marks
@@ -1692,6 +1701,7 @@
                     // Devil Union (union.js): a ground shape with pullPx drags toward the spot (Gravity Well), not toward you.
                     'Gravity Well':      { shape: 'ground', range: 96, radius: 48, castMs: 300, pullPx: 30 },
                     'Heavy Field':       { shape: 'circle', radius: 48, castMs: 250 },
+                    'LEG CRAMP!':        { shape: 'circle', radius: 64, castMs: 250 },   // Gauge 2026-11-17: Shane's shout
                     'Gravity Crush':     { shape: 'ground', range: 96, radius: 32, castMs: 450 },
                     'Spatial Step':      { shape: 'dash', dashPx: 80, dashMs: 120, reach: 24, arcDeg: 120, castMs: 80, iframeMs: 120 },
                     'Rift Exchange':     { shape: 'dash', teleport: true, range: 80, behindPx: 16, aimConeDeg: 30, castMs: 150, iframeMs: 150, los: true },

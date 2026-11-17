@@ -107,7 +107,7 @@ game says so yet (the reveal timing is Tokelo's call).
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.
-- Saves: `CONTENT_REVISION` 20 (catch-ups `devil_union_web`, `grimoire_origin`; 20 adds the three Dominions, no catch-up needed). A save that recruited James on the old easy invitation keeps him at home (catch-up
+- Saves: `CONTENT_REVISION` 21 (catch-ups `devil_union_web`, `grimoire_origin`; 21 adds the three Dominions, no catch-up needed). A save that recruited James on the old easy invitation keeps him at home (catch-up
   `james_terms_kept`). Tests: `tests/101-james-bard.test.js`, scene in `tests/63-original-art.test.js`.
 
 ## How it joins Chapter One

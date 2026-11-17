@@ -165,7 +165,15 @@
         controlsInverted() { return !!this.player && this.player.statusEffects.some((s) => s.type === 'drunk'); }
 
         /** Pure. The player's walking speed multiplier from food. */
-        playerMoveMult() { return (1 + this.foodMod(this.player, 'speed')) * (1 + (this.stanceMod ? this.stanceMod(this.player, 'speed') : 0)) * (1 + (this.unionMod ? this.unionMod(this.player, 'speed') : 0)); }   // meals, stance bond, Devil Union
+        playerMoveMult() { return this.calmSlowMult() * (1 + this.foodMod(this.player, 'speed')) * (1 + (this.stanceMod ? this.stanceMod(this.player, 'speed') : 0)) * (1 + (this.unionMod ? this.unionMod(this.player, 'speed') : 0)); }   // meals, stance bond, Devil Union
+
+        /** Out of a fight, slows on you still hold your legs (Shane's 20 s Leg Cramp). In an action fight the engine's view
+         *  already carries them (actionView player.speedMult), so this is 1 there and they never count twice. */
+        calmSlowMult() {
+            const p = this.player;
+            if (!p || (this.actionActive && this.actionActive())) return 1;
+            return p.statusEffects.filter((s) => s.type === 'slow' || s.type === 'speed_down').reduce((m, s) => m * (1 - Math.min(0.9, Number(s.value) || 0.3)), 1);
+        }
 
         /** Food regeneration for `ms` of time (fight pulses, calm ticks). Quiet; fractions carry on the player. */
         foodRegen(ms) {

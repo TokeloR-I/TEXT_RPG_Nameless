@@ -116,6 +116,9 @@
         //   rules themselves (src/engine/exploration.js), so a station's dialogue and the text commands share one path
         //   { legend: webId }: a legendary Skill Web opens to you, its heart free (src/engine/gaze.js)
         //   { stance: id }: stand in that stance of your legendary web (Fenrir's Heir's first wolf, src/engine/stance.js)
+        //   { playerStatus: { name, type, value, seconds, duration } }: a timed status on you, through applyStatus (calm clock
+        //   out of a fight; `duration` is its length in turns where there is no clock). { teach: skill }: own that skill's
+        //   taught Skill Web node in your class web (src/engine/skill-web.js); set its `taught` flag first
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
         //   { pay: n }: hand over n Gold from your purse (gate the choice with the condition `gold: n`; never goes below 0)
         //   { dice: { stake, win } }: a wager on two six-sided dice each, from the seeded saved rng (Sven's lute, CB1):
@@ -153,6 +156,8 @@
                 if (e.stash && this.story.dialogue) this.story.dialogue.stash = true;
                 if (e.start) this.startQuest(e.start, opts);
                 if (e.legend) this.awakenLegend(String(e.legend));
+                if (e.playerStatus) this.applyTimedPlayerStatus({ ...e.playerStatus });   // a timed status on you (Shane's 20 s Leg Cramp)
+                if (e.teach) this.webTeach(String(e.teach));   // a taught Skill Web node, free (needs its `taught` flag set first)
                 if (e.stance) this.setStance(String(e.stance));   // the first stance a legendary web gives you (stance.js)
                 if (e.event) this.storyEvent(e.event);
             }

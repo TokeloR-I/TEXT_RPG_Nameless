@@ -66,3 +66,25 @@ Shane already sells seeds, including cannabis seed in the current cooking design
 - **Creative Director:** Approved concept, 20-second training consequence and exact celebration line.
 - **Gauge / Thorne:** Numeric balance and status interactions.
 - **Narrative / implementation team:** Dialogue, quest triggers, UI and save-state integration.
+
+## Gauge / Thorne numbers (2026-11-17)
+
+Target: a cornered player of any class can walk (not sprint) away from a regular mob or buy roughly 6 s to drink or heal, once per fight phase; against bosses it is a short breather, never a lock.
+
+| Value | Set | Why |
+| --- | --- | --- |
+| Engine shape | `{ shape: 'circle', radius: 64, castMs: 250 }` | Same reach as Black Maw (64 px), wider than Heavy Field (48 px) because it deals no damage; well under Gale of Pinions (160 px), which is a class skill. 250 ms cast like Heavy Field so it works as a panic button. |
+| Movement slow | 35% | Top of the enemy Slow rider range (25-35%). Mob pursuit 84 px/s becomes 55 px/s, below player walk speed (72), so you escape without spending stamina. Below Caltrops/Gale/Black Maw (50%), which are class kits. Attack speed unaffected. |
+| Enemy duration | 6 s | House standard for every slow (Caltrops, Heavy Field, Gale, Black Maw); long enough to open about 80 px or finish an item use (0.5 s). |
+| Turn-based duration | 2 turns | 2 x `secondsPerTurn` (3) = 6 s, same as the other slows. |
+| Cooldown | 20 s | 30% uptime; a hair longer than Heavy Field (18 s) since every class gets it for free on top of its kit. |
+| Cost / resource | 0, `'any'` | Same as other learned non-class skills (Heavy Field, Black Maw); no class pays for a quest reward. |
+| Bosses | Yes, through the central Control Resistance policy only | Slow is soft control. Bosses start at CR 60: first cast is 35% for 1 turn-cap (3 s), then CR 80 halves the next to 17% for 3 s, decaying back. Enough to drink a potion after the Crow Warden, never enough to kite a boss to death. No special case. |
+| Stacking | One Leg Cramp per enemy; recast refreshes | Existing Slow rule. Leg Cramp is its own status (type `slow`), so it never stacks with itself, but with a different slow (Caltrops, Gale) the two multiply, each capped at 90% as today. |
+| Training debuff | 20 s on the player, 35% | Fixed by the Creative Director; uses the same Leg Cramp status, player CR 0. |
+
+Skill data shape (for Wren): `cost: 0, cooldown: 20, resource: 'any', effects: [{ type: 'slow', value: 0.35, duration: 2 }], target: 'enemy_aoe', damage_type: 'utility'`.
+
+Tally to check: Leg Cramp in a Chapter One regular pack (walk-away success, seeds 1-20) and one Crow Warden-tier boss fight (win rate change under 3 points vs. without the shout).
+
+Gauge — Systems & Balance Designer

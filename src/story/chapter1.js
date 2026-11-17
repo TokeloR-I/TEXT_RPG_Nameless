@@ -264,6 +264,19 @@
         // The Watch Captain gives it when the register comes back. Five households, five favours, in the parts of
         // Shamefield nobody had a reason to visit: the Kloster herb garden, the mill falls, the rye field, the church,
         // the south houses. XP and Gold here are candidates for Gauge.
+        // A Cramping Experience (docs/design/SHANE_LEG_CRAMP_SIDE_QUEST_DESIGN.md, Tokelo 2026-11-17): optional, at the homestead
+        // once Shane has his stall. Three common ingredients, one demonstration (on you: Leg Cramp, exactly 20 s), and his shout
+        // LEG CRAMP! is yours (a taught Skill Web node, skillWeb.extraNodes). Blocks nothing in either chapter.
+        S02: {
+            title: 'A Cramping Experience', kind: 'side', xp: 15, candidate: true,
+            summary: "Shane says he has perfected a combat technique that can bring even a mighty warrior to their knees. He needs a willing assistant, and three ingredients.",
+            objectives: [
+                { id: 'gather', text: "Bring Shane Wild Herbs (wild herbs by the roads, or his stall), Chanterelles (the woods along the homestead road and the orchard) and a Potato (grow a Seed Potato in your field)",
+                    on: { type: 'story', id: 'shane_cramp_ingredients' }, marker: { map: 'grounds', x: 9, y: 11 } },
+                { id: 'demo', text: 'Let Shane demonstrate his technique', on: { type: 'story', id: 'shane_cramp_demo' }, marker: { map: 'grounds', x: 9, y: 11 } }
+            ],
+            onComplete: []
+        },
         L01: {
             // Main path from Tokelo 2026-11-04 until the Broken Crown rework (2026-11-11): all six favours are optional now.
             // Two of them are enough for the Captain to trust you with the road (C1-N02); all six earn the village's thanks.
@@ -1081,8 +1094,56 @@
                     effects: [{ flag: 'farm_intro_offered' }],
                     choices: [
                         shop('shane'),
-                        { text: 'Tell me about farming.', to: 'farm' }
+                        { text: 'Tell me about farming.', to: 'farm' },
+                        // A Cramping Experience (S02)
+                        { text: 'You look very pleased with yourself.', if: { any: [{ quests: { S02: 'unseen' } }, { quests: { S02: 'available' } }] }, to: 'cramp_offer' },
+                        { text: "I've brought your herbs, mushrooms and potato.", if: { quests: { S02: 'active' }, notFlags: ['shane_cramp_brought'], has: { 'Wild Herbs': 1, 'Chanterelles': 1, 'Potato': 1 } }, to: 'cramp_mix' },
+                        { text: 'What did you need again?', if: { quests: { S02: 'active' }, notFlags: ['shane_cramp_brought'] }, to: 'cramp_list' },
+                        { text: 'About that technique. What does it do?', if: { quests: { S02: 'active' }, flags: ['shane_cramp_brought'] }, to: 'cramp_demo' }
                     ]
+                },
+                cramp_offer: {
+                    lines: [
+                        ['npc', "I am. I've perfected a combat technique. One that can bring even a mighty warrior to their knees."],
+                        ['npc', "All I need is a willing assistant and three ingredients. Wild Herbs, Chanterelles and one Potato. Nothing exotic."]
+                    ],
+                    effects: [{ available: 'S02' }],
+                    choices: [{ text: "I'll find them.", effects: [{ start: 'S02' }], end: true }, { text: 'Not right now.', end: true }]
+                },
+                cramp_list: {
+                    lines: [
+                        ['npc', "Wild Herbs, from the verges or from me. Chanterelles, from the woods along your road. One Potato: plant a Seed Potato in your field."],
+                        ['npc', 'One of each. The technique does the rest.']
+                    ],
+                    choices: [shop('shane')]
+                },
+                cramp_mix: {
+                    lines: [
+                        [null, 'Shane tips the herbs, the chanterelles and the potato into a mortar and grinds them into a grey paste. He eats a spoonful.'],
+                        ['npc', "Excellent! I've perfected a technique that can bring even the mightiest warrior to his knees!"]
+                    ],
+                    effects: [{ removeItem: 'Wild Herbs' }, { removeItem: 'Chanterelles' }, { removeItem: 'Potato' }, { flag: 'shane_cramp_brought' },
+                        { event: { type: 'story', id: 'shane_cramp_ingredients' } }],
+                    // The ordinary confirmation (design step 3): asking is agreeing. What it does stays a surprise.
+                    choices: [{ text: 'What does it do?', to: 'cramp_demo' }, { text: 'Maybe later.', end: true }]
+                },
+                cramp_demo: {
+                    lines: [
+                        ['npc', 'LEG CRAMP!'],
+                        [null, 'Your calf knots like a wet rope and your knee buckles. You stagger.'],
+                        ['you', 'AAAAARGH! MY LEG!'],
+                        // Approved exact line (Creative Director): never split or reworded.
+                        ['npc', 'HA! IT WORKS! SUFFER!'],
+                        ['you', 'YOU BASTARD!'],
+                        ['npc', "Congratulations! You've learned Leg Cramp!"],
+                        ['you', 'YOU COULD HAVE WARNED ME!'],
+                        ['npc', "Would've ruined the surprise."]
+                    ],
+                    // The training cramp: exactly 20 s on you, a Leg Cramp like the shout's (movement only). Then the shout is yours.
+                    effects: [{ flag: 'leg_cramp_learned' }, { playerStatus: { name: 'Leg Cramp', type: 'slow', value: 0.35, seconds: 20, duration: 7 } },
+                        { say: 'Leg Cramp: you move 35% slower for 20 s.', important: true },
+                        { teach: 'LEG CRAMP!' }, { event: { type: 'story', id: 'shane_cramp_demo' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 },
                 farm: {
                     lines: [
