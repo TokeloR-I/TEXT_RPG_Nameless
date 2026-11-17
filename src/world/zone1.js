@@ -405,6 +405,7 @@
         road.exits.push(ch2.road.exit);
         Object.assign(road.spawns, ch2.road.spawn);
         if (ch2.grounds) { maps.grounds.exits.push(ch2.grounds.exit); Object.assign(maps.grounds.spawns, ch2.grounds.spawn); }   // James's stair (CB2)
+        for (const sl of ch2.seals || []) maps[sl.map].interactables.push(sl.obj);   // CB2's seals in Chapter One and the well
     }
 
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;

@@ -744,6 +744,14 @@
             for (let i = 0; i < 4; i++) rect(g, px + 7 + i * 2, py + 12 + i * 3, 18 - i * 4, 2, i % 2 ? '#2a1c1c' : '#3a2626');
             rect(g, px + 14, py + 24, 4, 2, '#140c0c');
         },
+        // CB1: Sven's nets, piled wet at the end of the wharf.
+        net_pile(g, px, py, T) {
+            g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 25, 12, 4, 0, 0, Math.PI * 2); g.fill();
+            rect(g, px + 5, py + 14, 22, 10, '#5a5a4a'); rect(g, px + 7, py + 11, 18, 4, '#6e6e5a');
+            for (let i = 0; i < 6; i++) rect(g, px + 6 + i * 4, py + 12, 1, 12, '#3a3a30');
+            for (let j = 0; j < 3; j++) rect(g, px + 5, py + 15 + j * 3, 22, 1, '#3a3a30');
+            rect(g, px + 20, py + 9, 4, 4, '#c8a050');
+        },
         bundle(g, px, py, T) {
             rect(g, px + 9, py + 9, 14, 9, '#d8d2c2'); rect(g, px + 9, py + 12, 14, 2, '#b8b0a0');
             rect(g, px + 15, py + 9, 2, 9, '#a03a30');

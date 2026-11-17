@@ -39,41 +39,80 @@ function riddles(g) {
     say(g, /^A lute/);
     assert.ok(g.hasStoryFlag('james_riddles_done'));
 }
-/** CB1 from the first word to James standing by your well. `luteFirst`: fetch the lute before the questions. `pay`: buy it back. */
-function recruit(g, s, { luteFirst = false, pay = false } = {}) {
+/** CB1 from the first word to James standing by your well, in its order: the lute (route 'buy' | 'favour' | 'dice'),
+ *  back to James (calling out his lie if `callOut`), a Mead, then the three questions. */
+function recruit(g, s, { route = 'buy', callOut = false } = {}) {
     assert.strictEqual(inspect(s, 'skeldvik_james').type, 'talk');
     assert.strictEqual(g.questState('CB1'), 'active');
     say(g, /room at my homestead/);
     say(g, /What will convince you/);
-    assert.ok(!choices(g).some((c) => /See you there/.test(c)), 'no longer recruited just by asking');
-    const lute = () => {
-        assert.strictEqual(inspect(s, 'skeldvik_sven').type, 'talk');
-        say(g, /belongs to James/);
-        if (pay) { g.player.gold = Math.max(g.player.gold, 40); const before = g.player.gold; say(g, /forty Gold/); assert.strictEqual(g.player.gold, before - 40); }
-        else say(g, /fetch Thora/);
-        say(g, /Goodbye/);
-        assert.ok(g.player.inventory.includes("James's Lute"));
-    };
-    if (luteFirst) { say(g, /Goodbye/); lute(); inspect(s, 'skeldvik_james'); say(g, /Here is your lute/); say(g, /Ask me your questions/); 
-        say(g, /join the dead/); say(g, /Next question/); say(g, /Double-bass/); say(g, /Last question/); say(g, /^A lute/); say(g, /So, the homestead/); }
-    else { riddles(g); say(g, /Where is your lute/); say(g, /Goodbye/); assert.ok(!g.hasStoryFlag('james_recruited'), 'riddles alone are not enough');
-        lute(); inspect(s, 'skeldvik_james'); say(g, /Here is your lute/); say(g, /So, the homestead/); }
-    say(g, /The homestead/); say(g, /See you there/);
-    assert.ok(g.hasStoryFlag('james_recruited'));
+    assert.ok(!choices(g).some((c) => /See you there|Ask me your questions/.test(c)), 'no questions and no invitation before the lute');
+    say(g, /Goodbye/);
+    assert.strictEqual(inspect(s, 'skeldvik_sven').type, 'talk');
+    say(g, /stole his lute/);
+    say(g, /What table/);
+    assert.ok(g.hasStoryFlag('sven_story_heard'));
+    if (route === 'buy') {
+        g.player.gold = Math.max(g.player.gold, 40); const before = g.player.gold;
+        say(g, /Buy it back/); assert.strictEqual(g.player.gold, before - 40);
+    } else if (route === 'favour') {
+        const before = g.player.gold;
+        say(g, /favour/); say(g, /see to it/);
+        assert.ok(!g.player.inventory.includes("James's Lute"), 'not before the nets are in');
+        inspect(s, 'skeldvik_sven_nets');
+        assert.ok(g.hasStoryFlag('sven_nets_hauled'));
+        inspect(s, 'skeldvik_sven');
+        assert.strictEqual(g.player.gold, before, 'a favour costs no Gold');
+    } else {
+        g.player.gold = 1000;
+        say(g, /Roll you for it/);
+        let rolls = 1;
+        while (!g.hasStoryFlag('sven_dice_won') && rolls < 60) { say(g, /Roll again/); rolls++; }
+        assert.ok(g.hasStoryFlag('sven_dice_won'), 'the dice come up for you eventually');
+        assert.strictEqual(g.player.gold, 1000 - 5 * (rolls - 1), 'only lost rolls cost the stake');
+        say(g, /Take the lute/);
+    }
+    assert.ok(g.player.inventory.includes("James's Lute"));
+    say(g, /Goodbye/);
+    inspect(s, 'skeldvik_james');
+    if (callOut) { say(g, /lost it at Hnefatafl/); say(g, /You lied/); }
+    say(g, /Here is your lute/);
+    assert.strictEqual(g.hasStoryFlag('james_lie_called'), callOut);
     assert.ok(!g.player.inventory.includes("James's Lute"), 'the lute goes back to him');
+    say(g, /hard work/);
+    assert.ok(!choices(g).some((c) => /Ask me your questions/.test(c)), 'no questions before the Mead');
+    say(g, /Where do I find Mead/);
+    g.player.inventory.push('Mead');
+    say(g, /Here is your Mead/);
+    assert.ok(!g.player.inventory.includes('Mead'), 'he drinks it');
+    riddles(g);
+    say(g, /So, the homestead/); say(g, /You'll come/); say(g, /See you there/);
+    assert.ok(g.hasStoryFlag('james_recruited'));
     s.place('grounds', 'from_house');
     assert.strictEqual(inspect(s, 'grounds_james').type, 'talk');
     assert.strictEqual(g.questState('CB1'), 'complete');
 }
 
-test('CB1: James wants three right answers and his lute back from Sven, in either order, before he moves home', () => {
-    for (const opts of [{}, { luteFirst: true }, { pay: true }]) {
+test('CB1: the lute from Sven (bought, a favour, or the dice), then a Mead, then three right answers, before James moves home', () => {
+    for (const opts of [{}, { route: 'favour', callOut: true }, { route: 'dice' }]) {
         const { g, s } = run();
         recruit(g, s, opts);
         const sk = ZONE1.maps.skeldvik.interactables.find((o) => o.id === 'skeldvik_james');
         assert.ok(!s.allows(sk.when), 'he is gone from the inn');
         say(g, /Goodbye/);
     }
+});
+
+test('CB1 dice: a short purse is told so and loses nothing; buying or the favour stay open', () => {
+    const { g, s } = run();
+    inspect(s, 'skeldvik_james'); say(g, /room at my homestead/); say(g, /What will convince you/); say(g, /Goodbye/);
+    inspect(s, 'skeldvik_sven'); say(g, /stole his lute/); say(g, /What table/);
+    g.player.gold = 3;
+    say(g, /Roll you for it/);
+    assert.strictEqual(g.player.gold, 3);
+    assert.ok(!g.hasStoryFlag('sven_dice_won'));
+    say(g, /Something else/);
+    assert.ok(choices(g).some((c) => /favour/.test(c)));
 });
 
 test('James at home: a shop of infernal wares that work like timed tonics; the grimoire is for sale at an absurd price', () => {
@@ -88,7 +127,7 @@ test('James at home: a shop of infernal wares that work like timed tonics; the g
     assert.ok(!g.player.inventory.includes('Brimstone'), 'used up');
     assert.ok(g.player.statusEffects.some((x) => x.name === 'Brimstone' && x.mods && x.mods.damage > 0), 'a damage buff');
     const book = g.data.shopDefinitions.james.stock['Binding Grimoire'];
-    assert.ok(book.buyPrice >= 10000 && book.quantity === 1);
+    assert.ok(book.buyPrice === 1000000 && book.quantity === 1, 'a million Gold (Tokelo)');
     assert.strictEqual(g.itemDef('Binding Grimoire').bound, true, 'never sold back or duplicated');
 });
 
@@ -96,7 +135,7 @@ test('CB2 paid route: buy the grimoire and James opens the way below at once, wi
     const { g, s } = run();
     recruit(g, s);
     say(g, /What have you got/);
-    g.player.gold = 100000;
+    g.player.gold = 1000000;
     g.act({ type: 'buy', shopId: 'james', item: 'Binding Grimoire' });
     assert.ok(g.player.inventory.includes('Binding Grimoire'));
     say(g, /Goodbye/);
@@ -109,10 +148,10 @@ test('CB2 paid route: buy the grimoire and James opens the way below at once, wi
     assert.ok(s.exitAt(27, 7, 'step'), 'the stair is by the well');
     // The shop never sells a second book.
     say(g, /Goodbye/); inspect(s, 'grounds_james'); say(g, /What have you got/);
-    g.player.gold = 100000;
+    g.player.gold = 1000000;
     g.act({ type: 'buy', shopId: 'james', item: 'Binding Grimoire' });
     assert.strictEqual(g.player.inventory.filter((i) => i === 'Binding Grimoire').length, 1);
-    assert.strictEqual(g.player.gold, 100000);
+    assert.strictEqual(g.player.gold, 1000000);
 });
 
 test('CB2 free route: three seals, any order, James vague until all three are in; then the book and the way below, no Gold', () => {
@@ -126,7 +165,7 @@ test('CB2 free route: three seals, any order, James vague until all three are in
     say(g, /Where do I look/); say(g, /Goodbye/);
     assert.ok(g.hasStoryFlag('seal_hunt'));
     const gold = g.player.gold;
-    for (const [map, id] of [['hrafnholm', 'hrafnholm_seal'], ['frostspine_pass', 'frostspine_seal'], ['gullstrand_coast', 'gullstrand_seal']]) {
+    for (const [map, id] of [['well', 'well_seal'], ['briarwell_cloister_court', 'kloster_seal'], ['gullstrand_coast', 'gullstrand_seal']]) {
         s.place(map, Object.keys(ZONE1.maps[map].spawns)[0]);
         inspect(s, id);
     }
@@ -157,7 +196,7 @@ test('CB2 arena: down the stair by the well, five waves in turn, then the ruler;
     const { g, s } = run();
     recruit(g, s);
     say(g, /What have you got/);
-    g.player.gold = 100000;
+    g.player.gold = 1000000;
     g.act({ type: 'buy', shopId: 'james', item: 'Binding Grimoire' });
     say(g, /Goodbye/); inspect(s, 'grounds_james'); say(g, /Where do I go/); say(g, /Stand back/); say(g, /Goodbye/);
     const down = takeExit(s, 'grounds_underworld_stair');
@@ -202,7 +241,7 @@ test('James: an old save that recruited him on the old easy invitation keeps him
     save.state.story.claimed = save.state.story.claimed.filter((c) => c !== 'catchup:james_terms_kept');
     save.game.revision = 16;
     const again = GameEngine.fromSave(save);
-    for (const f of ['james_riddles_done', 'james_lute_returned']) assert.ok(again.hasStoryFlag(f), f);
+    for (const f of ['james_riddles_done', 'james_lute_returned', 'james_mead_given']) assert.ok(again.hasStoryFlag(f), f);
     assert.strictEqual(again.currentObjective('CB2').id, 'grimoire');
     const s2 = new WorldSession(ZONE1, { engine: again });
     s2.place('grounds', 'from_house');
