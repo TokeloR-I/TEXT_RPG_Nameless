@@ -200,7 +200,8 @@ test('Merge look: each demon dresses the hero in its own dark armor, bursts in a
     assert.ok(!fx.helmOn('slotos', { statuses: ['Fleet Form'] }) && fx.helmOn('slotos', { statuses: ['Iron Hide'] }));
     for (const id of ['plumede', 'slotos']) assert.ok(data.skillDefinitions[fx.HELMS[id].skill].union === id, `${id}'s helm skill is its own`);
     // Second pass (Tokelo: "an owl or wild bore or fox ... extra arms ... spider legs"): animal helms, symmetrical grids.
-    assert.deepStrictEqual(Object.keys(fx.HELMS).sort(), ['plumede', 'slotos']);   // Beelzebub keeps his first look (Tokelo)
+    assert.deepStrictEqual(Object.keys(fx.HELMS).sort(), ['lucifero', 'plumede', 'slotos']);   // Beelzebub keeps his first look (Tokelo)
+    assert.ok(fx.helmOn('lucifero', { statuses: [] }), 'Lucifero wears his hood-helm whenever merged (Tokelo\'s reference)');
     // "the player legs are spider legs" ... "give it to beelzebub": merged with him the sprite is cut at the hips.
     fx.reset(); fx.state('beelzebub', 0);
     assert.ok(fx.lowerBody(fx.state('beelzebub', 1000)) > 0, 'Beelzebub replaces the legs');

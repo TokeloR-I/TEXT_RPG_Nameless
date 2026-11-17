@@ -5,7 +5,8 @@
  * wrapped in that demon's dark armor: the sprite's cloth, metal and hair are recoloured to it (a palette, no new
  * sheets), its own pieces are drawn on and around the body, and black smoke curls off you the whole time. Each look
  * is the team's own design, not a copy of anything:
- *   lucifero   starless black plate; a dark ring of nothing over the head; dust dragged in at your feet (gravity).
+ *   lucifero   (after Tokelo's reference) a spiked hood-helm with violet eyes, a black halo in purple smoke, spiked
+ *              plate with a glowing chest, four clawed shadow arms, a torn skirt, a gravity vortex with rocks at the feet.
  *   beelzebub  violet rift-glass; glass shards on the shoulders; a cracked halo; flies turning round you (space).
  *   slotos     slag-iron hulk; tusked pauldrons; orange heat in the seams; sparks when struck (toughness).
  *   plumede    black plumage with a pale edge; folded feather wings that flare on a dash; feathers shed on the move.
@@ -30,8 +31,9 @@
 
     // Each demon's armor: the palette swap (assets/sprites/enso-player.js base colours: cloth, cloth2, accent, leather, metal, hat, eye; the hair and face stay yours) and its glow.
     const LOOKS = {
-        lucifero: { glow: [200, 176, 255], smoke: [10, 8, 18],
-            palette: { cloth: '#16131f', cloth2: '#0c0a12', accent: '#c8b0ff', leather: '#100d18', metal: '#3e3458', hat: '#16131f', shieldFace: '#16131f', eye: '#c8b0ff' } },
+        // Tokelo's reference (2026-11-17 16:41): violet-black plate, purple light in the cracks.
+        lucifero: { glow: [200, 96, 255], smoke: [26, 10, 40],
+            palette: { cloth: '#2a2238', cloth2: '#1a1424', accent: '#c060ff', leather: '#3a3046', metal: '#5a4c70', hat: '#2a2238', shieldFace: '#2a2238', eye: '#e080ff' } },
         beelzebub: { glow: [184, 240, 224], smoke: [16, 10, 34],
             palette: { cloth: '#241a46', cloth2: '#120c24', accent: '#b8f0e0', leather: '#1a1430', metal: '#6a58b0', hat: '#241a46', shieldFace: '#241a46', eye: '#b8f0e0' } },
         slotos: { glow: [240, 150, 70], smoke: [22, 16, 14],
@@ -86,11 +88,29 @@
     // --- behind the body ---------------------------------------------------------------------------------------
     const BEHIND = {
         // Gravity: a dark well at the feet with grit dragged into it.
+        // Gravity: a purple vortex turning under the feet with rock shards circling it, and a black halo wrapped in
+        // purple smoke standing behind the head.
         lucifero(g, cx, base, L, k, view, now) {
-            g.fillStyle = rgba([6, 4, 12], 0.5 * k); g.beginPath(); g.ellipse(cx, base - 1, 14, 4.5, 0, 0, Math.PI * 2); g.fill();
-            for (let i = 0; i < 10; i++) {
-                const life = (now / 900 + hash(i, 7)) % 1, a = hash(i, 8) * Math.PI * 2, d = 18 * (1 - life);
-                g.fillStyle = rgba(L.glow, 0.7 * k * life); g.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(base - 1 + Math.sin(a) * d * 0.3), 1, 1);
+            g.fillStyle = rgba([12, 4, 22], 0.6 * k); g.beginPath(); g.ellipse(cx, base - 1, 15, 5, 0, 0, Math.PI * 2); g.fill();
+            for (let arm = 0; arm < 3; arm++) for (let s = 0; s < 40; s++) {           // three spiral arms
+                const t = s / 40, a = -now / 500 + arm * (Math.PI * 2 / 3) + t * 5, rr = 2 + t * 13;
+                g.fillStyle = rgba(t < 0.4 ? [240, 190, 255] : L.glow, k * (0.95 - t * 0.6));
+                g.fillRect(Math.round(cx + Math.cos(a) * rr), Math.round(base - 1 + Math.sin(a) * rr * 0.32), 1, 1);
+            }
+            for (let i = 0; i < 6; i++) {                                                // rock shards in orbit
+                const a = now / (900 + i * 90) + i * 1.05, rr = 15 + (i % 3) * 3, lift = 3 + (i % 2) * 5 + Math.sin(now / 400 + i) * 1.5;
+                const x = Math.round(cx + Math.cos(a) * rr), y = Math.round(base - 1 + Math.sin(a) * rr * 0.32 - lift);
+                g.fillStyle = rgba([58, 48, 72], 0.95 * k); g.fillRect(x, y, 2, 2);
+                g.fillStyle = rgba([120, 104, 140], 0.95 * k); g.fillRect(x, y, 1, 1);
+            }
+            const hy = base - HEAD_TOP - 8;                                              // the halo, upright over the head
+            for (let s = 0; s < 72; s++) {
+                const t = (s / 72) * Math.PI * 2, x = Math.round(cx + Math.cos(t) * 9), y = Math.round(hy + Math.sin(t) * 9);
+                g.fillStyle = rgba([6, 2, 10], 0.95 * k); g.fillRect(x, y, 2, 2);
+            }
+            for (let i = 0; i < 16; i++) {                                               // purple smoke wound round it
+                const t = now / 700 + i * 0.4, x = cx + Math.cos(t) * (10 + Math.sin(i) * 1.5), y = hy + Math.sin(t) * (10 + Math.cos(i) * 1.5);
+                g.fillStyle = rgba(L.glow, k * (0.25 + 0.35 * (i / 16))); g.fillRect(Math.round(x), Math.round(y), 2, 1);
             }
         },
         // Space: a cracked halo standing behind the head.
@@ -130,13 +150,30 @@
 
     // --- in front of the body ----------------------------------------------------------------------------------
     const FRONT = {
-        // A ring of nothing over the head: a crown of black with a faint violet rim.
+        // Spiked pauldrons, a torn skirt of plate and cloth, and purple light running down the chest.
         lucifero(g, cx, base, L, k, view, now) {
-            const y = base - HEAD_TOP - 3 + Math.round(Math.sin(now / 700) * 0.6);
-            for (let s = 0; s < 44; s++) {
-                const t = (s / 44) * Math.PI * 2, x = Math.round(cx + Math.cos(t) * 6), yy = Math.round(y + Math.sin(t) * 2);
-                g.fillStyle = rgba([4, 3, 8], 0.95 * k); g.fillRect(x, yy, 1, 2);
-                if (s % 2) { g.fillStyle = rgba(L.glow, 0.5 * k); g.fillRect(x, yy - 1, 1, 1); }
+            const sh = base - SHOULDERS;
+            for (const side of [-1, 1]) {
+                for (let j = 0; j < 3; j++) for (let i = 0; i < 6 - j * 2; i++) {        // a layered pauldron
+                    g.fillStyle = rgba(j === 2 ? [110, 96, 136] : j ? [74, 62, 94] : [36, 28, 48], 0.97 * k);
+                    g.fillRect(Math.round(cx + side * (5 + i + j)), sh - 1 + j - 1, 1, 1);
+                }
+                for (let n = 0; n < 3; n++) for (let s = 0; s < 4 - n; s++) {             // three spikes, swept out and up
+                    g.fillStyle = rgba(s === 3 - n ? [140, 124, 168] : [54, 44, 70], 0.97 * k);
+                    g.fillRect(Math.round(cx + side * (6 + n * 2 + s * 0.7)), sh - 2 - s - (n === 1 ? 1 : 0), 1, 1);
+                }
+            }
+            if (!away(view)) {                                                             // the glowing chevron
+                const pulse = 0.6 + 0.4 * Math.sin(now / 420);
+                for (let s = 0; s < 4; s++) { g.fillStyle = rgba(L.glow, k * pulse); g.fillRect(cx - 3 + s, sh + 4 + s, 1, 1); g.fillRect(cx + 2 - s, sh + 4 + s, 1, 1); }
+                g.fillStyle = rgba([250, 220, 255], k * pulse); g.fillRect(cx - 1, sh + 7, 2, 2);
+            }
+            for (let i = -7; i <= 7; i++) {                                                 // the torn skirt
+                const len = 5 + Math.round(hash(i, 3) * 6), sway = Math.round(Math.sin(now / 400 + i * 0.7) * (moving(view) ? 1.5 : 0.5));
+                for (let j = 0; j < len; j++) {
+                    g.fillStyle = rgba(i % 3 === 0 ? [92, 40, 132] : j > len - 2 ? [24, 16, 34] : [52, 40, 70], 0.95 * k);
+                    g.fillRect(cx + i + (j > 2 ? sway : 0), base - 14 + j, 1, 1);
+                }
             }
         },
         // Glass shards jutting from both shoulders, and flies turning round you.
@@ -196,6 +233,11 @@
     const half = (rows) => rows.map((r) => r + [...r].reverse().join(''));
     // Tokelo (16:00): the helms are not the merge's everyday look; each comes on with one union skill and goes with it.
     const HELMS = {
+        // Lucifero wears his always while merged (Tokelo's reference): a spiked hood-helm, the face in shadow, violet eyes.
+        lucifero: { top: 41, always: true, colours: { o: '#0c0a12', d: '#2a2238', m: '#463a5a', l: '#7a6c96', s: '#08060c', e: '#f0a0ff', g: '#a040e0', h: '#1a1424' },
+            rows: half([
+                '........o', '.......ol', '......odl', '.....oddm', '...ooddmm', '..ohdddmm', '.ohddmmdm', '.ohdmddsd',
+                'ohhdssss', 'ohdmseess', 'ohdmsgees', 'ohdmssssg', '.ohdmssss', '.ohhdmsss', '..ohhdmss', '...ooohhd'].map((r) => r.padEnd(9, 's').slice(0, 9))) },
         plumede: { top: 41, skill: 'Fleet Form', colours: { o: '#07070c', d: '#15151f', m: '#2a2a3a', l: '#4a4a62', p: '#d8d4e8', e: '#fff6c0', b: '#b09048' },
             rows: half([
                 '..oo......', '.odo......', '.oddo.....', '.odmdooooo', '..odmmmmmm', '..odddmmmm', '.odpppddmm', 'odppeepdmm',
@@ -208,7 +250,7 @@
     // Facing away you see the back of the helm: the face colours go dark.
     const BACK = { p: 'm', e: 'm', b: 'm', s: 'm', n: 'm', w: 'm', l: 'm' };
     /** Is the helm on? Only while its skill's status is on you (view.statuses: the names, from ui/world-ui.js). */
-    const helmOn = (id, view) => !!(HELMS[id] && view && Array.isArray(view.statuses) && view.statuses.includes(HELMS[id].skill));
+    const helmOn = (id, view) => !!(HELMS[id] && (HELMS[id].always || (view && Array.isArray(view.statuses) && view.statuses.includes(HELMS[id].skill))));
     function helm(g, cx, base, id, k, view, now) {
         const H = HELMS[id];
         if (!H || !helmOn(id, view)) return;
@@ -238,13 +280,19 @@
     /** Lucifero: four arms of shadow out of the back, the upper pair raised, the lower reaching out, clawed. */
     function shadowArms(g, cx, base, L, k, view, now) {
         const sh = base - SHOULDERS + 2;
-        for (const side of [-1, 1]) for (const [lift, reach, ph] of [[16, 15, 0], [3, 19, 1.7]]) {
+        for (const side of [-1, 1]) for (const [lift, reach, ph] of [[18, 17, 0], [2, 21, 1.7]]) {
             const sway = Math.sin(now / 520 + ph + side) * 2;
             const root = [cx + side * 4, sh], elbow = [cx + side * (reach * 0.6), sh - lift * 0.6 + sway * 0.5], hand = [cx + side * reach, sh - lift + sway];
-            limb(g, [root, elbow, hand], 4, 2, [10, 8, 18], L, k);
-            for (let c = -1; c <= 1; c++) {                                        // three claws
-                const a = Math.atan2(hand[1] - elbow[1], hand[0] - elbow[0]) + c * 0.5;
-                for (let s = 1; s <= 3; s++) { g.fillStyle = rgba(c ? [10, 8, 18] : L.glow, 0.9 * k); g.fillRect(Math.round(hand[0] + Math.cos(a) * s), Math.round(hand[1] + Math.sin(a) * s), 1, 1); }
+            limb(g, [root, elbow, hand], 5, 3, [40, 30, 56], L, k);
+            // Purple light in the cracks, running down each arm.
+            for (let t = 0.15; t < 0.95; t += 0.08) {
+                const p = t < 0.5 ? [root[0] + (elbow[0] - root[0]) * t * 2, root[1] + (elbow[1] - root[1]) * t * 2] : [elbow[0] + (hand[0] - elbow[0]) * (t - 0.5) * 2, elbow[1] + (hand[1] - elbow[1]) * (t - 0.5) * 2];
+                if (hash(Math.round(t * 50), side + 3) > 0.45) { g.fillStyle = rgba(L.glow, 0.85 * k); g.fillRect(Math.round(p[0]), Math.round(p[1] + (hash(t * 9, 1) - 0.5) * 2), 1, 1); }
+            }
+            g.fillStyle = rgba([40, 30, 56], 0.97 * k); g.fillRect(Math.round(hand[0] - 2), Math.round(hand[1] - 2), 4, 4);   // the hand
+            for (let c = -1.5; c <= 1.5; c += 1) {                                 // four curved claws
+                const a = Math.atan2(hand[1] - elbow[1], hand[0] - elbow[0]) + c * 0.45;
+                for (let s = 1; s <= 4; s++) { g.fillStyle = rgba(s === 4 ? [170, 150, 200] : [64, 52, 84], 0.95 * k); g.fillRect(Math.round(hand[0] + Math.cos(a + s * 0.12 * side) * (s + 1)), Math.round(hand[1] + Math.sin(a + s * 0.12 * side) * (s + 1)), 1, 1); }
             }
         }
     }
