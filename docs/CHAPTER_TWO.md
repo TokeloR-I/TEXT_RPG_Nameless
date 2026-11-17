@@ -108,8 +108,10 @@ game says so yet (the reveal timing is Tokelo's call).
   spiked hood-helm with violet eyes, a black halo in purple smoke, spiked pauldrons and a glowing chest, four clawed
   arms with purple cracks, a torn skirt, and a gravity vortex with circling rocks at the feet. Plumede's owl helm and Slotos's boar helm come on only while
   Fleet Form / Iron Hide is on you (Tokelo's pick); Beelzebub keeps his first look, and from the hips down he is a
-  spider (the hero's legs become eight violet-glass ones; Tokelo's pick).
-  and Lucifero grows four shadow arms.
+  spider (the hero's legs become eight violet-glass ones; Tokelo's pick). Closer Lucifero pass (Tokelo: "it looks
+  too different from the design"): a plate grid over the body (gorget, layered chevron chest with the purple V glow,
+  belt with buckles, purple tabard, plated legs), bigger outlined arms with hooked claws, a wider torn skirt, and a
+  thick curl of purple smoke over the halo's top-left, all following Tokelo's picture.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.
