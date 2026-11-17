@@ -78,6 +78,7 @@
                 this.chooseBranch(String(a.branchId || ''));
                 return;
             }
+            if (this.mode === 'combat' && type === 'cheat' && this.isDevCheat && this.isDevCheat(String(a.cheat || ''))) { this.devCheat(String(a.cheat), a.amount); return; }   // god mode, a heal... mid-fight
             if (this.mode === 'combat') { this.performCombat(a); return; }
             this.performExplore(a);
             // Chapter One: a homestead construction that succeeded is a story event (Q07's first repair).
@@ -151,7 +152,8 @@
                     this.applyStoryEffects([{ flag: 'devil_union_contract' }, { flag: `contract:${id}` }, { legend: 'devil_union' }, { event: { type: 'story', id: 'devil_union_contract' } }]);
                     return;
                 }
-                default: this.refuse('UNKNOWN_ACTION', `Unknown cheat '${name}'.`);
+                default: if (this.devCheat && this.devCheat(name, amount)) return;   // the rest: src/engine/cheats.js
+                    this.refuse('UNKNOWN_ACTION', `Unknown cheat '${name}'.`);
             }
         }
 

@@ -67,7 +67,9 @@
         contract: (arg) => ({ type: 'equip_union', union: arg }),     // Devil Union (src/engine/union.js)
         resonance: (arg) => { const [n, ...rest] = String(arg || '').split(/\s+/); return { type: 'set_resonance', slot: (parseInt(n, 10) || 0) - 1, aspect: rest.join(' ') || null }; },
         bind_contract: (arg) => ({ type: 'cheat', cheat: 'bind_contract', amount: arg }),
-        awaken_fenrir: (arg) => ({ type: 'cheat', cheat: 'awaken_fenrir', amount: arg })
+        awaken_fenrir: (arg) => ({ type: 'cheat', cheat: 'awaken_fenrir', amount: arg }),
+        // any dev cheat by name (src/engine/cheats.js): cheat god_mode, cheat set_level 20, cheat give_item Bog Iron x5
+        cheat: (arg) => { const [n, ...rest] = String(arg || '').trim().split(/\s+/); return { type: 'cheat', cheat: n || '', amount: rest.join(' ') || undefined }; }
     };
 
     class GameEngine {
@@ -337,13 +339,13 @@
             this.say('Commands: go <dir> (or n/s/e/w), take <item>, use <item>, quickheal (qh), inventory (i), look, engage, class_lore (cl), quit, start', { important: true });
             this.say('Skill Web: web, learn <skill>, unlearn <skill>, specialize <path>, guide <path|off>');
             this.say('Combat: attack <n>, <skill name or alias> <n>, use <item>, quickheal (qh), flee');
-            this.say('Dev cheats: add_xp <amount>, become_hollow_king, unlock_events');
+            this.say('Dev cheats: add_xp <amount>, become_hollow_king, unlock_events, cheat <name> [arg] (god_mode, one_hit, full_heal, set_level <n>, add_gold <n>, web_points <n>, learn_web <web>, awaken_legend <web>, give_item <item> [xN], temper_weapon, start_quest <id>, finish_quest <id>)');
         }
     }
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance', 'union'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance', 'union', 'cheats'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);
