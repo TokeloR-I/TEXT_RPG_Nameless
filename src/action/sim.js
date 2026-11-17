@@ -173,7 +173,7 @@
                 const a = n === 1 ? 0 : (i / n) * 2 * Math.PI;
                 const off = n === 1 ? 0 : Math.min(10, T * 0.6);
                 const prof = this.enemyRules(key);
-                const hx = cx + Math.cos(a) * off, hy = cy + Math.sin(a) * off;
+                const [hx, hy] = this.clearSpot(cx + Math.cos(a) * off, cy + Math.sin(a) * off, prof.radius || 6, cx, cy, enc);
                 this.actors.push({
                     sid: `${enc.id}#${i}`, encounterId: enc.id, index: i, key, engineId: null, prof,
                     x: hx, y: hy, homeX: hx, homeY: hy, r: prof.radius || 6, angle: Math.PI / 2,
@@ -182,6 +182,21 @@
                     windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: (prof.roles ? i : null)
                 });
             });
+        }
+
+        /** A spot for a body of radius r at (x, y) that doesn't overlap a wall: as given, else pulled in toward the
+         *  group's centre, else the nearest clear spot around it. A body spawned half in a wall could never move again
+         *  (moveBody refuses any step that still overlaps), so it stood at home all fight, out of reach (QA #18). */
+        clearSpot(x, y, r, cx, cy, enc) {
+            const gate = enc && enc.gate ? (tx, ty) => tx >= enc.x && ty >= enc.y && tx < enc.x + (enc.w || 1) && ty < enc.y + (enc.h || 1) : null;
+            const free = (px, py) => !this.bodyBlocked(px, py, r, gate);
+            if (free(x, y)) return [x, y];
+            for (let k = 1; k <= 4; k++) { const px = x + (cx - x) * k / 4, py = y + (cy - y) * k / 4; if (free(px, py)) return [px, py]; }
+            for (let d = 1; d <= this.T * 2; d++) for (let i = 0; i < 16; i++) {
+                const px = cx + Math.cos(i * Math.PI / 8) * d, py = cy + Math.sin(i * Math.PI / 8) * d;
+                if (free(px, py)) return [px, py];
+            }
+            return [x, y];
         }
 
         /** Gate cells stay solid for the player until the gate is beaten; its own enemies walk through them. */
@@ -875,18 +890,30 @@
             return [{ name: 'primary', shape: pr.shape, reach: pr.reach, arcDeg: pr.arcDeg, width: pr.width, lunge: pr.lunge, windupMs: pr.windupMs, activeMs: pr.activeMs, recoveryMs: pr.recoveryMs, projSpeed: pr.projSpeed, projectile: pr.projectile }];
         }
         keepRange(a) {
-            const b = this.bossOf(a), k = (b && b.keepDistance) || a.prof.keepDistance;
+            const b = this.bossOf(a);
+            // A group with roles (ranged_keeps_distance: "one closes with the knife, the other backs off and casts",
+            // ENSO_ACTION_COMBAT_DESIGN.md, blade 14-20 / hexer 56-90): a member whose role has only close attacks closes
+            // to reach them. Holding the shared keepDistance, the blade never got near enough to swing (QA #18).
+            const own = this.roleAttacks(a);
+            if (!b && own && own.length && own.every((x) => x.shape !== 'projectile' && x.shape !== 'ground')) {
+                const reach = Math.min(...own.map((x) => x.reach || a.prof.reach || 18));
+                return [0, reach * 0.8];
+            }
+            const k = (b && b.keepDistance) || a.prof.keepDistance;
             if (Array.isArray(k)) return k;
             if (typeof k === 'number') return [k, Math.max(k, a.prof.reach || 18)];
             return [0, (a.prof.reach || 18) * 0.8];
         }
-        attackRanged(a) { return this.attacksOf(a).every((x) => x.shape === 'projectile' || x.shape === 'ground'); }
+        /** This member's role in a group with roles (`prof.roles`, by its place in the group), or null. */
+        roleOf(a) { const roles = a.roleIdx != null && a.prof.roles; return roles && roles.length ? roles[a.roleIdx % roles.length] : null; }
+        /** The attacks this member's role uses (role-less attacks included), or null when it has no role. */
+        roleAttacks(a) { const mine = this.roleOf(a); return mine ? this.attacksOf(a).filter((x) => !x.role || x.role === mine) : null; }
+        attackRanged(a) { return (this.roleAttacks(a) || this.attacksOf(a)).every((x) => x.shape === 'projectile' || x.shape === 'ground'); }
         /** The attack to start at distance d, or null. Phase openers first; then attacks whose useAt fits; then any in reach. */
         pickAttack(a, d, p = this.player) {
             const list = this.attacksOf(a).filter((x) => !(a.atkReady[x.name] > this.now));
-            if (a.roleIdx != null) {
-                const roles = a.prof.roles || [];
-                const mine = roles[a.roleIdx % roles.length];
+            const mine = this.roleOf(a);
+            if (mine) {
                 const own = list.filter((x) => !x.role || x.role === mine);
                 if (own.length) list.splice(0, list.length, ...own);
             }
