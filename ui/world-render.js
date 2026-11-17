@@ -1053,12 +1053,15 @@
             const fx = ENSO.unionFx, merge = fx ? fx.state(view.union || null, time) : null;
             view.armor = merge && merge.k > 0.5 ? fx.palette(merge.id) : null;
             if (merge && !away) fx.behind(g, cx, base, merge, view, time);
+            const cut = merge ? fx.lowerBody(merge) : 0;                            // Beelzebub: a spider from the hips down
+            if (cut) { g.save(); g.beginPath(); g.rect(cx - 64, base - 120, 128, 120 - cut); g.clip(); }
             ENSO.sprites.drawCharacter(g, cx, base, {
                 appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
                 ...(view.armor || (view.look && view.look.redEyes) ? { palette: { ...(view.look && view.look.redEyes ? { eye: '#d8141a' } : {}), ...(view.armor || {}) } } : {}),
                 facing: view.facing8 || view.facing, anim: view.anim || view.gait || (view.moving ? 'walk' : 'idle'),
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
             }, view.anim && view.animT != null ? view.animT : !view.anim && view.gaitT != null ? view.gaitT : time);   // combat v3: swing / dodge / guard / hurt
+            if (cut) g.restore();
             if (merge && away) fx.behind(g, cx, base, merge, view, time);
             if (merge) fx.front(g, cx, base, merge, view, time);
             if (look.wings && away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
