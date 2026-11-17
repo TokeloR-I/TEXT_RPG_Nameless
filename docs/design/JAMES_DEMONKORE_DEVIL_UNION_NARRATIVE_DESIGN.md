@@ -26,18 +26,18 @@ He is also **Demonkore**. The two names belong to one person and one consciousne
 
 ### The three music questions (four answers each)
 
-These are original quiz prompts with an iron-and-devil flavour. The director's example of completing a famous metal song line is a tone reference; any actual lyric-continuation quiz would require separate licensed text.
+Question 1 directly references Iron Maiden's *Dance of Death* using the prompt supplied by the director. Its correct answer below **paraphrases** the meaning of the next lyric; the song's exact continuation is not reproduced. Questions 2 and 3 are original music riddles.
 
-**Q1 — The Devil's Interval**
+**Q1 — Dance of Death (metal song recognition)**
 
-James: “Between two notes there is an interval folk once called the Devil's sound. Which one?”
+James: “When you're lying in your sleep, when you're lying in your bed, you… What happens next in the song?”
 
-- A. Perfect fifth
-- **B. Tritone — CORRECT**
-- C. Octave
-- D. Major third
+- A. Hear an angel calling from a distant shore.
+- **B. Wake from a dream to join the dead in their dance — CORRECT (paraphrase).**
+- C. Find a crown beneath your pillow.
+- D. Watch the sunrise turn the ocean red.
 
-James on success: “Ah. You know the Devil by ear.”
+James on success: “Ha! A fine song. Though I prefer the dancing to the dying.”
 
 **Q2 — Hooves of Iron**
 
