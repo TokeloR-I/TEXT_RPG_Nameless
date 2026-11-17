@@ -14,7 +14,7 @@ He is also **Demonkore**. The two names belong to one person and one consciousne
 
 ## 2. CB1 — A Bard Without His Lute
 
-**Current state to change:** James can currently be recruited just by inviting him. Revised creative gate: the player must **correctly answer three metal-flavoured music riddles AND retrieve James's prized stolen lute from Sven**. Either task may be finished first; wrong riddle answers are retryable; Sven must not require murder. James only moves to the existing homestead location once both requirements are complete.
+**Current state to change:** James can currently be recruited just by inviting him. Revised creative gate: the player must **correctly answer three metal-flavoured music riddles AND recover James's prized lute from Sven**. James **claims** Sven stole it, but in truth **Sven won the lute fairly from James in a risky poker wager**. Either task may be finished first; wrong riddle answers are retryable; Sven must not require murder. James only moves to the existing homestead location once both requirements are complete.
 
 ### Opening dialogue (draft)
 
@@ -59,13 +59,44 @@ James: “I have a neck without a head, a body without lungs, and strings that s
 - C. Drum
 - D. Bell
 
-James on success: “Exactly. And my own has been stolen.”
+James on success: “Exactly. And a certain Sven has made off with mine.”
 
 ### Sven and the lute
 
-**Sven is a new proposed NPC**; no established Sven appears in the searched Chapter Two files. Suggested placement: an accessible Skeldvik harbour corner or storehouse, not a late-act area. Sven stole James's **unique prized lute**. His personal motive remains to be written; don't invent one as locked canon.
+**Director correction (17 November 2026): Sven is an ordinary NPC, not a thief or a villain.** During a risky **poker game**, James wagered his prized lute and **lost**. Sven won it legitimately. James is embarrassed by his own gambling and tells the player it was *stolen*, hoping they will retrieve it for him. This is an early glimpse of James's charming dishonesty—**not** proof that Sven cheated or wronged him.
 
-Give the player a nonlethal route through conversation/trade, and optionally a stealth or bounded confrontation route supported by existing mechanics. Recovering the instrument should never require Sven's death, and the lute cannot duplicate or be sold while the task is active.
+Suggested Sven location: an accessible Skeldvik tavern/harbour spot, not a late-act area. Exact position, visual design and poker interaction are for worldbuilding/development; no supernatural role should be invented for Sven.
+
+**Scene with Sven (draft):**
+
+> **Player:** “James says you stole his lute.”
+>
+> **Sven:** “Stole it? He put it on the table himself.”
+>
+> **Player:** “What table?”
+>
+> **Sven:** “Poker. He thought his hand was unbeatable. It wasn't.”
+
+Sven can show the player the lute and/or an ordinary witness to the wager. The player learns James lied before deciding how to get it back. **No forced robbery, killing Sven or accusing him of theft as if it were fact.** Provide practical nonlethal solutions, subject to supported game mechanics:
+
+1. **Buy it back:** Pay Sven an appropriate price; Gold cost and buyback affordability belong to Gauge.
+2. **Win it back:** Challenge Sven to another poker wager or a simplified card contest **only if a workable interaction exists**. Allow a retry or alternative if the player loses, avoiding a permanent quest lock.
+3. **Negotiate:** Persuade Sven to return it for a reasonable trade/favor, with a concrete offer rather than a free magical persuasion success.
+4. **Optional dishonesty:** If the game supports stealing, the player may steal it—but this is a consequential player choice, not the assumed heroic resolution.
+
+**Return confrontation with James (draft):**
+
+> **Player:** “Sven didn't steal your lute. You lost it in poker.”
+>
+> **James:** “A cruelly selective account of the evening.”
+>
+> **Player:** “You lied to me.”
+>
+> **James:** “I preferred to call it an arrangement of the facts.”
+
+The player may call out James's lie or let it pass. It can affect local dialogue/trust later, **without blocking recruitment** after both requirements are completed. This is a small, human-scale story that establishes James as funny and slippery long before the Demonkore revelation.
+
+The lute is a **unique quest item**, cannot duplicate on reload, and should not be lost to ordinary selling while the quest is active.
 
 **Return dialogue:**
 
@@ -178,7 +209,7 @@ The actual reveal timing, nature of Demonkore, moral position and motive are ope
 
 ## 5. Implementation and QA handoff
 
-- **CB1:** all three riddle answers correct **and** unique lute returned before recruitment; incorrect answers can retry; Sven offers nonlethal recovery. Migrate older recruited saves safely.
+- **CB1:** all three riddle answers correct **and** unique lute returned before recruitment; incorrect answers can retry. Sven fairly won the lute in poker; James falsely calls it stolen. Dialogue must distinguish the lie from actual theft, provide nonlethal recovery and allow James to be confronted. Migrate older recruited saves safely.
 - **Merchant:** normal homestead service, no mandatory Devil Union; all effects/items in authoritative data; no duplicated drop definitions or exploitable buffs.
 - **CB2 paid route:** buy once; James opens passage immediately, **without seals**.
 - **CB2 free route:** collect three seals; James remains vague until all three; obtain grimoire access and passage without Gold payment.
@@ -191,4 +222,4 @@ The actual reveal timing, nature of Demonkore, moral position and motive are ope
 
 **Existing repo baseline:** docs/CHAPTER_TWO.md, src/story/chapter2.js, src/world/chapter2-maps.js, tests/101-james-bard.test.js, docs/design/SKILL_WEB.md.
 
-**Decision boundary:** The core direction (James/Demonkore, bard/merchant, riddles and stolen lute, paid shortcut/free seals, vague promise, first contract and nine optional unions) follows Tokelo's discussion. Dialogue, Sven's motives, locations, item stats, prices, class mechanics and reveal timing are proposals requiring approval.
+**Decision boundary:** The core direction (James/Demonkore, bard/merchant, riddles, **lute lost fairly in poker and falsely described as stolen**, paid shortcut/free seals, vague promise, first contract and nine optional unions) follows Tokelo's discussion. Dialogue, location, poker interface, exact retrieval options, item stats, prices, class mechanics and reveal timing are proposals requiring approval.
