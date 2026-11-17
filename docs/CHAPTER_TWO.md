@@ -97,6 +97,13 @@ game says so yet (the reveal timing is Tokelo's call).
     Black Gale; signature Bleed. Drop: Signet of the Fourth Dominion.
   - One painter for all four Dominions (`ui/scene-underworld.js`, themes `dominion_space`, `dominion_iron`,
     `dominion_wind`). Numbers are candidates for Gauge, a step past Lucifero. Tests: `tests/109-dominions.test.js`.
+- **The merge look** (Tokelo 2026-11-17: "take a page out of Black Clover's devil union ... dark looking armor or
+  shadowy design"): merged, the hero wears the demon's dark armor (`ui/union-fx.js`): the sprite's cloth, metal and
+  accents recoloured (a palette, no new sheets), black smoke curling off the body, and each demon's own pieces:
+  Lucifero a ring of nothing over the head and a gravity well at the feet; Beelzebub glass shards, a cracked halo and
+  flies; Slotos tusked pauldrons, heat in the seams and sparks when hit; Plumede a feather half-mask, feather wings
+  that flare on a dash and feathers shed on the move. A burst of the demon's colour on merging; the armor smokes
+  away when it ends. The team's own designs.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.

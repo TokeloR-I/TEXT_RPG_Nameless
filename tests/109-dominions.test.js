@@ -166,3 +166,33 @@ test('Dominions: each ruler fights live (rage included) without errors, and land
         assert.strictEqual(g.errors.length, 0, `${id}: ${g.errors.join('; ')}`);
     }
 });
+
+// Tokelo (2026-11-17): "can we take a page out of Black Clover's devil union? ... dark looking armor or shadowy design".
+test('Merge look: each demon dresses the hero in its own dark armor, bursts in and fades out', () => {
+    const fx = require('../ui/union-fx.js');
+    const player = require('../assets/sprites/enso-player.js');
+    const P = (global.ENSO || globalThis.ENSO).ensoPlayer || player;
+    const roles = Object.keys(P.paletteFor({}));
+    for (const id of ['lucifero', 'beelzebub', 'slotos', 'plumede']) {
+        const pal = fx.palette(id);
+        assert.ok(pal && pal.cloth && pal.metal && pal.eye, `${id} has an armor palette`);
+        const plain = P.paletteFor({}), armored = P.paletteFor({ palette: pal });
+        assert.ok(roles.some((r) => plain[r] !== armored[r]), `${id}'s armor recolours the sprite`);
+        assert.ok(data.skillWeb.legendaryWebs.devil_union.unions.list[id], `${id} is a union`);
+    }
+    fx.reset();
+    const start = fx.state('slotos', 1000);
+    assert.ok(start.burst > 0.9 && start.k === 0, 'a burst as the merge begins');
+    assert.strictEqual(fx.state('slotos', 2000).k, 1);
+    const fading = fx.state(null, 2100);
+    assert.ok(fading && fading.fading && fading.k > 0 && fading.id === 'slotos', 'the armor smokes away');
+    assert.strictEqual(fx.state(null, 4000), null);
+    // Every piece draws without throwing, facing either way, still, walking, dashing and hit.
+    let px = 0;
+    const g = new Proxy({}, { get: (t, k) => (k === 'createRadialGradient' ? () => ({ addColorStop() {} }) : k === 'fillRect' ? () => { px++; } : () => {}), set: () => true });
+    for (const id of ['lucifero', 'beelzebub', 'slotos', 'plumede']) for (const view of [{ facing: 'down' }, { facing: 'up', moving: true }, { facing: 'left', anim: 'dodge' }, { facing: 'right', anim: 'hurt', animT: 50 }]) {
+        fx.reset(); const st = fx.state(id, 0);
+        fx.behind(g, 50, 90, st, view, 120); fx.front(g, 50, 90, st, view, 120);
+    }
+    assert.ok(px > 0);
+});

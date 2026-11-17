@@ -1049,11 +1049,18 @@
             const look = (ENSO.gazeFx && view.look) || {};
             const away = String(view.facing8 || view.facing).startsWith('up');
             if (look.wings && !away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
+            // Devil Union (Tokelo 2026-11-17, ui/union-fx.js): merged, the hero wears the demon's dark armor.
+            const fx = ENSO.unionFx, merge = fx ? fx.state(view.union || null, time) : null;
+            view.armor = merge && merge.k > 0.5 ? fx.palette(merge.id) : null;
+            if (merge && !away) fx.behind(g, cx, base, merge, view, time);
             ENSO.sprites.drawCharacter(g, cx, base, {
-                appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, ...(view.look && view.look.redEyes ? { palette: { eye: '#d8141a' } } : {}),
+                appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className,
+                ...(view.armor || (view.look && view.look.redEyes) ? { palette: { ...(view.look && view.look.redEyes ? { eye: '#d8141a' } : {}), ...(view.armor || {}) } } : {}),
                 facing: view.facing8 || view.facing, anim: view.anim || view.gait || (view.moving ? 'walk' : 'idle'),
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
             }, view.anim && view.animT != null ? view.animT : !view.anim && view.gaitT != null ? view.gaitT : time);   // combat v3: swing / dodge / guard / hurt
+            if (merge && away) fx.behind(g, cx, base, merge, view, time);
+            if (merge) fx.front(g, cx, base, merge, view, time);
             if (look.wings && away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
             if (look.halo) ENSO.gazeFx.playerHalo(g, cx, base, time);
             const glow = 0.45 + 0.25 * Math.sin(time / 500);                        // the faintly glowing hands
