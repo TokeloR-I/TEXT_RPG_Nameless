@@ -335,6 +335,20 @@
         }
 
         /**
+         * A boss shakes off statuses (rage, docs/design/BOSS_DIFFICULTY.md): the central selective cleanse
+         * (`spec` = { categories } and/or { statuses }), once, when the sim says so. Returns the names removed.
+         */
+        actionBossCleanse(enemyId, spec = {}, { reason = 'shakes it off' } = {}) {
+            return this.actionRun(() => {
+                const e = this.actionEnemy(enemyId);
+                if (!e) return null;
+                const gone = this.cleanse(e, spec).map((s) => s.name);
+                if (gone.length) this.say(`${e.name} ${reason}: ${[...new Set(gone)].join(', ')} gone!`, { important: true });
+                return { removed: gone };
+            });
+        }
+
+        /**
          * Crow's Illusion (Tokelo, 2026-11-02): `count` copies of an engaged enemy join its group. They look and hit
          * exactly like it (same name, stats and skills) but have `hp` HP, give no XP or loot, and vanish when the
          * real one falls (actionCheckEnd). Returns their ids.

@@ -1845,14 +1845,22 @@
                     // Gauge: hpMult 2.5 (action mode only) puts the fight at 60-90 s; action play lands far more hits than v2.
                     // Tokelo 2026-11-02 (beef up the boss, don't nerf the classes): 2.5 -> 3.2. The phase 2/3 moves alone left
                     // the warrior at 52 s; at 3.2 he takes 65 s and mage/rogue stay in the 60-90 s band (qa/scripts/warden_benchmark.js).
-                    hpMult: 3.2, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
+                    // Tokelo 2026-11-17 (rage, 50-65% wins per class): 3.2 -> 3.6 with the rage below; see docs/design/BOSS_DIFFICULTY.md.
+                    hpMult: 3.6, speed: 46, keepDistance: [32, 56], radius: 10, poise: 10, hyperArmor: true, postureBreakMs: 1500,
                     parryStaggerMs: 600, warriorParryStaggerMs: 800, attackGapMs: 1200, minWindupMs: 500,
                     alternateSpecials: true,   // a crow special or Reaper's Dance is followed by a base blow when one fits
                     guardsSeal: true, noSweepNearCagesPx: 40,
                     attacks: {
                         halberd_sweep:   { skill: 'Halberd Sweep', shape: 'arc', reach: 36, arcDeg: 150, windupMs: 700, activeMs: 150, recoveryMs: 700, blockCost: 30, parryable: true, useAt: [0, 40] },
                         reaping_thrust:  { skill: 'Halberd Sweep', shape: 'line', reach: 64, width: 12, lunge: 24, windupMs: 550, activeMs: 120, recoveryMs: 900, blockCost: 22, parryable: true, useAt: [40, 80], alsoWhen: 'playerNorthOfWarden_or_nearCage' },
-                        chain_lock:      { skill: 'Chain Lock', shape: 'projectile', reach: 120, width: 10, projSpeed: 300, windupMs: 600, activeMs: 0, recoveryMs: 800, blockCost: 20, parryable: false, onHit: { status: 'Rooted', ms: 1000, pullPx: 24 }, useWhen: 'playerBeyond80For1500ms' },
+                        chain_lock:      { skill: 'Chain Lock', shape: 'projectile', reach: 120, width: 10, projSpeed: 300, windupMs: 600, activeMs: 0, recoveryMs: 800, blockCost: 20, parryable: false, onHit: { status: 'Rooted', ms: 1000, pullPx: 24 }, useWhen: 'playerBeyond80For1500ms', followUp: 'gallows_drop', followUpMs: 200 },
+                        // Tokelo 2026-11-17: "he can basically do his spear dashing attack even up to the end of the room". The charge
+                        // crosses the arena (640 px wide): the line you see during the long wind-up is the whole path he runs.
+                        crow_charge:     { skill: 'Halberd Sweep', shape: 'line', reach: 420, width: 18, lunge: 400, windupMs: 900, lockMs: 350, activeMs: 340, recoveryMs: 1100, blockCost: 34, parryable: false, cooldownMs: 6500, useAt: [64, 440], damageMult: 1.2 },
+                        // Rage moves (docs/design/BOSS_DIFFICULTY.md). Gallows Spin: the halberd all the way round, so hugging him isn't safe.
+                        gallows_spin:    { skill: 'Halberd Sweep', shape: 'circle', radius: 46, windupMs: 650, activeMs: 150, recoveryMs: 750, blockCost: 30, parryable: false, cooldownMs: 5500, useAt: [0, 40], damageMult: 1.1 },
+                        // Gallows Drop: chained (Chain Lock) while he rages, the thrust comes straight after. Raise your guard.
+                        gallows_drop:    { skill: 'Halberd Sweep', shape: 'line', reach: 72, width: 14, lunge: 36, windupMs: 480, lockMs: 200, activeMs: 140, recoveryMs: 900, blockCost: 30, parryable: true, followUpOnly: true, damageMult: 1.3 },
                         summon_crows:    { skill: 'Summon Crows', shape: 'ground', count: 3, radius: 20, leadMs: 300, windupMs: 900, activeMs: 300, recoveryMs: 1000, guardable: false, cooldownMs: 9000, damageMult: 3 },
                         // Gauge: windup 1200 -> 1300 (walking out of r 64 from his feet takes ~960 ms + a 250 ms reaction) and
                         // active 200 -> 120 (the 200 ms dodge i-frames must cover the whole active window with slack).
@@ -1881,6 +1889,13 @@
                     // Crow's Illusion (Tokelo, 2026-11-02): once at 30% he bursts into crows and steps out as one of 5 identical
                     // Wardens. The 4 false ones have 2 HP and hit as hard as he does (same stats and skills); they swing only
                     // (no crows) and scatter after `ms` or when he falls.
+                    // Rage (Tokelo, 2026-11-17: "make the boss unforgiving ... in a rage", but still the easiest boss; BOSS_DIFFICULTY.md).
+                    // Below half HP, for good: faster steps, shorter wind-ups and rests, harder blows, Gallows Spin and Gallows Drop,
+                    // and if he sees you heal he charges. First-pass numbers for Gauge, tuned on qa/scripts/warden_benchmark.js.
+                    rage: { atHpPct: 0.7, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.75, minRecoveryMs: 450, attackGapMs: 500, damageMult: 1.7,
+                            add: ['gallows_spin', 'gallows_drop'], punishHeal: 'crow_charge', huntsPlayer: true, keepDistance: [0, 26], windupStepSpeed: 48,
+                            cleanse: { categories: ['dot'] }, cleanseEveryMs: 15000, cleanseText: 'tears the rot out with his crows',
+                            attackOverrides: { crow_charge: { cooldownMs: 4500, windupMs: 800 }, reaping_thrust: { lunge: 40 }, halberd_sweep: { damageMult: 1.6 }, reapers_dance: { damageMult: 1.5 }, gallows_spin: { damageMult: 1.7 } }, notice: 'The crows scream and the Warden flies into a rage!' },
                     illusion: { atHpPct: 0.3, count: 4, hp: 2, ms: 20000, attackGapMs: 2400, ringPx: 90, revealMs: 700, attacks: ['halberd_sweep', 'reaping_thrust'] },
                     crowStorms: [
                         { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.22 }, { kind: 'column', fx: 0.5, w: 0.14 }] },
@@ -1890,20 +1905,68 @@
                         { name: 'Corners', zones: [{ kind: 'spot', fx: 0.15, fy: 0.2, r: 0.12 }, { kind: 'spot', fx: 0.85, fy: 0.2, r: 0.12 }, { kind: 'spot', fx: 0.15, fy: 0.8, r: 0.12 }, { kind: 'spot', fx: 0.85, fy: 0.8, r: 0.12 }, { kind: 'spot', fx: 0.5, fy: 0.5, r: 0.09 }] }
                     ],
                     phases: [
-                        { fromHpPct: 1.0, attacks: ['halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },
-                        { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['reapers_dance', 'marked_prey', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
+                        { fromHpPct: 1.0, attacks: ['crow_charge', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'] },
+                        { fromHpPct: 0.5, openWith: 'murder_of_crows', speed: 54, attacks: ['reapers_dance', 'marked_prey', 'crow_charge', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows', 'murder_of_crows'], sweepCombo: { hits: 2, gapMs: 400 }, summonCrowsCount: 5 },
                         // Phase 3 at 25% (Tokelo, 2026-11-02; was the 20% desperation stage): the crow storms join everything else.
-                        { fromHpPct: 0.25, openWith: 'crow_storm', recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true, attacks: ['crow_storm', 'murder_of_crows', 'marked_prey', 'reapers_dance', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'],
+                        { fromHpPct: 0.25, openWith: 'crow_storm', recoveryMult: 0.8, drop: ['chain_lock'], barkBeforeMurder: true, attacks: ['crow_storm', 'murder_of_crows', 'marked_prey', 'reapers_dance', 'crow_charge', 'halberd_sweep', 'reaping_thrust', 'chain_lock', 'summon_crows'],
                           // Tokelo 2026-11-02: below 25% his crows come faster and more often, between the storms
                           attackOverrides: { murder_of_crows: { cooldownMs: 7000, windupMs: 1000 }, marked_prey: { cooldownMs: 5500, windupMs: 1200, lockMs: 450 } } }
                     ],
                     onDefeat: { drop: 'First Echo key', scene: 'crows_mourn' },
                     onPlayerDefeat: { reset: 'fullHp', returnHome: true, keepFlags: ['warden_challenged'] }
+                },
+                // ---- After the Warden: the Dark Souls standard (Tokelo, 2026-11-17, docs/design/BOSS_DIFFICULTY.md) ----
+                // "All the bosses going forward should shatter the illusion that the game is easy." Target: 25-40% wins per branch
+                // for a decent first attempt (qa/scripts/boss_benchmark.js: expected level, 6 heals, react 0.6). Every boss hits
+                // hard from the first blow (damageMult), has a gap-closer that crosses its arena and answers a heal, and rages
+                // for good below `rage.atHpPct`. Every tell stays readable (480 ms or more). First-pass numbers for Gauge.
+                bjarki_grave_bound: {
+                    hpMult: 3.4, damageMult: 1.8,
+                    rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 24], windupStepSpeed: 50, punishHeal: 'Hearth-Charge', openWith: 'Hearth-Charge',
+                            notice: 'Bjarki roars his own name, and the barrow answers!',
+                            add: [
+                                // The shield-charge of the hearth-troop he led: from one end of the barrow to the other.
+                                { name: 'Hearth-Charge', skill: 'Shield Crash', shape: 'line', reach: 300, width: 20, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 36, knockbackPx: 26, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
+                                // Three cuts that walk you down, the last overhead.
+                                { name: 'Barrow-King\'s Fury', skill: 'Grave Blade', shape: 'arc', reach: 32, arcDeg: 150, cooldownMs: 5500, useAt: [0, 36],
+                                  combo: [{ windupMs: 600, activeMs: 120, recoveryMs: 120, blockCost: 22 }, { windupMs: 480, activeMs: 120, recoveryMs: 120, blockCost: 22, reverse: true }, { windupMs: 700, activeMs: 140, recoveryMs: 1100, blockCost: 34, damageMult: 1.4 }] }
+                            ] }
+                },
+                binding_echo: {
+                    hpMult: 3.2, damageMult: 2.0,
+                    rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Wolf-Run', openWith: 'Gleipnir Recoils',
+                            notice: 'The chain screams: both wolves pull at once!',
+                            add: [
+                                // Sköll's run: the chain lashes forward the length of the ring.
+                                { name: 'Wolf-Run', skill: 'Chain Lash', shape: 'line', reach: 320, width: 18, lunge: 300, windupMs: 800, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 5500, blockCost: 32, parryable: false, useAt: [50, 340], damageMult: 1.2 },
+                                // Hati's bite: the dark comes up under you twice, the second where you stepped to.
+                                { name: 'Twin Eclipse', skill: 'Sunbrand', shape: 'ground', count: 2, radius: 24, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 200],
+                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                            ] }
+                },
+                peat_king: {
+                    hpMult: 8, damageMult: 3.0,
+                    rage: { atHpPct: 0.75, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Mire Surge', openWith: 'The Bog Rises',
+                            notice: 'The Man in the Peat stands up out of the bog, all of him!',
+                            add: [
+                                // The cord thrown and hauled: it roots and drags you in, like a sacrifice to the bog.
+                                { name: 'Cord of Offering', skill: 'Offering Cord', shape: 'projectile', reach: 150, width: 10, projSpeed: 280, windupMs: 650, activeMs: 0, recoveryMs: 700, cooldownMs: 6000, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 30 }, useAt: [40, 150] },
+                                // He slides through the peat at you, the bog going with him.
+                                { name: 'Mire Surge', skill: 'Iron Water', shape: 'line', reach: 280, width: 22, lunge: 260, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 6500, blockCost: 30, parryable: false, useAt: [60, 300], damageMult: 1.2 }
+                            ] }
                 }
             },
             combat: {
                 maxSimultaneousAttackers: 2,
                 reset: { returnSpeedMult: 1.6, invulnerable: true, fullHeal: true, reengageCooldownMs: 1500, unreachableMs: 3000 },
+                // Pursuit (Tokelo 2026-11-17: "you can run away from certain mobs ... not much pressure"): an engaged enemy that
+                // has fallen more than `beyondPx` behind its fighting range runs you down at `speed` px/s (if it's slower), faster
+                // than you walk (72) and slower than you sprint (108), so only a sprint with stamina to spare gets you clear.
+                // Bosses have their own pace (rage).
+                pursuit: { beyondPx: 40, speed: 84 },
                 itemUse: { ms: 500, moveMult: 0.5, cancelKeepsItem: true },
                 channelInteractMs: 1000,
                 corpseMs: 30000,

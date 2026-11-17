@@ -11,7 +11,7 @@ const freeNear = (s, x, y) => { for (let r = 0; r < 8; r++) for (let dy = -r; dy
 const frames = (sim, n, input = {}) => { for (let i = 0; i < n; i++) sim.update(STEP, typeof input === 'function' ? input(i) : input); };
 
 /** A level 1 hero in the sanctuary, engaged with the Warden. */
-function fight(cls = 'warrior', seed = 61, { illusions = false } = {}) {
+function fight(cls = 'warrior', seed = 61, { illusions = false, rage = false } = {}) {
     const g = new GameEngine({ seed, combatMode: 'action' });
     g.start(); g.input(cls); g.enterWorld();
     const s = new WorldSession(WORLD, { engine: g });
@@ -27,6 +27,7 @@ function fight(cls = 'warrior', seed = 61, { illusions = false } = {}) {
     const w = sim.actors.find((a) => a.key === 'crow_touched_warden');
     const e = () => g.combat.enemies.find((en) => en.key === 'crow_touched_warden');
     w.illusionUsed = !illusions;   // Crow's Illusion only in the tests about it (its false Wardens would muddle the rest)
+    w.rageUsed = !rage;   // his rage (below 50%) only in the tests about it: it speeds up every timing the phase tests measure
     return { g, s, sim, w, e };
 }
 const boss = (g) => g.data.actionRules.bosses.crow_touched_warden;
@@ -286,4 +287,84 @@ test("Crow's Illusion: the false Wardens scatter after their time runs out", () 
     frames(r.sim, 26 * 60);
     assert.strictEqual(r.sim.actors.filter((a) => a.illusionOf && !a.dead).length, 0);
     assert.strictEqual(r.g.combat.enemies.filter((e) => e.illusion && e.hp > 0).length, 0);
+});
+
+// ---- Rage (Tokelo, 2026-11-17: "make the boss unforgiving ... in a rage"; docs/design/BOSS_DIFFICULTY.md) ----
+const rageCfg = (g) => boss(g).rage;
+
+test('Rage: below its threshold he rages once, for good: quicker steps and wind-ups, harder blows, Gallows Spin, and the rot torn out', () => {
+    const r = fight('warrior', 70, { rage: true });
+    const cfg = rageCfg(r.g);
+    setHpPct(r, cfg.atHpPct + 0.05);
+    assert.ok(!r.w.raged, 'calm above the threshold');
+    assert.ok(!r.sim.attacksOf(r.w).some((x) => x.name === 'gallows_spin'));
+    r.g.applyStatus(r.g.player, r.e(), { name: 'Poison', type: 'dot', value: 2, duration: 6 });
+    assert.ok(r.g.findStatus(r.e(), 'Poison'));
+    setHpPct(r, cfg.atHpPct - 0.01);
+    assert.ok(r.w.raged, 'enraged below the threshold');
+    assert.ok(!r.g.findStatus(r.e(), 'Poison'), 'his crows tear the DoTs out when the rage starts');
+    assert.ok(r.sim.attacksOf(r.w).some((x) => x.name === 'gallows_spin'), 'Gallows Spin joins his kit');
+    assert.ok(Math.abs(r.w.speedMult - (r.e().speedMult || 1) * cfg.speedMult * (r.w.resolve && r.sim.now < r.w.resolve.until ? r.w.resolve.cfg.speedMult : 1)) < 1e-9, 'he moves faster');
+    assert.strictEqual(r.sim.strikeMult(r.w, { damageMult: 1 }), cfg.damageMult, 'his blows land harder');
+    setHpPct(r, 0.9);
+    assert.ok(r.w.raged, 'healing him does not calm him');
+    // wind-ups: shorter, never below the readable floor
+    frames(r.sim, 10 * 60);
+    r.w.attackReadyAt = Infinity;
+    startAttack(r, 'halberd_sweep');
+    const len = r.w.stateEnd - r.sim.now;
+    assert.ok(len < boss(r.g).attacks.halberd_sweep.windupMs && len >= cfg.minWindupMs, `quicker but readable wind-up (${len} ms)`);
+});
+
+test('Crow Charge: from phase 1 he can run the spear the length of the sanctuary, and the telegraph is the whole path', () => {
+    const r = fight('warrior', 71);
+    const atk = r.sim.attacksOf(r.w).find((x) => x.name === 'crow_charge');
+    assert.ok(atk, 'in his phase 1 kit');
+    const ar = boss(r.g).arena;
+    assert.ok(atk.reach >= (ar.x1 - ar.x0) * 0.6 && atk.useAt[1] >= 400, 'reaches across most of the room');
+    assert.ok(atk.windupMs >= 800, 'a long, readable wind-up for a long charge');
+    r.w.attackReadyAt = Infinity;
+    startAttack(r, 'crow_charge');
+    const shape = r.sim.enemyShape(r.w);
+    assert.strictEqual(shape.kind, 'line');
+    assert.strictEqual(shape.length, atk.reach);
+    const x0 = r.w.x, y0 = r.w.y;
+    for (let i = 0; i < 120 && r.w.state !== 'recover'; i++) frames(r.sim, 1);
+    assert.ok(Math.hypot(r.w.x - x0, r.w.y - y0) > 60, 'he actually runs');
+});
+
+test('Rage: seeing you heal, he comes straight for you with the Crow Charge', () => {
+    const r = fight('warrior', 72, { rage: true });
+    setHpPct(r, 0.6);
+    frames(r.sim, 10 * 60);
+    assert.ok(r.w.raged);
+    Object.assign(r.w, { state: 'recover', stateEnd: r.sim.now + 2000, windup: null });
+    r.w.attackReadyAt = r.sim.now + 5000;
+    r.g.player.hp -= 500;
+    frames(r.sim, 1);
+    r.g.player.hp += 40;   // a Healing Herb Bundle
+    frames(r.sim, 1);
+    assert.strictEqual(r.w.openWith, rageCfg(r.g).punishHeal);
+    assert.ok(r.w.attackReadyAt <= r.sim.now + 200 && r.w.stateEnd <= r.sim.now + 200, 'no waiting');
+});
+
+test('Rage: a Chain Lock that lands is followed straight up by the Gallows Drop', () => {
+    const r = fight('warrior', 73, { rage: true });
+    setHpPct(r, 0.6);
+    frames(r.sim, 10 * 60);
+    r.w.attackReadyAt = Infinity;
+    startAttack(r, 'chain_lock');
+    r.sim.player.iframesUntil = 0;
+    r.sim.strikePlayer(r.w, true, { ...boss(r.g).attacks.chain_lock });
+    assert.strictEqual(r.w.openWith, 'gallows_drop');
+    assert.ok(!r.sim.pickAttack({ ...r.w, openWith: null, atkReady: {} }, 20) || r.sim.pickAttack({ ...r.w, openWith: null, atkReady: {} }, 20).name !== 'gallows_drop', 'never picked on its own');
+});
+
+test('Rage: he steps past your summons to get at you', () => {
+    const r = fight('necromancer', 74, { rage: true });
+    const fake = { sid: 'm1', x: r.w.x + 4, y: r.w.y, r: 5, state: 'idle', dead: false, taunting: true };
+    r.sim.liveMinions = () => [fake];
+    assert.strictEqual(r.sim.foeOf(r.w), fake, 'calm: the taunting summon holds him');
+    setHpPct(r, 0.6);
+    assert.strictEqual(r.sim.foeOf(r.w), r.sim.player, 'enraged: he goes for you');
 });

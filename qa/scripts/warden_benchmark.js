@@ -5,7 +5,10 @@
 // says it is available (else the basic attack), and dodges a Warden wind-up with probability --react, about 150 ms
 // before it lands. It reads Marked Prey and the phase 3 crow storms only through that dodge, so it is a "decent
 // player" stand-in, not a perfect one. It also logs the time each phase opened.
-//   node qa/scripts/warden_benchmark.js [--seeds 20] [--react 0.6] [--max 240] [--only necromancer] [--json]
+// Tokelo 2026-11-17 (rage, BOSS_DIFFICULTY.md): --level sets the level (the quest line now reaches him at 4, 746 XP) and
+// --heals N gives the bot N healing items (half Healing Herb Bundles, half Bandages) it quick-heals with below 40% HP,
+// like a player who stocked up at Iona's. The rage target is 50-65% wins for every branch at --level 4 --heals 4.
+//   node qa/scripts/warden_benchmark.js [--seeds 20] [--react 0.6] [--max 240] [--level 3] [--heals 0] [--only necromancer] [--json]
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const { GameEngine } = require(path.join(ROOT, 'src/engine.js'));
@@ -21,6 +24,9 @@ const REACT = parseFloat(opt('--react', '0.6'));
 const MAX_S = parseInt(opt('--max', '240'), 10);
 const ONLY = opt('--only', null);
 const HP_MULT = opt('--hp', null);   // try a Warden hpMult without editing data.js
+const LEVEL = parseInt(opt('--level', '3'), 10);
+const HEALS = parseInt(opt('--heals', '0'), 10);
+const XP_FOR = { 3: 250, 4: 746 };
 const STEP = 1000 / 60;
 
 const SETUPS = [
@@ -42,7 +48,9 @@ function setup(st, seed) {
     const g = new GameEngine({ seed, combatMode: 'action' });
     if (HP_MULT != null) g.data.actionRules.bosses.crow_touched_warden.hpMult = parseFloat(HP_MULT);
     g.start(); g.input(st.cls); g.enterWorld();
-    g.input('add_xp 250');
+    g.input(`add_xp ${XP_FOR[LEVEL] || 250}`);
+    while (g.player.level < LEVEL) g.addExperience(g.player.xpToNext, { quiet: true });
+    for (let k = 0; k < HEALS; k++) g.player.inventory.push(k % 2 ? 'Bandages' : 'Healing Herb Bundle');
     if (g.pendingBranchChoice) g.chooseBranch(st.branch);
     if (!g.progression || g.progression.branch !== st.branch) throw new Error(`${st.cls}: branch ${st.branch} not chosen`);
     const s = new WorldSession(WORLD, { engine: g });
@@ -62,14 +70,14 @@ function fight(st, seed) {
     r.sim.engageGroup(r.sim.groups.sanctuary_warden);
     const bar = r.g.ensureSkillBar();
     const phaseAt = {};
-    let decided = new Map(), slotTurn = 0;
+    let decided = new Map(), slotTurn = 0, healsUsed = 0;
     for (let i = 0; i < MAX_S * 60; i++) {
         const w = wardenActor();
         const we = r.g.combat && r.g.combat.enemies && r.g.combat.enemies.find((e) => e.key === 'crow_touched_warden');
         if (w && !phaseAt[w.phaseIdx + 1]) phaseAt[w.phaseIdx + 1] = i / 60;
         if (!w || w.dead || (we && we.hp <= 0) || (r.g.mode !== 'combat' && i > 30)) {
             const won = !!(w && w.dead) || !!(we && we.hp <= 0);
-            return { won, s: i / 60, phaseAt };
+            return { won, s: i / 60, phaseAt, healsUsed };
         }
         const p = r.sim.player;
         // Crow's Illusion: the bot can't tell them apart either, so it goes for the nearest Warden it sees
@@ -86,6 +94,7 @@ function fight(st, seed) {
                 input.dodge = true; decided.set(key, 'done');
             }
         }
+        if (!input.dodge && HEALS && r.g.player.hp < r.g.player.maxHp * 0.4 && r.g.mode === 'combat') { const before = r.g.player.inventory.length; r.g.act({ type: 'quick_heal' }); if (r.g.player.inventory.length < before) healsUsed++; }
         if (!input.dodge) {
             if (d > st.keep + 6) input.move = { x: ux, y: uy };
             else if (d < st.keep - 10) input.move = { x: -ux, y: -uy };
@@ -101,7 +110,7 @@ function fight(st, seed) {
             if (cast != null) input.slot = cast; else input.attack = true;
         }
         const out = r.sim.update(STEP, input);
-        if (out.engineEvents && out.engineEvents.some((e) => e.type === 'world.respawn')) return { won: false, s: i / 60, phaseAt };
+        if (out.engineEvents && out.engineEvents.some((e) => e.type === 'world.respawn')) return { won: false, s: i / 60, phaseAt, healsUsed };
     }
     return { won: false, timeout: true, s: MAX_S, phaseAt };
 }
@@ -109,17 +118,17 @@ function fight(st, seed) {
 const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN;
 const pct = (x) => `${Math.round(x * 100)}%`;
 const f1 = (x) => (isNaN(x) ? '-' : `${x.toFixed(1)} s`);
-console.log(`Crow Warden, level 3, ${SEEDS} seeds, react ${REACT}, cap ${MAX_S} s${HP_MULT != null ? `, hpMult ${HP_MULT}` : ''}\n`);
-console.log('| class / branch | win | time to kill (wins) | phase 2 opens | phase 3 opens | timeouts |');
-console.log('|---|---|---|---|---|---|');
+console.log(`Crow Warden, level ${LEVEL}, ${HEALS} heals, ${SEEDS} seeds, react ${REACT}, cap ${MAX_S} s${HP_MULT != null ? `, hpMult ${HP_MULT}` : ''}\n`);
+console.log('| class / branch | win | time to kill (wins) | phase 2 opens | phase 3 opens | heals used | timeouts |');
+console.log('|---|---|---|---|---|---|---|');
 const summary = [];
 for (const st of SETUPS) {
     const rs = [];
     for (let k = 0; k < SEEDS; k++) rs.push(fight(st, 1000 + k));
     const wins = rs.filter((x) => x.won);
     const row = { cls: st.cls, branch: st.branch, win: wins.length / rs.length, ttk: mean(wins.map((x) => x.s)),
-        p2: mean(rs.filter((x) => x.phaseAt[2] != null).map((x) => x.phaseAt[2])), p3: mean(rs.filter((x) => x.phaseAt[3] != null).map((x) => x.phaseAt[3])), timeouts: rs.filter((x) => x.timeout).length };
+        p2: mean(rs.filter((x) => x.phaseAt[2] != null).map((x) => x.phaseAt[2])), p3: mean(rs.filter((x) => x.phaseAt[3] != null).map((x) => x.phaseAt[3])), timeouts: rs.filter((x) => x.timeout).length, heals: mean(rs.map((x) => x.healsUsed || 0)) };
     summary.push(row);
-    console.log(`| ${st.cls} / ${st.branch} | ${pct(row.win)} | ${f1(row.ttk)} | ${f1(row.p2)} | ${f1(row.p3)} | ${row.timeouts} |`);
+    console.log(`| ${st.cls} / ${st.branch} | ${pct(row.win)} | ${f1(row.ttk)} | ${f1(row.p2)} | ${f1(row.p3)} | ${row.heals.toFixed(1)} | ${row.timeouts} |`);
 }
 if (args.includes('--json')) console.log(JSON.stringify(summary, null, 1));
