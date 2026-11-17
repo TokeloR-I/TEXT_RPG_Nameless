@@ -73,6 +73,15 @@
         };
 
         // --- Enemy Definitions ---
+        // Condition attacks (Tokelo 2026-11-17: "the enemies also have their specific condition attack like the wolf bite
+        // causing bleed"): an enemy skill's `effects: [{ type: 'inflict', status, chance, value, seconds, duration,
+        // stackCap }]` (src/effects.js). Wolves, crows and blades bleed; rats, bog lights and the barrow-dead poison; the
+        // Broken Oath's zealots and sun-touched things burn; grasping things (mire-dead, grave-wards, the drowned) slow.
+        // Bosses carry one signature condition, kept light so it adds pressure without moving their win rates far (the
+        // Warden's crows bleed you, the Binding Echo's Sunbrand burns, Bjarki and the Man in the Peat poison).
+        // `seconds` is the live-fight duration, `duration` the
+        // turn-mode one; `stackCap` is how high that enemy can stack it. A blow taken on the guard carries none, and
+        // Bandages cure Bleed, Healing Herb Bundles cure Poison and Burn. CANDIDATE numbers for Gauge.
         const enemies = {
             'James_Newton': {
                 name: 'James Newton', properName: true, // text only: no "a" before the name
@@ -91,13 +100,13 @@
                 name: 'Hungry Wolf',
                 hp: 70, maxHp: 70, xp: 50, atk: 7, def: 3, spd: 12, tier: 'elite',
                 critChance: 0.2, critMultiplier: 1.7,
-                skills: [{ name: 'Bite', base_damage: [7, 10] }]
+                skills: [{ name: 'Bite', base_damage: [7, 10], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.5, value: 2, seconds: 5, duration: 2, stackCap: 3 }] }]
             },
             'pack_wolf': {
                 name: 'Pack Wolf',
                 hp: 24, maxHp: 24, xp: 15, atk: 5, def: 2, spd: 13,
                 critChance: 0.1, critMultiplier: 1.5,
-                skills: [{ name: 'Bite', base_damage: [4, 7] }]
+                skills: [{ name: 'Bite', base_damage: [4, 7], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             // Fenrir's Heir (CL1, Gullstrand Coast): the coast wolves that the two hunts have turned. Sun-mad ones lie across
             // the bright cave and bite hot; the moonless ones come out of the dark hollow after you. Chapter Two pack wolves.
@@ -105,58 +114,58 @@
                 name: 'Sun-Mad Wolf',
                 hp: 40, maxHp: 40, xp: 32, atk: 9, def: 3, spd: 13,
                 critChance: 0.12, critMultiplier: 1.6,
-                skills: [{ name: 'Scorching Bite', base_damage: [7, 10] }]
+                skills: [{ name: 'Scorching Bite', base_damage: [7, 10], effects: [{ type: 'inflict', status: 'Burn', chance: 0.45, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }]
             },
             'moonless_wolf': {
                 name: 'Moonless Wolf',
                 hp: 34, maxHp: 34, xp: 32, atk: 9, def: 2, spd: 14,
                 critChance: 0.18, critMultiplier: 1.6,
-                skills: [{ name: 'Night Bite', base_damage: [6, 10] }]
+                skills: [{ name: 'Night Bite', base_damage: [6, 10], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.45, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }]
             },
             'shackled_ghoul': {
                 name: 'Shackled Ghoul',
                 hp: 20, maxHp: 20, xp: 15, atk: 8, def: 1, spd: 14,
                 critChance: 0.15, critMultiplier: 1.6,
                 specialFlags: ['undead', 'weak_to_light'],
-                skills: [{ name: 'Frenzied Bite', base_damage: [6, 10] }]
+                skills: [{ name: 'Frenzied Bite', base_damage: [6, 10], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.35, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             'rust_rat': {
                 name: 'Rust Rat',
                 hp: 15, maxHp: 15, xp: 10, atk: 4, def: 2, spd: 16,
                 critChance: 0.1, critMultiplier: 1.5,
-                skills: [{ name: 'Corroding Bite', base_damage: [3, 5] }]
+                skills: [{ name: 'Corroding Bite', base_damage: [3, 5], effects: [{ type: 'inflict', status: 'Poison', chance: 0.4, value: 1, seconds: 5, duration: 2, stackCap: 2 }] }]
             },
             'cellar_vermin': {
                 name: 'Cellar Vermin',
                 hp: 25, maxHp: 25, xp: 15, atk: 6, def: 1, spd: 13,
                 critChance: 0.1, critMultiplier: 1.5,
-                skills: [{ name: 'Quick Swipe', base_damage: [5, 8] }]
+                skills: [{ name: 'Quick Swipe', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Poison', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             'drunken_shade': {
                 name: 'Drunken Shade',
                 hp: 30, maxHp: 30, xp: 15, atk: 2, def: 4, spd: 7,
                 critChance: 0.05, critMultiplier: 1.5,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Disorienting Whisper', base_damage: [1, 3] }]
+                skills: [{ name: 'Disorienting Whisper', base_damage: [1, 3], effects: [{ type: 'inflict', status: 'Slow', chance: 0.5, value: 0.3, seconds: 3, duration: 1 }] }]
             },
             'bone_gnawer': {
                 name: 'Bone Gnawer',
                 hp: 18, maxHp: 18, xp: 15, atk: 6, def: 3, spd: 15,
                 critChance: 0.1, critMultiplier: 1.5,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Ankle Snap', base_damage: [6, 9] }]
+                skills: [{ name: 'Ankle Snap', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Slow', chance: 0.4, value: 0.3, seconds: 3, duration: 1 }] }]
             },
             'mire_lurker': {
                 name: 'Mire Lurker',
                 hp: 35, maxHp: 35, xp: 20, atk: 5, def: 2, spd: 6,
                 critChance: 0.05, critMultiplier: 1.5,
-                skills: [{ name: 'Corrosive Spit', base_damage: [4, 7] }]
+                skills: [{ name: 'Corrosive Spit', base_damage: [4, 7], effects: [{ type: 'inflict', status: 'Poison', chance: 0.5, value: 1, seconds: 5, duration: 2, stackCap: 3 }] }]
             },
             'cult_acolyte': {
                 name: 'Cult Acolyte',
                 hp: 22, maxHp: 22, xp: 20, atk: 7, def: 1, spd: 9,
                 critChance: 0.1, critMultiplier: 1.6,
-                skills: [{ name: 'Hexing Blade', base_damage: [7, 11] }]
+                skills: [{ name: 'Hexing Blade', base_damage: [7, 11], effects: [{ type: 'inflict', status: 'Burn', chance: 0.35, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             // The road to the Warden (Tokelo 2026-11-04: "add more enemy NPCs leading up to the Warden"). CANDIDATE kits,
             // first-pass numbers for Gauge to tune: the Broken Oath's heavy (orchard and Featherwatch Path) and the crows
@@ -165,20 +174,20 @@
                 name: 'Broken Oath Zealot',
                 hp: 38, maxHp: 38, xp: 28, atk: 8, def: 3, spd: 8,
                 critChance: 0.1, critMultiplier: 1.6,
-                skills: [{ name: 'Oathbreaker Flail', base_damage: [8, 12] }, { name: 'Zealous Charge', base_damage: [6, 9] }]
+                skills: [{ name: 'Oathbreaker Flail', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Burn', chance: 0.4, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Zealous Charge', base_damage: [6, 9] }]
             },
             'carrion_crow': {
                 name: 'Hex-Eyed Crow',
                 hp: 12, maxHp: 12, xp: 8, atk: 4, def: 0, spd: 18,
                 critChance: 0.15, critMultiplier: 1.5,
-                skills: [{ name: 'Raking Peck', base_damage: [3, 5] }]
+                skills: [{ name: 'Raking Peck', base_damage: [3, 5], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             'shackled_ghoul_stronger': {
                 name: 'Ritual-Scarred Ghoul',
                 hp: 40, maxHp: 40, xp: 30, atk: 10, def: 3, spd: 12,
                 critChance: 0.15, critMultiplier: 1.6,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Frenzied Bite', base_damage: [9, 14] }]
+                skills: [{ name: 'Frenzied Bite', base_damage: [9, 14], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.45, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }]
             },
             // Chapter One S01 (Shane's pursuers). CANDIDATE kit so the quest is playable: Rook owns the final enemy kit (CH1-06),
             // Tally tunes it. Defensive, predictable town watch; honest guards, not villains.
@@ -196,7 +205,7 @@
                 specialFlags: ['boss'],
                 skills: [
                     { name: 'Halberd Sweep', base_damage: [15, 20] },
-                    { name: 'Summon Crows', base_damage: [5, 8] },
+                    { name: 'Summon Crows', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Bleed', chance: 1, value: 1, seconds: 4, duration: 2, stackCap: 2 }] },
                     { name: 'Chain Lock', base_damage: [10, 12] }
                 ]
             },
@@ -212,7 +221,7 @@
                 skills: [
                     { name: 'Spear of the Altar', base_damage: [28, 36] },
                     { name: 'Wingbeat', base_damage: [20, 26] },
-                    { name: 'Sentence of Light', base_damage: [16, 22] }
+                    { name: 'Sentence of Light', base_damage: [16, 22], effects: [{ type: 'inflict', status: 'Burn', chance: 1, value: 3, seconds: 5, duration: 2, stackCap: 3 }] }
                 ]
             },
             // The Binding Echo (Fenrir's Heir unlock, docs/design/FENRIRS_HEIR.md): what is left of Gleipnir's binding at the
@@ -226,7 +235,7 @@
                 specialFlags: ['boss', 'spirit'],
                 skills: [
                     { name: 'Chain Lash', base_damage: [12, 16] },
-                    { name: 'Sunbrand', base_damage: [10, 14] },
+                    { name: 'Sunbrand', base_damage: [10, 14], effects: [{ type: 'inflict', status: 'Burn', chance: 0.3, value: 1, seconds: 3, duration: 1, stackCap: 1 }] },
                     { name: 'Moonless Drag', base_damage: [8, 12] }
                 ]
             },
@@ -237,13 +246,13 @@
                 name: 'Wolf-Banner Raider',
                 hp: 46, maxHp: 46, xp: 34, atk: 9, def: 4, spd: 9,
                 critChance: 0.1, critMultiplier: 1.6,
-                skills: [{ name: 'Bearded Axe', base_damage: [8, 12] }, { name: 'Shield Rush', base_damage: [5, 8] }]
+                skills: [{ name: 'Bearded Axe', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Shield Rush', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Slow', chance: 0.5, value: 0.3, seconds: 3, duration: 1 }] }]
             },
             'wolfbanner_skirmisher': {
                 name: 'Wolf-Banner Spear-Thrower',
                 hp: 32, maxHp: 32, xp: 30, atk: 9, def: 2, spd: 11,
                 critChance: 0.12, critMultiplier: 1.6,
-                skills: [{ name: 'Thrown Spear', base_damage: [8, 11] }, { name: 'Spear Jab', base_damage: [6, 9] }]
+                skills: [{ name: 'Thrown Spear', base_damage: [8, 11], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.4, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Spear Jab', base_damage: [6, 9] }]
             },
             // Sergeant Kess, the Ash-Marked (Chapter One master brief §3, 2026-11-11): a former Crown sergeant who fights
             // with measured melee pressure beside one acolyte. An elite, not a second boss. Gauge 2026-11-11: kept as is, met
@@ -252,7 +261,7 @@
                 name: 'Sergeant Kess',
                 hp: 90, maxHp: 90, xp: 60, atk: 10, def: 4, spd: 9, tier: 'elite',
                 critChance: 0.1, critMultiplier: 1.6,
-                skills: [{ name: 'Measured Cut', base_damage: [9, 13] }, { name: 'Shield Feint', base_damage: [5, 8] }]
+                skills: [{ name: 'Measured Cut', base_damage: [9, 13], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.4, value: 2, seconds: 5, duration: 2, stackCap: 3 }] }, { name: 'Shield Feint', base_damage: [5, 8] }]
             },
             // C2-05 A Chieftain Disturbed (CHAPTER_TWO_LORE 6.1): the dead of the Járnmyr barrow, woken by the diggers.
             // CANDIDATE numbers for Gauge, pitched a little above the Wolf-Banner (level 5-6 after C2-04).
@@ -261,14 +270,14 @@
                 hp: 54, maxHp: 54, xp: 38, atk: 10, def: 5, spd: 8,
                 critChance: 0.08, critMultiplier: 1.6,
                 specialFlags: ['undead', 'weak_to_light'],
-                skills: [{ name: 'Grave Sword', base_damage: [8, 12] }, { name: 'Shield Wall', base_damage: [5, 8] }]
+                skills: [{ name: 'Grave Sword', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Poison', chance: 0.35, value: 2, seconds: 5, duration: 2, stackCap: 3 }] }, { name: 'Shield Wall', base_damage: [5, 8] }]
             },
             'grave_ward': {
                 name: 'Grave-Ward',
                 hp: 36, maxHp: 36, xp: 20, atk: 8, def: 3, spd: 10,
                 critChance: 0.08, critMultiplier: 1.5,
                 specialFlags: ['spirit', 'undead'],
-                skills: [{ name: 'Barrow Chill', base_damage: [6, 9] }]
+                skills: [{ name: 'Barrow Chill', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Slow', chance: 0.6, value: 0.35, seconds: 3, duration: 1 }] }]
             },
             // Act II mini bosses (Tokelo 2026-11-13, "some mini bosses in between"): Bjarki's shield-bearer in the barrow
             // passage, the grave-diggers' foreman on the Silent Field (C2-07) and the Bride of the Mound at Birkholt (C2-S06).
@@ -277,34 +286,34 @@
                 hp: 140, maxHp: 140, xp: 100, atk: 12, def: 6, spd: 8, tier: 'elite',
                 critChance: 0.1, critMultiplier: 1.6,
                 specialFlags: ['undead', 'weak_to_light'],
-                skills: [{ name: 'Grave Sword', base_damage: [11, 15] }, { name: 'Shield Wall', base_damage: [7, 10] }]
+                skills: [{ name: 'Grave Sword', base_damage: [11, 15], effects: [{ type: 'inflict', status: 'Poison', chance: 0.45, value: 2, seconds: 5, duration: 2, stackCap: 3 }] }, { name: 'Shield Wall', base_damage: [7, 10] }]
             },
             'grave_foreman': {
                 name: 'Hallgeir Spade',
                 hp: 130, maxHp: 130, xp: 100, atk: 12, def: 5, spd: 10, tier: 'elite',
                 critChance: 0.14, critMultiplier: 1.7,
-                skills: [{ name: 'Spade Swing', base_damage: [11, 16] }, { name: 'Grave-Earth', base_damage: [5, 8] }]
+                skills: [{ name: 'Spade Swing', base_damage: [11, 16], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.35, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Grave-Earth', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Slow', chance: 0.7, value: 0.35, seconds: 3, duration: 1 }] }]
             },
             'mound_bride': {
                 name: 'The Bride of the Mound',
                 hp: 150, maxHp: 150, xp: 110, atk: 13, def: 4, spd: 11, tier: 'elite',
                 critChance: 0.1, critMultiplier: 1.6,
                 specialFlags: ['spirit', 'undead'],
-                skills: [{ name: 'Bridal Wail', base_damage: [9, 13] }, { name: 'Cold Hands', base_damage: [10, 14] }]
+                skills: [{ name: 'Bridal Wail', base_damage: [9, 13] }, { name: 'Cold Hands', base_damage: [10, 14], effects: [{ type: 'inflict', status: 'Slow', chance: 0.6, value: 0.4, seconds: 3, duration: 1 }] }]
             },
             // C2-06's mini boss: Skuli Tally-Hand, the Broken Oath's buyer in Torvald's camp (the bill of sale in C2-04 was his).
             'skuli_tally_hand': {
                 name: 'Skuli Tally-Hand',
                 hp: 150, maxHp: 150, xp: 110, atk: 13, def: 5, spd: 12, tier: 'elite',
                 critChance: 0.15, critMultiplier: 1.7,
-                skills: [{ name: 'Tally Knife', base_damage: [10, 14] }, { name: 'Ash in the Eyes', base_damage: [5, 8] }]
+                skills: [{ name: 'Tally Knife', base_damage: [10, 14], effects: [{ type: 'inflict', status: 'Poison', chance: 0.5, value: 2, seconds: 5, duration: 2, stackCap: 2 }] }, { name: 'Ash in the Eyes', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Burn', chance: 0.6, value: 1, seconds: 3, duration: 1, stackCap: 2 }] }]
             },
             // C2-S07's mini boss: Old Greymane, an old she-wolf driven down to the pasture by the camp's hunters.
             'old_greymane': {
                 name: 'Old Greymane',
                 hp: 140, maxHp: 140, xp: 100, atk: 13, def: 4, spd: 13, tier: 'elite',
                 critChance: 0.12, critMultiplier: 1.7,
-                skills: [{ name: 'Throat Bite', base_damage: [11, 15] }, { name: 'Howl', base_damage: [4, 6] }]
+                skills: [{ name: 'Throat Bite', base_damage: [11, 15], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.6, value: 3, seconds: 5, duration: 2, stackCap: 4 }] }, { name: 'Howl', base_damage: [4, 6] }]
             },
             // Chapter Two enemies and side quests (Tokelo 2026-11-16, "add enemies and side quests"), placed on maps that
             // already exist. CANDIDATE numbers for Gauge, pitched beside the barrow-dead (Act II, level 5-7).
@@ -316,21 +325,21 @@
                 hp: 24, maxHp: 24, xp: 18, atk: 8, def: 1, spd: 12,
                 critChance: 0.08, critMultiplier: 1.5,
                 specialFlags: ['spirit'],
-                skills: [{ name: 'Marsh Glow', base_damage: [6, 9] }]
+                skills: [{ name: 'Marsh Glow', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Poison', chance: 0.4, value: 1, seconds: 5, duration: 2, stackCap: 2 }] }]
             },
             'mire_dead': {
                 name: 'Mire-Dead',
                 hp: 60, maxHp: 60, xp: 40, atk: 10, def: 5, spd: 6,
                 critChance: 0.06, critMultiplier: 1.6,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Peat Grip', base_damage: [8, 12] }, { name: 'Mire Reach', base_damage: [5, 8] }]
+                skills: [{ name: 'Peat Grip', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Slow', chance: 0.4, value: 0.25, seconds: 3, duration: 1 }] }, { name: 'Mire Reach', base_damage: [5, 8], effects: [{ type: 'inflict', status: 'Poison', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }]
             },
             'peat_king': {
                 name: 'The Man in the Peat',
                 hp: 150, maxHp: 150, xp: 110, atk: 13, def: 5, spd: 9, tier: 'elite',
                 critChance: 0.1, critMultiplier: 1.6,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Offering Cord', base_damage: [10, 14] }, { name: 'The Bog Rises', base_damage: [7, 10] }, { name: 'Iron Water', base_damage: [9, 13] }]
+                skills: [{ name: 'Offering Cord', base_damage: [10, 14] }, { name: 'The Bog Rises', base_damage: [7, 10] }, { name: 'Iron Water', base_damage: [9, 13], effects: [{ type: 'inflict', status: 'Poison', chance: 0.5, value: 1, seconds: 4, duration: 2, stackCap: 2 }] }]
             },
             // Gullstrand (C2-S11 Salt on the Shingle): the sea-draug of Norwegian coast lore, drowned men who come up the
             // shingle with weed in their hair and their oars still in their hands.
@@ -339,7 +348,7 @@
                 hp: 56, maxHp: 56, xp: 38, atk: 10, def: 4, spd: 8,
                 critChance: 0.08, critMultiplier: 1.6,
                 specialFlags: ['undead'],
-                skills: [{ name: 'Oar Sweep', base_damage: [8, 12] }, { name: 'Undertow', base_damage: [6, 9] }]
+                skills: [{ name: 'Oar Sweep', base_damage: [8, 12] }, { name: 'Undertow', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Slow', chance: 0.6, value: 0.35, seconds: 3, duration: 1 }] }]
             },
             // Frostspine Pass (C2-S12 Wolf-Coats on the Road): úlfheðnar, the wolf-skinned warriors of Haraldskvæði,
             // turned out of the Wolf-Banner after the Thing. No shield, no mail, fast and reckless.
@@ -347,7 +356,7 @@
                 name: 'Wolf-Coat',
                 hp: 58, maxHp: 58, xp: 42, atk: 11, def: 3, spd: 12,
                 critChance: 0.15, critMultiplier: 1.7,
-                skills: [{ name: 'Wolf-Coat Fury', base_damage: [8, 12] }, { name: 'Pounce', base_damage: [7, 10] }]
+                skills: [{ name: 'Wolf-Coat Fury', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.45, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Pounce', base_damage: [7, 10], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 3 }] }]
             },
             'bjarki_grave_bound': {
                 name: 'Bjarki the Grave-Bound',
@@ -359,14 +368,14 @@
                     { name: 'Grave Blade', base_damage: [13, 18] },
                     { name: 'Shield Crash', base_damage: [10, 14] },
                     { name: 'Barrow Quake', base_damage: [12, 16] },
-                    { name: 'Burial Curse', base_damage: [8, 12] }
+                    { name: 'Burial Curse', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Poison', chance: 0.5, value: 1, seconds: 4, duration: 2, stackCap: 2 }] }
                 ]
             },
             'wolfbanner_ringleader': {
                 name: 'Ulfrun Grey-Mantle',
                 hp: 120, maxHp: 120, xp: 110, atk: 12, def: 5, spd: 10, tier: 'elite',
                 critChance: 0.15, critMultiplier: 1.7,
-                skills: [{ name: 'Two-Hand Axe', base_damage: [12, 17] }, { name: 'Wolf Howl', base_damage: [4, 6] }]
+                skills: [{ name: 'Two-Hand Axe', base_damage: [12, 17], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.5, value: 3, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Wolf Howl', base_damage: [4, 6] }]
             }
         };
 		
@@ -1197,6 +1206,7 @@
             'Infection':        { category: 'dot', type: 'dot', value: 2, maxStacks: 3, duration: 3, overflow: null }, // values preserved from v1 (approved to keep)
             'Bleed':            { category: 'dot', type: 'dot', maxStacks: null, overflow: null },
             'Poison':           { category: 'dot', type: 'dot', maxStacks: null, overflow: null },
+            'Burn':             { category: 'dot', type: 'dot', maxStacks: null, overflow: null },   // fire DoT (Firestorm, enemy burns); was used without a definition
             'Soul Feast':       { category: 'dot' },
             'Soul Chain':       { category: 'debuff' },
             // --- turn denial / control
@@ -1986,8 +1996,8 @@
         const itemDefinitions = {
             'Moldy Bread':           { use: 'heal', value: 8,  description: 'Better than nothing. Probably.' },
             'Half-full Wine Bottle': { use: 'heal', value: 12, description: 'Sour, but it takes the edge off.' },
-            'Bandages':              { use: 'heal', value: 25, description: 'Clean enough.' },
-            'Healing Herb Bundle':   { use: 'heal', value: 40, description: 'Bitter leaves that knit flesh.' },
+            'Bandages':              { use: 'heal', value: 25, cures: ['Bleed'], description: 'Clean enough. Binds a bleeding wound shut.' },
+            'Healing Herb Bundle':   { use: 'heal', value: 40, cures: ['Poison', 'Burn'], description: 'Bitter leaves that knit flesh and draw out poison and burns.' },
             // The Fallen Seraphim's holy weapons (Tokelo 2026-11-04: "a holy weapon of their choosing"). Any class can wield
             // them; you take one (story key seraph_holy_weapon). Since 2026-11-09 (Tokelo: "we have yet to see a player use
             // it cause of the level lock") Caelith offers them the moment the statue wakes, dormant at about half strength

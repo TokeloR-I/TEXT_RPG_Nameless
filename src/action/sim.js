@@ -1284,6 +1284,7 @@
                 const fu = this.ragedCfg(a) && st.followUp;   // rage: a blow that lands is followed straight up (Chain Lock -> Gallows Drop)
                 if (fu && !a.dead) { a.openWith = fu; a.atkReady[fu] = 0; a.attackReadyAt = Math.min(a.attackReadyAt || 0, this.now + (st.followUpMs || 250)); }
                 this.fx.push({ type: 'player_hit', x: p.x, y: p.y });
+                for (const name of r.inflicted || []) this.fx.push({ type: 'condition', x: p.x, y: p.y, name });   // the wolf's bite bleeds you
             }
         }
 

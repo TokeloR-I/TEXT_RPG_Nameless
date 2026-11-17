@@ -287,6 +287,32 @@
         }
     });
 
+    // Enemy condition attacks (Tokelo 2026-11-17: "enemies also have their specific condition attack like the wolf
+    // bite causing bleed"). A rider on an enemy skill: { type: 'inflict', status: 'Bleed' | 'Poison' | 'Burn' | 'Slow',
+    // chance, value, duration (turns), seconds (timed fights), stackCap }. Only targets the blow reached get it
+    // (QA-14), and a blow taken on the guard carries none (combat.guardedStrike, set by actionEnemyStrike).
+    // Every application is recorded in combat.inflicted so the live sim can float its name over the player.
+    register('inflict', {
+        apply(ctx) {
+            const e = ctx.engine, f = ctx.effect;
+            if (e.combat && e.combat.guardedStrike) return;
+            for (const t of living(ctx)) {
+                if (f.chance != null && f.chance < 1 && !chance(ctx, f.chance)) continue;
+                const timed = f.seconds != null ? { seconds: f.seconds } : {};
+                let inst = null;
+                if (f.status === 'Slow') {
+                    inst = e.applyStatus(ctx.caster, t, { name: 'Slow', type: 'slow', value: f.value, duration: f.duration, ...timed });
+                    if (inst) e.say(`${t.name} is slowed (-${Math.round(inst.value * 100)}% speed).`);
+                } else {
+                    inst = e.applyStatus(ctx.caster, t, { name: f.status, type: 'dot', value: f.value, duration: f.duration, ...timed, ...(f.stackCap != null ? { stackCap: f.stackCap } : {}) });
+                    if (inst) e.say(`${t.name} is ${CONDITION_WORD[f.status] || `afflicted with ${f.status}`}${inst.stacks > 1 ? ` (x${inst.stacks})` : ''}.`);
+                }
+                if (inst && e.combat && Array.isArray(e.combat.inflicted)) e.combat.inflicted.push({ targetId: t.id, status: f.status, stacks: inst.stacks || 1 });
+            }
+        }
+    });
+    const CONDITION_WORD = { Bleed: 'bleeding', Poison: 'poisoned', Burn: 'burning', Slow: 'slowed' };
+
     // =====================================================================
     // Batch 3 — Rogue, Mage, Plaguecaller
     // New hooks used here:

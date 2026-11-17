@@ -899,6 +899,9 @@ body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%,
 .ahud-chip .x:empty, .ahud-chip .t:empty { display: none; }
 .ahud-chip .t { color: var(--c-ink-dim); font-variant-numeric: tabular-nums; }
 .ahud-chip .drain { position: absolute; left: 0; bottom: 0; height: var(--ap); background: var(--st, var(--c-st-other)); }
+/* enemy condition attacks on the player: the same colours as the word that floats over you (ui/world-ui.js) */
+.ahud-chip.cond-bleed { --st: #ff5a4a; } .ahud-chip.cond-poison { --st: #8ee05a; } .ahud-chip.cond-burn { --st: #ffa040; } .ahud-chip.cond-slow { --st: #70b8ff; }
+.ahud-chip[class*="cond-"] { box-shadow: inset 0 0 0 1px var(--st); }
 .ahud-chip.ending { animation: ahud-blink 0.5s steps(2) infinite; }
 
 /* ---- bottom-centre: skill bar ---- */

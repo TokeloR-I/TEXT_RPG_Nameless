@@ -34,6 +34,9 @@
     const SLOT_KEYS = ['2', '3', '4', '5', '6', 'R'];
     const BASIC_KEY = '1';
     const CATEGORY_GLYPH = { buff: '▲', debuff: '▼', dot: '✸', control: '◆', mark: '◎', cooldown: '⧗', other: '•' };
+    // Conditions an enemy can put on you (Bleed, Poison, Burn, Slow): their own glyph and colour (world.css .cond-*), so
+    // a wolf's bleed reads differently from a bog light's poison at a glance.
+    const CONDITION = { Bleed: { glyph: '♦', key: 'bleed' }, Poison: { glyph: '◉', key: 'poison' }, Burn: { glyph: '✹', key: 'burn' }, Slow: { glyph: '≈', key: 'slow' } };
     const TARGET_GLYPH = { self: '◈', ally: '◈', enemy_single: '✦', enemy_all: '✺', enemy_aoe: '✺', all: '✺' };
     const NOTICE_MS = 3600;
     const NOTICE_MAX = 4;
@@ -107,8 +110,9 @@
             const seconds = msLeft == null ? null : Math.ceil(msLeft / 1000);
             const left = seconds != null ? `${seconds}s` : num(s.duration) ? `${s.duration}t` : '';
             const icon = foodIcon(s);
+            const cond = CONDITION[s.name] || null;
             return {
-                id: s.name, name: s.name, category: cat, glyph: CATEGORY_GLYPH[cat], stacks, seconds, frac, left, icon,
+                id: s.name, name: s.name, category: cat, glyph: cond ? cond.glyph : CATEGORY_GLYPH[cat], stacks, seconds, frac, left, icon, condition: cond ? cond.key : null,
                 title: `${s.name} (${cat}${stacks ? `, ${stacks} stacks` : ''}${seconds != null ? `, ${seconds}s left` : ''})`
             };
         });
@@ -463,7 +467,7 @@
                     e = { el, g: h('i', '', el), n: h('span', 'n', el), x: h('b', 'x', el), t: h('span', 't', el), d: h('span', 'drain', el) };
                     chipEls.set(c.id, e);
                 }
-                attr(e.el, 'class', `ahud-chip st-${c.category}${c.icon ? ` food-chip food-${c.icon}` : ''}${c.frac != null && c.frac < 0.25 ? ' ending' : ''}`);
+                attr(e.el, 'class', `ahud-chip st-${c.category}${c.condition ? ` cond-${c.condition}` : ''}${c.icon ? ` food-chip food-${c.icon}` : ''}${c.frac != null && c.frac < 0.25 ? ' ending' : ''}`);
                 attr(e.el, 'title', c.title);
                 // A meal or a beer: its icon stands in for the glyph and the dish's name (still in the tooltip).
                 if (c.icon) { if (put(e.g, 't', `icon:${c.icon}`)) e.g.innerHTML = FOOD_SVG[c.icon] || ''; text(e.n, ''); }

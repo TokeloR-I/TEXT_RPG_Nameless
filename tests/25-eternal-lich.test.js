@@ -4,6 +4,7 @@ function lich(){
  g.player.traits.push({name:'Undying Will'});
  g.player.skills.push('Eternal Lich Unmake','Soul Chain','Soul Feast');
  g.player.resource.current=10;g.player.resource.max=20;
+ g.player.statusEffects=g.player.statusEffects.filter(s=>s.type!=='dot');   // the opening rat bite's poison (enemy condition attacks) stays out of these
  return g;
 }
 test('N-6: Eternal Lich and Hollow King Unmake keep separate costs',()=>{

@@ -89,12 +89,21 @@
                 this.say(`You open the ${item} and find ${def.value} Gold. (${p.gold} total)`);
             }
             if (def.use === 'heal') {
-                if (p.hp >= p.maxHp) { this.refuse('FULL_HEALTH', "You're already at full health."); return false; }
+                const cures = this.itemCures(def);   // Bandages stop a bleed, herbs draw out poison and burns
+                if (p.hp >= p.maxHp && !cures.length) { this.refuse('FULL_HEALTH', "You're already at full health."); return false; }
                 const healed = this.heal(p, def.value);
                 this.say(`You use the ${item}. +${healed} HP (${p.hp}/${p.maxHp}).`, { important: true });
+                if (cures.length) { this.cleanse(p, { statuses: cures }); this.say(`It stops the ${cures.join(' and ').toLowerCase()}.`); }
             }
             p.inventory.splice(p.inventory.indexOf(item), 1);
             return true;
+        }
+
+        /** The conditions on you that a healing item cures (its `cures` list, e.g. Bandages: Bleed). */
+        itemCures(def) {
+            const p = this.player;
+            if (!p || !def || !Array.isArray(def.cures)) return [];
+            return def.cures.filter((n) => p.statusEffects.some((s) => s.name === n));
         }
 
         useItem(name) {
