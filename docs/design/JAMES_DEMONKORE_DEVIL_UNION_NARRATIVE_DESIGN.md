@@ -14,7 +14,7 @@ He is also **Demonkore**. The two names belong to one person and one consciousne
 
 ## 2. CB1 — A Bard Without His Lute
 
-**Current state to change:** James can currently be recruited just by inviting him. Revised **ordered** recruitment gate: **(1)** retrieve the lute from Sven through a simple dice wager; **(2)** return it to James; **(3)** buy and give James one Mead; **(4)** correctly answer all three music riddles; **(5)** only then can he be invited to the homestead, where his shop becomes available. James **claims** Sven stole the lute, but Sven **won it fairly in Hnefatafl** (a Nordic strategy board game) after James wagered it. The player **does not need to learn or play Hnefatafl**. Wrong riddle answers are retryable; Sven must not require murder.
+**Current state to change:** James can currently be recruited just by inviting him. Revised **ordered** recruitment gate: **(1)** recover the lute from Sven through **one of three player-chosen paths: buy it back, negotiate it back, or win it back in a simple dice wager**; **(2)** return it to James; **(3)** give James one Mead; **(4)** correctly answer all three music riddles; **(5)** only then can he be invited to the homestead, where his shop becomes available. James **claims** Sven stole the lute, but Sven **won it fairly in Hnefatafl** (a Nordic strategy board game) after James wagered it. The player **does not need to learn or play Hnefatafl**. Wrong riddle answers are retryable; Sven must not require murder.
 
 ### Opening dialogue (draft)
 
@@ -77,14 +77,20 @@ Suggested Sven location: an accessible Skeldvik tavern/harbour spot, not a late-
 >
 > **Sven:** “Hnefatafl. He played the king. His king never escaped the board.”
 
-Sven shows the player the lute. The player learns James lied. **The recovery challenge is a simple, understandable dice minigame, not Hnefatafl**, and Sven agrees to stake the lute against the player's Gold. No forced robbery, killing or accusation that Sven stole it.
+Sven shows the player the lute. The player learns James lied. **The player chooses how to recover the lute**, without playing Hnefatafl:
+
+1. **Buy it back:** Pay Sven a clearly displayed buyback price (Gauge to set). The lute transfers immediately and Sven keeps the Gold.
+2. **Negotiate it back:** Offer Sven a reasonable trade or help with a small, concrete favour (exact negotiation terms are for the writers/world team). Sven remains its rightful owner and may agree voluntarily; no automatic free taking.
+3. **Gamble it back:** Accept Sven's **optional simple dice minigame**. Winning gets the lute; losing costs the agreed Gold stake. The player can choose another recovery route after losing.
+
+No forced robbery, killing or accusation that Sven stole it. **Only the gamble route can lose wagered Gold.** All three successful routes produce the exact same unique-lute recovery objective and allow the rest of James's recruitment.
 
 **Dice wager — initial implementation proposal:**
 
-1. Player chooses **Wager for the lute** after hearing the real story. A clearly displayed Gold stake (candidate **5 Gold**, Gauge to approve) is required before each attempt.
+1. Player **optionally** chooses **Wager for the lute** after hearing the real story. A clearly displayed Gold stake (candidate **5 Gold**, Gauge to approve) is required before each attempt. This is not required if buying or negotiating instead.
 2. Player and Sven each roll **two ordinary six-sided dice**. Show both rolls and their totals on screen; higher total wins. **Ties reroll for free**.
 3. **Player wins:** Sven hands over the unique lute, the recovery objective completes, and the player pays no losing stake. Sven remains friendly. No repeated lute reward.
-4. **Player loses:** Deduct the displayed stake **once**; Sven retains the lute. Player may earn Gold and **retry** later, with no permanent lockout. If insufficient Gold, disable the wager with an informative message; ensure accessible early-game earning opportunities.
+4. **Player loses:** Deduct the displayed stake **once**; Sven retains the lute. Player may earn Gold and **retry** later **or choose to buy/negotiate instead**, with no permanent lockout. If insufficient Gold, disable the wager with an informative message, but leave other recovery paths available.
 5. The dice minigame must use a real saved random result, not a fixed scripted win/lose. No additional board-game rulebook or separate Hnefatafl implementation is required.
 
 **Return confrontation with James (draft):**
@@ -226,7 +232,7 @@ The actual reveal timing, nature of Demonkore, moral position and motive are ope
 
 ## 5. Implementation and QA handoff
 
-- **CB1:** enforce order **Sven dice win → lute returned → Mead handed to James → three music riddles correctly answered → James recruited/shop available**. Incorrect answers retryable. Sven fairly won the lute in Hnefatafl; James falsely calls it stolen. Dice loss costs displayed Gold once, ties reroll free, wins grant the lute exactly once, and no low-Gold permanent soft-lock. No playable Hnefatafl required. Migrate older recruited saves safely.
+- **CB1:** enforce order **Sven recovery (buy OR negotiate OR dice win) → lute returned → Mead handed to James → three music riddles correctly answered → James recruited/shop available**. Incorrect answers retryable. Sven fairly won the lute in Hnefatafl; James falsely calls it stolen. Only optional dice losses cost the displayed stake; ties reroll free; every recovery route grants the lute once and no low-Gold permanent soft-lock. No playable Hnefatafl required. Migrate older recruited saves safely.
 - **Merchant:** normal homestead service, no mandatory Devil Union; all effects/items in authoritative data; no duplicated drop definitions or exploitable buffs.
 - **CB2 paid route:** buy once; James opens passage immediately, **without seals**.
 - **CB2 free route:** collect three seals; James remains vague until all three; obtain grimoire access and passage without Gold payment.
@@ -239,4 +245,4 @@ The actual reveal timing, nature of Demonkore, moral position and motive are ope
 
 **Existing repo baseline:** docs/CHAPTER_TWO.md, src/story/chapter2.js, src/world/chapter2-maps.js, tests/101-james-bard.test.js, docs/design/SKILL_WEB.md.
 
-**Decision boundary:** The core direction (James/Demonkore, bard/merchant, **lute fairly lost in Hnefatafl**, James's false theft story, **dice-roll recovery with Gold loss on defeat**, **Mead demand before music riddles**, recruitment unlocking homestead shop, paid shortcut/free seals, vague promise, first contract and nine optional unions) follows Tokelo's discussion. Dialogue, exact location, dice stake, item stats, prices, class mechanics and reveal timing are proposals requiring approval.
+**Decision boundary:** The core direction (James/Demonkore, bard/merchant, **lute fairly lost in Hnefatafl**, James's false theft story, **player choice to buy, negotiate or gamble for its recovery**, **Gold loss only for a failed optional dice wager**, **Mead demand before music riddles**, recruitment unlocking homestead shop, paid shortcut/free seals, vague promise, first contract and nine optional unions) follows Tokelo's discussion. Dialogue, exact location, negotiation terms, dice stake, item stats, prices, class mechanics and reveal timing are proposals requiring approval.
