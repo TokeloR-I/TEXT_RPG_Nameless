@@ -1155,6 +1155,9 @@ body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%,
 .ahud-chip.food-chip { align-items: center; }
 .ahud-chip.food-chip i { display: inline-flex; line-height: 0; }
 .ahud-chip.food-chip .n:empty { display: none; }
+.ahud-chip[class*="cond-"] { align-items: center; }   /* condition pictures (ui/action-hud.js CONDITION_SVG) */
+.ahud-chip[class*="cond-"] i { display: inline-flex; line-height: 0; }
+.ahud-chip[class*="cond-"] .n:empty { display: none; }
 
 /* ---------- cooking menu (hearths; playtest 2026-11-11): bag | pot | recipes ---------- */
 .dialog.kitchen { top: 6%; max-height: 88%; display: flex; flex-direction: column; min-height: 0; }
