@@ -11,8 +11,8 @@
  *   plumede    black plumage with a pale edge; folded feather wings that flare on a dash; feathers shed on the move.
  * Second pass (Tokelo: "more animalistic ... owl or wild bore or fox ... extra arms or ... spider legs"): Lucifero
  * grows four shadow arms. Plumede's owl helm and Slotos's boar helm come on only with a union skill (Fleet Form,
- * Iron Hide) and go when it ends. Beelzebub keeps his first look (Tokelo's pick); a spider body from the hips down
- * is ready for a demon still to be chosen.
+ * Iron Hide) and go when it ends. Beelzebub keeps his first look (no fox) and from the hips down
+ * he is a spider: the hero's legs become eight violet-glass ones.
  * A merge starts with a burst in the demon's colour and ends with the smoke thinning away (fade in / out).
  *
  *   ENSO.unionFx.palette(id)                                the sprite palette override for the armor
@@ -192,7 +192,7 @@
     // owl or wild bore or fox ... other armors to grow extra arms or another one spider legs"; "the player legs are spider
     // legs"). Animal helms drawn as
     // pixel grids (left half, mirrored), and extra limbs drawn as jointed strokes. Plumede an owl, Slotos a wild boar,
-    // Lucifero four shadow arms. Beelzebub keeps his first look; the spider body waits for its demon.
+    // Lucifero four shadow arms. Beelzebub keeps his first look and walks on a spider's legs.
     const half = (rows) => rows.map((r) => r + [...r].reverse().join(''));
     // Tokelo (16:00): the helms are not the merge's everyday look; each comes on with one union skill and goes with it.
     const HELMS = {
@@ -248,11 +248,11 @@
             }
         }
     }
-    /** A spider from the hips down (Tokelo: "the player legs are spider legs"), for a demon still to be chosen. The sprite is
+    /** Beelzebub: a spider from the hips down (Tokelo: "the player legs are spider legs"). The sprite is
      *  drawn cut off at the hips (LOWER.hips, ui/world-render.js clips it), and here a violet-glass spider body takes
      *  its place: a thorax at the hips, an abdomen behind, and eight jointed legs that step when you move. */
-    // No demon wears it now (Tokelo 2026-11-17 kept Beelzebub's first look); ready for the demon that gets it.
-    const LOWER = {};
+    // Tokelo (16:06): "give it to beelzebub", on his first look (halo, shards, flies; no fox).
+    const LOWER = { beelzebub: { hips: 12 } };
     function spiderBody(g, cx, base, L, k, view, now, layer, hips = 12) {
         const hip = base - hips, walk = moving(view) ? now / 95 : now / 900, side0 = away(view) ? -1 : 1;
         if (layer === 'back') {                                                           // the abdomen, behind the body

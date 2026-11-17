@@ -201,8 +201,10 @@ test('Merge look: each demon dresses the hero in its own dark armor, bursts in a
     for (const id of ['plumede', 'slotos']) assert.ok(data.skillDefinitions[fx.HELMS[id].skill].union === id, `${id}'s helm skill is its own`);
     // Second pass (Tokelo: "an owl or wild bore or fox ... extra arms ... spider legs"): animal helms, symmetrical grids.
     assert.deepStrictEqual(Object.keys(fx.HELMS).sort(), ['plumede', 'slotos']);   // Beelzebub keeps his first look (Tokelo)
-    // The spider body (Tokelo: "the player legs are spider legs") waits for its demon: for now every merge keeps your legs.
-    for (const id of ['lucifero', 'beelzebub', 'slotos', 'plumede']) { fx.reset(); fx.state(id, 0); assert.strictEqual(fx.lowerBody(fx.state(id, 1000)), 0, `${id} keeps your legs`); }
+    // "the player legs are spider legs" ... "give it to beelzebub": merged with him the sprite is cut at the hips.
+    fx.reset(); fx.state('beelzebub', 0);
+    assert.ok(fx.lowerBody(fx.state('beelzebub', 1000)) > 0, 'Beelzebub replaces the legs');
+    for (const id of ['lucifero', 'slotos', 'plumede']) { fx.reset(); fx.state(id, 0); assert.strictEqual(fx.lowerBody(fx.state(id, 1000)), 0, `${id} keeps your legs`); }
     for (const [id, h] of Object.entries(fx.HELMS)) for (const row of h.rows) {
         assert.strictEqual(row.length, h.rows[0].length, `${id}: every row the same width`);
         assert.strictEqual(row, [...row].reverse().join(''), `${id}: the helm is symmetrical`);

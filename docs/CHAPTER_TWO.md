@@ -105,8 +105,8 @@ game says so yet (the reveal timing is Tokelo's call).
   that flare on a dash and feathers shed on the move. A burst of the demon's colour on merging; the armor smokes
   away when it ends. The team's own designs. Second pass (Tokelo: "more animalistic ... owl or wild bore or fox ... extra arms or
   ... spider legs"): Lucifero grows four shadow arms. Plumede's owl helm and Slotos's boar helm come on only while
-  Fleet Form / Iron Hide is on you (Tokelo's pick); Beelzebub keeps his first look; a spider body from the hips
-  down is built in `ui/union-fx.js` and waits for its demon.
+  Fleet Form / Iron Hide is on you (Tokelo's pick); Beelzebub keeps his first look, and from the hips down he is a
+  spider (the hero's legs become eight violet-glass ones; Tokelo's pick).
   and Lucifero grows four shadow arms.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
