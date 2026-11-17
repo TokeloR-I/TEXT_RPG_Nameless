@@ -710,13 +710,14 @@
                 this.resolve(at.castId, at.target && !at.target.dead && at.target.engineId ? [at.target] : []);
                 return;
             }
-            let hits;
+            let hits, center = p;   // where a pull drags to: you, or the spot a ground shape landed on (Gravity Well)
             if (kind === 'circle') hits = this.liveActors().filter((a) => dist(p, a) <= (s.radius || 40) + a.r);
             else if (kind === 'ground') {
                 const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
                 const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
                 const c = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
                 hits = this.liveActors().filter((a) => dist(c, a) <= (s.radius || 30) + a.r);
+                center = c;
                 this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: s.radius || 30 });
             } else {
                 const reach = s.reach || s.range || 20;
@@ -727,7 +728,7 @@
             hits.sort((a, b) => dist(p, a) - dist(p, b));
             this.resolve(at.castId, hits);
             // Hati's darkness (Black Maw, Devour the Moon): drag each enemy it touched toward you, never through you. Bosses hold.
-            if (s.pullPx) for (const a of hits) if (!a.dead && !a.prof.boss) this.knock(a, angleTo(a, p), Math.min(s.pullPx, Math.max(0, dist(p, a) - a.r - p.r)));
+            if (s.pullPx) for (const a of hits) if (!a.dead && !a.prof.boss) this.knock(a, angleTo(a, center), Math.min(s.pullPx, Math.max(0, dist(center, a) - a.r - (center === p ? p.r : 0))));
         }
 
         resolve(castId, hits) {

@@ -64,6 +64,9 @@
         learn: (arg) => ({ type: 'learn_node', nodeId: arg }), unlearn: (arg) => ({ type: 'unlearn_node', nodeId: arg }),
         specialize: (arg) => ({ type: 'set_specialization', branchId: arg }), guide: (arg) => ({ type: 'set_web_guide', branchId: arg }),
         stance: (arg) => ({ type: 'switch_stance', stance: arg }),   // legendary stances (src/engine/stance.js)
+        contract: (arg) => ({ type: 'equip_union', union: arg }),     // Devil Union (src/engine/union.js)
+        resonance: (arg) => { const [n, ...rest] = String(arg || '').split(/\s+/); return { type: 'set_resonance', slot: (parseInt(n, 10) || 0) - 1, aspect: rest.join(' ') || null }; },
+        bind_contract: (arg) => ({ type: 'cheat', cheat: 'bind_contract', amount: arg }),
         awaken_fenrir: (arg) => ({ type: 'cheat', cheat: 'awaken_fenrir', amount: arg })
     };
 
@@ -340,7 +343,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance', 'union'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

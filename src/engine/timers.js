@@ -60,6 +60,7 @@
             if (!skipped) this.endNormalTurn(actor);  // QA-1 windows: actionable turns only
             if (actor === this.player && !this.rtActive()) this.stanceAccrue((this.data.realtimeRules || {}).secondsPerTurn * 1000 || 3000);   // stance bond: one turn of fighting
             this.tickTimers(actor, { skipped });
+            if (actor === this.player) this.unionTick();   // a turn-fight union runs out with its timer (union.js)
             if (!skipped && actor.shieldBashRecovery === 'await_recovery') actor.shieldBashRecovery = null;
             this.crEndOpportunity(actor, skipped);   // Package 2: CR decay, protection ends
             this.possessionEndOpportunity(actor, skipped); // N-5: Possession lasts one holder opportunity

@@ -342,7 +342,18 @@
                 { id: 'arena', text: 'Go down the stair by the well, and survive five waves and the ruler of the First Dominion', on: { type: 'defeat', id: 'underworld_arena_ruler' }, marker: { map: 'underworld_arena', x: 13, y: 9 } },
                 { id: 'contract', text: 'Make your first contract in the binding circle', on: { type: 'story', id: 'devil_union_contract' }, marker: { map: 'underworld_arena', x: 13, y: 10 } }
             ],
-            onComplete: [{ say: '(Your first contract is sealed. Devil Union, the legendary class it opens, comes in the next update.)', notice: 'quest' }]
+            onComplete: [{ say: '(Your first contract is sealed. The Devil Union legendary web is open: see the Skill Web.)', notice: 'quest' }]
+        },
+        // CB3 Demonkore's Mark (Tokelo, DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md): the third distinct contract. The
+        // ruler bound third (by completion order) recognises the mark on the grimoire and sends you home; James admits he is
+        // Demonkore and gives the book his Favor (Devil Union lasts three times as long and answers 30% sooner). Optional.
+        CB3: {
+            title: "Demonkore's Mark", kind: 'side', xp: 150, candidate: true,
+            summary: "A ruler of the Underworld laughed at the mark on your grimoire and called it Demonkore's. The book came from James.",
+            objectives: [
+                { id: 'ask', text: "Ask James about Demonkore's mark", on: { type: 'story', id: 'demonkore_revealed' }, marker: { map: 'grounds', x: 26, y: 9 } }
+            ],
+            onComplete: []
         },
         // ----- A Fire of Your Own (Tokelo, 2026-11-13: "a portable hearth... someone on the road teaches the player").
         // Hakon the carter, wrist broken on the Frostspine Road, gives you his spare camp kit once you fetch the tinder.
@@ -2014,11 +2025,48 @@
         { text: 'What are these seals for?', if: { flags: ['seal_hunt'], notFlags: ['grimoire_obtained'] }, to: 'seals_why' },
         { text: 'Where are the seals again?', if: { flags: ['seal_hunt'], notFlags: ['grimoire_obtained'] }, to: 'seals_where' },
         { text: 'About the way below.', if: { flags: ['underworld_opened'] }, to: 'below' },
+        // The third contract's reveal (Tokelo, DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md §3): only once a ruler has named the mark.
+        { text: 'Who is Demonkore?', if: { flags: ['demonkore_mark_recognized'], notFlags: ['demonkore_revealed'] }, to: 'reveal_1' },
         { text: 'Goodbye.', end: true }
     ];
     // The way below opens (both routes end here). The stair stands by the well (grounds_underworld_stair).
     const OPEN_BELOW = [{ flag: 'grimoire_obtained' }, { flag: 'underworld_opened' }, { start: 'CB2' },
         { event: { type: 'story', id: 'demonkore_heard' } }, { event: { type: 'story', id: 'grimoire_obtained' } }, { event: { type: 'story', id: 'underworld_opened' } }];
+    // A ruler's binding (Devil Union, src/engine/union.js): its contract, and the legendary web on the first one.
+    const BINDING = (id) => [{ flag: 'devil_union_contract' }, { flag: `contract:${id}` }, { legend: 'devil_union' },
+        { event: { type: 'story', id: 'devil_union_contract' } }, { event: { type: 'story', id: `contract_${id}` } }];
+    // The third contract (DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md §2): whichever ruler you bind third sees the mark.
+    // Shared by every ruler's NPC: the scene plays once, when the count of distinct contracts first reaches three.
+    const MARKED = { contracts: 3, notFlags: ['demonkore_mark_recognized'] };
+    const MARK_TALK = (id) => ({ if: { ...MARKED, flags: [`contract:${id}`] }, node: 'mark' });
+    const AFTER_BINDING = [{ text: 'Close the grimoire.', if: MARKED, to: 'mark' },
+        { text: 'Goodbye.', if: { any: [{ contractsBelow: 3 }, { flags: ['demonkore_mark_recognized'] }] }, end: true }];
+    const MARK_SCENE = {
+        mark: {
+            lines: [[null, 'The ruler\'s eyes fall on the open grimoire, on the mark worked into its cover, and stay there.'], ['npc', 'That mark...']],
+            choices: [{ text: 'What about it?', to: 'mark_2' }]
+        },
+        mark_2: {
+            lines: [['npc', 'Where did you get that grimoire?']],
+            choices: [
+                { text: 'From a merchant. I paid for it.', if: { notFlags: ['grimoire_from_seals'] }, to: 'mark_3' },
+                { text: 'A travelling bard gave it to me after I brought him three seals.', if: { flags: ['grimoire_from_seals'] }, to: 'mark_3' }
+            ]
+        },
+        mark_3: {
+            lines: [['npc', 'A merchant? A bard?'], [null, 'The ruler begins to laugh.'], ['npc', 'Oh, you poor fool.']],
+            choices: [{ text: 'Explain yourself.', to: 'mark_4' }]
+        },
+        mark_4: {
+            lines: [['npc', "You've carried Demonkore's mark all this time."]],
+            choices: [{ text: 'Demonkore?', to: 'mark_5' }]
+        },
+        mark_5: {
+            lines: [['npc', "You don't even know whose book you hold?"], ['npc', 'And yet you command us.'], [null, 'The binding completes. The way up is open.']],
+            effects: [{ flag: 'demonkore_mark_recognized' }, { start: 'CB3' }, { event: { type: 'story', id: 'demonkore_mark_recognized' } }],
+            choices: [{ text: 'Goodbye.', end: true }]
+        }
+    };
     const SVEN_GIVES = [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }];
     const SVEN_OFFER = [
         { text: 'What would you take for it?', to: 'terms' },
@@ -2235,8 +2283,75 @@
                         ['npc', "The seals open a passage to the Underworld. The book lets you strike a bargain with what rules down there."], ['npc', "Here: it's yours."],
                         ['npc', "Stand back."]
                     ],
-                    effects: [...SEALS.map((s) => ({ removeItem: s })), { item: 'Binding Grimoire', key: 'item:binding_grimoire' }],
+                    effects: [...SEALS.map((s) => ({ removeItem: s })), { item: 'Binding Grimoire', key: 'item:binding_grimoire' }, { flag: 'grimoire_from_seals' }],
                     choices: [{ text: 'Stand back.', effects: OPEN_BELOW, to: 'opened' }]
+                },
+                // Demonkore revealed (DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md §3, §4). Tokelo's scene; short pages.
+                reveal_1: {
+                    lines: [[null, 'James keeps playing.'], ['npc', "That's an interesting question."]],
+                    choices: [{ text: 'A demon recognised your grimoire.', to: 'reveal_2' }]
+                },
+                reveal_2: {
+                    lines: [[null, 'James stops playing.'], ['npc', 'Did he now?']],
+                    choices: [{ text: "He called it Demonkore's book.", to: 'reveal_3' }]
+                },
+                reveal_3: {
+                    lines: [['npc', 'And what did you tell him?']],
+                    choices: [
+                        { text: 'That I bought it from a merchant.', if: { notFlags: ['grimoire_from_seals'] }, to: 'reveal_4' },
+                        { text: 'That a bard gave it to me.', if: { flags: ['grimoire_from_seals'] }, to: 'reveal_4' }
+                    ]
+                },
+                reveal_4: {
+                    lines: [[null, 'James laughs, genuinely delighted.'], ['npc', "Oh, that's wonderful!"]],
+                    choices: [{ text: "What's so funny?", to: 'reveal_5' }]
+                },
+                reveal_5: {
+                    lines: [['npc', 'Nothing. Nothing at all.'], [null, 'He sets the lute aside.'],
+                        ['npc', 'Have you wondered how an ordinary bard knows so much about the Underworld?']],
+                    choices: [{ text: 'For some time.', to: 'reveal_6' }]
+                },
+                reveal_6: {
+                    lines: [
+                        ['npc', "Well, there's little point keeping up appearances."],
+                        [null, 'His shadow on the wall grows two vast horns. For a moment the fire burns black and his eyes gleam, but he stays seated.'],
+                        ['npc', 'James is the name I use when travelling.'], ['npc', 'Demonkore is the name they remember.'],
+                        [null, 'The shadow is only a shadow again.'],
+                        ['npc', 'And before you ask: yes, I really did lose my lute to Sven.']
+                    ],
+                    effects: [{ flag: 'demonkore_revealed' }, { event: { type: 'story', id: 'demonkore_revealed' } }],
+                    choices: [{ text: "You're joking.", to: 'reveal_7' }]
+                },
+                reveal_7: {
+                    lines: [['npc', 'I wish I were.']],
+                    choices: [{ text: '...', to: 'favor_1' }]
+                },
+                favor_1: {
+                    lines: [['npc', "Three rulers brought to heel. You've exceeded my expectations."]],
+                    choices: [{ text: 'You knew what waited down there.', to: 'favor_2' }]
+                },
+                favor_2: {
+                    lines: [['npc', 'Of course.']],
+                    choices: [{ text: 'And you sent me anyway?', to: 'favor_3' }]
+                },
+                favor_3: {
+                    lines: [['npc', "You returned, didn't you?"], [null, 'He looks toward the Binding Grimoire.'], ['npc', 'Come. Give me the book.']],
+                    choices: [{ text: 'Hand him the grimoire.', to: 'favor_4' }]
+                },
+                favor_4: {
+                    lines: [
+                        [null, 'James presses his palm against the mark. It burns briefly, then settles into the cover.'],
+                        ['npc', "You've earned more than scraps of power from those creatures."],
+                        [null, 'He hands the grimoire back.'], ['npc', 'Consider this a gift from an old friend.']
+                    ],
+                    effects: [{ flag: 'demonkore_favor' },
+                        { say: "LEGENDARY PASSIVE UNLOCKED: DEMONKORE'S FAVOR. Your unions last three times as long and answer 30% sooner.", important: true }],
+                    choices: [{ text: 'What did you do?', to: 'favor_5' }]
+                },
+                favor_5: {
+                    lines: [['npc', 'Oh, nothing terribly important.'], [null, 'He picks up the lute again.'],
+                        ['npc', "Unless you intend to buy something, you're interrupting my practice."]],
+                    choices: JAMES_HOME
                 },
                 bought: {
                     lines: [['npc', "You actually bought it. Delightful."], ['npc', "A bargain is a bargain."]],
@@ -2264,7 +2379,7 @@
         // James is; "the bard" is as close as he comes.
         lucifero_bound: {
             name: 'Lucifero', title: 'Ruler of the First Dominion',
-            talk: [{ if: { flags: ['devil_union_contract'] }, node: 'after' }, { node: 'kneel' }],
+            talk: [MARK_TALK('lucifero'), { if: { flags: ['contract:lucifero'] }, node: 'after' }, { node: 'kneel' }],
             nodes: {
                 kneel: {
                     lines: [
@@ -2282,18 +2397,17 @@
                         [null, 'The blank pages fill with two hands of writing, his and yours, and you cannot read either. The circle closes like a mouth.'],
                         ['npc', "Done. When you call on me, I will answer, and you will be heavier for it."]
                     ],
-                    effects: [{ flag: 'devil_union_contract' }, { flag: 'contract:lucifero' }, { event: { type: 'story', id: 'devil_union_contract' } }],
-                    choices: [{ text: 'Goodbye.', end: true }]
+                    effects: BINDING('lucifero'),
+                    choices: AFTER_BINDING
                 },
                 after: {
                     lines: [['npc', "We are bound. Go up; the bard will want to hear how it went."]],
                     choices: [{ text: 'Goodbye.', end: true }]
-                }
+                },
+                ...MARK_SCENE
             }
         },
         // ------------------------------------------------------------- Sven, who has James's lute (CB1)
-        // New NPC (design §2). His reason for taking it is NOT written yet (don't invent one as canon). Both ways to get the
-        // lute back are non-lethal: buy it back, or invoke harbour law. He stays in Skeldvik afterwards.
         // Sven (design §2, director correction 2026-11-17): an ordinary wharf hand, not a thief. James staked the lute on a
         // game of Hnefatafl and lost it fairly. The player picks how to get it back: buy it, do Sven a favour (haul his
         // nets in), or win it on the dice (two d6 each, stake lost only on a lost roll). Prices and stake are Gauge candidates.
@@ -3217,6 +3331,11 @@
             // James's terms (2026-11-17): a save that brought him home on the old easy invitation keeps him. His riddles and
             // lute count as done, and the lute is in his hands. A save that heard the old fire story about Demonkore has
             // already "asked about the book" (same event), so James's job offer is waiting for it.
+            // Devil Union (2026-11-17): a save that sealed Lucifero's contract before the class existed gets its web now.
+            { id: 'devil_union_web', if: { flags: ['devil_union_contract'] }, effects: [{ legend: 'devil_union' }] },
+            // The book's origin, for the third-contract reveal: a save that got it free for the seals (they were handed over).
+            { id: 'grimoire_origin', if: { flags: ['grimoire_obtained', 'seal_invocation', 'seal_dominion', 'seal_covenant'], notAny: ['Seal of Invocation', 'Seal of Dominion', 'Seal of Covenant'] },
+                effects: [{ flag: 'grimoire_from_seals' }] },
             { id: 'james_terms_kept', if: { flags: ['james_recruited'] }, effects: [{ flag: 'james_terms' }, { flag: 'james_riddles_done' },
                 { flag: 'james_riddle_1' }, { flag: 'james_riddle_2' }, { flag: 'james_riddle_3' }, { flag: 'james_lute_recovered' }, { flag: 'james_lute_returned' }, { flag: 'james_mead_given' }] },
             { id: 'c206_after_bjarki', if: { quests: { C205: 'complete', C206: 'unseen' } }, effects: [{ start: 'C206' }] }] };

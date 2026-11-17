@@ -90,6 +90,10 @@
             // inRegion: the food region of the map you're on (foodRules.regions; the camp kit's menu)
             if (cond.inRegion && this.foodRegion() !== cond.inRegion) return false;
             if (cond.questCount && this.questsDone(cond.questCount) < (cond.questCount.min ?? (cond.questCount.ids || []).length)) return false;
+            // contracts: n / contractsBelow: n: at least n (fewer than n) distinct demon contracts sealed (`contract:<id>` flags; Devil Union, src/engine/union.js)
+            const contracts = s.flags.filter((f) => f.startsWith('contract:')).length;
+            if (Number.isSafeInteger(cond.contracts) && contracts < cond.contracts) return false;
+            if (Number.isSafeInteger(cond.contractsBelow) && contracts >= cond.contractsBelow) return false;
             // gold: n: carrying at least n Gold (a debt you can settle from your own purse, C2-S04)
             if (Number.isSafeInteger(cond.gold) && (!this.player || !(this.player.gold >= cond.gold))) return false;
             return true;

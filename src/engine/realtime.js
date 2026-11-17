@@ -128,13 +128,13 @@
             const { bar, seen } = this.computeSkillBar();
             this.player.skillBar = bar;
             this.player.skillBarSeen = seen;
-            return bar;
+            return this.unionBar ? this.unionBar(bar) : bar;   // a Devil Union lends its skills over the first slots (union.js); the stored bar is untouched
         }
 
         /** For HUDs (pure): [{ slot, skillId }] with null skillId for an empty slot. */
         skillBarView() {
             if (!this.player) return [];
-            return this.computeSkillBar().bar.map((skillId, slot) => ({ slot, skillId: skillId || null }));
+            return this.unionBar(this.computeSkillBar().bar).map((skillId, slot) => ({ slot, skillId: skillId || null }));
         }
 
         /** Learned skills that are not on the bar (what a swap can bring in). */
@@ -209,8 +209,8 @@
             const step = clamp(Number(ms) || 0, 0, this.rtRules().maxStepMs || 1000);
             if (step <= 0) return this.flush();
             this.stanceAccrue(step);   // stance bond grows with fight time (stance.js); plain state, so no transaction needed
-            if (this.rtQuietUntil(step)) { this.combat.rt.now += step; return this.flush(); }   // nothing due: skip the transaction (60 Hz callers)
-            return this.transact(() => this.rtAdvance(step));
+            if (this.rtQuietUntil(step)) { this.combat.rt.now += step; this.unionTick(); return this.flush(); }   // Devil Union runs out on the fight clock (union.js)   // nothing due: skip the transaction (60 Hz callers)
+            return this.transact(() => { this.rtAdvance(step); this.unionTick(); });
         }
 
         rtAdvance(ms) {
@@ -397,7 +397,7 @@
                 case 'skill': {
                     const name = a.skillId;
                     if (!name || !this.data.skillDefinitions[name]) { this.refuseCombat('UNKNOWN_SKILL', `Unknown skill '${name}'.`); return; }
-                    if (!this.player.skills.includes(name) && name !== this.basicAttackName()) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return; }
+                    if (!this.player.skills.includes(name) && !this.unionGrants(name) && name !== this.basicAttackName()) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return; }
                     this.useSkill(name, { ids }, {});
                     return;
                 }

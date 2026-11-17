@@ -18,7 +18,7 @@
  * timer from getRealtimeState(), positions and stamina from the sim.
  *
  * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5, H = quick heal,
- * T = next stance (Fenrir's Heir, shown only with a stance web).
+ * T = next stance (Fenrir's Heir, shown only with a stance web). U = Devil Union: merge in a fight, next contract out of one.
  * slotForKey(ev) gives the same mapping to the input code, so the HUD's key hints never disagree.
  * ========================================================================= */
 (function (global) {
@@ -178,6 +178,22 @@
             title: `${STANCE_KEY} · ${cur.name}${cur.title ? `, ${cur.title}` : ''}${bond}${next ? ` · next: ${next.name}${wait ? ` in ${secondsText(wait)}s` : ''}` : ''}` };
     }
 
+    /** The union cell (U): Devil Union (engine.getUnion(), src/engine/union.js). Hidden without a contract.
+     *  In a fight U merges with the equipped demon (shows the time left while merged, the cooldown after); out of one,
+     *  U equips the next contracted demon. */
+    const UNION_KEY = 'U';
+    function unionCell(engine) {
+        const v = engine && typeof engine.getUnion === 'function' ? engine.getUnion() : null;
+        if (!v || !v.equipped) return null;
+        const owned = v.unions.filter((u) => u.contract);
+        const cur = owned.find((u) => u.id === (v.active || v.equipped)) || owned[0];
+        const next = owned[(owned.indexOf(cur) + 1) % owned.length];
+        const wait = !v.enabled && v.reason && v.reason.code === 'UNION_COOLDOWN' ? v.readyInMs || 0 : 0;
+        return { id: cur.id, active: !!v.active, next: next && next.id !== cur.id ? next.id : null, endsInMs: v.endsInMs, readyInMs: wait,
+            enabled: !!v.enabled || !!v.active, glyph: '⛧',
+            title: `${UNION_KEY} · ${v.active ? `One with ${cur.name}` : `Union: ${cur.name}`}${cur.power ? ` (${cur.power})` : ''}${wait ? ` · ready in ${secondsText(wait)}s` : ''}${v.favor ? " · Demonkore's Favor" : ''}` };
+    }
+
     function viewModel(engine, simView, now = 0) {
         const st = engine.getState();
         const p = st.player || {};
@@ -268,6 +284,7 @@
             dodgeReadyInMs: num(sim.dodgeReadyInMs) ? sim.dodgeReadyInMs : 0,
             heal: healCell(avail, p),
             stance: stanceCell(engine),
+            union: unionCell(engine),
             guarding: !!sim.guarding,
             statuses: statusChips(p.statusEffects, defs, fightNow),
             basic,
@@ -411,6 +428,12 @@
         const stanceG = h('span', 'glyph', stanceEl, '☀'); const stanceN = h('span', 'secs', stanceEl); h('span', 'key', stanceEl, STANCE_KEY);
         const stanceFns = [];
         stanceEl.addEventListener('pointerdown', (e) => { stop(e); stanceFns.forEach((f) => f()); });
+        // Devil Union: U or a click merges with the equipped demon (in a fight) or equips the next contract (out of one).
+        const unionEl = h('div', 'ahud-slot dodge union', barEl);
+        unionEl.setAttribute('role', 'button');
+        const unionG = h('span', 'glyph', unionEl, '⛧'); const unionN = h('span', 'secs', unionEl); h('span', 'key', unionEl, UNION_KEY);
+        const unionFns = [];
+        unionEl.addEventListener('pointerdown', (e) => { stop(e); unionFns.forEach((f) => f()); });
 
         root.appendChild(box);
         if (opts.className) box.classList.add(opts.className);
@@ -550,6 +573,14 @@
                 stanceEl.dataset.stance = m.stance.id;
                 attr(stanceEl, 'title', m.stance.title); attr(stanceEl, 'aria-label', m.stance.title);
             }
+            show(unionEl, !!m.union);
+            if (m.union) {
+                text(unionG, m.union.glyph);
+                text(unionN, m.union.active && m.union.endsInMs != null ? secondsText(m.union.endsInMs) : m.union.readyInMs ? secondsText(m.union.readyInMs) : '');
+                cls(unionEl, 'is-ready', m.union.enabled); cls(unionEl, 'is-disabled', !m.union.enabled); cls(unionEl, 'is-active', m.union.active);
+                unionEl.dataset.union = m.union.id;
+                attr(unionEl, 'title', m.union.title); attr(unionEl, 'aria-label', m.union.title);
+            }
             // a refusal that blocks the whole bar (stunned, silenced…) is said once, above it
             show(note, !!m.barNote); text(note, m.barNote ? `✖ ${m.barNote}` : '');
             // prompt
@@ -593,11 +624,12 @@
             onAttack(fn) { if (typeof fn === 'function') attackFns.push(fn); },
             onHeal(fn) { if (typeof fn === 'function') healFns.push(fn); },
             onStance(fn) { if (typeof fn === 'function') stanceFns.push(fn); },
-            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; healFns.length = 0; stanceFns.length = 0; chipEls.clear(); noticeEls.clear(); }
+            onUnion(fn) { if (typeof fn === 'function') unionFns.push(fn); },
+            destroy() { box.remove(); slotFns.length = 0; attackFns.length = 0; healFns.length = 0; stanceFns.length = 0; unionFns.length = 0; chipEls.clear(); noticeEls.clear(); }
         };
     }
 
-    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, stanceCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, STANCE_KEY, NOTICE_MS };
+    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, stanceCell, unionCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, STANCE_KEY, UNION_KEY, NOTICE_MS };
     ENSO.actionHud = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

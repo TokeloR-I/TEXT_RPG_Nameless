@@ -136,7 +136,7 @@
                 const isBasic = name === 'attack' || name === this.basicAttackName();
                 if (isBasic) name = this.basicAttackName();
                 if (!name || !this.data.skillDefinitions[name]) { this.refuseCombat('UNKNOWN_SKILL', `Unknown skill '${name}'.`); return null; }
-                if (!isBasic && !this.player.skills.includes(name)) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return null; }
+                if (!isBasic && !this.player.skills.includes(name) && !this.unionGrants(name)) { this.refuseCombat('SKILL_NOT_KNOWN', `You don't know the skill '${name}'.`); return null; }
                 if (Object.values(c.action.casts).length) { this.refuseCombat('BUSY', 'You are already mid-swing.'); return null; }
                 const opt = this.skillAvailability(name, isBasic);
                 if (!opt.enabled) { this.refuseCombat(opt.reason.code, opt.reason.message); return null; }
@@ -533,7 +533,7 @@
         actionMineBlast(skillName, targetIds = []) {
             return this.actionRun(() => {
                 if (!this.actionActive()) { this.refuse('NOT_IN_COMBAT', 'Nothing to fight here.'); return null; }
-                if (!this.player.skills.includes(skillName)) { this.refuse('SKILL_NOT_KNOWN', `You don't know '${skillName}'.`); return null; }
+                if (!this.player.skills.includes(skillName) && !this.unionGrants(skillName)) { this.refuse('SKILL_NOT_KNOWN', `You don't know '${skillName}'.`); return null; }
                 const blast = this.mineBlastSkill(skillName);
                 if (!blast) { this.refuse('INVALID_TARGET', `'${skillName}' lays no charges.`); return null; }
                 const c = this.combat;
@@ -572,7 +572,7 @@
         actionSkillPreview(name) {
             const sk = name && this.data.skillDefinitions[name];
             if (!sk) return { ok: false, error: { code: 'UNKNOWN_SKILL', message: `Unknown skill '${name}'.` } };
-            if (!this.player || !this.player.skills.includes(name)) return { ok: false, error: { code: 'SKILL_NOT_KNOWN', message: `You don't know the skill '${name}'.` } };
+            if (!this.player || (!this.player.skills.includes(name) && !this.unionGrants(name))) return { ok: false, error: { code: 'SKILL_NOT_KNOWN', message: `You don't know the skill '${name}'.` } };
             const skill = this.playerSkill(name);
             return { ok: true, skill: name, shape: this.actionShape(name, false, skill.target || 'enemy_single'), summon: (skill.effects || []).some((x) => x.type === 'summon') };
         }
