@@ -278,15 +278,20 @@
                     this.say('You take it on your guard.');
                 }
                 c.lastEvade = null;
+                c.guardedStrike = !!guard;   // a blow on the guard carries no condition (the 'inflict' rider, src/effects.js)
+                c.inflicted = [];
                 try { this.castSkill(e, skill, [target]); } finally {
+                    delete c.guardedStrike;
                     for (const s of [guard, heavy]) if (s) { const i = target.statusEffects.indexOf(s); if (i >= 0) target.statusEffects.splice(i, 1); }
                 }
+                const inflicted = c.inflicted.filter((x) => x.targetId === this.player.id).map((x) => x.status);
+                delete c.inflicted;
                 const evaded = target === this.player && c.lastEvade;   // Evasion or a blinded swing: it reached you and missed
                 c.lastEvade = null;
                 end();
                 this.checkBattleEnd();
                 if (evaded) return { result: 'evaded', why: evaded };
-                return { result: guard ? 'guarded' : 'hit' };
+                return { result: guard ? 'guarded' : 'hit', inflicted };
             });
         }
 

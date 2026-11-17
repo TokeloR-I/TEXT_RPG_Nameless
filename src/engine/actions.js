@@ -410,7 +410,7 @@
                 else if (this.isFood(def)) { const b = this.foodBlock(item); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use === 'camp') { const b = this.campBlock(); if (b) { opt.enabled = false; opt.reason = { code: b.code, message: b.message }; } }
                 else if (def.use !== 'heal' && def.use !== 'gold') { opt.enabled = false; opt.reason = { code: 'ITEM_NO_USE', message: `You turn the ${item} over in your hands. There's nothing to use it for (yet).` }; }
-                else if (def.use === 'heal' && p.hp >= p.maxHp) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
+                else if (def.use === 'heal' && p.hp >= p.maxHp && !this.itemCures(def).length) { opt.enabled = false; opt.reason = { code: 'FULL_HEALTH', message: "You're already at full health." }; }
                 return opt;
             });
         }
@@ -423,13 +423,17 @@
         quickHealChoice() {
             const p = this.player;
             if (!p) return { reason: { code: 'NO_HEALING', message: 'Nothing to heal with.' } };
-            if (p.hp >= p.maxHp) return { reason: { code: 'FULL_HEALTH', message: "You're already at full health." } };
+            const curable = p.inventory.some((i) => { const d = this.itemDef(i); return d && d.use === 'heal' && this.itemCures(d).length; });
+            if (p.hp >= p.maxHp && !curable) return { reason: { code: 'FULL_HEALTH', message: "You're already at full health." } };
             const timing = this.rtItemProblem ? this.rtItemProblem('quick heal') : null;   // a stun stops it, as it stops every item
             if (timing) return { reason: { code: timing.code, message: timing.message } };
             const lost = p.maxHp - p.hp;
             const owned = [...new Set(p.inventory)].map((item) => ({ item, def: this.itemDef(item) })).filter((x) => x.def);
             const heals = owned.filter((x) => x.def.use === 'heal' && x.def.value > 0).sort((a, b) => a.def.value - b.def.value);
-            if (heals.length) return { item: (heals.find((x) => x.def.value >= lost) || heals[heals.length - 1]).item };
+            // Bleeding, poisoned or burning: the item that also cures it comes first (Bandages for a bleed, herbs for poison).
+            const curing = heals.filter((x) => this.itemCures(x.def).length);
+            const pick = curing.length ? curing : heals;
+            if (pick.length) return { item: (pick.find((x) => x.def.value >= lost) || pick[pick.length - 1]).item };
             // Meals only: a beer heals a little but makes you Tipsy, and the fifth one Drunk (inverted controls), so
             // mashing the heal key must never pour one down you. Beer is still drunk on purpose from the Items tab.
             const food = owned.filter((x) => this.isFood(x.def) && x.def.use !== 'drink' && x.def.heal > 0 && !this.foodBlock(x.item)).sort((a, b) => b.def.heal - a.def.heal);

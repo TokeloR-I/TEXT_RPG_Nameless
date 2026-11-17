@@ -2134,6 +2134,11 @@
         showStory(r.text, r.events, null, afterStory);
     }
 
+    // An enemy's condition attack on you (src/effects.js 'inflict'): its word floats over you in its own colour, the
+    // same colour as its chip on the HUD (world.css .cond-*).
+    const CONDITION_TEXT = { Bleed: 'BLEED', Poison: 'POISON', Burn: 'BURN', Slow: 'SLOW' };
+    const CONDITION_COLOUR = { Bleed: '#ff5a4a', Poison: '#8ee05a', Burn: '#ffa040', Slow: '#70b8ff' };
+
     function actionFxEvent(ev, now) {
         const P = sim.player;
         switch (ev.type) {
@@ -2153,6 +2158,7 @@
             case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); break;
             case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); break;
             case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); break;
+            case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: CONDITION_COLOUR[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
             case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); break;
             case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;

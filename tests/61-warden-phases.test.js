@@ -193,6 +193,7 @@ test('Crow storm: a body in a zone is hit when it lands, a body on safe ground i
         const p = r.sim.player;
         const spot = safe ? { x: R.x0 + 0.5 * (R.x1 - R.x0), y: R.y0 + 0.2 * (R.y1 - R.y0) } : { x: R.x0 + 0.15 * (R.x1 - R.x0), y: R.y0 + 0.2 * (R.y1 - R.y0) };
         p.x = spot.x; p.y = spot.y;
+        r.g.player.statusEffects = r.g.player.statusEffects.filter((s) => s.type !== 'dot');   // only the storm's own blow counts (not an earlier crow bleed)
         const hp0 = r.g.player.hp;
         for (let i = 0; i < 60 * 3 && r.w.state !== 'recover'; i++) { p.x = spot.x; p.y = spot.y; r.sim.update(STEP, {}); }
         return hp0 - r.g.player.hp;

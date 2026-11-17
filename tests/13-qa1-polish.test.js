@@ -39,5 +39,5 @@ test('QA-9: the combat menu shows your HP, resource and statuses', () => {
     g.applyMark(g.combat.enemies[0], g.player, { mark: 'Weaken', value: 0.2, duration: 3 });
     g.do('guard');
     const prompt = g.text().slice(g.text().lastIndexOf('--- Your Turn! ---'));
-    assert.match(prompt, /--- You ---\nWarrior \(\d+\/120 HP\) · Momentum: \d+\/10 \[Weaken \d\]/);
+    assert.match(prompt, /--- You ---\nWarrior \(\d+\/120 HP\) · Momentum: \d+\/10 \[Weaken \d(?:, [^\]]+)?\]/);
 });
