@@ -2502,6 +2502,10 @@
         view.look = engine.legendaryLook ? engine.legendaryLook() : null;   // the Fallen Seraphim's halo, wings and red eyes
         view.union = engine.activeUnion ? engine.activeUnion() : null;      // Devil Union: the merged demon's armor (ui/union-fx.js)
         view.statuses = view.union && engine.player ? (engine.player.statusEffects || []).map((x) => x.name) : null;   // a union skill's helm (Iron Hide, Fleet Form)
+        if (view.statuses && ENSO.unionFx) {   // a skill cast in the last few seconds counts too (Lucifero's helm with Heavy Field)
+            const rs = rtState();
+            for (const [name, cd] of Object.entries((rs && rs.cooldowns) || {})) if (cd.totalMs - cd.remainingMs < ENSO.unionFx.CAST_SHOW_MS) view.statuses.push(name);
+        }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);

@@ -111,7 +111,9 @@ game says so yet (the reveal timing is Tokelo's call).
   spider (the hero's legs become eight violet-glass ones; Tokelo's pick). Closer Lucifero pass (Tokelo: "it looks
   too different from the design"): a plate grid over the body (gorget, layered chevron chest with the purple V glow,
   belt with buckles, purple tabard, plated legs), bigger outlined arms with hooked claws, a wider torn skirt, and a
-  thick curl of purple smoke over the halo's top-left, all following Tokelo's picture.
+  thick curl of purple smoke over the halo's top-left, all following Tokelo's picture. Like the owl and boar helms,
+  Lucifero's hood-helm now comes on only with a skill (Tokelo: "take the helm off and apply to a skill like the
+  others"): for 6 s after Heavy Field.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.
