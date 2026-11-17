@@ -282,10 +282,12 @@ test('Scene art: the last tile-art areas (homestead rooms, the wilds, the Warden
 
 // Tokelo (2026-11-17) let the team build the Underworld arena without a picture; it is code-drawn like the rest. Runs after
 // the homestead tests above, because it loads the room painters.
-test('Scene art: the First Dominion paints whole, the same every time, every tile named', () => {
+// The Second to Fourth Dominions (Tokelo: "you have freedom on the arenas") share the same painter with their own themes.
+test('Scene art: all four Dominions paint whole, the same every time, every tile named', () => {
     require('../ui/scene-homestead-rooms.js');
     require('../ui/scene-underworld.js');
-    const map = ZONE1.maps.underworld_arena;
+    for (const id of ['underworld_arena', 'dominion_beelzebub', 'dominion_slotos', 'dominion_plumede']) {
+    const map = ZONE1.maps[id];
     const nameAt = (m, x, y) => {
         if (y < 0 || y >= m.tiles.length || x < 0 || x >= m.tiles[0].length) return null;
         const def = (m.legend && m.legend[m.tiles[y][x]]) || ZONE1.tileset[m.tiles[y][x]];
@@ -296,5 +298,6 @@ test('Scene art: the First Dominion paints whole, the same every time, every til
     const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
     assert.strictEqual(a.w, map.tiles[0].length * 32);
     assert.strictEqual(sha(a.base), sha(b.base));
-    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`${id}: base pixel ${(i - 3) / 4} is not opaque`);
+    }
 });

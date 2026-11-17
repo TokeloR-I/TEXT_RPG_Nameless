@@ -1677,6 +1677,160 @@
 
     };
 
+    // -----------------------------------------------------------------
+    // The Second, Third and Fourth Dominions (Tokelo 2026-11-17: "listen you have freedom on the arenas, model them to how
+    // you see fit"; built without pictures under the Devil Union exception). Once Lucifero is bound, three rifts stand open
+    // in the First Dominion, one to each; take them in any order. Each Dominion is built like the first: five waves in
+    // turn (a pause to heal between), then its ruler, who kneels in the binding circle beaten, and the contract is made
+    // there with the grimoire. Same 28x20 floor with the circle at (13,10), so the waves stand where the first's do.
+    //   Second Dominion, Beelzebub (space): islands of violet glass over an open starless void, holes in the floor.
+    //   Third Dominion, Slotos (toughness): an iron foundry floor between pits of cooling slag, iron posts at the corners.
+    //   Fourth Dominion, Plumede (agility): a pale wind-swept ledge over a chasm, black feathers drifting on the floor.
+    const DOMINIONS = [
+        { id: 'beelzebub', ordinal: 'Second', power: 'space', scene: 'dominion_space', liquid: 'void', pillar: 'glass_shard', floor: 'riftglass', dust: 'stardust',
+            tint: 'rgba(70, 40, 140, 0.12)', glow: 'rgba(150, 110, 255, 0.22)',
+            rift: { x: 1, y: 6, back: { x: 2, y: 6, facing: 'right' }, sprite: 'rift_space',
+                text: 'You step into the violet tear. For a moment you are in two places, then in one: a floor of glass hanging over nothing, and stars underneath it.' },
+            tiles: [
+                '############################',
+                '#############S##############',
+                '#VVV.......VV..VV.......VVV#',
+                '#VV........VV..VV........VV#',
+                '#V.....P............P.....V#',
+                '#.........,,,,,,,,.........#',
+                '#..VV...,,........,,...VV..#',
+                '#..VV..,,..........,,..VV..#',
+                '#.....,,............,,.....#',
+                '#VV...,.............,...,VV#',
+                '#VV...,..............,...VV#',
+                '#.....,,............,,.....#',
+                '#..VV..,,..........,,..VV..#',
+                '#..VV...,,........,,...VV..#',
+                '#.........,,,,,,,,.........#',
+                '#V.....P............P.....V#',
+                '#VV........VV..VV........VV#',
+                '#VVV.......VV..VV.......VVV#',
+                '#VVVV.....VVV..VVV.....VVVV#',
+                '############################'
+            ],
+            waves: [
+                ['Rift Stalkers', ['rift_stalker', 'rift_stalker', 'hell_imp'], 'shade', 'Two thin shapes stand where there was nothing a moment ago. When you blink they are somewhere else, and closer.'],
+                ['Imps out of Nowhere', ['hell_imp', 'hell_imp', 'hell_imp', 'rift_stalker'], 'goblins', 'Imps tumble out of a fold in the air, giggling, and a stalker steps through after them.'],
+                ['Stalkers in the Folds', ['rift_stalker', 'rift_stalker', 'rift_stalker'], 'shade', 'Three of them now. You only ever see two at once.'],
+                ['Brute through the Rift', ['brimstone_brute', 'rift_stalker', 'rift_stalker'], 'ghoul', 'A brute from the First Dominion is shoved through a rift, bewildered and angry, with stalkers at its heels.'],
+                ['The Last Fold', ['brimstone_brute', 'rift_stalker', 'rift_stalker', 'ash_hound'], 'ghoul', 'Every fold in the room opens at once.']
+            ],
+            ruler: { name: 'Beelzebub', text: 'The far side of the room is suddenly the near side. A figure in violet glass stands in the circle, a cloud of black flies turning slowly round his head, and he has always been there.' },
+            inspect: [{ id: 'void_edge', x: 2, y: 3, name: 'The void', text: 'The glass ends and there is nothing under it but stars, very far down, and not in any shape you know.' }] },
+        { id: 'slotos', ordinal: 'Third', power: 'toughness', scene: 'dominion_iron', liquid: 'slag', pillar: 'iron_post', floor: 'iron_plate', dust: 'scale',
+            tint: 'rgba(120, 70, 30, 0.12)', glow: 'rgba(255, 140, 60, 0.22)',
+            rift: { x: 26, y: 6, back: { x: 25, y: 6, facing: 'left' }, sprite: 'rift_iron',
+                text: 'The orange tear is hot to walk through. On the far side, a floor of riveted iron plate rings like a bell under your boots.' },
+            tiles: [
+                '############################',
+                '#############S##############',
+                '#PP.......MM....MM.......PP#',
+                '#P.......................P.#',
+                '#....P.....,,,,,,.....P....#',
+                '#.......,,,......,,,.......#',
+                '#MMM...,,..........,,...MMM#',
+                '#MMM..,,............,,..MMM#',
+                '#....,,..............,,....#',
+                '#..P.,................,.P..#',
+                '#....,................,....#',
+                '#....,,..............,,....#',
+                '#MMM..,,............,,..MMM#',
+                '#MMM...,,..........,,...MMM#',
+                '#.......,,,......,,,.......#',
+                '#....P.....,,,,,,.....P....#',
+                '#P........................P#',
+                '#PP.......MM....MM.......PP#',
+                '#PPP....................PPP#',
+                '############################'
+            ],
+            waves: [
+                ['Ash Hounds', ['ash_hound', 'ash_hound', 'hell_imp'], 'wolf', 'Hounds trot out between the slag pits, sniffing the iron, and an imp sits on the rim of a pit picking at the crust.'],
+                ['Iron Carapace', ['iron_carapace', 'hell_imp', 'hell_imp'], 'ghoul', 'Something like a beetle the size of a cart backs out of a pit, slag running off its shell. It turns its armoured front to you.'],
+                ['Hounds and a Carapace', ['iron_carapace', 'ash_hound', 'ash_hound'], 'ghoul', 'The carapace comes on slowly. The hounds come round the sides.'],
+                ['Two Carapaces', ['iron_carapace', 'iron_carapace', 'hell_imp'], 'ghoul', 'Two shells this time, side by side like a wall, and an imp throwing cinders from behind them.'],
+                ['The Iron Horde', ['iron_carapace', 'iron_carapace', 'brimstone_brute'], 'ghoul', 'The whole floor shakes. Two carapaces and a brute, and nothing soft about any of them.']
+            ],
+            ruler: { name: 'Slotos', text: 'A great slab of slag-iron heaves itself up out of the circle, tusked, ridged and wider than a door. Hammer marks cover its hide. None of them have dented it.' },
+            inspect: [{ id: 'slag_pit', x: 2, y: 7, name: 'Slag pit', text: 'Cooling slag, grey on top and orange underneath, with a smell like a blacksmith\'s forge left burning for a hundred years.' }] },
+        { id: 'plumede', ordinal: 'Fourth', power: 'agility', scene: 'dominion_wind', liquid: 'chasm', pillar: 'perch', floor: 'pale_rock', dust: 'feathers',
+            tint: 'rgba(120, 120, 160, 0.10)', glow: 'rgba(210, 210, 240, 0.18)',
+            rift: { x: 13, y: 18, back: { x: 13, y: 17, facing: 'up' }, sprite: 'rift_wind',
+                text: 'The pale tear pulls at your clothes like a draught under a door. On the far side, wind: a ledge of pale rock over a long drop, and black feathers everywhere.' },
+            tiles: [
+                '############################',
+                '#############S##############',
+                '#VVVVVV...............VVVVV#',
+                '#VVVV...................VVV#',
+                '#VV....P....,,,,....P....VV#',
+                '#V........,,....,,........V#',
+                '#.......,,........,,.......#',
+                '#......,............,......#',
+                '#VV...,..............,...VV#',
+                '#VVV..,..............,..VVV#',
+                '#VVV..,..............,..VVV#',
+                '#VV...,..............,...VV#',
+                '#......,............,......#',
+                '#.......,,........,,.......#',
+                '#V........,,....,,........V#',
+                '#VV....P....,,,,....P....VV#',
+                '#VVVV...................VVV#',
+                '#VVVVVV...............VVVVV#',
+                '#VVVVVVVVV..........VVVVVVV#',
+                '############################'
+            ],
+            waves: [
+                ['Feather Shrikes', ['feather_shrike', 'feather_shrike', 'feather_shrike'], 'crows', 'Three black birds drop out of the wind and land on the ledge, heads cocked, hooked beaks open.'],
+                ['Shrikes and Imps', ['feather_shrike', 'feather_shrike', 'hell_imp', 'hell_imp'], 'crows', 'Imps clamber up over the edge of the drop, and the shrikes circle over them.'],
+                ['Shrikes and Hounds', ['feather_shrike', 'feather_shrike', 'ash_hound', 'ash_hound'], 'wolf', 'Hounds below, shrikes above, and the wind in your face.'],
+                ['The Flock', ['feather_shrike', 'feather_shrike', 'feather_shrike', 'feather_shrike', 'hell_imp'], 'crows', 'The sky over the ledge goes dark with wings.'],
+                ['The Last Flight', ['feather_shrike', 'feather_shrike', 'ash_hound', 'brimstone_brute'], 'crows', 'A brute climbs onto the ledge with shrikes riding the wind round its head.']
+            ],
+            ruler: { name: 'Plumede', text: 'The wind drops. In the middle of the circle a slender figure in a cloak of black feathers lands without a sound, and is moving before you have seen her land.' },
+            inspect: [{ id: 'chasm_edge', x: 3, y: 3, name: 'The drop', text: 'Pale rock, then nothing. The wind comes up out of the drop hard enough to lean on, and it is full of feathers.' }] }
+    ];
+    const WAVE_AT = [[9, 7], [18, 7], [9, 12], [18, 12], [13, 13]];
+    for (const d of DOMINIONS) {
+        const mapId = `dominion_${d.id}`;
+        zones[`underworld_${d.ordinal.toLowerCase()}_dominion`] = { name: `The ${d.ordinal} Dominion`, mapIds: [mapId] };
+        maps[mapId] = {
+            zoneId: `underworld_${d.ordinal.toLowerCase()}_dominion`,
+            name: `The ${d.ordinal} Dominion`,
+            scene: d.scene,                     // painted whole: ui/scene-underworld.js
+            ambient: { tint: d.tint },
+            legend: {
+                '#': { name: 'abyss_wall', solid: true }, 'S': { name: 'rift_back', solid: true }, 'P': { name: d.pillar, solid: true },
+                [d.liquid === 'slag' ? 'M' : 'V']: { name: d.liquid, solid: true }, '.': { name: d.floor }, ',': { name: d.dust }
+            },
+            tiles: d.tiles,
+            lights: [{ x: 13, y: 10, radius: 3.2, color: d.glow }, { x: 13, y: 2, radius: 1.8, color: d.glow }],
+            spawns: { from_first_dominion: { x: 13, y: 2, facing: 'down' } },
+            exits: [
+                { id: `${d.id}_rift_back`, x: 13, y: 1, trigger: 'interact', prompt: 'Step back through the rift', toMap: 'underworld_arena', toSpawn: `from_${d.id}`,
+                    text: 'You step back through the tear, and the heat and the red light of the First Dominion close round you again.' }
+            ],
+            encounters: [
+                ...d.waves.map(([name, enemies, sprite, text], i) => ({ id: `${d.id}_wave_${i + 1}`, x: WAVE_AT[i][0], y: WAVE_AT[i][1], name, enemies, trigger: 'contact', sprite, text,
+                    ...(i ? { when: { flags: [`${d.id}_wave_${i}`] } } : {}) })),
+                { id: `${d.id}_ruler`, x: 13, y: 9, name: d.ruler.name, enemies: [d.id], trigger: 'contact', sprite: 'warden', when: { flags: [`${d.id}_wave_5`] }, text: d.ruler.text }
+            ],
+            interactables: [
+                // Beaten, the ruler kneels in the binding circle: the contract is made here, once (story: npc <id>_bound).
+                { id: `${d.id}_bound_npc`, kind: 'npc', npc: `${d.id}_bound`, x: 13, y: 10, name: d.ruler.name, sprite: `${d.id}_kneeling`, when: { flags: [`${d.id}_ruler_beaten`] } },
+                ...d.inspect.map((o) => ({ ...o, kind: 'inspect' }))
+            ],
+            boundaries: []
+        };
+        // Its rift in the First Dominion, open once Lucifero is bound.
+        maps.underworld_arena.exits.push({ id: `arena_rift_${d.id}`, x: d.rift.x, y: d.rift.y, trigger: 'step', when: { flags: ['contract:lucifero'] }, sprite: d.rift.sprite,
+            toMap: mapId, toSpawn: 'from_first_dominion', text: d.rift.text });
+        maps.underworld_arena.spawns[`from_${d.id}`] = d.rift.back;
+    }
+
     // James's stair (CB2): a way down beside the homestead well, there only once he has opened it.
     const grounds = {
         exit: { id: 'grounds_underworld_stair', x: 27, y: 7, trigger: 'step', when: { flags: ['underworld_opened'] }, sprite: 'underworld_stair',

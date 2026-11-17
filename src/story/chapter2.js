@@ -2067,6 +2067,39 @@
             choices: [{ text: 'Goodbye.', end: true }]
         }
     };
+    // The Second to Fourth Dominions (maps: chapter2-maps.js DOMINIONS): each ruler's words, beaten and bound.
+    const DOMINION_RULERS = {
+        beelzebub: { name: 'Beelzebub', title: 'Ruler of the Second Dominion',
+            wave: 'The last of them folds up into nothing. Somewhere across the glass, the stars shift.',
+            last: 'The last of them is gone. In the middle of the floor, the distance to the circle begins to shrink.',
+            beaten: 'Beelzebub goes down on one knee in the binding circle, and the room snaps back to its proper size. In your pack, the grimoire has gone warm.',
+            look: 'Beelzebub kneels in the circle. The flies have settled on his shoulders, and the room is exactly as big as it looks.',
+            said: 'You found my rift, crossed my floor and caught me. Very few things can catch me.',
+            ask: 'Open your book, and we will see what space you can afford.',
+            ceremony: 'Two hands of writing fill the page, his and yours, and the page seems far too short to hold them. Then it is closed.',
+            bound: 'Done. When you call, I will come, and nothing will be far from you.',
+            after: 'We are bound. The way back is behind you, as it always is.' },
+        slotos: { name: 'Slotos', title: 'Ruler of the Third Dominion',
+            wave: 'The last of them cools and cracks apart on the plate. Somewhere a pit of slag bubbles.',
+            last: 'The last of them is scrap. In the middle of the floor, the plate begins to bulge upward.',
+            beaten: 'Slotos goes down on his knees in the binding circle, and the whole floor groans with him. In your pack, the grimoire has gone warm.',
+            look: 'Slotos kneels in the circle. Even kneeling he is taller than you, and the plate under him has bent.',
+            said: 'Nothing has knocked me down in a very long time. Write it in your book, before I forget it happened.',
+            ask: 'Open it. I will give you my hide, and you will give me something to stand for.',
+            ceremony: 'The pen drags as if the page were iron. Two hands of writing go down slowly, his and yours, and the page will not tear.',
+            bound: 'Done. Call, and I will stand in front of you, and nothing gets past me.',
+            after: 'We are bound. Go; I am not moving from here until you call.' },
+        plumede: { name: 'Plumede', title: 'Ruler of the Fourth Dominion',
+            wave: 'The last of them tumbles over the edge and is gone in the wind.',
+            last: 'The last of them is gone over the edge. In the middle of the ledge, the wind turns round on itself.',
+            beaten: 'Plumede drops to one knee in the binding circle, the feathers of her cloak flat at last. In your pack, the grimoire has gone warm.',
+            look: 'Plumede kneels in the circle, perfectly still, which is somehow worse than watching her move.',
+            said: 'You were slower than me every time, and you were still there at the end. That is rarer.',
+            ask: 'Open your book, quickly, before I change my mind.',
+            ceremony: 'The writing fills the page faster than you can follow, her hand and yours. The last word is down before the first is dry.',
+            bound: 'Done. Call, and you will be quicker than anything that wants to hit you.',
+            after: 'We are bound. Off you go, and try to keep up.' }
+    };
     const SVEN_GIVES = [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }];
     const SVEN_OFFER = [
         { text: 'What would you take for it?', to: 'terms' },
@@ -2407,6 +2440,32 @@
                 ...MARK_SCENE
             }
         },
+        // ------------------------------------------------------------- The Second to Fourth Dominions' rulers, beaten (CB2 onward)
+        // Tokelo 2026-11-17: "you have freedom on the arenas". Reached by the rifts in the First Dominion once Lucifero is bound,
+        // in any order. Each kneels like Lucifero and binds the same way; whichever is bound third sees Demonkore's mark.
+        ...Object.fromEntries(Object.entries(DOMINION_RULERS).map(([id, r]) => [`${id}_bound`, {
+            name: r.name, title: r.title,
+            talk: [MARK_TALK(id), { if: { flags: [`contract:${id}`] }, node: 'after' }, { node: 'kneel' }],
+            nodes: {
+                kneel: {
+                    lines: [[null, r.look], ['npc', r.said], ['npc', r.ask]],
+                    choices: [
+                        { text: 'Open the grimoire.', if: { items: ['Binding Grimoire'] }, to: 'ceremony' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                ceremony: {
+                    lines: [[null, r.ceremony], ['npc', r.bound]],
+                    effects: BINDING(id),
+                    choices: AFTER_BINDING
+                },
+                after: {
+                    lines: [['npc', r.after]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                ...MARK_SCENE
+            }
+        }])),
         // ------------------------------------------------------------- Sven, who has James's lute (CB1)
         // Sven (design §2, director correction 2026-11-17): an ordinary wharf hand, not a thief. James staked the lute on a
         // game of Hnefatafl and lost it fairly. The player picks how to get it back: buy it, do Sven a favour (haul his
@@ -3150,6 +3209,12 @@
             { say: n < 5 ? `The last of them falls into the ash and is gone. Somewhere across the floor, the lava heaves again. (Wave ${n} of 5.)` : 'The last horde is ash. In the middle of the arena the air begins to fold downward, toward the circle. (Wave 5 of 5.)', important: true }] })),
         { id: 'cb2_ruler', on: { type: 'defeat', id: 'underworld_arena_ruler' }, effects: [{ flag: 'underworld_ruler_beaten' },
             { say: 'Lucifero goes down on one knee in the binding circle and stays there. The floor stops leaning. In your pack, the grimoire has gone warm.', important: true }] },
+        // The Second to Fourth Dominions: the same five waves and a ruler, each Dominion counting its own.
+        ...Object.entries(DOMINION_RULERS).flatMap(([id, r]) => [
+            ...[1, 2, 3, 4, 5].map((n) => ({ id: `dominion_${id}_wave_${n}`, on: { type: 'defeat', id: `${id}_wave_${n}` }, effects: [{ flag: `${id}_wave_${n}` },
+                { say: n < 5 ? `${r.wave} (Wave ${n} of 5.)` : `${r.last} (Wave 5 of 5.)`, important: true }] })),
+            { id: `dominion_${id}_ruler`, on: { type: 'defeat', id: `${id}_ruler` }, effects: [{ flag: `${id}_ruler_beaten` }, { say: r.beaten, important: true }] }
+        ]),
         // CB1: Sven's favour, hauling his nets in off the wharf (one of three ways to get the lute back).
         { id: 'cb1_sven_nets', on: { type: 'inspect', id: 'skeldvik_sven_nets' }, if: { flags: ['sven_favour_asked'] }, effects: [
             { flag: 'sven_nets_hauled' }, { say: 'You haul Sven\'s nets up the wharf hand over hand, wet and heavy, and stack them by his sea chest before the tide reaches them.', important: true }] },
