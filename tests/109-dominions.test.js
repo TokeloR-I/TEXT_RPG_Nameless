@@ -211,4 +211,11 @@ test('Merge look: each demon dresses the hero in its own dark armor, bursts in a
         assert.strictEqual(row, [...row].reverse().join(''), `${id}: the helm is symmetrical`);
         for (const ch of row) assert.ok(ch === '.' || h.colours[ch], `${id}: colour '${ch}' is defined`);
     }
+    // Lucifero's plate after Tokelo's design picture: chevron chest with the purple glow, belt, tabard, plated legs.
+    for (const row of fx.PLATE.rows) {
+        assert.strictEqual(row.length, fx.PLATE.rows[0].length, 'plate: every row the same width');
+        assert.strictEqual(row, [...row].reverse().join(''), 'plate: symmetrical');
+        for (const ch of row) assert.ok(ch === '.' || fx.PLATE.colours[ch], `plate: colour '${ch}' is defined`);
+    }
+    assert.ok(fx.PLATE.rows.some((r) => r.includes('g')), 'the chest glows');
 });

@@ -4,9 +4,10 @@
  * or shadowy design?" While you are merged with a demon (engine.activeUnion(), src/engine/union.js) the hero is
  * wrapped in that demon's dark armor: the sprite's cloth, metal and hair are recoloured to it (a palette, no new
  * sheets), its own pieces are drawn on and around the body, and black smoke curls off you the whole time. Each look
- * is the team's own design, not a copy of anything:
- *   lucifero   (after Tokelo's reference) a spiked hood-helm with violet eyes, a black halo in purple smoke, spiked
- *              plate with a glowing chest, four clawed shadow arms, a torn skirt, a gravity vortex with rocks at the feet.
+ * is ENSO's own design:
+ *   lucifero   (follows Tokelo's design picture) a spiked hood-helm with violet eyes, a black halo in a curl of purple
+ *              smoke, chevron plate with a glowing V, belt and tabard, four clawed shadow arms, a torn skirt, a
+ *              gravity vortex with rocks at the feet.
  *   beelzebub  violet rift-glass; glass shards on the shoulders; a cracked halo; flies turning round you (space).
  *   slotos     slag-iron hulk; tusked pauldrons; orange heat in the seams; sparks when struck (toughness).
  *   plumede    black plumage with a pale edge; folded feather wings that flare on a dash; feathers shed on the move.
@@ -108,6 +109,12 @@
                 const t = (s / 72) * Math.PI * 2, x = Math.round(cx + Math.cos(t) * 9), y = Math.round(hy + Math.sin(t) * 9);
                 g.fillStyle = rgba([6, 2, 10], 0.95 * k); g.fillRect(x, y, 2, 2);
             }
+            for (let s = 0; s < 34; s++) {                                               // a thick curl of smoke over its top-left
+                const t = s / 34, a = Math.PI * (0.85 + t * 0.9) + Math.sin(now / 900) * 0.08, rr = 10 + t * 3 + Math.sin(t * 6 + now / 500) * 0.6;
+                const w = t < 0.8 ? 3 - t * 2 : 1;
+                g.fillStyle = rgba(t > 0.6 ? [230, 160, 255] : L.glow, k * (0.55 + 0.35 * t));
+                g.fillRect(Math.round(cx + Math.cos(a) * rr), Math.round(hy + Math.sin(a) * rr), Math.max(1, Math.round(w)), Math.max(1, Math.round(w * 0.7)));
+            }
             for (let i = 0; i < 16; i++) {                                               // purple smoke wound round it
                 const t = now / 700 + i * 0.4, x = cx + Math.cos(t) * (10 + Math.sin(i) * 1.5), y = hy + Math.sin(t) * (10 + Math.cos(i) * 1.5);
                 g.fillStyle = rgba(L.glow, k * (0.25 + 0.35 * (i / 16))); g.fillRect(Math.round(x), Math.round(y), 2, 1);
@@ -163,18 +170,15 @@
                     g.fillRect(Math.round(cx + side * (6 + n * 2 + s * 0.7)), sh - 2 - s - (n === 1 ? 1 : 0), 1, 1);
                 }
             }
-            if (!away(view)) {                                                             // the glowing chevron
-                const pulse = 0.6 + 0.4 * Math.sin(now / 420);
-                for (let s = 0; s < 4; s++) { g.fillStyle = rgba(L.glow, k * pulse); g.fillRect(cx - 3 + s, sh + 4 + s, 1, 1); g.fillRect(cx + 2 - s, sh + 4 + s, 1, 1); }
-                g.fillStyle = rgba([250, 220, 255], k * pulse); g.fillRect(cx - 1, sh + 7, 2, 2);
-            }
-            for (let i = -7; i <= 7; i++) {                                                 // the torn skirt
-                const len = 5 + Math.round(hash(i, 3) * 6), sway = Math.round(Math.sin(now / 400 + i * 0.7) * (moving(view) ? 1.5 : 0.5));
+            for (let i = -10; i <= 10; i++) {                                               // the torn skirt, flaring wide
+                if (Math.abs(i) < 6) continue;
+                const len = 6 + Math.round(hash(i, 3) * 7), sway = Math.round(Math.sin(now / 400 + i * 0.7) * (moving(view) ? 1.5 : 0.5));
                 for (let j = 0; j < len; j++) {
-                    g.fillStyle = rgba(i % 3 === 0 ? [92, 40, 132] : j > len - 2 ? [24, 16, 34] : [52, 40, 70], 0.95 * k);
-                    g.fillRect(cx + i + (j > 2 ? sway : 0), base - 14 + j, 1, 1);
+                    g.fillStyle = rgba(j > len - 3 ? [58, 26, 86] : i % 2 ? [106, 46, 150] : [74, 34, 108], 0.95 * k);
+                    g.fillRect(cx + i + (j > 2 ? sway * Math.sign(i) : 0) + Math.round(j * 0.25 * Math.sign(i)), base - 14 + j, 1, 1);
                 }
             }
+            plate(g, cx, base, k, view, now);
         },
         // Glass shards jutting from both shoulders, and flies turning round you.
         beelzebub(g, cx, base, L, k, view, now) {
@@ -278,21 +282,47 @@
         }
     }
     /** Lucifero: four arms of shadow out of the back, the upper pair raised, the lower reaching out, clawed. */
+    // Lucifero's plate, drawn over the hero's body after Tokelo's design picture: layered chevron plates down the chest
+    // with a purple glow in the middle, a belt with a buckle, a torn purple skirt and plated legs. One front-facing grid
+    // (left half, mirrored); facing away, the glow goes dark.
+    const PLATE = {
+        colours: { o: '#120c1a', d: '#2a2238', m: '#463a5a', l: '#8a7aa6', g: '#c060ff', w: '#f4d8ff', b: '#3e3046', k: '#a898b8', p: '#6a2e96', q: '#3a1a56' },
+        rows: half([
+            '....ooo', '..oodmm', '..ooooo', '.odmmdd', 'odlmddg', 'odmldgw', 'oddlmgw', 'odmdlgg', 'olddmlg', 'odlmddm', 'oddmlmd',
+            'obbbbbb', 'obkbbbk', 'oqpqdpq', 'oqpdqpd', '.oqpdpm', '.odlmoq', '.omdlop', '.odmdop', '.olmdoq',
+            '.odlmo.', '.odmdo.', 'oddmdo.', 'odmmdo.', 'oolllo.', 'ooooo..'])
+    };
+    const PLATE_BACK = { g: 'd', w: 'm' };
+    function plate(g, cx, base, k, view, now) {
+        const back = away(view), x0 = cx - PLATE.rows[0].length / 2, y0 = base - PLATE.rows.length;
+        const stride = moving(view) ? Math.round(Math.sin(now / 120)) : 0;
+        PLATE.rows.forEach((row, j) => [...row].forEach((ch, i) => {
+            if (ch === '.') return;
+            const leg = j >= 16 && ch !== 'p' && ch !== 'q' ? (i < 7 ? stride : -stride) : 0;   // the legs step with the walk, the tabard hangs
+            g.globalAlpha = k * (ch === 'g' || ch === 'w' ? 0.75 + 0.25 * Math.sin(now / 420) : 1);
+            g.fillStyle = PLATE.colours[back && PLATE_BACK[ch] ? PLATE_BACK[ch] : ch]; g.fillRect(x0 + i, y0 + j + Math.min(0, leg), 1, 1);
+        }));
+        g.globalAlpha = 1;
+    }
     function shadowArms(g, cx, base, L, k, view, now) {
         const sh = base - SHOULDERS + 2;
-        for (const side of [-1, 1]) for (const [lift, reach, ph] of [[18, 17, 0], [2, 21, 1.7]]) {
-            const sway = Math.sin(now / 520 + ph + side) * 2;
-            const root = [cx + side * 4, sh], elbow = [cx + side * (reach * 0.6), sh - lift * 0.6 + sway * 0.5], hand = [cx + side * reach, sh - lift + sway];
-            limb(g, [root, elbow, hand], 5, 3, [40, 30, 56], L, k);
+        for (const side of [-1, 1]) for (const [ex, ey, hx, hy, ph] of [[13, -6, 15, -19, 0], [14, 2, 22, -2, 1.7]]) {
+            const sway = Math.sin(now / 520 + ph + side) * 1.5;
+            const root = [cx + side * 5, sh], elbow = [cx + side * ex, sh + ey + sway * 0.5], hand = [cx + side * hx, sh + hy + sway];
+            limb(g, [root, elbow, hand], 8, 5, [22, 14, 32], L, k);                           // outline
+            limb(g, [root, elbow, hand], 6, 3.5, [62, 48, 82], L, k);
+            limb(g, [[root[0], root[1] + 1], [elbow[0], elbow[1] + 1.5], [hand[0], hand[1] + 1]], 2, 1.2, [36, 26, 50], L, 0.6 * k);   // the shade under it
             // Purple light in the cracks, running down each arm.
             for (let t = 0.15; t < 0.95; t += 0.08) {
                 const p = t < 0.5 ? [root[0] + (elbow[0] - root[0]) * t * 2, root[1] + (elbow[1] - root[1]) * t * 2] : [elbow[0] + (hand[0] - elbow[0]) * (t - 0.5) * 2, elbow[1] + (hand[1] - elbow[1]) * (t - 0.5) * 2];
                 if (hash(Math.round(t * 50), side + 3) > 0.45) { g.fillStyle = rgba(L.glow, 0.85 * k); g.fillRect(Math.round(p[0]), Math.round(p[1] + (hash(t * 9, 1) - 0.5) * 2), 1, 1); }
             }
-            g.fillStyle = rgba([40, 30, 56], 0.97 * k); g.fillRect(Math.round(hand[0] - 2), Math.round(hand[1] - 2), 4, 4);   // the hand
-            for (let c = -1.5; c <= 1.5; c += 1) {                                 // four curved claws
-                const a = Math.atan2(hand[1] - elbow[1], hand[0] - elbow[0]) + c * 0.45;
-                for (let s = 1; s <= 4; s++) { g.fillStyle = rgba(s === 4 ? [170, 150, 200] : [64, 52, 84], 0.95 * k); g.fillRect(Math.round(hand[0] + Math.cos(a + s * 0.12 * side) * (s + 1)), Math.round(hand[1] + Math.sin(a + s * 0.12 * side) * (s + 1)), 1, 1); }
+            g.fillStyle = rgba([24, 16, 34], 0.97 * k); g.fillRect(Math.round(hand[0] - 3.5), Math.round(hand[1] - 2.5), 7, 5); g.fillRect(Math.round(hand[0] - 2.5), Math.round(hand[1] - 3.5), 5, 7);   // the hand, outlined
+            g.fillStyle = rgba([62, 48, 82], 0.97 * k); g.fillRect(Math.round(hand[0] - 2.5), Math.round(hand[1] - 2.5), 5, 5);
+            g.fillStyle = rgba([110, 94, 136], 0.97 * k); g.fillRect(Math.round(hand[0] - 2.5), Math.round(hand[1] - 2.5), 5, 1);
+            for (let c = -1.5; c <= 1.5; c += 1) {                                 // four hooked claws, pale at the tips
+                const a = Math.atan2(hand[1] - elbow[1], hand[0] - elbow[0]) + c * 0.5;
+                for (let s = 2; s <= 7; s += 0.5) { g.fillStyle = rgba(s >= 6 ? [196, 180, 220] : s < 3 ? [24, 16, 34] : [96, 80, 120], 0.97 * k); g.fillRect(Math.round(hand[0] + Math.cos(a + s * 0.16 * side) * (s + 1)), Math.round(hand[1] + Math.sin(a + s * 0.16 * side) * (s + 1)), 1, 1); }
             }
         }
     }
@@ -352,7 +382,7 @@
         try { if (LOWER[st.id]) spiderBody(g, cx, base, L, st.k, view, now, 'front', LOWER[st.id].hips); helm(g, cx, base, st.id, st.k, view, now); FRONT[st.id](g, cx, base, L, st.k, view, now); burst(g, cx, base, L, st.burst); } finally { g.restore(); }
     }
 
-    const api = { LOOKS, HELMS, helmOn, palette, state, reset, behind, front, lowerBody };
+    const api = { LOOKS, HELMS, PLATE, helmOn, palette, state, reset, behind, front, lowerBody };
     ENSO.unionFx = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
