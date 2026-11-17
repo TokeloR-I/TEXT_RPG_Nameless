@@ -9,6 +9,10 @@
  *   beelzebub  violet rift-glass; glass shards on the shoulders; a cracked halo; flies turning round you (space).
  *   slotos     slag-iron hulk; tusked pauldrons; orange heat in the seams; sparks when struck (toughness).
  *   plumede    black plumage with a pale edge; folded feather wings that flare on a dash; feathers shed on the move.
+ * Second pass (Tokelo: "more animalistic ... owl or wild bore or fox ... extra arms or ... spider legs"): Lucifero
+ * grows four shadow arms. Plumede's owl helm and Slotos's boar helm come on only with a union skill (Fleet Form,
+ * Iron Hide) and go when it ends. Beelzebub keeps his first look (no fox) and from the hips down
+ * he is a spider: the hero's legs become eight violet-glass ones.
  * A merge starts with a burst in the demon's colour and ends with the smoke thinning away (fade in / out).
  *
  *   ENSO.unionFx.palette(id)                                the sprite palette override for the armor
@@ -151,13 +155,13 @@
                 g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(base - SHOULDERS + Math.sin(a * 1.3) * 8), 1, 1);
             }
         },
-        // Tusked pauldrons and orange heat in the seams; sparks when you are hit.
+        // Tusked pauldrons and orange heat in the seams; sparks when you are hit (under Iron Hide the tusks are the boar's).
         slotos(g, cx, base, L, k, view, now) {
             const y = base - SHOULDERS;
             for (const side of [-1, 1]) {
                 g.fillStyle = rgba([60, 48, 44], 0.95 * k); g.fillRect(Math.round(cx + side * 7 - 3), y - 2, 6, 4);
                 g.fillStyle = rgba(L.glow, 0.85 * k); g.fillRect(Math.round(cx + side * 7 - 3), y + 1, 6, 1);   // the seam
-                for (let s = 0; s < 6; s++) {                                                                  // the tusk curls up
+                if (!helmOn('slotos', view)) for (let s = 0; s < 6; s++) {                                    // the tusk curls up
                     g.fillStyle = rgba([226, 212, 186], 0.95 * k);
                     g.fillRect(Math.round(cx + side * (9 + s * 0.7)), Math.round(y - 2 - s + (s * s) * 0.12), 1, 1);
                 }
@@ -169,9 +173,9 @@
                 g.fillStyle = rgba([255, 220, 140], 0.9 * k); g.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(base - SHOULDERS + Math.sin(a) * d), 1, 1);
             }
         },
-        // A half mask of black feathers, and feathers shed behind you on the move.
+        // A half mask of black feathers (the owl's face under Fleet Form), and feathers shed behind you on the move.
         plumede(g, cx, base, L, k, view, now) {
-            if (!away(view)) {
+            if (!away(view) && !helmOn('plumede', view)) {
                 const y = base - HEAD - 1;
                 g.fillStyle = rgba([10, 10, 16], 0.9 * k); g.fillRect(cx - 5, y - 1, 10, 2);
                 g.fillStyle = rgba(L.glow, 0.8 * k); g.fillRect(cx - 5, y - 2, 10, 1);
@@ -184,20 +188,123 @@
         }
     };
 
+    // --- second pass (Tokelo 2026-11-17: "can we add more animalistic characteristic like a head with the shape of an
+    // owl or wild bore or fox ... other armors to grow extra arms or another one spider legs"; "the player legs are spider
+    // legs"). Animal helms drawn as
+    // pixel grids (left half, mirrored), and extra limbs drawn as jointed strokes. Plumede an owl, Slotos a wild boar,
+    // Lucifero four shadow arms. Beelzebub keeps his first look and walks on a spider's legs.
+    const half = (rows) => rows.map((r) => r + [...r].reverse().join(''));
+    // Tokelo (16:00): the helms are not the merge's everyday look; each comes on with one union skill and goes with it.
+    const HELMS = {
+        plumede: { top: 41, skill: 'Fleet Form', colours: { o: '#07070c', d: '#15151f', m: '#2a2a3a', l: '#4a4a62', p: '#d8d4e8', e: '#fff6c0', b: '#b09048' },
+            rows: half([
+                '..oo......', '.odo......', '.oddo.....', '.odmdooooo', '..odmmmmmm', '..odddmmmm', '.odpppddmm', 'odppeepdmm',
+                'odpeeeepdm', 'odpeeeepdb', 'odppeepddb', '.odpppdmmo', '.oddddmmmm', '..odddmmmm', '...oddddmm', '....oooooo']) },
+        slotos: { top: 40, skill: 'Iron Hide', colours: { o: '#140f0e', d: '#33282a', m: '#5c4a44', l: '#8e7a6a', s: '#a07a68', n: '#140f0e', t: '#f0e4c8', e: '#ffb050', r: '#1e1716' },
+            rows: half([
+                '...o....rr', '..odo..rrr', '..oddoorrd', '.odddddddm', '.oddmmmmmm', '.odmmmmmmm', 'odmeemmmmm', 'odmmmmmmmm',
+                'odmmmmmlll', '.odmmmllss', 't.odmlssss', 't.odmssnss', 'tt.odsssss', '.tt.osssss', '..t..ooooo']) }
+    };
+    // Facing away you see the back of the helm: the face colours go dark.
+    const BACK = { p: 'm', e: 'm', b: 'm', s: 'm', n: 'm', w: 'm', l: 'm' };
+    /** Is the helm on? Only while its skill's status is on you (view.statuses: the names, from ui/world-ui.js). */
+    const helmOn = (id, view) => !!(HELMS[id] && view && Array.isArray(view.statuses) && view.statuses.includes(HELMS[id].skill));
+    function helm(g, cx, base, id, k, view, now) {
+        const H = HELMS[id];
+        if (!H || !helmOn(id, view)) return;
+        const back = away(view), bob = Math.round(Math.sin(now / 650) * 0.4);
+        const x0 = cx - H.rows[0].length / 2, y0 = base - H.top + bob;
+        H.rows.forEach((row, j) => [...row].forEach((ch, i) => {
+            if (ch === '.') return;
+            const c = H.colours[back && BACK[ch] ? BACK[ch] : ch];
+            g.globalAlpha = k * (ch === 'e' && !back ? 0.85 + 0.15 * Math.sin(now / 300) : 1);
+            g.fillStyle = c; g.fillRect(x0 + i, y0 + j, 1, 1);
+        }));
+        g.globalAlpha = 1;
+    }
+
+    /** A jointed limb: thick at the root, thin at the tip, dark with a rim of the demon's glow. */
+    function limb(g, pts, w0, w1, dark, L, k) {
+        const total = pts.length - 1;
+        for (let s = 0; s < total; s++) {
+            const [ax, ay] = pts[s], [bx, by] = pts[s + 1], len = Math.hypot(bx - ax, by - ay);
+            for (let t = 0; t <= len; t += 0.6) {
+                const u = (s + t / len) / total, w = w0 + (w1 - w0) * u, x = ax + (bx - ax) * t / len, y = ay + (by - ay) * t / len;
+                g.fillStyle = rgba(dark, 0.95 * k); g.fillRect(Math.round(x - w / 2), Math.round(y - w / 2), Math.max(1, Math.round(w)), Math.max(1, Math.round(w)));
+                if (Math.round(t / 0.6) % 4 === 0) { g.fillStyle = rgba(L.glow, 0.45 * k); g.fillRect(Math.round(x - w / 2), Math.round(y - w / 2), 1, 1); }
+            }
+        }
+    }
+    /** Lucifero: four arms of shadow out of the back, the upper pair raised, the lower reaching out, clawed. */
+    function shadowArms(g, cx, base, L, k, view, now) {
+        const sh = base - SHOULDERS + 2;
+        for (const side of [-1, 1]) for (const [lift, reach, ph] of [[16, 15, 0], [3, 19, 1.7]]) {
+            const sway = Math.sin(now / 520 + ph + side) * 2;
+            const root = [cx + side * 4, sh], elbow = [cx + side * (reach * 0.6), sh - lift * 0.6 + sway * 0.5], hand = [cx + side * reach, sh - lift + sway];
+            limb(g, [root, elbow, hand], 4, 2, [10, 8, 18], L, k);
+            for (let c = -1; c <= 1; c++) {                                        // three claws
+                const a = Math.atan2(hand[1] - elbow[1], hand[0] - elbow[0]) + c * 0.5;
+                for (let s = 1; s <= 3; s++) { g.fillStyle = rgba(c ? [10, 8, 18] : L.glow, 0.9 * k); g.fillRect(Math.round(hand[0] + Math.cos(a) * s), Math.round(hand[1] + Math.sin(a) * s), 1, 1); }
+            }
+        }
+    }
+    /** Beelzebub: a spider from the hips down (Tokelo: "the player legs are spider legs"). The sprite is
+     *  drawn cut off at the hips (LOWER.hips, ui/world-render.js clips it), and here a violet-glass spider body takes
+     *  its place: a thorax at the hips, an abdomen behind, and eight jointed legs that step when you move. */
+    // Tokelo (16:06): "give it to beelzebub", on his first look (halo, shards, flies; no fox).
+    const LOWER = { beelzebub: { hips: 12 } };
+    function spiderBody(g, cx, base, L, k, view, now, layer, hips = 12) {
+        const hip = base - hips, walk = moving(view) ? now / 95 : now / 900, side0 = away(view) ? -1 : 1;
+        if (layer === 'back') {                                                           // the abdomen, behind the body
+            const ay = hip + 1 + Math.sin(now / 700) * 0.5;
+            for (let j = -5; j <= 5; j++) for (let i = -7; i <= 7; i++) {
+                const d = Math.hypot(i / 7, j / 5);
+                if (d > 1) continue;
+                const c = d > 0.85 ? [8, 6, 26] : (Math.abs(i) < 1.5 && Math.abs(j) < 3.5 && j % 2 === 0) ? L.glow : [36 + Math.round((1 - d) * 26), 26 + Math.round((1 - d) * 18), 70 + Math.round((1 - d) * 40)];
+                g.fillStyle = rgba(c, 0.97 * k); g.fillRect(Math.round(cx + i), Math.round(ay - 6 * side0 * 0 + j - 3), 1, 1);
+            }
+        }
+        // Eight legs, four a side; the back pairs behind the body, the front pairs in front of it.
+        for (const side of [-1, 1]) for (let n = 0; n < 4; n++) {
+            const front = n < 2;
+            if ((layer === 'front') !== front) continue;
+            const step = Math.sin(walk + n * 1.6 + (side > 0 ? Math.PI : 0)) * (moving(view) ? 2.5 : 0.5);
+            const spread = 6 + n * 3.5;
+            const rootP = [cx + side * 3, hip + 1];
+            const knee = [cx + side * spread, hip - 6 + n * 1.5 - Math.max(0, step)];
+            const foot = [cx + side * (spread + 4 + n) + step, base - 1 - Math.max(0, step) * 0.6];
+            limb(g, [rootP, knee, foot], 2.6, 1.2, front ? [44, 32, 84] : [28, 20, 56], L, k);
+            g.fillStyle = rgba(L.glow, 0.9 * k); g.fillRect(Math.round(knee[0]), Math.round(knee[1]), 1, 1);   // a glinting joint
+        }
+        if (layer === 'front') {                                                          // the thorax over the hips
+            for (let j = -3; j <= 2; j++) for (let i = -5; i <= 5; i++) {
+                if (Math.hypot(i / 5, j / 3) > 1) continue;
+                g.fillStyle = rgba(Math.hypot(i / 5, j / 3) > 0.75 ? [8, 6, 26] : [58, 44, 104], 0.97 * k); g.fillRect(cx + i, hip + j + 1, 1, 1);
+            }
+        }
+    }
+    /** How many px of the sprite's legs to hide while merged (only a demon that replaces the legs), else 0. */
+    const lowerBody = (st) => (st && st.k > 0.5 && LOWER[st.id] ? LOWER[st.id].hips : 0);
+
     function behind(g, cx, base, st, view, now) {
         const L = st && LOOKS[st.id];
         if (!L) return;
         g.save();
-        try { smoke(g, cx, base, L, st.k, now); BEHIND[st.id](g, cx, base, L, st.k, view, now); } finally { g.restore(); }
+        try {
+            smoke(g, cx, base, L, st.k, now);
+            if (st.id === 'lucifero') shadowArms(g, cx, base, L, st.k, view, now);
+            if (LOWER[st.id]) spiderBody(g, cx, base, L, st.k, view, now, 'back', LOWER[st.id].hips);
+            BEHIND[st.id](g, cx, base, L, st.k, view, now);
+        } finally { g.restore(); }
     }
     function front(g, cx, base, st, view, now) {
         const L = st && LOOKS[st.id];
         if (!L) return;
         g.save();
-        try { FRONT[st.id](g, cx, base, L, st.k, view, now); burst(g, cx, base, L, st.burst); } finally { g.restore(); }
+        try { if (LOWER[st.id]) spiderBody(g, cx, base, L, st.k, view, now, 'front', LOWER[st.id].hips); helm(g, cx, base, st.id, st.k, view, now); FRONT[st.id](g, cx, base, L, st.k, view, now); burst(g, cx, base, L, st.burst); } finally { g.restore(); }
     }
 
-    const api = { LOOKS, palette, state, reset, behind, front };
+    const api = { LOOKS, HELMS, helmOn, palette, state, reset, behind, front, lowerBody };
     ENSO.unionFx = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

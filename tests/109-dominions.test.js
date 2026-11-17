@@ -195,4 +195,19 @@ test('Merge look: each demon dresses the hero in its own dark armor, bursts in a
         fx.behind(g, 50, 90, st, view, 120); fx.front(g, 50, 90, st, view, 120);
     }
     assert.ok(px > 0);
+    // Tokelo (16:00): the owl and boar helms come on only with a union skill (Fleet Form, Iron Hide).
+    assert.ok(!fx.helmOn('plumede', { statuses: [] }) && fx.helmOn('plumede', { statuses: ['Fleet Form'] }));
+    assert.ok(!fx.helmOn('slotos', { statuses: ['Fleet Form'] }) && fx.helmOn('slotos', { statuses: ['Iron Hide'] }));
+    for (const id of ['plumede', 'slotos']) assert.ok(data.skillDefinitions[fx.HELMS[id].skill].union === id, `${id}'s helm skill is its own`);
+    // Second pass (Tokelo: "an owl or wild bore or fox ... extra arms ... spider legs"): animal helms, symmetrical grids.
+    assert.deepStrictEqual(Object.keys(fx.HELMS).sort(), ['plumede', 'slotos']);   // Beelzebub keeps his first look (Tokelo)
+    // "the player legs are spider legs" ... "give it to beelzebub": merged with him the sprite is cut at the hips.
+    fx.reset(); fx.state('beelzebub', 0);
+    assert.ok(fx.lowerBody(fx.state('beelzebub', 1000)) > 0, 'Beelzebub replaces the legs');
+    for (const id of ['lucifero', 'slotos', 'plumede']) { fx.reset(); fx.state(id, 0); assert.strictEqual(fx.lowerBody(fx.state(id, 1000)), 0, `${id} keeps your legs`); }
+    for (const [id, h] of Object.entries(fx.HELMS)) for (const row of h.rows) {
+        assert.strictEqual(row.length, h.rows[0].length, `${id}: every row the same width`);
+        assert.strictEqual(row, [...row].reverse().join(''), `${id}: the helm is symmetrical`);
+        for (const ch of row) assert.ok(ch === '.' || h.colours[ch], `${id}: colour '${ch}' is defined`);
+    }
 });
