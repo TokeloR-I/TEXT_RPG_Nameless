@@ -546,6 +546,9 @@
         wolfcrew: { cloak: '#7a3a2e', hood: '#8a8478', belt: '#2a2018', prop: 'staff' },
         // James the bard (CB1): a southerner in a russet travelling coat with a lute.
         bard: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a', prop: 'lute' },
+        // James before you bring his lute back from Sven (CB1), and Sven himself in salt-stained wharf wool.
+        bard_unstrung: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a' },
+        wharf_hand: { cloak: '#4e5a5e', hood: '#6a6458', hair: '#c8b070', belt: '#2a2018', prop: 'pack' },
         // Hrafnholm (C2-03): the Jarl in woad and silver-grey, Torvald in madder with an axe-hammer, the heir and her sworn
         // shieldmaiden, the Lawspeaker in undyed wool with his staff, and Osric Vane in a southern coat and hat.
         jarl: { cloak: '#2e4a66', hair: '#b8b4aa', scarf: '#e0dccc', belt: '#c8c8d0' },
@@ -726,6 +729,19 @@
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
     const sprites = {
+        // CB2: one of James's three seals (a black iron disc, faintly hot), and the stair he opens beside the well.
+        sigil(g, px, py, T, t) {
+            const glow = 0.25 + 0.15 * Math.sin((t || 0) / 400);
+            g.fillStyle = `rgba(200, 60, 30, ${glow})`; g.beginPath(); g.ellipse(px + 16, py + 22, 10, 4, 0, 0, Math.PI * 2); g.fill();
+            circle(g, px + 16, py + 20, 6, '#1c1a1e'); circle(g, px + 16, py + 20, 4.5, '#2e2a30');
+            rect(g, px + 15, py + 16, 2, 8, '#a0402a'); rect(g, px + 12, py + 19, 8, 2, '#a0402a');
+        },
+        underworld_stair(g, px, py, T, t) {
+            const glow = 0.45 + 0.15 * Math.sin((t || 0) / 500);
+            g.fillStyle = `rgba(190, 50, 20, ${glow})`; g.beginPath(); g.ellipse(px + 16, py + 18, 13, 9, 0, 0, Math.PI * 2); g.fill();
+            for (let i = 0; i < 4; i++) rect(g, px + 7 + i * 2, py + 12 + i * 3, 18 - i * 4, 2, i % 2 ? '#2a1c1c' : '#3a2626');
+            rect(g, px + 14, py + 24, 4, 2, '#140c0c');
+        },
         bundle(g, px, py, T) {
             rect(g, px + 9, py + 9, 14, 9, '#d8d2c2'); rect(g, px + 9, py + 12, 14, 2, '#b8b0a0');
             rect(g, px + 15, py + 9, 2, 9, '#a03a30');

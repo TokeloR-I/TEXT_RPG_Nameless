@@ -2138,6 +2138,13 @@
             "Skuli's Tally": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick and a sheet of birch-bark: every memorial in Hrimvald, and what was bought from each.' },
             // Chapter Two side quests (2026-11-16): C2-S03's cord, C2-S11's oar-blade, C2-S12's wolf-pelt token.
             'Plaited Cord': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A cord of three plaited leather thongs, dark as tea, from the throat of the man in the peat.' },
+            // James the bard / Demonkore (docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md, 2026-11-17): his stolen lute
+            // (CB1), the three seals of the free route and the Binding Grimoire (CB2). All bound: none can be sold or duplicated.
+            "James's Lute": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A southern lute with a long neck and a rose cut into its sound hole, the varnish worn pale where a hand has rested for years. James\'s, and nobody else\'s.' },
+            'Seal of Invocation': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, a calling-mark at its centre. It is warm, and stays warm.' },
+            'Seal of Dominion': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, a crowned mark at its centre. It is heavier than iron should be.' },
+            'Seal of Covenant': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, two joined hands at its centre. The hands are not quite human.' },
+            'Binding Grimoire': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A heavy book bound in something dark and fine-grained, its clasp shaped like a closed hand. The pages are blank until you stop looking at them.' },
             'Wolf-Coat Pelt': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A wolf skin worn as a cloak, the head for a hood. Thora wants it on her dues chest, where the carters can see it.' },
             'Smoke Pot': { type: 'quest', bound: true, unique: true, sellable: false, description: "Gunnhild's clay pot of juniper and pitch, to smoke a den out." },
             "Bride's Brooch": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { critChance: 0.04, magicDamage: 2 }, sellable: false, description: 'A silver brooch from a bride\'s grave. It is always cold, however long you hold it.' },
@@ -2244,6 +2251,13 @@
             'Camp Kit':         { type: 'tool', use: 'camp', opens: 'camp_hearth', bound: true, sellable: false, description: "Hakon's carter's kit: a fire-pot, a folding iron tripod, a flint and a twist of juniper tinder. Use it to make camp and cook wherever you are." },
             'Cask of Surströmming': { type: 'quest', bound: true, sellable: false, description: "Solveig's oldest cask of sour herring, the lid bulging like a drum. Do not open it near anything you like." },
             // Mead and ale (use 'drink'): they stack and make you Tipsy like beer, and the 5th drink in 2 minutes makes you Drunk.
+            // James's infernal wares (CB1/CB2 design §3): 'tonic' is a timed buff with no healing and no fullness (src/engine/kitchen.js).
+            // Effects, lengths and prices are CANDIDATES for Gauge. Sulphur Salts and Blackened Resin stand in for fire resistance
+            // with the defence share (no fire damage type to resist yet); Hellfire Ash's "fire-infused attack" is damage + crit.
+            'Brimstone':        { type: 'consumable', use: 'tonic', seconds: 120, mods: { damage: 0.10 }, sellable: true, sellPrice: 6, description: 'A yellow lump that smells of struck flint. Crush it in your fist before a fight and your blows land heavier.' },
+            'Sulphur Salts':    { type: 'consumable', use: 'tonic', seconds: 120, mods: { defence: 0.08 }, sellable: true, sellPrice: 5, description: 'Pale crystals in a twist of oiled cloth. Breathe them and heat seems to slide off you.' },
+            'Hellfire Ash':     { type: 'consumable', use: 'tonic', seconds: 90, mods: { damage: 0.06, crit: 0.05 }, sellable: true, sellPrice: 8, description: 'Grey ash that is still warm. Rubbed on a blade, it leaves the edge glowing faintly red.' },
+            'Blackened Resin':  { type: 'consumable', use: 'tonic', seconds: 150, mods: { defence: 0.12 }, sellable: true, sellPrice: 7, description: 'Tar-black resin that sets hard on cloth and leather. It turns a blade like horn.' },
             'Mead':             { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { damage: 0.12, regen: 0.5 }, sellable: true, sellPrice: 3, description: 'Honey mead from the Stormtide casks, gold and strong. Skalds say it is where poetry comes from.' },
             'Lingonberry Mead': { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { crit: 0.08, defence: 0.08 }, sellable: true, sellPrice: 3, description: 'Mead steeped with lingonberries, red and tart. Steady hands, steady nerve.' },
             'Juniper Ale':      { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { defence: 0.10, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy farmhouse ale filtered through juniper branches. Piney, smoky, and stronger than it tastes.' }
@@ -3025,7 +3039,7 @@
         for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf', 'old_greymane']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
-            if (d.use !== 'meal' && d.use !== 'drink') continue;
+            if (d.use !== 'meal' && d.use !== 'drink' && d.use !== 'tonic') continue;
             if (d.mods) statusDefinitions[name] = { category: 'buff', maxStacks: d.use === 'drink' ? foodRules.drinkStacks : foodRules.sameDishStacks };
             const pct = (v) => `${Math.round(v * 100)}%`, m = d.mods || {}, parts = [];
             if (m.damage) parts.push(`+${pct(m.damage)} damage`);
@@ -3033,7 +3047,7 @@
             if (m.crit) parts.push(`+${pct(m.crit)} crit`);
             if (m.speed) parts.push(`+${pct(m.speed)} speed`);
             if (m.regen) parts.push(`+${m.regen} HP/s`);
-            d.effectText = `Heals ${d.heal || 0}${parts.length ? `; ${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s` : ''}.`;
+            d.effectText = d.use === 'tonic' ? `${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s.` : `Heals ${d.heal || 0}${parts.length ? `; ${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s` : ''}.`;
         }
         statusDefinitions['Tipsy'] = { category: 'other', maxStacks: 99 };   // one stack per beer (foodRules.drunk)
         statusDefinitions['Drunk'] = { category: 'debuff', maxStacks: 1 };   // controls inverted
@@ -3113,6 +3127,11 @@
                     "Charcoal-Burner's Staff": { buyPrice: 48, quantity: 1, classes: ['mage'] }, 'Slag-Glass Wand': { buyPrice: 48, quantity: 1, classes: ['necromancer'] },
                     'Padded Jerkin': { buyPrice: 12, quantity: 2 },
                     'Bog Iron': { buyPrice: 6, quantity: 15 }, ...armorStock('hird', 'fjord_hunter', 'runesinger', 'gravebound') } },
+                // James at the homestead (CB1/CB2 design §3): ordinary wares, unusually infernal. Prices are CANDIDATES for Gauge.
+                // The Binding Grimoire's price is the director's illustrative placeholder (100,000 Gold), not a balance target.
+                james: { stock: { 'Brimstone': { buyPrice: 18, quantity: 6 }, 'Sulphur Salts': { buyPrice: 15, quantity: 6 }, 'Hellfire Ash': { buyPrice: 24, quantity: 4 },
+                    'Blackened Resin': { buyPrice: 20, quantity: 4 }, 'Otherworld Residue': { buyPrice: 12, quantity: 6 }, 'Abyssal Ash': { buyPrice: 10, quantity: 6 },
+                    'Binding Grimoire': { buyPrice: 100000, quantity: 1, notFlags: ['grimoire_obtained'] } } },
                 gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
                     'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {

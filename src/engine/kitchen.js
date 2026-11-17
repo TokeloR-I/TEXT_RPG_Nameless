@@ -23,7 +23,7 @@
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
-    const FOOD_USES = new Set(['meal', 'drink']);
+    const FOOD_USES = new Set(['meal', 'drink', 'tonic']);   // tonic: James's infernal wares, a buff with no healing
     const MOD_KEYS = ['damage', 'defence', 'crit', 'speed', 'regen'];
 
     class KitchenMethods {
@@ -83,7 +83,7 @@
             const p = this.player;
             const block = this.foodBlock(item);
             if (block) { this.refuse(block.code, block.message); return false; }
-            const verb = def.use === 'drink' ? 'drink' : 'eat';
+            const verb = def.use === 'drink' ? 'drink' : def.use === 'tonic' ? 'use' : 'eat';
             const healed = def.heal > 0 ? this.heal(p, def.heal) : 0;
             this.say(`You ${verb} the ${item}.${healed > 0 ? ` +${healed} HP (${p.hp}/${p.maxHp}).` : ''}`, { important: true });
             if (def.mods && Object.keys(def.mods).length) {

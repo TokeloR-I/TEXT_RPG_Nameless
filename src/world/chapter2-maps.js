@@ -138,6 +138,9 @@
                     text: 'A squared stone taller than you, lying where it was pushed over. The old Crown set one of these at every mile of every road it took. The number is still sharp. Somebody has cut a row of small notches along the edge, one for each winter since.' },
                 { id: 'frostspine_cairn', kind: 'inspect', x: 26, y: 7, name: 'Travellers\' cairn',
                     text: 'A cairn at the top of the pass. Everyone who crosses adds a stone. You find you have picked one up without deciding to.' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'frostspine_seal', kind: 'inspect', x: 4, y: 16, name: 'Iron disc in the snow', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_invocation'] },
+                    text: 'Half buried under the firs where the old road bends west: a disc of black iron the size of your palm, cut with a ring of signs. The snow around it has melted in a perfect circle.' },
                 { id: 'frostspine_herbs', kind: 'forage', forage: 'wild_herbs', x: 6, y: 14, name: 'Wild herbs', sprite: 'herbs',
                     text: 'Yarrow in the lee of the firs, the last green thing before the rock.' },
                 // The Hrimvald kitchen (2026-11-13): berries and juniper on the fells; they grow back.
@@ -260,7 +263,11 @@
                 { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 37, y: 6, name: 'Thora Half-Oar', sprite: 'reeve' },
                 { id: 'skeldvik_geir', kind: 'npc', npc: 'geir', x: 24, y: 23, name: 'Geir', sprite: 'wolfcrew' },
                 // James the bard (CB1), playing outside the Stormtide Inn until you offer him a place at your homestead.
-                { id: 'skeldvik_james', kind: 'npc', npc: 'james', x: 29, y: 10, name: 'James', sprite: 'bard', when: { notFlags: ['james_recruited'] } },
+                // No lute in his hands until you bring it back from Sven (CB1, 2026-11-17).
+                { id: 'skeldvik_james', kind: 'npc', npc: 'james', x: 29, y: 10, name: 'James', sprite: 'bard_unstrung', when: { notFlags: ['james_recruited'] },
+                    looks: [{ when: { flags: ['james_lute_returned'] }, sprite: 'bard' }] },
+                // Sven, who has James's lute (CB1): down the shipyard lane by the barrels.
+                { id: 'skeldvik_sven', kind: 'npc', npc: 'sven', x: 15, y: 23, name: 'Sven', sprite: 'wharf_hand' },
                 { id: 'skeldvik_bell', kind: 'inspect', x: 39, y: 4, name: 'Harbour bell',
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 12, y: 8, name: 'Memorial stone',
@@ -500,6 +507,9 @@
                 // The Hrimvald kitchen (2026-11-13): Gudrun at the east stalls, the feast fire by the tables, berries on the slope.
                 { id: 'hrafnholm_gudrun', kind: 'npc', npc: 'gudrun', x: 33, y: 15, name: 'Gudrun', sprite: 'shepherd' },
                 { id: 'hrafnholm_feast_fire', kind: 'station', station: 'feast_fire', verb: 'Cook at', x: 38, y: 16, name: 'Feast fire', sprite: 'cookfire' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'hrafnholm_seal', kind: 'inspect', x: 50, y: 23, name: 'Iron disc in the corner', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_covenant'] },
+                    text: 'In the corner past the cloudberry bushes where the rock closes in, under a drift of old straw: a disc of black iron cut with a ring of signs. Nobody in Hrafnholm will admit to having seen it.' },
                 { id: 'hrafnholm_lingonberries', kind: 'forage', forage: 'lingonberries', x: 46, y: 9, name: 'Lingonberries', sprite: 'lingonberries',
                     text: 'Lingonberries under the firs above the houses.' },
                 { id: 'hrafnholm_cloudberries', kind: 'forage', forage: 'cloudberries', x: 46, y: 23, name: 'Cloudberries', sprite: 'cloudberries',
@@ -725,6 +735,9 @@
                     text: 'Split cod hung by the tail in pairs. A gull sits on the top rail, considering its chances.' },
                 { id: 'gullstrand_net_shed', kind: 'inspect', x: 15, y: 21, name: 'Net shed',
                     text: 'Nets in heaps, floats of cork and glass, a bone needle on every hook. Someone has nailed a horseshoe over the lintel the wrong way up, so that the luck runs out toward the headland.' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'gullstrand_seal', kind: 'inspect', x: 52, y: 14, name: 'Iron disc on the shingle', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_dominion'] },
+                    text: 'Wedged between two stones at the tide line, past the sea stacks: a disc of black iron cut with a ring of signs. The sea has been at it for years and not left a mark.' },
                 { id: 'gullstrand_wreck', kind: 'inspect', x: 48, y: 11, name: 'Wrecked longship',
                     text: 'A longship on her side on the pebbles, her back broken, the sail in red rags on a mast that has snapped twice. Nobody has stripped her for timber. The villagers say she came ashore on a night when there was no moon and no wind, and her crew went up the stair.' },
                 { id: 'gullstrand_sea_stacks', kind: 'inspect', x: 45, y: 12, name: 'Sea stacks',
