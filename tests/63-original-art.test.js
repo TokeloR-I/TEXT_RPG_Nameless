@@ -276,6 +276,25 @@ test('Scene art: the last tile-art areas (homestead rooms, the wilds, the Warden
         for (const [id, s] of Object.entries(map.spawns)) assert.ok(a.over[((s.y * 32 + 16) * a.w + s.x * 32 + 16) * 4 + 3] < 60, `${mapId}: open over spawn ${id}`);
     }
     // No map on the way through Chapter One is left on tile art.
-    for (const f of ['shamefield', 'road', 'bakers-lane', 'kloster', 'kloster-inner', 'hrimvald']) require(`../ui/scene-${f}.js`);   // hrimvald: Chapter Two (tests/98)
+    for (const f of ['shamefield', 'road', 'bakers-lane', 'kloster', 'kloster-inner', 'hrimvald', 'underworld']) require(`../ui/scene-${f}.js`);   // hrimvald: Chapter Two (tests/98)
     for (const [id, map] of Object.entries(ZONE1.maps)) assert.ok(SCENE.has(map), `${id} has a painted scene`);
+});
+
+// Tokelo (2026-11-17) let the team build the Underworld arena without a picture; it is code-drawn like the rest. Runs after
+// the homestead tests above, because it loads the room painters.
+test('Scene art: the First Dominion paints whole, the same every time, every tile named', () => {
+    require('../ui/scene-homestead-rooms.js');
+    require('../ui/scene-underworld.js');
+    const map = ZONE1.maps.underworld_arena;
+    const nameAt = (m, x, y) => {
+        if (y < 0 || y >= m.tiles.length || x < 0 || x >= m.tiles[0].length) return null;
+        const def = (m.legend && m.legend[m.tiles[y][x]]) || ZONE1.tileset[m.tiles[y][x]];
+        return def ? def.name : null;
+    };
+    assert.ok(SCENE.has(map));
+    const sha = (d) => crypto.createHash('sha1').update(Buffer.from(d.buffer)).digest('hex');
+    const a = SCENE.paint(map, nameAt), b = SCENE.paint(map, nameAt);
+    assert.strictEqual(a.w, map.tiles[0].length * 32);
+    assert.strictEqual(sha(a.base), sha(b.base));
+    for (let i = 3; i < a.base.length; i += 4) if (a.base[i] !== 255) assert.fail(`base pixel ${(i - 3) / 4} is not opaque`);
 });

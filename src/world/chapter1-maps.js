@@ -855,9 +855,6 @@
                 { id: 'grounds_shane', kind: 'npc', npc: 'shane', x: 9, y: 11, name: 'Shane', sprite: 'shane', when: { flags: ['shane_recruited'] } },
                 // James the bard (Chapter Two, CB1): by the well once you've recruited him in Skeldvik.
                 { id: 'grounds_james', kind: 'npc', npc: 'james', x: 26, y: 9, name: 'James', sprite: 'bard', when: { flags: ['james_recruited'] } },
-                // CB2: the stair James opens beside the well (2026-11-17). The Underworld below waits on Tokelo's picture.
-                { id: 'grounds_underworld_stair', kind: 'inspect', x: 27, y: 7, name: 'Stair going down', sprite: 'underworld_stair', when: { flags: ['underworld_opened'] },
-                    text: 'Beside the well the air hangs folded like cloth, and under the fold a stair of black stone goes down into warm red dark. Something far below is breathing slowly. (The Underworld is not open yet: it is the next part of this quest.)' },
                 // The kitchen (Tokelo, 2026-11-02): your hearth, two fields on the old tilled soil, a pigsty and a hen coop.
                 { id: 'grounds_hearth', kind: 'station', station: 'homestead_hearth', verb: 'Cook at', x: 17, y: 6, name: 'Cooking hearth', sprite: 'cookfire' },
                 { id: 'grounds_field_west', kind: 'station', station: 'homestead_field_west', verb: 'Tend', x: 3, y: 11, name: 'West field', sprite: 'garden_bed' },

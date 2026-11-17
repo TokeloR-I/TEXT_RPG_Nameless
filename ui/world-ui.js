@@ -2480,6 +2480,8 @@
         if (screen === 'combat' || screen === 'over') drawActor(now);
         drawFx(now);
         const objects = session.visibleObjects(view.mapId).filter((o) => !(ACTION && o.kind === 'encounter')).map((o) => ({ ...o, seen: seen.has(o.id), crop: cropOn(o) }));   // action enemies are sim actors
+        // A conditional way through that draws itself (James's stair to the Underworld, CB2): only while it is open.
+        for (const e of (session.world.maps[view.mapId] || {}).exits || []) if (e.sprite && e.when && session.allows(e.when)) objects.push({ id: e.id, x: e.x, y: e.y, sprite: e.sprite, kind: 'exit', seen: true });
         const battle = (screen === 'combat' || screen === 'over') && !!ENSO.battleHD;   // HD-2D: a painted stage (ui/battle-hd.js)
         const dim = screen === 'combat' || screen === 'over' ? (battle ? 0 : 0.7) : view.fade;   // otherwise the dimmed map is the backdrop
         view.look = engine.legendaryLook ? engine.legendaryLook() : null;   // the Fallen Seraphim's halo, wings and red eyes

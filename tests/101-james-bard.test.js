@@ -26,7 +26,7 @@ function say(g, re) {
 }
 const text = (r) => (r && r.events ? r.events : []).filter((e) => e.type === 'text').map((e) => e.text).join('\n');
 
-const { walkTo } = require('./world-helpers.js');
+const { walkTo, takeExit, contact } = require('./world-helpers.js');
 const SEALS = ['Seal of Invocation', 'Seal of Dominion', 'Seal of Covenant'];
 const choices = (g) => (g.getAvailableActions().actions || []).filter((x) => x.type === 'dialogue_choice').map((x) => x.text);
 /** Answer all three of James's questions, getting the first one wrong once (it must be retryable). */
@@ -105,8 +105,8 @@ test('CB2 paid route: buy the grimoire and James opens the way below at once, wi
     assert.ok(g.hasStoryFlag('underworld_opened'));
     assert.ok(!g.hasStoryFlag('seal_hunt'), 'no seals asked for');
     assert.strictEqual(g.questState('CB2'), 'active');
-    assert.strictEqual(g.currentObjective('CB2').id, 'arena', 'next: the Underworld, which waits on its picture');
-    assert.ok(s.allows(ZONE1.maps.grounds.interactables.find((o) => o.id === 'grounds_underworld_stair').when), 'the stair is by the well');
+    assert.strictEqual(g.currentObjective('CB2').id, 'arena', 'next: the Underworld arena');
+    assert.ok(s.exitAt(27, 7, 'step'), 'the stair is by the well');
     // The shop never sells a second book.
     say(g, /Goodbye/); inspect(s, 'grounds_james'); say(g, /What have you got/);
     g.player.gold = 100000;
@@ -142,10 +142,51 @@ test('CB2 free route: three seals, any order, James vague until all three are in
     assert.strictEqual(g.currentObjective('CB2').id, 'arena');
 });
 
-test('CB2: the arena and the contract wait on the Underworld picture, and nothing in the game reveals who James is', () => {
-    const q = CH2.quests.CB2;
-    for (const id of ['arena', 'contract']) assert.strictEqual(q.objectives.find((o) => o.id === id).awaitsArea, 'underworld_arena');
-    assert.ok(!JSON.stringify([CH2.npcs, CH2.triggers]).includes('"id":"devil_union_contract"'), 'no contract until the arena exists');
+function win(g) {
+    for (let i = 0; i < 300 && g.mode === 'combat'; i++) {
+        for (const e of g.combat.enemies) if (e.hp > 1) e.hp = 1;
+        if (g.getAvailableActions().awaiting === 'continue') g.act({ type: 'continue' });
+        else g.act({ type: 'attack', targetId: g.alive(g.combat.enemies)[0].id });
+    }
+    assert.strictEqual(g.world.lastResult, 'victory');
+}
+function settle(g) { if (g.mode === 'branch_select') g.act({ type: 'choose_branch', branchId: g.getAvailableActions().actions[0].branchId }); }
+const seen = (s, id) => s.visibleObjects('underworld_arena').some((o) => o.id === id);
+
+test('CB2 arena: down the stair by the well, five waves in turn, then the ruler; the contract finishes CB2 once', () => {
+    const { g, s } = run();
+    recruit(g, s);
+    say(g, /What have you got/);
+    g.player.gold = 100000;
+    g.act({ type: 'buy', shopId: 'james', item: 'Binding Grimoire' });
+    say(g, /Goodbye/); inspect(s, 'grounds_james'); say(g, /Where do I go/); say(g, /Stand back/); say(g, /Goodbye/);
+    const down = takeExit(s, 'grounds_underworld_stair');
+    assert.strictEqual(down.type, 'transition'); assert.strictEqual(s.mapId, 'underworld_arena');
+    g.player.hp = g.player.maxHp;
+    for (let n = 1; n <= 5; n++) {
+        for (let k = n + 1; k <= 5; k++) assert.ok(!seen(s, `arena_wave_${k}`), `wave ${k} waits for wave ${n}`);
+        assert.ok(!seen(s, 'underworld_arena_ruler'), 'the ruler waits for all five');
+        const r = contact(s, `arena_wave_${n}`); assert.strictEqual(r.type, 'encounter', `wave ${n} starts a fight`);
+        win(g); s.fightOver(`arena_wave_${n}`, 'victory'); settle(g);
+        assert.ok(g.hasStoryFlag(`underworld_wave_${n}`));
+        g.player.hp = g.player.maxHp;
+    }
+    assert.ok(seen(s, 'underworld_arena_ruler'));
+    assert.ok(!seen(s, 'arena_lucifero_bound'), 'no kneeling ruler before he is beaten');
+    const r = contact(s, 'underworld_arena_ruler'); assert.strictEqual(r.type, 'encounter');
+    win(g); s.fightOver('underworld_arena_ruler', 'victory'); settle(g);
+    assert.strictEqual(g.currentObjective('CB2').id, 'contract');
+    assert.ok(g.player.inventory.includes('Signet of the First Dominion') || g.player.equipment && Object.values(g.player.equipment).includes('Signet of the First Dominion'), 'his boss drop');
+    inspect(s, 'arena_lucifero_bound');
+    say(g, /Open the grimoire/);
+    assert.strictEqual(g.questState('CB2'), 'complete');
+    assert.ok(g.hasStoryFlag('devil_union_contract'));
+    assert.ok(g.hasStoryFlag('contract:lucifero'));
+    say(g, /Goodbye/);
+    assert.ok(!choices(g).length);
+});
+
+test('CB2: nothing in James\'s or Sven\'s words reveals who James is or lists the unions', () => {
     const said = JSON.stringify([CH2.npcs.james, CH2.npcs.sven]);
     assert.ok(!/Devil Union|nine (rulers|demons|unions)|I am Demonkore|You already have/i.test(said), 'no early class dump or Demonkore reveal');
 });

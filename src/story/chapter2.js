@@ -327,22 +327,22 @@
         },
         // CB2 after the narrative design (§4, 2026-11-17): the book with an absurd price on James's shelf. Buy it (the paid
         // shortcut: James opens the way below at once, no seals) or bring him three seals (the free route: he stays vague
-        // until all three are in). Both routes meet at the same stair under the homestead.
-        // STILL TO BUILD: the Underworld arena (five waves and its ruler) is a new area and waits on Tokelo's picture, and
-        // the Devil Union class it unlocks is its own build (DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md). The last two
-        // steps are written but `awaitsArea`: nothing fires them yet. James's Demonkore identity is NOT revealed here.
+        // until all three are in). Both routes meet at the same stair beside the homestead well, down to the First
+        // Dominion (built without a picture, Tokelo's OK 2026-11-17): five waves of demon hordes, then its ruler, and the
+        // first contract made over him in the binding circle. The Devil Union class that contract opens is the next build
+        // (DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md); `devil_union_contract` and `contract:lucifero` are its hooks.
+        // James's Demonkore identity is NOT revealed here.
         CB2: {
-            title: 'A Deal with Demonkore', kind: 'side', xp: 0, candidate: true,
+            title: 'A Deal with Demonkore', kind: 'side', xp: 120, candidate: true,
             summary: "James sells a book that costs more than a house, and won't say what it does. He has a small job for anyone who can't afford it.",
             objectives: [
                 { id: 'hear', text: 'Ask James about the book on his shelf', on: { type: 'story', id: 'demonkore_heard' }, marker: { map: 'grounds', x: 26, y: 9 } },
                 { id: 'grimoire', text: 'Get the Binding Grimoire: buy it from James, or bring him the Seals of Invocation, Dominion and Covenant', on: { type: 'story', id: 'grimoire_obtained' }, marker: { map: 'grounds', x: 26, y: 9 } },
                 { id: 'below', text: 'Let James open the way below', on: { type: 'story', id: 'underworld_opened' }, marker: { map: 'grounds', x: 26, y: 9 } },
-                // The Underworld arena: a new area, waiting on Tokelo's design picture (no area is built without one).
-                { id: 'arena', text: 'Go down into the Underworld and survive its five waves and their ruler (the Underworld is not open yet)', on: { type: 'defeat', id: 'underworld_arena_ruler' }, awaitsArea: 'underworld_arena' },
-                { id: 'contract', text: 'Make your first contract', on: { type: 'story', id: 'devil_union_contract' }, awaitsArea: 'underworld_arena' }
+                { id: 'arena', text: 'Go down the stair by the well, and survive five waves and the ruler of the First Dominion', on: { type: 'defeat', id: 'underworld_arena_ruler' }, marker: { map: 'underworld_arena', x: 13, y: 9 } },
+                { id: 'contract', text: 'Make your first contract in the binding circle', on: { type: 'story', id: 'devil_union_contract' }, marker: { map: 'underworld_arena', x: 13, y: 10 } }
             ],
-            onComplete: []
+            onComplete: [{ say: '(Your first contract is sealed. Devil Union, the legendary class it opens, comes in the next update.)', notice: 'quest' }]
         },
         // ----- A Fire of Your Own (Tokelo, 2026-11-13: "a portable hearth... someone on the road teaches the player").
         // Hakon the carter, wrist broken on the Frostspine Road, gives you his spare camp kit once you fetch the tinder.
@@ -2227,6 +2227,38 @@
                 }
             }
         },
+        // ------------------------------------------------------------- Lucifero, ruler of the First Dominion, beaten (CB2)
+        // The ruler is a candidate (the class brief's first union, gravity). He says nothing of who the player was or who
+        // James is; "the bard" is as close as he comes.
+        lucifero_bound: {
+            name: 'Lucifero', title: 'Ruler of the First Dominion',
+            talk: [{ if: { flags: ['devil_union_contract'] }, node: 'after' }, { node: 'kneel' }],
+            nodes: {
+                kneel: {
+                    lines: [
+                        [null, 'Lucifero kneels in the middle of the circle, and the floor still leans a little toward him.'],
+                        ['npc', "You came down with a book and walked through five of my hordes. That is how a contract begins, here."],
+                        ['npc', "Open it, and write what you want of me. I will write what I want of you."]
+                    ],
+                    choices: [
+                        { text: 'Open the grimoire.', if: { items: ['Binding Grimoire'] }, to: 'ceremony' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                ceremony: {
+                    lines: [
+                        [null, 'The blank pages fill with two hands of writing, his and yours, and you cannot read either. The circle closes like a mouth.'],
+                        ['npc', "Done. When you call on me, I will answer, and you will be heavier for it."]
+                    ],
+                    effects: [{ flag: 'devil_union_contract' }, { flag: 'contract:lucifero' }, { event: { type: 'story', id: 'devil_union_contract' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "We are bound. Go up; the bard will want to hear how it went."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
         // ------------------------------------------------------------- Sven, who has James's lute (CB1)
         // New NPC (design §2). His reason for taking it is NOT written yet (don't invent one as canon). Both ways to get the
         // lute back are non-lethal: buy it back, or invoke harbour law. He stays in Skeldvik afterwards.
@@ -2937,6 +2969,11 @@
     const BJARKI_FIGHTS = ['barrow_bjarki_warded', 'barrow_bjarki_two', 'barrow_bjarki_one', 'barrow_bjarki_bare'];
 
     const triggers = [
+        // The First Dominion (CB2): each wave down brings the next (after a breath to heal); the fifth brings the ruler.
+        ...[1, 2, 3, 4, 5].map((n) => ({ id: `cb2_wave_${n}`, on: { type: 'defeat', id: `arena_wave_${n}` }, effects: [{ flag: `underworld_wave_${n}` },
+            { say: n < 5 ? `The last of them falls into the ash and is gone. Somewhere across the floor, the lava heaves again. (Wave ${n} of 5.)` : 'The last horde is ash. In the middle of the arena the air begins to fold downward, toward the circle. (Wave 5 of 5.)', important: true }] })),
+        { id: 'cb2_ruler', on: { type: 'defeat', id: 'underworld_arena_ruler' }, effects: [{ flag: 'underworld_ruler_beaten' },
+            { say: 'Lucifero goes down on one knee in the binding circle and stays there. The floor stops leaning. In your pack, the grimoire has gone warm.', important: true }] },
         // CB2's free route: the three seals (design §4, Route B). Each is a short find on a map you already know, in any
         // order, shown only once James has sent you looking. Placements are proposals for Cairn and Tokelo.
         ...[['frostspine_seal', 'Seal of Invocation', 'seal_invocation'], ['gullstrand_seal', 'Seal of Dominion', 'seal_dominion'], ['hrafnholm_seal', 'Seal of Covenant', 'seal_covenant']]

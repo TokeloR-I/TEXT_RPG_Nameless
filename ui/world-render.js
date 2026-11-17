@@ -548,6 +548,8 @@
         bard: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a', prop: 'lute' },
         // James before you bring his lute back from Sven (CB1), and Sven himself in salt-stained wharf wool.
         bard_unstrung: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a' },
+        // Lucifero, beaten and kneeling in the binding circle (CB2): starless black, a pale crownless head.
+        lucifero_kneeling: { cloak: '#14121e', hood: '#262036', belt: '#c8b0ff', skin: '#b8b0c8' },
         wharf_hand: { cloak: '#4e5a5e', hood: '#6a6458', hair: '#c8b070', belt: '#2a2018', prop: 'pack' },
         // Hrafnholm (C2-03): the Jarl in woad and silver-grey, Torvald in madder with an axe-hammer, the heir and her sworn
         // shieldmaiden, the Lawspeaker in undyed wool with his staff, and Osric Vane in a southern coat and hat.
@@ -724,7 +726,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable', hell_imp: 'goblin', ash_hound: 'wolf', brimstone_brute: 'ghoul', lucifero: 'warden'
     };
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).

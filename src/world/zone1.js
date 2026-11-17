@@ -404,6 +404,7 @@
         road.boundaries = (road.boundaries || []).filter((b) => b.id !== ch2.road.dropBoundary);
         road.exits.push(ch2.road.exit);
         Object.assign(road.spawns, ch2.road.spawn);
+        if (ch2.grounds) { maps.grounds.exits.push(ch2.grounds.exit); Object.assign(maps.grounds.spawns, ch2.grounds.spawn); }   // James's stair (CB2)
     }
 
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;
