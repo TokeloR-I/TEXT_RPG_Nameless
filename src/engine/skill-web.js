@@ -233,7 +233,18 @@
 
         webOwns(id) { const s = this.webState(); return !!s && s.nodes.includes(id); }
         /** Own heart and own starting skills: free, and never unlearned. */
-        webNodeFixed(node) { return !!(node.gift && this.webOwns(`heart.${node.region}`)) || !!(node.base && this.player && node.region === this.player.className); }   // `gift`: a legendary web's free nodes (awakenLegend)
+        webNodeFixed(node) { return !!(node.gift && this.webOwns(`heart.${node.region}`)) || !!(node.base && this.player && node.region === this.player.className) || this.webTaughtHere(node); }   // `gift`: a legendary web's free nodes (awakenLegend)
+        /** A taught node (`taught`: a story flag) of your own class web, once that flag is set: free and never unlearned (Shane's LEG CRAMP!). */
+        webTaughtHere(node) { return !!(node && node.taught && this.player && node.region === this.player.className && this.hasStoryFlag && this.hasStoryFlag(node.taught)); }
+
+        /** A story teaches you a skill (`{ teach: skill }`): own its taught node in your class web, free. Returns the node or null. */
+        webTeach(skill) {
+            if (this.webUnavailable()) return null;
+            const n = this.skillWeb().list.find((x) => x.taught && x.skill === skill && x.region === this.player.className);
+            if (!n || !this.webTaughtHere(n)) return null;
+            if (!this.webOwns(n.id)) this.webGain(n);
+            return n;
+        }
 
         /** What a legendary web still needs, as stage and event names ([] = it can open). `owned`: a node-id Set to test instead. */
         legendaryMissing(heart, owned = null) {
@@ -308,6 +319,7 @@
             const needed = (n.needs || []).filter((x) => !this.webOwns(x));
             if (needed.length) return { code: 'NEEDS_NODES', message: `${n.label} needs ${needed.map((x) => web.nodes.get(x).label).join(', ')} first.` };
             if (n.contract && !(this.hasStoryFlag && this.hasStoryFlag(n.contract)) && !this.flags.eventsUnlocked) return { code: 'CONTRACT_LOCKED', message: `${n.label} needs a contract you don't hold yet.` };   // Devil Union branches (union.js)
+            if (n.taught && !this.webTaughtHere(n)) return { code: 'NOT_TAUGHT', message: `${n.label} can't be bought with points; someone has to teach it to you.` };   // Shane's LEG CRAMP! (S02)
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
             if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
             const pts = this.webPoints();
@@ -410,7 +422,7 @@
             if (n.skill && !p.skills.includes(n.skill)) {
                 p.skills.push(n.skill);
                 const info = this.describeSkill(n.skill);
-                this.say(`New Skill: ${n.skill}!${info.implemented ? '' : ' (not implemented yet)'}`, { important: true });
+                this.say(`New Skill: ${n.skill}${/!$/.test(n.skill) ? '' : '!'}${info.implemented ? '' : ' (not implemented yet)'}`, { important: true });
             }
             for (const t of n.trait ? [n.trait] : (n.traits || [])) {
                 if (p.traits.some((x) => x.name === t.name)) continue;

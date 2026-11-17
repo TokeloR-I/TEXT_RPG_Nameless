@@ -563,7 +563,7 @@
             const notes = [];
             for (const e of skill.effects || []) {
                 const applies = this.effects[e.type] && this.effects[e.type].applies;
-                const note = applies && this.controlPreview(target, applies.name, applies.type, e.duration);
+                const note = applies && this.controlPreview(target, (e.type === 'slow' && e.status) || applies.name, applies.type, e.duration);   // a named Slow (Leg Cramp) previews under its own name
                 if (note && !notes.some((n) => n.message === note.message)) notes.push(note);
             }
             return notes;
