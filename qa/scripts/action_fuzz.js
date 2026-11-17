@@ -51,7 +51,7 @@ for (let run = 0; run < RUNS; run++) {
         const c = GameEngine.fromSave(save, { combatMode: 'action' });
         const after = JSON.stringify(c.serialize().state);
         if (before !== after) report('save roundtrip changes state', diff(before, after));
-        g = c; const s2 = new WorldSession(WORLD, { engine: g }); if (!s2.restorePosition(c.lastLoad.attachments.world)) report('restorePosition failed', JSON.stringify(s.getState())); s = s2;
+        g = c; const s2 = new WorldSession(WORLD, { engine: g }); if (!s2.restorePosition(c.lastLoad.attachments.world, { revision: (c.lastLoad.game || {}).revision })) report('restorePosition failed', JSON.stringify(s.getState())); s = s2;
         sim = new ActionSim({ engine: g, session: s, rules: g.data.actionRules, seed: run + f });
       }
       stage = 'check';

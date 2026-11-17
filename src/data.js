@@ -2145,6 +2145,11 @@
             'Briarwell Pale':      { type: 'quest', bound: true, sellable: false, description: 'A small cask of pale ale you brewed with Brother Fenric.' },
             'Shamefield Rye Loaf': { type: 'quest', bound: true, sellable: false, description: 'Dark rye with a crust that cracks when you look at it.' },
             "Elian's Letter":      { type: 'quest', bound: true, sellable: false, description: 'Folded twice. A list of names, and the roads where they were last seen.' },
+            // QA #18: three Chapter One quest goods the story hands out had no entry here, so the bag showed them with
+            // no description and the stash chest offered to take them.
+            'Tollway Register':    { type: 'quest', bound: true, sellable: false, description: 'The toll register from the wrecked strongbox: every cart and coin through the tollway, in the clerk\'s cramped hand. The Watch Captain wants it back.' },
+            "Shane's Ledger":      { type: 'quest', bound: true, sellable: false, description: 'Shane\'s accounts, taken off him by the watch. Mostly sums. Some of the names in the margins are crossed out very hard.' },
+            "Builder's Ledger":    { type: 'quest', bound: true, sellable: false, description: 'Orin Vale\'s figures for the homestead, in a mason\'s square hand. Timber, nails and coin, one stone at a time.' },
             // The Broken Crown rework (2026-11-11): the clues that lead from your house to the Broken Oath. Quest goods too.
             'Torn Salvage Order':  { type: 'quest', bound: true, sellable: false, description: 'Left under a stone on your grounds. OLD CROWN GOODS BOUGHT, and a seal you do not know.' },
             'Ash-Marked Orders':   { type: 'quest', bound: true, sellable: false, description: 'Orders on grey paper for armed men on the north road, signed with an open circle drawn in ash.' },
