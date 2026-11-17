@@ -103,7 +103,9 @@ game says so yet (the reveal timing is Tokelo's call).
   Lucifero a ring of nothing over the head and a gravity well at the feet; Beelzebub glass shards, a cracked halo and
   flies; Slotos tusked pauldrons, heat in the seams and sparks when hit; Plumede a feather half-mask, feather wings
   that flare on a dash and feathers shed on the move. A burst of the demon's colour on merging; the armor smokes
-  away when it ends. The team's own designs.
+  away when it ends. The team's own designs. Second pass (Tokelo: "more animalistic ... owl or wild bore or fox ... extra arms or
+  ... spider legs"): Plumede wears an owl helm, Slotos a wild boar's, Beelzebub a fox's with six glass spider legs,
+  and Lucifero grows four shadow arms.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.

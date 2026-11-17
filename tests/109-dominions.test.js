@@ -195,4 +195,11 @@ test('Merge look: each demon dresses the hero in its own dark armor, bursts in a
         fx.behind(g, 50, 90, st, view, 120); fx.front(g, 50, 90, st, view, 120);
     }
     assert.ok(px > 0);
+    // Second pass (Tokelo: "an owl or wild bore or fox ... extra arms ... spider legs"): animal helms, symmetrical grids.
+    assert.deepStrictEqual(Object.keys(fx.HELMS).sort(), ['beelzebub', 'plumede', 'slotos']);
+    for (const [id, h] of Object.entries(fx.HELMS)) for (const row of h.rows) {
+        assert.strictEqual(row.length, h.rows[0].length, `${id}: every row the same width`);
+        assert.strictEqual(row, [...row].reverse().join(''), `${id}: the helm is symmetrical`);
+        for (const ch of row) assert.ok(ch === '.' || h.colours[ch], `${id}: colour '${ch}' is defined`);
+    }
 });
