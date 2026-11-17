@@ -9,7 +9,7 @@ const WORLD = doubleWorld(require('../src/world/zone1.js'));
 const STEP = 1000 / 60;
 const A = data.actionRules;
 
-const POST_WARDEN = ['bjarki_grave_bound', 'binding_echo', 'peat_king'];
+const POST_WARDEN = ['bjarki_grave_bound', 'binding_echo', 'peat_king', 'lucifero'];
 
 test('Post-Warden bosses: each hits hard from the first blow, rages for good, and has a gap-closer that answers a heal', () => {
     const warden = A.bosses.crow_touched_warden;

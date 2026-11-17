@@ -312,30 +312,37 @@
             onComplete: [{ gold: 30, key: 'c2s12_reward' }, { flag: 'pass_road_safe' }]
         },
         // James the bard (Tokelo, 2026-11-13: "in chapter 2 introduce a bard that will join you at your homestead after
-        // recruiting him"). A southerner who came north to learn the skalds' songs; met outside the Stormtide Inn in
-        // Skeldvik (no new area: the inn's interior has no picture yet), he moves to the homestead grounds once asked.
+        // recruiting him"). Reworked 2026-11-17 after docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md §2: he
+        // only follows you home once you answer his three music questions AND bring back the lute Sven took, in either
+        // order. The objective ids and order are unchanged so a save mid-quest keeps its step.
         CB1: {
-            title: 'A Bard in Skeldvik', kind: 'side', xp: 20, candidate: true,
-            summary: 'A southern bard plays outside the Stormtide Inn for fishermen who do not tip. The skalds will not teach him, and he has nowhere in particular to be.',
+            title: 'A Bard Without His Lute', kind: 'side', xp: 20, candidate: true,
+            summary: "A southern bard sings outside the Stormtide Inn with no instrument. He'll follow you home, he says, for three right answers and the lute a man called Sven took from him.",
             objectives: [
                 { id: 'meet', text: 'Listen to the bard outside the Stormtide Inn', on: { type: 'story', id: 'james_met' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
-                { id: 'invite', text: 'Offer James a place at your homestead', on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
+                { id: 'invite', text: "Win James over: answer his three questions, and get his lute back from Sven", on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
                 { id: 'home', text: 'Find James at your homestead', on: { type: 'story', id: 'james_home' }, marker: { map: 'grounds', x: 26, y: 9 } }
             ],
             onComplete: []
         },
-        // PLACEHOLDER (Tokelo, 2026-11-13): "a quest he will give you where you get to make a deal with a dark being called
-        // demonkore. I dont know how the quest goes but for now this is what I got". UNFINISHED ON PURPOSE: only James's
-        // hook exists. Who or what Demonkore is, where the deal is made and what it costs are Tokelo's to decide; nobody
-        // fires `demonkore_deal` yet, so the quest stays open in the Journal. Don't fill it in without Tokelo.
+        // CB2 after the narrative design (§4, 2026-11-17): the book with an absurd price on James's shelf. Buy it (the paid
+        // shortcut: James opens the way below at once, no seals) or bring him three seals (the free route: he stays vague
+        // until all three are in). Both routes meet at the same stair beside the homestead well, down to the First
+        // Dominion (built without a picture, Tokelo's OK 2026-11-17): five waves of demon hordes, then its ruler, and the
+        // first contract made over him in the binding circle. The Devil Union class that contract opens is the next build
+        // (DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md); `devil_union_contract` and `contract:lucifero` are its hooks.
+        // James's Demonkore identity is NOT revealed here.
         CB2: {
-            title: 'A Deal with Demonkore', kind: 'side', xp: 0, teaser: true, placeholder: true,
-            summary: 'James has heard of a dark being called Demonkore, who makes deals. (This quest is not finished yet: what happens next is still being written.)',
+            title: 'A Deal with Demonkore', kind: 'side', xp: 120, candidate: true,
+            summary: "James sells a book that costs more than a house, and won't say what it does. He has a small job for anyone who can't afford it.",
             objectives: [
-                { id: 'hear', text: 'Hear James out about Demonkore', on: { type: 'story', id: 'demonkore_heard' }, marker: { map: 'grounds', x: 26, y: 9 } },
-                { id: 'deal', text: 'Make a deal with Demonkore (not written yet: the rest of this quest is coming)', on: { type: 'story', id: 'demonkore_deal' } }
+                { id: 'hear', text: 'Ask James about the book on his shelf', on: { type: 'story', id: 'demonkore_heard' }, marker: { map: 'grounds', x: 26, y: 9 } },
+                { id: 'grimoire', text: 'Get the Binding Grimoire: buy it from James, or bring him the Seals of Invocation, Dominion and Covenant', on: { type: 'story', id: 'grimoire_obtained' }, marker: { map: 'grounds', x: 26, y: 9 } },
+                { id: 'below', text: 'Let James open the way below', on: { type: 'story', id: 'underworld_opened' }, marker: { map: 'grounds', x: 26, y: 9 } },
+                { id: 'arena', text: 'Go down the stair by the well, and survive five waves and the ruler of the First Dominion', on: { type: 'defeat', id: 'underworld_arena_ruler' }, marker: { map: 'underworld_arena', x: 13, y: 9 } },
+                { id: 'contract', text: 'Make your first contract in the binding circle', on: { type: 'story', id: 'devil_union_contract' }, marker: { map: 'underworld_arena', x: 13, y: 10 } }
             ],
-            onComplete: []
+            onComplete: [{ say: '(Your first contract is sealed. Devil Union, the legendary class it opens, comes in the next update.)', notice: 'quest' }]
         },
         // ----- A Fire of Your Own (Tokelo, 2026-11-13: "a portable hearth... someone on the road teaches the player").
         // Hakon the carter, wrist broken on the Frostspine Road, gives you his spare camp kit once you fetch the tinder.
@@ -1977,20 +1984,48 @@
     };
 
     // ------------------------------------------------------------- James, a bard from the south (CB1, CB2)
-    // Voice: warm, quick, a little vain about his playing; an outsider in Hrimvald who knows he is one. He does not know
-    // who the player was (lore guardrail), and he knows nothing about Demonkore beyond a story told at a fire.
-    const JAMES_HOME = [
-        { text: 'Play something.', to: 'song_home' },
-        { text: 'You look like something is on your mind.', if: { notFlags: ['demonkore_heard'] }, to: 'demonkore' },
-        { text: 'Tell me again about Demonkore.', if: { flags: ['demonkore_heard'] }, to: 'demonkore_again' },
+    // Voice: warm, quick, a little vain about his playing; an outsider in Hrimvald who knows he is one. Narrative design
+    // (2026-11-17): he is also Demonkore, one person under two names. That is NOT revealed anywhere in this file (the reveal
+    // is a later character moment, timing open). He never knows or says who the player was (lore guardrail), and he
+    // never names the Devil Union, the nine rulers or the contract rules before the way below is open.
+    const SEALS = ['Seal of Invocation', 'Seal of Dominion', 'Seal of Covenant'];
+    const RIDDLES_DONE = { flags: ['james_riddle_1', 'james_riddle_2', 'james_riddle_3'] };
+    // Both of James's terms met, in either order: the encore and the move home come next (the talk table checks it).
+    const TERMS_MET = { flags: ['james_riddles_done', 'james_lute_returned'], notFlags: ['james_recruited'] };
+    const RIDDLE_OK = (n, text) => [{ flag: `james_riddle_${n}` }, { flag: 'james_riddles_done', when: RIDDLES_DONE },
+        { say: text }];
+    // Four answers per question; a wrong answer sends you back to the same question (design: retryable).
+    const RIDDLE = (n, right, answers) => answers.map((a, i) => (i === right ? { text: a, to: `right_${n}` } : { text: a, to: `wrong_${n}` }));
+    const TERMS = [
+        { text: 'Ask me your questions.', if: { notFlags: ['james_riddles_done'] }, to: 'q1' },
+        { text: 'Here is your lute.', if: { items: ["James's Lute"] }, to: 'lute_back' },
+        { text: 'Where is your lute now?', if: { notFlags: ['james_lute_returned'] }, to: 'lute_where' },
         { text: 'Goodbye.', end: true }
     ];
+    const JAMES_HOME = [
+        { text: 'Play something.', to: 'song_home' },
+        shop('james'),
+        { text: 'Why does that book cost more than a house?', if: { notFlags: ['demonkore_heard'] }, to: 'book' },
+        { text: 'About the book on your shelf.', if: { flags: ['demonkore_heard'], notFlags: ['grimoire_obtained', 'seal_hunt'] }, to: 'job' },
+        { text: 'What are these seals for?', if: { flags: ['seal_hunt'], notFlags: ['grimoire_obtained'] }, to: 'seals_why' },
+        { text: 'Where are the seals again?', if: { flags: ['seal_hunt'], notFlags: ['grimoire_obtained'] }, to: 'seals_where' },
+        { text: 'About the way below.', if: { flags: ['underworld_opened'] }, to: 'below' },
+        { text: 'Goodbye.', end: true }
+    ];
+    // The way below opens (both routes end here). The stair stands by the well (grounds_underworld_stair).
+    const OPEN_BELOW = [{ flag: 'grimoire_obtained' }, { flag: 'underworld_opened' }, { start: 'CB2' },
+        { event: { type: 'story', id: 'demonkore_heard' } }, { event: { type: 'story', id: 'grimoire_obtained' } }, { event: { type: 'story', id: 'underworld_opened' } }];
     Object.assign(npcs, {
         james: {
             name: 'James', title: 'Bard',
             talk: [
+                { if: TERMS_MET, node: 'encore' },
                 { if: { flags: ['james_recruited'], notFlags: ['james_settled'] }, node: 'arrive' },
+                // CB2 (either route), checked before his everyday greeting.
+                { if: { flags: ['james_settled'], items: ['Binding Grimoire'], notFlags: ['underworld_opened'] }, node: 'bought' },
+                { if: { flags: ['james_settled', 'seal_hunt'], has: { 'Seal of Invocation': 1, 'Seal of Dominion': 1, 'Seal of Covenant': 1 }, notFlags: ['grimoire_obtained'] }, node: 'seals_done' },
                 { if: { flags: ['james_settled'] }, node: 'home' },
+                { if: { flags: ['james_terms'] }, node: 'terms_again' },
                 { if: { flags: ['james_met'] }, node: 'again' },
                 { node: 'meet' }
             ],
@@ -1998,7 +2033,7 @@
                 meet: {
                     lines: [
                         ['npc', "James, a bard from the south. I came north on a wool ship to learn the skalds' songs, and not one skald will teach a southerner."],
-                        ['npc', "So I play outside the Stormtide for whoever walks past. Mostly that's fishermen, and fishermen don't tip."]
+                        ['npc', "So I sing outside the Stormtide for whoever walks past. Mostly that's fishermen, and fishermen don't tip."]
                     ],
                     effects: [{ flag: 'james_met' }, { start: 'CB1' }, { event: { type: 'story', id: 'james_met' } }],
                     choices: [
@@ -2020,29 +2055,95 @@
                 skalds: {
                     lines: [
                         ['npc', "A skald keeps names, and up here the names belong to the families. A stranger singing them would be a thief with a lute."],
-                        ['npc', "Fair enough. But I'd like to know one song in this town that isn't about somebody missing."]
+                        ['npc', "If I still had a lute. But I'd like to know one song in this town that isn't about somebody missing."]
                     ],
                     choices: [{ text: 'Play something.', to: 'song' }, { text: 'There is room at my homestead, if you want it.', to: 'invite' }, { text: 'Goodbye.', end: true }]
                 },
                 song: {
                     lines: [
-                        [null, 'He plays a southern tune, quick and bright, and lets it slow into something sadder that the harbour seems to know. Two fishermen stop mending nets to listen.'],
-                        ['npc', "That's all you get for free. I learned the sad half here."]
+                        [null, 'He has no instrument, so he drums on an upturned cask and sings: a southern tune, quick and bright, that slows into something sadder the harbour seems to know.'],
+                        ['npc', "That's all you get for free. The rest wants a lute, and mine is somewhere on this wharf in someone else's hands."]
                     ],
                     choices: [{ text: 'There is room at my homestead, if you want it.', to: 'invite' }, { text: 'Goodbye.', end: true }]
                 },
+                // CB1 (design §2): the terms. Either half can be done first.
                 invite: {
+                    lines: [['npc', "A room at your homestead? How generous."], ['npc', "But I don't follow every passing stranger."]],
+                    choices: [{ text: 'What will convince you?', to: 'terms' }]
+                },
+                terms: {
                     lines: [
-                        ['npc', "A homestead? With a roof, a hearth, and nobody asking me to stop playing at night?"],
-                        ['npc', "I've said yes to worse offers from people I liked less. Tell me the way, and I'll be on the next cart south over the pass."]
+                        ['npc', "Three questions, and one instrument that belongs in my hands."],
+                        ['npc', "Answer my three music questions. And a man called Sven has my lute; he's still on the wharf, by the shipyard lane."]
                     ],
+                    effects: [{ flag: 'james_terms' }],
+                    choices: TERMS
+                },
+                terms_again: {
+                    lines: [['npc', "Three answers and one lute, that's the price of me. I'm cheap, but I'm not free."]],
+                    choices: TERMS
+                },
+                lute_where: {
+                    lines: [['npc', "Sven has it, down the shipyard lane by the barrels. I asked for it nicely, which is the only way I know how to ask."]],
+                    choices: TERMS
+                },
+                lute_back: {
+                    lines: [
+                        [null, 'James takes the lute in both hands and turns it over, looking for scratches. He finds one, and decides to forgive it.'],
+                        ['npc', "My darling."], ['npc', "Did he play you? No, don't tell me."]
+                    ],
+                    effects: [{ removeItem: "James's Lute" }, { flag: 'james_lute_returned' }],
+                    choices: [{ text: 'Ask me your questions.', if: { notFlags: ['james_riddles_done'] }, to: 'q1' }, { text: 'So, the homestead?', if: { flags: ['james_riddles_done'] }, to: 'encore' }, { text: 'Goodbye.', end: true }]
+                },
+                // The three music questions (design §2; Q1 references Iron Maiden's "Dance of Death", answer paraphrased).
+                q1: {
+                    lines: [['npc', "First, a song: when you're lying in your sleep, when you're lying in your bed, you... what happens next?"]],
+                    choices: RIDDLE(1, 1, ['Hear an angel calling from a distant shore.', 'Wake from a dream to join the dead in their dance.', 'Find a crown beneath your pillow.', 'Watch the sunrise turn the ocean red.'])
+                },
+                right_1: {
+                    lines: [['npc', "Ha! A fine song, though I prefer the dancing to the dying."]],
+                    effects: RIDDLE_OK(1, '(One of three.)'),
+                    choices: [{ text: 'Next question.', to: 'q2' }]
+                },
+                wrong_1: { lines: [['npc', "No. Lie down, close your eyes, and think about it."]], choices: [{ text: 'Ask me again.', to: 'q1' }, { text: 'Later.', end: true }] },
+                q2: {
+                    lines: [['npc', "Second. In the heaviest songs, what hammers beneath the guitars like a beast galloping through Hell?"]],
+                    choices: RIDDLE(2, 2, ['A harp glissando.', 'Violin vibrato.', 'Double-bass drum kicks.', 'A flute trill.'])
+                },
+                right_2: {
+                    lines: [['npc', "A heartbeat fit for something rather unpleasant."]],
+                    effects: RIDDLE_OK(2, '(Two of three.)'),
+                    choices: [{ text: 'Last question.', to: 'q3' }]
+                },
+                wrong_2: { lines: [['npc', "Gallop, I said, not tiptoe. Try again."]], choices: [{ text: 'Ask me again.', to: 'q2' }, { text: 'Later.', end: true }] },
+                q3: {
+                    lines: [['npc', "Last, a riddle. I have a neck without a head, a body without lungs, and strings that scream when I am played."], ['npc', "What am I?"]],
+                    choices: RIDDLE(3, 1, ['A horn.', 'A lute.', 'A drum.', 'A bell.'])
+                },
+                right_3: {
+                    lines: [['npc', "Exactly. And my own has been stolen."]],
+                    effects: RIDDLE_OK(3, '(Three of three.)'),
+                    choices: [
+                        { text: 'Here is your lute.', if: { items: ["James's Lute"] }, to: 'lute_back' },
+                        { text: 'So, the homestead?', if: { flags: ['james_lute_returned'] }, to: 'encore' },
+                        { text: 'Where is your lute now?', if: { notFlags: ['james_lute_returned'] }, to: 'lute_where' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                wrong_3: { lines: [['npc', "Close, but no. It's the thing I haven't got."]], choices: [{ text: 'Ask me again.', to: 'q3' }, { text: 'Later.', end: true }] },
+                encore: {
+                    lines: [['npc', "Three answers and my darling lute. You've earned an encore."]],
+                    choices: [{ text: 'The homestead?', to: 'recruit' }]
+                },
+                recruit: {
+                    lines: [['npc', "Lead on. I'll make the journey sound heroic in the next song."]],
                     effects: [{ flag: 'james_recruited' }, { event: { type: 'story', id: 'james_recruited' } }],
                     choices: [{ text: 'See you there.', end: true }]
                 },
                 arrive: {
                     lines: [
                         ['npc', "You weren't lying, there is a roof. Most of one."],
-                        ['npc', "I've claimed the spot by the well: good echo, and the crows make a polite audience. Come and listen when you're home."]
+                        ['npc', "I've claimed the spot by the well: good echo, and the crows make a polite audience. I've set out a few wares, too; a bard has to eat."]
                     ],
                     effects: [{ flag: 'james_settled' }, { event: { type: 'story', id: 'james_home' } }],
                     choices: JAMES_HOME
@@ -2055,19 +2156,153 @@
                     lines: [[null, 'James plays something new: half a southern dance, half a northern lament. It does not quite fit together yet, and he knows it.']],
                     choices: JAMES_HOME
                 },
-                // PLACEHOLDER hook for CB2 (see the quest): only what James heard. Nothing here says what Demonkore is.
-                demonkore: {
+                // CB2 (design §4). No Devil Union, no nine rulers, no contract rules, no Demonkore reveal in these scenes.
+                book: {
+                    lines: [['npc', "A house keeps the rain out. This might change your life."]],
+                    choices: [{ text: 'What does it do?', to: 'book_does' }]
+                },
+                book_does: {
+                    lines: [['npc', "Wouldn't you rather find out?"]],
+                    choices: [{ text: "I can't afford it.", to: 'job' }, { text: 'Maybe one day.', end: true }]
+                },
+                job: {
                     lines: [
-                        ['npc', "On the road south I shared a fire with a man who wouldn't stop talking about something called Demonkore. A dark thing, he said, that makes deals."],
-                        ['npc', "It gives you what you ask for. Nobody would tell me what it takes in return."],
-                        ['npc', "Every bard wants the song of a bargain like that, and I can't write it without someone to make one. When I learn more, you'll hear it first."]
+                        ['npc', "Then I may have a small job for you. There are three seals I'd like back: Invocation, Dominion and Covenant."],
+                        ['npc', "Bring me all three and the book is yours, no Gold. Or buy it, if a fortune falls on you."]
                     ],
                     effects: [{ flag: 'demonkore_heard' }, { start: 'CB2' }, { event: { type: 'story', id: 'demonkore_heard' } }],
+                    choices: [
+                        { text: 'What are these seals for?', to: 'seals_why' },
+                        { text: "Where do I look?", effects: [{ flag: 'seal_hunt' }], to: 'seals_where' },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                seals_why: {
+                    lines: [['npc', "Something worth the walk."]],
+                    choices: [{ text: "That's not an answer.", to: 'seals_why_2' }]
+                },
+                seals_why_2: {
+                    lines: [['npc', "No. But it's a fine incentive."]],
+                    choices: [{ text: 'Where do I look?', effects: [{ flag: 'seal_hunt' }], to: 'seals_where' }, { text: 'Goodbye.', end: true }]
+                },
+                seals_where: {
+                    lines: [
+                        ['npc', "One under the firs at the bottom of the Frostspine Pass, where the old road bends west. One on the shingle at Gullstrand, past the sea stacks."],
+                        ['npc', "And one in Hrafnholm, in the corner past the cloudberries where the rock closes in. In any order you like."]
+                    ],
+                    effects: [{ flag: 'seal_hunt' }],
                     choices: JAMES_HOME
                 },
-                demonkore_again: {
-                    lines: [['npc', "Demonkore makes deals; that's all I have, and a story told at a fire isn't much. I'm listening for the rest."]],
+                seals_done: {
+                    lines: [['npc', "Three seals, well done."], ['npc', "I rather underestimated you."]],
+                    choices: [{ text: 'Now tell me what I earned.', to: 'earned' }]
+                },
+                earned: {
+                    lines: [
+                        ['npc', "A way below, and a chance to return with something greater."],
+                        ['npc', "The seals open a passage to the Underworld. The book lets you strike a bargain with what rules down there."], ['npc', "Here: it's yours."],
+                        ['npc', "Stand back."]
+                    ],
+                    effects: [...SEALS.map((s) => ({ removeItem: s })), { item: 'Binding Grimoire', key: 'item:binding_grimoire' }],
+                    choices: [{ text: 'Stand back.', effects: OPEN_BELOW, to: 'opened' }]
+                },
+                bought: {
+                    lines: [['npc', "You actually bought it. Delightful."], ['npc', "A bargain is a bargain."]],
+                    choices: [{ text: 'Where do I go?', to: 'bought_go' }]
+                },
+                bought_go: {
+                    lines: [['npc', "Stand back."]],
+                    choices: [{ text: 'Stand back.', effects: OPEN_BELOW, to: 'opened' }]
+                },
+                opened: {
+                    lines: [
+                        [null, 'James plays three low notes on the lute. Beside the well the air folds like cloth, and under it a stair goes down into warm red dark.'],
+                        ['npc', "There's a dangerous place below, and something in it that makes contracts. Come back up with one, if you can."]
+                    ],
                     choices: JAMES_HOME
+                },
+                below: {
+                    lines: [['npc', "The stair is where I left it. What's at the bottom is your business now; mine is selling sulphur to people who come back."]],
+                    choices: JAMES_HOME
+                }
+            }
+        },
+        // ------------------------------------------------------------- Lucifero, ruler of the First Dominion, beaten (CB2)
+        // The ruler is a candidate (the class brief's first union, gravity). He says nothing of who the player was or who
+        // James is; "the bard" is as close as he comes.
+        lucifero_bound: {
+            name: 'Lucifero', title: 'Ruler of the First Dominion',
+            talk: [{ if: { flags: ['devil_union_contract'] }, node: 'after' }, { node: 'kneel' }],
+            nodes: {
+                kneel: {
+                    lines: [
+                        [null, 'Lucifero kneels in the middle of the circle, and the floor still leans a little toward him.'],
+                        ['npc', "You came down with a book and walked through five of my hordes. That is how a contract begins, here."],
+                        ['npc', "Open it, and write what you want of me. I will write what I want of you."]
+                    ],
+                    choices: [
+                        { text: 'Open the grimoire.', if: { items: ['Binding Grimoire'] }, to: 'ceremony' },
+                        { text: 'Not yet.', end: true }
+                    ]
+                },
+                ceremony: {
+                    lines: [
+                        [null, 'The blank pages fill with two hands of writing, his and yours, and you cannot read either. The circle closes like a mouth.'],
+                        ['npc', "Done. When you call on me, I will answer, and you will be heavier for it."]
+                    ],
+                    effects: [{ flag: 'devil_union_contract' }, { flag: 'contract:lucifero' }, { event: { type: 'story', id: 'devil_union_contract' } }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "We are bound. Go up; the bard will want to hear how it went."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                }
+            }
+        },
+        // ------------------------------------------------------------- Sven, who has James's lute (CB1)
+        // New NPC (design §2). His reason for taking it is NOT written yet (don't invent one as canon). Both ways to get the
+        // lute back are non-lethal: buy it back, or invoke harbour law. He stays in Skeldvik afterwards.
+        sven: {
+            name: 'Sven', title: 'Wharf hand',
+            talk: [{ if: { flags: ['james_lute_recovered'] }, node: 'after' }, { node: 'wharf' }],
+            nodes: {
+                wharf: {
+                    lines: [['npc', "Sven. If you're buying, I'm selling; if you're not, the wharf's wide."]],
+                    choices: [
+                        { text: "That lute you've got belongs to James the bard.", if: { flags: ['james_terms'] }, to: 'claim' },
+                        { text: 'What are you selling?', to: 'selling' },
+                        { text: 'Goodbye.', end: true }
+                    ]
+                },
+                selling: {
+                    lines: [['npc', "Today? One lute, southern make, very sweet in the high strings."], ['npc', "Found it, as far as anyone can prove."]],
+                    choices: [{ text: "It belongs to James the bard.", if: { flags: ['james_terms'] }, to: 'claim' }, { text: 'Goodbye.', end: true }]
+                },
+                claim: {
+                    lines: [['npc', "Belongs is a big word on a wharf. It's mine now, and it can be yours, for forty in silver."]],
+                    choices: [
+                        { text: 'Here are forty Gold.', if: { gold: 40 }, effects: [{ pay: 40 }], to: 'paid' },
+                        { text: "Shall I fetch Thora? Harbour law has a word for this.", to: 'law' },
+                        { text: 'Not now.', end: true }
+                    ]
+                },
+                paid: {
+                    lines: [[null, 'Sven counts the coins twice, then hands the lute over as if it might bite.'], ['npc', "Pleasure. Tell your bard he tunes it too sharp."]],
+                    effects: [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                law: {
+                    lines: [
+                        ['npc', "Thora, of course. She'd have me stood on the wharf in front of everyone by noon."],
+                        [null, 'He looks at the reeve\'s post up on the terrace for a long moment, then hands you the lute, strings first.'],
+                        ['npc', "Take it. Tell your bard he tunes it too sharp."]
+                    ],
+                    effects: [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                after: {
+                    lines: [['npc', "No more lutes, if that's what you're after. Try me next week."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
         }
@@ -2734,6 +2969,17 @@
     const BJARKI_FIGHTS = ['barrow_bjarki_warded', 'barrow_bjarki_two', 'barrow_bjarki_one', 'barrow_bjarki_bare'];
 
     const triggers = [
+        // The First Dominion (CB2): each wave down brings the next (after a breath to heal); the fifth brings the ruler.
+        ...[1, 2, 3, 4, 5].map((n) => ({ id: `cb2_wave_${n}`, on: { type: 'defeat', id: `arena_wave_${n}` }, effects: [{ flag: `underworld_wave_${n}` },
+            { say: n < 5 ? `The last of them falls into the ash and is gone. Somewhere across the floor, the lava heaves again. (Wave ${n} of 5.)` : 'The last horde is ash. In the middle of the arena the air begins to fold downward, toward the circle. (Wave 5 of 5.)', important: true }] })),
+        { id: 'cb2_ruler', on: { type: 'defeat', id: 'underworld_arena_ruler' }, effects: [{ flag: 'underworld_ruler_beaten' },
+            { say: 'Lucifero goes down on one knee in the binding circle and stays there. The floor stops leaning. In your pack, the grimoire has gone warm.', important: true }] },
+        // CB2's free route: the three seals (design §4, Route B). Each is a short find on a map you already know, in any
+        // order, shown only once James has sent you looking. Placements are proposals for Cairn and Tokelo.
+        ...[['frostspine_seal', 'Seal of Invocation', 'seal_invocation'], ['gullstrand_seal', 'Seal of Dominion', 'seal_dominion'], ['hrafnholm_seal', 'Seal of Covenant', 'seal_covenant']]
+            .map(([id, item, flag]) => ({ id: `cb2_${flag}`, on: { type: 'inspect', id }, if: { flags: ['seal_hunt'] }, effects: [
+                { flag }, { item, key: `item:${flag}` },
+                { say: 'Three seals. James will want to see them.', important: true, when: { flags: ['seal_invocation', 'seal_dominion', 'seal_covenant'] } }] })),
         // Crossing into the pass is "following the crows east": Q08 completes and Chapter Two begins.
         { id: 'c2_begin', on: { type: 'enter', id: 'frostspine_pass' }, effects: [
             { event: { type: 'story', id: 'chapter_two' } },
@@ -2898,11 +3144,16 @@
     ];
 
     const chapter2 = { id: 'ch2', title: 'Chapter Two: The Feast of Empty Seats', quests, npcs, triggers, anchors,
-        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun', bjorn: 'Bjorn Ironvein' },
+        merchants: { solveig: 'Solveig', aslaug: 'Aslaug', gudrun: 'Gudrun', bjorn: 'Bjorn Ironvein', james: 'James' },
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' },
         // A run that laid Bjarki before C2-07 existed (content revision 11/12) gets Verse and Witness on load.
         catchUp: [{ id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] },
+            // James's terms (2026-11-17): a save that brought him home on the old easy invitation keeps him. His riddles and
+            // lute count as done, and the lute is in his hands. A save that heard the old fire story about Demonkore has
+            // already "asked about the book" (same event), so James's job offer is waiting for it.
+            { id: 'james_terms_kept', if: { flags: ['james_recruited'] }, effects: [{ flag: 'james_terms' }, { flag: 'james_riddles_done' },
+                { flag: 'james_riddle_1' }, { flag: 'james_riddle_2' }, { flag: 'james_riddle_3' }, { flag: 'james_lute_recovered' }, { flag: 'james_lute_returned' }] },
             { id: 'c206_after_bjarki', if: { quests: { C205: 'complete', C206: 'unseen' } }, effects: [{ start: 'C206' }] }] };
 
     (ENSO.story || (ENSO.story = {})).chapter2 = chapter2;

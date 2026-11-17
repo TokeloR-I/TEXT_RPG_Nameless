@@ -358,6 +358,44 @@
                 critChance: 0.15, critMultiplier: 1.7,
                 skills: [{ name: 'Wolf-Coat Fury', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.45, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Pounce', base_damage: [7, 10], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 3 }] }]
             },
+            // The Underworld arena, the First Dominion (CB2; docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md §4).
+            // Tokelo 2026-11-17: build it without a picture. Five waves of demon hordes, then the Dominion's ruler. CANDIDATE
+            // numbers for Gauge, pitched past Bjarki (the grimoire or three seals come late in Chapter Two, level 7-8).
+            // Lucifero (gravity) rules the first Dominion as a candidate: the class brief's first union, open to change.
+            'hell_imp': {
+                name: 'Hell Imp',
+                hp: 30, maxHp: 30, xp: 26, atk: 9, def: 2, spd: 13,
+                critChance: 0.08, critMultiplier: 1.5,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Cinder Spit', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Burn', chance: 0.35, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }, { name: 'Imp Claws', base_damage: [5, 8] }]
+            },
+            'ash_hound': {
+                name: 'Ash Hound',
+                hp: 56, maxHp: 56, xp: 40, atk: 11, def: 4, spd: 12,
+                critChance: 0.12, critMultiplier: 1.6,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Smouldering Bite', base_damage: [9, 13], effects: [{ type: 'inflict', status: 'Burn', chance: 0.4, value: 2, seconds: 4, duration: 1, stackCap: 3 }] }, { name: 'Ash Lunge', base_damage: [7, 10] }]
+            },
+            'brimstone_brute': {
+                name: 'Brimstone Brute',
+                hp: 110, maxHp: 110, xp: 70, atk: 13, def: 6, spd: 7, tier: 'elite',
+                critChance: 0.08, critMultiplier: 1.6,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Brimstone Maul', base_damage: [11, 15] }, { name: 'Sulphur Stamp', base_damage: [8, 12] }]
+            },
+            'lucifero': {
+                name: 'Lucifero, Ruler of the First Dominion', properName: true,
+                hp: 520, maxHp: 520, xp: 260, atk: 16, def: 7, spd: 10,
+                critChance: 0.1, critMultiplier: 1.7,
+                specialFlags: ['boss', 'demon'],
+                skills: [
+                    { name: 'Falling Star', base_damage: [13, 18] },
+                    { name: 'Gravity Well', base_damage: [10, 14] },
+                    { name: 'Crushing Weight', base_damage: [12, 16] },
+                    // His one signature condition (enemy conditions, 2026-11-17): the brand of the Dominion burns.
+                    { name: 'Infernal Brand', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Burn', chance: 0.5, value: 2, seconds: 4, duration: 2, stackCap: 2 }] }
+                ]
+            },
             'bjarki_grave_bound': {
                 name: 'Bjarki the Grave-Bound',
                 id: 'bjarki_grave_bound',
@@ -1783,6 +1821,50 @@
                         { name: 'Pounce', skill: 'Pounce', shape: 'line', reach: 50, width: 12, lunge: 42, windupMs: 600, activeMs: 160, recoveryMs: 760, cooldownMs: 4200, blockCost: 14, staggers: true, useAt: [26, 56] }
                     ]
                 },
+                // The First Dominion (CB2). Imps hang back and spit cinders; ash hounds circle in and lunge; the brute is slow,
+                // heavy and stamps the ground; Lucifero bends the arena's weight: stars fall where you stand, a well drags you in.
+                hell_imp: {
+                    speed: 50, detect: 130, alertMs: 600, ranged: true, keepDistance: [56, 100], reach: 120, shape: 'projectile', projectile: 'arcane', projSpeed: 160,
+                    windupMs: 620, activeMs: 0, recoveryMs: 650, radius: 4, poise: 1, leash: 400, group: 'ranged_keeps_distance', roles: ['blade', 'hexer'], backOffBelow: 40,
+                    attacks: [
+                        { name: 'Cinder Spit', skill: 'Cinder Spit', shape: 'projectile', reach: 120, projSpeed: 160, radius: 5, projectile: 'arcane', windupMs: 620, activeMs: 0, recoveryMs: 650, cooldownMs: 2400, blockCost: 10, role: 'hexer' },
+                        { name: 'Imp Claws', skill: 'Imp Claws', shape: 'arc', reach: 18, arcDeg: 100, windupMs: 480, activeMs: 100, recoveryMs: 500, cooldownMs: 1400, blockCost: 8, role: 'blade' }
+                    ]
+                },
+                ash_hound: {
+                    speed: 64, detect: 130, alertMs: 600, reach: 20, arcDeg: 90, windupMs: 520, activeMs: 100, recoveryMs: 540, radius: 6, poise: 2, leash: 400,
+                    keepDistance: [0, 20], group: 'pincer',
+                    attacks: [
+                        { name: 'Smouldering Bite', skill: 'Smouldering Bite', shape: 'arc', reach: 20, arcDeg: 90, windupMs: 520, activeMs: 100, recoveryMs: 540, cooldownMs: 1500, blockCost: 12, useAt: [0, 22] },
+                        { name: 'Ash Lunge', skill: 'Ash Lunge', shape: 'line', reach: 52, width: 12, lunge: 44, windupMs: 600, activeMs: 160, recoveryMs: 760, cooldownMs: 4000, blockCost: 14, staggers: true, useAt: [24, 58] }
+                    ]
+                },
+                brimstone_brute: {
+                    speed: 38, detect: 130, alertMs: 800, reach: 26, arcDeg: 140, windupMs: 760, activeMs: 140, recoveryMs: 760, radius: 8, poise: 7, hyperArmor: true, leash: 400,
+                    keepDistance: [0, 24], group: 'direct',
+                    attacks: [
+                        { name: 'Brimstone Maul', skill: 'Brimstone Maul', shape: 'arc', reach: 26, arcDeg: 140, windupMs: 760, activeMs: 140, recoveryMs: 760, cooldownMs: 2200, blockCost: 22, knockbackPx: 18, useAt: [0, 28] },
+                        // He stamps and the floor cracks yellow round him: walk out of 50 px or dodge through (1.1 s to read).
+                        { name: 'Sulphur Stamp', skill: 'Sulphur Stamp', shape: 'circle', radius: 50, windupMs: 1100, activeMs: 150, recoveryMs: 1000, cooldownMs: 8000, guardable: false, parryable: false, damageMult: 1.2, useAt: [0, 46] }
+                    ]
+                },
+                lucifero: {
+                    boss: true, speed: 44, detect: 150, reach: 30, arcDeg: 150, windupMs: 640, activeMs: 130, recoveryMs: 700, radius: 10, poise: 10, hyperArmor: true, leash: 500,
+                    giveUpMs: null, keepDistance: [0, 40], group: 'solo',
+                    attacks: [
+                        { name: 'Crushing Weight', skill: 'Crushing Weight', shape: 'arc', reach: 30, arcDeg: 150, cooldownMs: 2400, useAt: [0, 34],
+                            combo: [
+                                { windupMs: 640, activeMs: 130, recoveryMs: 240, blockCost: 20 },
+                                { windupMs: 600, activeMs: 130, recoveryMs: 900, blockCost: 26, reverse: true }
+                            ] },
+                        // A dark point opens and drags you toward him: rooted, pulled, then the blow.
+                        { name: 'Gravity Well', skill: 'Gravity Well', shape: 'projectile', reach: 160, width: 12, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6500, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 34 }, useAt: [44, 160] },
+                        // Stars fall where you stand: three marked circles, a full second to step out.
+                        { name: 'Falling Star', skill: 'Falling Star', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [36, 200] },
+                        // The brand: the floor round him glows with his sign. Walk out of 62 px or dodge through (1.2 s).
+                        { name: 'Infernal Brand', skill: 'Infernal Brand', shape: 'circle', radius: 62, windupMs: 1200, activeMs: 150, recoveryMs: 1100, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 58] }
+                    ]
+                },
                 bjarki_grave_bound: {
                     boss: true, speed: 42, detect: 150, reach: 30, arcDeg: 140, windupMs: 660, activeMs: 130, recoveryMs: 720, radius: 10, poise: 10, hyperArmor: true, leash: 400,
                     giveUpMs: null, keepDistance: [0, 40], group: 'solo', frontalShield: { arcDeg: 80, damageTaken: 0.7 },
@@ -1953,6 +2035,20 @@
                                 { name: 'Wolf-Run', skill: 'Chain Lash', shape: 'line', reach: 320, width: 18, lunge: 300, windupMs: 800, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 5500, blockCost: 32, parryable: false, useAt: [50, 340], damageMult: 1.2 },
                                 // Hati's bite: the dark comes up under you twice, the second where you stepped to.
                                 { name: 'Twin Eclipse', skill: 'Sunbrand', shape: 'ground', count: 2, radius: 24, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 200],
+                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                            ] }
+                },
+                // The First Dominion's ruler (CB2): the post-Warden standard (BOSS_DIFFICULTY.md). Candidate numbers for Gauge.
+                lucifero: {
+                    hpMult: 3.2, damageMult: 2.0,
+                    rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Descent', openWith: 'Gravity Well',
+                            notice: 'Lucifero lets go of his own weight, and the whole Dominion leans toward him!',
+                            add: [
+                                // He falls sideways across the arena as if the floor were a cliff.
+                                { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
+                                // Two stars, the second where you stepped to.
+                                { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
                                   combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
                             ] }
                 },
@@ -2138,9 +2234,18 @@
             "Skuli's Tally": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A notched stick and a sheet of birch-bark: every memorial in Hrimvald, and what was bought from each.' },
             // Chapter Two side quests (2026-11-16): C2-S03's cord, C2-S11's oar-blade, C2-S12's wolf-pelt token.
             'Plaited Cord': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A cord of three plaited leather thongs, dark as tea, from the throat of the man in the peat.' },
+            // James the bard / Demonkore (docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md, 2026-11-17): his stolen lute
+            // (CB1), the three seals of the free route and the Binding Grimoire (CB2). All bound: none can be sold or duplicated.
+            "James's Lute": { type: 'quest', bound: true, unique: true, sellable: false, description: 'A southern lute with a long neck and a rose cut into its sound hole, the varnish worn pale where a hand has rested for years. James\'s, and nobody else\'s.' },
+            'Seal of Invocation': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, a calling-mark at its centre. It is warm, and stays warm.' },
+            'Seal of Dominion': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, a crowned mark at its centre. It is heavier than iron should be.' },
+            'Seal of Covenant': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A disc of black iron cut with a ring of signs, two joined hands at its centre. The hands are not quite human.' },
+            'Binding Grimoire': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A heavy book bound in something dark and fine-grained, its clasp shaped like a closed hand. The pages are blank until you stop looking at them.' },
             'Wolf-Coat Pelt': { type: 'quest', bound: true, unique: true, sellable: false, description: 'A wolf skin worn as a cloak, the head for a hood. Thora wants it on her dues chest, where the carters can see it.' },
             'Smoke Pot': { type: 'quest', bound: true, unique: true, sellable: false, description: "Gunnhild's clay pot of juniper and pitch, to smoke a den out." },
             "Bride's Brooch": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { critChance: 0.04, magicDamage: 2 }, sellable: false, description: 'A silver brooch from a bride\'s grave. It is always cold, however long you hold it.' },
+            // The First Dominion's ruler (CB2). CANDIDATE stats for Gauge, a step past Bjarki's ring.
+            'Signet of the First Dominion': { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, intelligence: 2, maxHp: 14 }, sellable: false, description: 'A heavy ring of black iron with a falling star cut in its face. It pulls very slightly toward the ground, always.' },
             "Bjarki's Arm Ring": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 12, def: 1 }, sellable: false, description: 'A twisted arm ring of grave-iron, heavy as a promise. It was a chieftain\'s before there was a Crown.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
@@ -2244,6 +2349,13 @@
             'Camp Kit':         { type: 'tool', use: 'camp', opens: 'camp_hearth', bound: true, sellable: false, description: "Hakon's carter's kit: a fire-pot, a folding iron tripod, a flint and a twist of juniper tinder. Use it to make camp and cook wherever you are." },
             'Cask of Surströmming': { type: 'quest', bound: true, sellable: false, description: "Solveig's oldest cask of sour herring, the lid bulging like a drum. Do not open it near anything you like." },
             // Mead and ale (use 'drink'): they stack and make you Tipsy like beer, and the 5th drink in 2 minutes makes you Drunk.
+            // James's infernal wares (CB1/CB2 design §3): 'tonic' is a timed buff with no healing and no fullness (src/engine/kitchen.js).
+            // Effects, lengths and prices are CANDIDATES for Gauge. Sulphur Salts and Blackened Resin stand in for fire resistance
+            // with the defence share (no fire damage type to resist yet); Hellfire Ash's "fire-infused attack" is damage + crit.
+            'Brimstone':        { type: 'consumable', use: 'tonic', seconds: 120, mods: { damage: 0.10 }, sellable: true, sellPrice: 6, description: 'A yellow lump that smells of struck flint. Crush it in your fist before a fight and your blows land heavier.' },
+            'Sulphur Salts':    { type: 'consumable', use: 'tonic', seconds: 120, mods: { defence: 0.08 }, sellable: true, sellPrice: 5, description: 'Pale crystals in a twist of oiled cloth. Breathe them and heat seems to slide off you.' },
+            'Hellfire Ash':     { type: 'consumable', use: 'tonic', seconds: 90, mods: { damage: 0.06, crit: 0.05 }, sellable: true, sellPrice: 8, description: 'Grey ash that is still warm. Rubbed on a blade, it leaves the edge glowing faintly red.' },
+            'Blackened Resin':  { type: 'consumable', use: 'tonic', seconds: 150, mods: { defence: 0.12 }, sellable: true, sellPrice: 7, description: 'Tar-black resin that sets hard on cloth and leather. It turns a blade like horn.' },
             'Mead':             { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { damage: 0.12, regen: 0.5 }, sellable: true, sellPrice: 3, description: 'Honey mead from the Stormtide casks, gold and strong. Skalds say it is where poetry comes from.' },
             'Lingonberry Mead': { type: 'consumable', use: 'drink', heal: 8, seconds: 120, mods: { crit: 0.08, defence: 0.08 }, sellable: true, sellPrice: 3, description: 'Mead steeped with lingonberries, red and tart. Steady hands, steady nerve.' },
             'Juniper Ale':      { type: 'consumable', use: 'drink', heal: 5, seconds: 90, mods: { defence: 0.10, speed: 0.06 }, sellable: true, sellPrice: 2, description: 'Cloudy farmhouse ale filtered through juniper branches. Piney, smoky, and stronger than it tastes.' }
@@ -2991,6 +3103,10 @@
                 "beast",
                 "elite"
             ],
+            "hell_imp": [4, "demon", "common"],
+            "ash_hound": [4, "demon", "common"],
+            "brimstone_brute": [4, "demon", "elite"],
+            "lucifero": [5, "demon", "boss"],
             "bjarki_grave_bound": [
                 4,
                 "undead",
@@ -3025,7 +3141,7 @@
         for (const id of ['hungry_wolf', 'pack_wolf', 'sunscorched_wolf', 'old_greymane']) enemies[id].foodDrops = [{ item: 'Wolf Meat' }];
         // Every food and drink is its own status (named after the dish), so different dishes stack with each other.
         for (const [name, d] of Object.entries(itemDefinitions)) {
-            if (d.use !== 'meal' && d.use !== 'drink') continue;
+            if (d.use !== 'meal' && d.use !== 'drink' && d.use !== 'tonic') continue;
             if (d.mods) statusDefinitions[name] = { category: 'buff', maxStacks: d.use === 'drink' ? foodRules.drinkStacks : foodRules.sameDishStacks };
             const pct = (v) => `${Math.round(v * 100)}%`, m = d.mods || {}, parts = [];
             if (m.damage) parts.push(`+${pct(m.damage)} damage`);
@@ -3033,11 +3149,12 @@
             if (m.crit) parts.push(`+${pct(m.crit)} crit`);
             if (m.speed) parts.push(`+${pct(m.speed)} speed`);
             if (m.regen) parts.push(`+${m.regen} HP/s`);
-            d.effectText = `Heals ${d.heal || 0}${parts.length ? `; ${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s` : ''}.`;
+            d.effectText = d.use === 'tonic' ? `${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s.` : `Heals ${d.heal || 0}${parts.length ? `; ${parts.join(', ')} for ${Math.min(d.seconds || foodRules.maxSeconds, foodRules.maxSeconds)} s` : ''}.`;
         }
         statusDefinitions['Tipsy'] = { category: 'other', maxStacks: 99 };   // one stack per beer (foodRules.drunk)
         statusDefinitions['Drunk'] = { category: 'debuff', maxStacks: 1 };   // controls inverted
         enemies.crow_touched_warden.bossDrops = [{ item: 'Seal-Key of the First Echo', storyKey: 'item:crow_warden_memory_key' }];
+        enemies.lucifero.bossDrops = [{ item: 'Signet of the First Dominion', storyKey: 'item:lucifero_signet' }];   // CB2's arena ruler
         for (const cls of Object.values(basePlayerClasses)) for (const id of cls.startingItems) {
             if (!Object.keys(itemDefinitions).some(name => name.toLowerCase() === id.toLowerCase()))
                 itemDefinitions[id] = { type: 'utility', bound: true, sellable: false, description: 'A personal keepsake or utility item.' };
@@ -3113,6 +3230,11 @@
                     "Charcoal-Burner's Staff": { buyPrice: 48, quantity: 1, classes: ['mage'] }, 'Slag-Glass Wand': { buyPrice: 48, quantity: 1, classes: ['necromancer'] },
                     'Padded Jerkin': { buyPrice: 12, quantity: 2 },
                     'Bog Iron': { buyPrice: 6, quantity: 15 }, ...armorStock('hird', 'fjord_hunter', 'runesinger', 'gravebound') } },
+                // James at the homestead (CB1/CB2 design §3): ordinary wares, unusually infernal. Prices are CANDIDATES for Gauge.
+                // The Binding Grimoire's price is the director's illustrative placeholder (100,000 Gold), not a balance target.
+                james: { stock: { 'Brimstone': { buyPrice: 18, quantity: 6 }, 'Sulphur Salts': { buyPrice: 15, quantity: 6 }, 'Hellfire Ash': { buyPrice: 24, quantity: 4 },
+                    'Blackened Resin': { buyPrice: 20, quantity: 4 }, 'Otherworld Residue': { buyPrice: 12, quantity: 6 }, 'Abyssal Ash': { buyPrice: 10, quantity: 6 },
+                    'Binding Grimoire': { buyPrice: 100000, quantity: 1, notFlags: ['grimoire_obtained'] } } },
                 gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
                     'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {

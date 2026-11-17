@@ -61,7 +61,7 @@ test('Chapter Two: the world with Hrimvald in it is valid, and its people, marke
     for (const [mid, m] of Object.entries(ZONE1.maps)) for (const o of [...(m.interactables || []), ...(m.encounters || [])]) objs.set(o.id, mid);
     for (const [id, q] of Object.entries(CH2.quests)) {
         assert.strictEqual(STORY.quests[id], q, `${id} is part of the one story`);
-        for (const o of q.awaitsArea ? [] : q.objectives) {   // awaitsArea: content waiting on Tokelo's picture of its area (tests/100)
+        for (const o of q.awaitsArea ? [] : q.objectives.filter((x) => !x.awaitsArea)) {   // awaitsArea: content waiting on Tokelo's picture of its area (tests/100)
             if (o.marker) { const m = ZONE1.maps[o.marker.map]; assert.ok(m && o.marker.y < m.tiles.length && o.marker.x < m.tiles[0].length, `${id}.${o.id}: marker`); }
             if (['inspect', 'defeat'].includes(o.on.type)) assert.ok(objs.has(o.on.id), `${id}.${o.id}: ${o.on.id}`);
             if (o.on.type === 'enter') assert.ok(ZONE1.maps[o.on.id], `${id}.${o.id}: map`);

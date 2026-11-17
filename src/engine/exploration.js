@@ -7,7 +7,7 @@
  * ========================================================================= */
 (function (global) {
     const EQUIP_SLOTS = ['mainHand', 'bodyArmor', 'accessory'];
-    const USABLE = new Set(['gold', 'heal', 'meal', 'drink', 'camp']);   // item `use` values applyItem() handles; anything else is not usable
+    const USABLE = new Set(['gold', 'heal', 'meal', 'drink', 'tonic', 'camp']);   // item `use` values applyItem() handles; anything else is not usable
     const noUseMessage = (item) => `You turn the ${item} over in your hands. There's nothing to use it for (yet).`;
     const isNode = typeof module !== 'undefined' && module.exports;
     const ENSO = global.ENSO || (global.ENSO = {});
@@ -130,6 +130,7 @@
         }
         /** A stock entry with `classes` is only offered to those classes (Bragg's class weapons). */
         stockForPlayer(entry) {
+            if (entry && entry.notFlags && entry.notFlags.some((f) => this.hasStoryFlag(f))) return false;   // sold out for good (James's grimoire)
             return !entry || !entry.classes || (!!this.player && entry.classes.includes(this.player.className));
         }
         /** Shared, pure purchase validation for actions and merchant menus. */

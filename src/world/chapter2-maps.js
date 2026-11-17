@@ -48,7 +48,8 @@
         hrimvald_bjarki_barrow: { name: "Bjarki's Barrow", mapIds: ['bjarki_barrow'] },
         hrimvald_uplands: { name: 'The Uplands', mapIds: ['uplands'] },
         hrimvald_wolfbanner_camp: { name: 'The Wolf-Banner Camp', mapIds: ['wolfbanner_camp'] },
-        hrimvald_hallvard_barrow: { name: "Hallvard's Barrow", mapIds: ['hallvard_barrow'] }
+        hrimvald_hallvard_barrow: { name: "Hallvard's Barrow", mapIds: ['hallvard_barrow'] },
+        underworld_first_dominion: { name: 'The First Dominion', mapIds: ['underworld_arena'] }
     };
 
     const maps = {
@@ -138,6 +139,9 @@
                     text: 'A squared stone taller than you, lying where it was pushed over. The old Crown set one of these at every mile of every road it took. The number is still sharp. Somebody has cut a row of small notches along the edge, one for each winter since.' },
                 { id: 'frostspine_cairn', kind: 'inspect', x: 26, y: 7, name: 'Travellers\' cairn',
                     text: 'A cairn at the top of the pass. Everyone who crosses adds a stone. You find you have picked one up without deciding to.' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'frostspine_seal', kind: 'inspect', x: 4, y: 16, name: 'Iron disc in the snow', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_invocation'] },
+                    text: 'Half buried under the firs where the old road bends west: a disc of black iron the size of your palm, cut with a ring of signs. The snow around it has melted in a perfect circle.' },
                 { id: 'frostspine_herbs', kind: 'forage', forage: 'wild_herbs', x: 6, y: 14, name: 'Wild herbs', sprite: 'herbs',
                     text: 'Yarrow in the lee of the firs, the last green thing before the rock.' },
                 // The Hrimvald kitchen (2026-11-13): berries and juniper on the fells; they grow back.
@@ -260,7 +264,11 @@
                 { id: 'skeldvik_thora', kind: 'npc', npc: 'thora', x: 37, y: 6, name: 'Thora Half-Oar', sprite: 'reeve' },
                 { id: 'skeldvik_geir', kind: 'npc', npc: 'geir', x: 24, y: 23, name: 'Geir', sprite: 'wolfcrew' },
                 // James the bard (CB1), playing outside the Stormtide Inn until you offer him a place at your homestead.
-                { id: 'skeldvik_james', kind: 'npc', npc: 'james', x: 29, y: 10, name: 'James', sprite: 'bard', when: { notFlags: ['james_recruited'] } },
+                // No lute in his hands until you bring it back from Sven (CB1, 2026-11-17).
+                { id: 'skeldvik_james', kind: 'npc', npc: 'james', x: 29, y: 10, name: 'James', sprite: 'bard_unstrung', when: { notFlags: ['james_recruited'] },
+                    looks: [{ when: { flags: ['james_lute_returned'] }, sprite: 'bard' }] },
+                // Sven, who has James's lute (CB1): down the shipyard lane by the barrels.
+                { id: 'skeldvik_sven', kind: 'npc', npc: 'sven', x: 15, y: 23, name: 'Sven', sprite: 'wharf_hand' },
                 { id: 'skeldvik_bell', kind: 'inspect', x: 39, y: 4, name: 'Harbour bell',
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 12, y: 8, name: 'Memorial stone',
@@ -500,6 +508,9 @@
                 // The Hrimvald kitchen (2026-11-13): Gudrun at the east stalls, the feast fire by the tables, berries on the slope.
                 { id: 'hrafnholm_gudrun', kind: 'npc', npc: 'gudrun', x: 33, y: 15, name: 'Gudrun', sprite: 'shepherd' },
                 { id: 'hrafnholm_feast_fire', kind: 'station', station: 'feast_fire', verb: 'Cook at', x: 38, y: 16, name: 'Feast fire', sprite: 'cookfire' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'hrafnholm_seal', kind: 'inspect', x: 50, y: 23, name: 'Iron disc in the corner', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_covenant'] },
+                    text: 'In the corner past the cloudberry bushes where the rock closes in, under a drift of old straw: a disc of black iron cut with a ring of signs. Nobody in Hrafnholm will admit to having seen it.' },
                 { id: 'hrafnholm_lingonberries', kind: 'forage', forage: 'lingonberries', x: 46, y: 9, name: 'Lingonberries', sprite: 'lingonberries',
                     text: 'Lingonberries under the firs above the houses.' },
                 { id: 'hrafnholm_cloudberries', kind: 'forage', forage: 'cloudberries', x: 46, y: 23, name: 'Cloudberries', sprite: 'cloudberries',
@@ -725,6 +736,9 @@
                     text: 'Split cod hung by the tail in pairs. A gull sits on the top rail, considering its chances.' },
                 { id: 'gullstrand_net_shed', kind: 'inspect', x: 15, y: 21, name: 'Net shed',
                     text: 'Nets in heaps, floats of cork and glass, a bone needle on every hook. Someone has nailed a horseshoe over the lintel the wrong way up, so that the luck runs out toward the headland.' },
+                // CB2 free route (James's seals): only there once he has sent you looking.
+                { id: 'gullstrand_seal', kind: 'inspect', x: 52, y: 14, name: 'Iron disc on the shingle', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_dominion'] },
+                    text: 'Wedged between two stones at the tide line, past the sea stacks: a disc of black iron cut with a ring of signs. The sea has been at it for years and not left a mark.' },
                 { id: 'gullstrand_wreck', kind: 'inspect', x: 48, y: 11, name: 'Wrecked longship',
                     text: 'A longship on her side on the pebbles, her back broken, the sail in red rags on a mast that has snapped twice. Nobody has stripped her for timber. The villagers say she came ashore on a night when there was no moon and no wind, and her crew went up the stair.' },
                 { id: 'gullstrand_sea_stacks', kind: 'inspect', x: 45, y: 12, name: 'Sea stacks',
@@ -1584,8 +1598,91 @@
                     text: 'Tallow for the candles and oil for the lamps, enough to keep the hall lit through a long winter.' }
             ],
             boundaries: []
+        },
+
+        // -----------------------------------------------------------------
+        // The Underworld arena, the First Dominion (CB2; docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md §4).
+        // Tokelo 2026-11-17: "you guys have permission to builed the arena without the image" (a one-off exception to
+        // area-art-first). Down James's stair from the homestead: a basalt floor under a roof of red rock, lava pools in the
+        // corners and channels down the sides, six obsidian pillars, and an ash ring round the binding circle in the
+        // middle. Five waves of demon hordes, each only once the last is down (a pause to heal between), then its ruler.
+        // Beaten, the ruler kneels in the circle and the first contract is made there (not on his death).
+        underworld_arena: {
+            zoneId: 'underworld_first_dominion',
+            name: 'The First Dominion',
+            scene: 'underworld_arena',          // painted whole: ui/scene-underworld.js
+            ambient: { tint: 'rgba(120, 30, 10, 0.10)' },
+            legend: {
+                '#': { name: 'abyss_wall', solid: true }, 'L': { name: 'lava', solid: true }, 'P': { name: 'obsidian_pillar', solid: true },
+                'S': { name: 'stair_up', solid: true }, '.': { name: 'basalt' }, ',': { name: 'ash' }
+            },
+            tiles: [
+                '############################',
+                '#############S##############',
+                '#LLLL..................LLLL#',
+                '#LLLL..................LLLL#',
+                '#LLLL..................LLLL#',
+                '#......P....,,,,....P......#',
+                '#........,,,....,,,........#',
+                '#L.....,,..........,,.....L#',
+                '#L....,,............,,....L#',
+                '#L..P.,..............,.P..L#',
+                '#L....,..............,....L#',
+                '#L....,..............,....L#',
+                '#L....,,............,,....L#',
+                '#......,,..........,,......#',
+                '#......P.,,,....,,,.P......#',
+                '#LLLL.......,,,,.......LLLL#',
+                '#LLLL..................LLLL#',
+                '#LLLL..................LLLL#',
+                '#LLLL..................LLLL#',
+                '############################'
+            ],
+            lights: [
+                { x: 13, y: 10, radius: 3.2, color: 'rgba(255, 90, 40, 0.18)' }, { x: 2, y: 3, radius: 2.4, color: 'rgba(255, 120, 40, 0.24)' },
+                { x: 25, y: 3, radius: 2.4, color: 'rgba(255, 120, 40, 0.24)' }, { x: 2, y: 16, radius: 2.4, color: 'rgba(255, 120, 40, 0.24)' },
+                { x: 25, y: 16, radius: 2.4, color: 'rgba(255, 120, 40, 0.24)' }, { x: 13, y: 2, radius: 1.8, color: 'rgba(255, 170, 90, 0.16)' }
+            ],
+            spawns: {
+                from_homestead: { x: 13, y: 2, facing: 'down' }
+            },
+            exits: [
+                { id: 'arena_stair_up', x: 13, y: 1, trigger: 'interact', prompt: 'Climb the stair', toMap: 'grounds', toSpawn: 'from_underworld',
+                    text: 'You climb out of the heat. The air at the top is cold and smells of grass, and the well is where you left it.' }
+            ],
+            encounters: [
+                { id: 'arena_wave_1', x: 9, y: 7, name: 'Hell Imps', enemies: ['hell_imp', 'hell_imp', 'hell_imp'], trigger: 'contact', sprite: 'goblins',
+                    text: 'Three imps the size of children crouch on the hot floor, flicking cinders at each other. They stop when they see you, and grin.' },
+                { id: 'arena_wave_2', x: 18, y: 7, name: 'Ash Hounds', enemies: ['ash_hound', 'ash_hound', 'hell_imp'], trigger: 'contact', sprite: 'wolf', when: { flags: ['underworld_wave_1'] },
+                    text: 'Two hounds climb out of the lava with their pelts smoking, an imp riding the shoulders of one.' },
+                { id: 'arena_wave_3', x: 9, y: 12, name: 'Ash Hounds and Imps', enemies: ['ash_hound', 'ash_hound', 'hell_imp', 'hell_imp'], trigger: 'contact', sprite: 'wolf', when: { flags: ['underworld_wave_2'] },
+                    text: 'The ash ring stirs. Hounds and imps together this time, spreading out to come at you from both sides.' },
+                { id: 'arena_wave_4', x: 18, y: 12, name: 'Brimstone Brute', enemies: ['brimstone_brute', 'hell_imp', 'hell_imp'], trigger: 'contact', sprite: 'ghoul', when: { flags: ['underworld_wave_3'] },
+                    text: 'Something heavy hauls itself out of the floor, yellow crystal growing out of its shoulders like a crust. Two imps hide behind its legs.' },
+                { id: 'arena_wave_5', x: 13, y: 13, name: 'The Last Horde', enemies: ['brimstone_brute', 'ash_hound', 'ash_hound', 'hell_imp'], trigger: 'contact', sprite: 'ghoul', when: { flags: ['underworld_wave_4'] },
+                    text: 'All of them at once: a brute, two hounds and an imp, and the arena goes quiet around them as if it is holding its breath.' },
+                { id: 'underworld_arena_ruler', x: 13, y: 9, name: 'Lucifero', enemies: ['lucifero'], trigger: 'contact', sprite: 'warden', when: { flags: ['underworld_wave_5'] },
+                    text: 'In the middle of the circle the air folds downward, and a tall figure steps out of the fold. Starless black, crowned with nothing. The floor leans toward him.' }
+            ],
+            interactables: [
+                // Beaten, the ruler kneels in the binding circle: the contract is made here, once (story: npc lucifero_bound).
+                { id: 'arena_lucifero_bound', kind: 'npc', npc: 'lucifero_bound', x: 13, y: 10, name: 'Lucifero', sprite: 'lucifero_kneeling', when: { flags: ['underworld_ruler_beaten'] } },
+                { id: 'arena_pillar', kind: 'inspect', x: 7, y: 5, name: 'Obsidian pillar',
+                    text: 'A pillar of black glass, warm to the touch, its faces so smooth they show you yourself, and something standing just behind you that is not there when you turn.' },
+                { id: 'arena_lava', kind: 'inspect', x: 4, y: 4, name: 'Lava pool',
+                    text: 'Molten rock moving slowly in its basin, skinning over grey and breaking open red. The heat comes off it in waves you can see.' }
+            ],
+            boundaries: []
         }
 
+    };
+
+    // James's stair (CB2): a way down beside the homestead well, there only once he has opened it.
+    const grounds = {
+        exit: { id: 'grounds_underworld_stair', x: 27, y: 7, trigger: 'step', when: { flags: ['underworld_opened'] }, sprite: 'underworld_stair',
+            toMap: 'underworld_arena', toSpawn: 'from_homestead',
+            text: 'Beside the well the air hangs folded like cloth. Under the fold a stair of black stone goes down, and down, into warm red dark. At the bottom the rock opens into a great round floor, and something far off is breathing slowly.' },
+        spawn: { from_underworld: { x: 26, y: 7, facing: 'left' } }
     };
 
     // The Overgrown Road's east track becomes the way on, once Chapter One is done (Q08: "Follow the crows east").
@@ -1598,7 +1695,7 @@
         spawn: { from_frostspine: { x: 30, y: 9, facing: 'left' } }
     };
 
-    const chapter2Maps = { zones, maps, road };
+    const chapter2Maps = { zones, maps, road, grounds };
     (ENSO.world || (ENSO.world = {})).chapter2Maps = chapter2Maps;
     if (isNode) module.exports = chapter2Maps;
 })(typeof window !== 'undefined' ? window : globalThis);

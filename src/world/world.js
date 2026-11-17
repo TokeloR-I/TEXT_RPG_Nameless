@@ -294,7 +294,8 @@
         tile(x, y) { return tileAt(this.world, this.map, x, y); }
         objectAt(x, y) { const o = placed(this.map).find((p) => inRect(p, x, y) && this.present(p)); return o ? this.look(o) : null; }
         boundaryAt(x, y) { return (this.map.boundaries || []).find((b) => inRect(b, x, y)) || null; }
-        exitAt(x, y, trigger) { return (this.map.exits || []).find((e) => e.x === x && e.y === y && (!trigger || e.trigger === trigger)) || null; }
+        /** An exit with a `when` is only there while its story condition holds (James's stair to the Underworld, CB2). */
+        exitAt(x, y, trigger) { return (this.map.exits || []).find((e) => e.x === x && e.y === y && (!trigger || e.trigger === trigger) && (!e.when || this.allows(e.when))) || null; }
         isBlocked(x, y) { return isSolidTile(this.world, this.map, x, y) || !!this.objectAt(x, y); }
         facingTile() { const [dx, dy] = DIRS[this.facing]; return [this.x + dx, this.y + dy]; }
 

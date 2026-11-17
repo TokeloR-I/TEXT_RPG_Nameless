@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane', 'bog_light', 'mire_dead', 'peat_king', 'drowned_oarsman', 'ulfhednar'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane', 'bog_light', 'mire_dead', 'peat_king', 'drowned_oarsman', 'ulfhednar', 'hell_imp', 'ash_hound', 'brimstone_brute', 'lucifero'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -38,7 +38,12 @@
         peat: ['#1a120c','#3a2416','#64402a','#8e6440','#b88e5e'],       // skin tanned dark by the bog, like old leather
         bogiron: ['#1e100c','#4a1e14','#7a3420','#a8552e','#d08850'],    // red mire water and rust
         brine: ['#0e1a20','#1e3440','#36586a','#5e8a94','#a8c8c4'],      // the drowned: sea-grey and salt-white
-        kelp: ['#0e1810','#1e3220','#34502e','#567640','#86a060']        // weed in their hair, wrack on their shoulders
+        kelp: ['#0e1810','#1e3220','#34502e','#567640','#86a060'],       // weed in their hair, wrack on their shoulders,
+        // The First Dominion (CB2, 2026-11-17): ember-red imp hide, ash-grey hound pelt, sulphur-yellow brute, Lucifero's starless black.
+        imphide: ['#1e0a08','#4a1410','#8a2a1a','#c8502a','#f0a050'],
+        ashpelt: ['#141212','#2e2a28','#4e4644','#7a6e66','#c86a3a'],
+        sulphur: ['#20180a','#4a3a12','#8a7020','#c8a838','#f0e08a'],
+        starless: ['#06060c','#14121e','#262036','#3e3458','#c8b0ff']
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -87,7 +92,12 @@
         mire_dead: {kind:'ghoul', body:'peat', coat:'bogiron', tall:35, wide:8, unshackled:true},
         peat_king: {kind:'ghoul', body:'peat', coat:'bogiron', tall:40, wide:10, scar:true},
         drowned_oarsman: {kind:'ghoul', body:'brine', coat:'kelp', tall:37, wide:9, unshackled:true},
-        ulfhednar: {kind:'watch', body:'leather', coat:'pelt', hood:'pelt', tall:38, wide:9, noShield:true, bare:true}
+        ulfhednar: {kind:'watch', body:'leather', coat:'pelt', hood:'pelt', tall:38, wide:9, noShield:true, bare:true},
+        // The First Dominion (CB2): small goblin-built imps, ash hounds, a sulphur brute, and Lucifero, tall and starless.
+        hell_imp: {kind:'goblin', body:'imphide', coat:'imphide', tall:27, wide:6},
+        ash_hound: {kind:'wolf', body:'ashpelt'},
+        brimstone_brute: {kind:'ghoul', body:'sulphur', coat:'imphide', tall:42, wide:11, unshackled:true, scar:true},
+        lucifero: {kind:'knight', body:'starless', coat:'starless', tall:40, wide:10}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {
