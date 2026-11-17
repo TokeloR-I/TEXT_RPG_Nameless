@@ -36,7 +36,7 @@
     const CATEGORY_GLYPH = { buff: '▲', debuff: '▼', dot: '✸', control: '◆', mark: '◎', cooldown: '⧗', other: '•' };
     // Conditions an enemy can put on you (Bleed, Poison, Burn, Slow): their own glyph and colour (world.css .cond-*), so
     // a wolf's bleed reads differently from a bog light's poison at a glance.
-    const CONDITION = { Bleed: { glyph: '♦', key: 'bleed' }, Poison: { glyph: '◉', key: 'poison' }, Burn: { glyph: '✹', key: 'burn' }, Slow: { glyph: '≈', key: 'slow' } };
+    const CONDITION = { Bleed: { glyph: '♦', key: 'bleed' }, Poison: { glyph: '◉', key: 'poison' }, Burn: { glyph: '✹', key: 'burn' }, Slow: { glyph: '≈', key: 'slow' }, 'Leg Cramp': { glyph: '≈', key: 'slow' } };   // Shane's Leg Cramp is a Slow
     /** 12×12 pixel art from rows of palette keys ('.' = clear): one <rect> per run of a colour. */
     function pixelSvg(rows, pal) {
         let r = '';
