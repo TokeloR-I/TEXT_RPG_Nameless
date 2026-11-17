@@ -7,7 +7,7 @@
     'use strict';
     const ENSO = global.ENSO || (global.ENSO = {});
     const facings = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane', 'bog_light', 'mire_dead', 'peat_king', 'drowned_oarsman', 'ulfhednar', 'hell_imp', 'ash_hound', 'brimstone_brute', 'lucifero'];
+    const keys = ['James_Newton', 'weak_goblin', 'hungry_wolf', 'pack_wolf', 'shackled_ghoul', 'rust_rat', 'cellar_vermin', 'drunken_shade', 'bone_gnawer', 'mire_lurker', 'cult_acolyte', 'cult_zealot', 'carrion_crow', 'shackled_ghoul_stronger', 'watch_constable', 'crow_touched_warden', 'heaven_doorwarden', 'wolfbanner_raider', 'wolfbanner_skirmisher', 'wolfbanner_ringleader', 'oath_sergeant', 'binding_echo', 'sunscorched_wolf', 'moonless_wolf', 'draugr', 'grave_ward', 'bjarki_grave_bound', 'draugr_champion', 'grave_foreman', 'mound_bride', 'skuli_tally_hand', 'old_greymane', 'bog_light', 'mire_dead', 'peat_king', 'drowned_oarsman', 'ulfhednar', 'hell_imp', 'ash_hound', 'brimstone_brute', 'lucifero', 'rift_stalker', 'beelzebub', 'iron_carapace', 'slotos', 'feather_shrike', 'plumede'];
     // Independently authored material ramps, darkest outline first, warm top-left lighting.
     const M = {
         fur: ['#221e29','#4b3940','#795345','#a37658','#d6ad7a'],
@@ -43,7 +43,11 @@
         imphide: ['#1e0a08','#4a1410','#8a2a1a','#c8502a','#f0a050'],
         ashpelt: ['#141212','#2e2a28','#4e4644','#7a6e66','#c86a3a'],
         sulphur: ['#20180a','#4a3a12','#8a7020','#c8a838','#f0e08a'],
-        starless: ['#06060c','#14121e','#262036','#3e3458','#c8b0ff']
+        starless: ['#06060c','#14121e','#262036','#3e3458','#c8b0ff'],
+        // The Second to Fourth Dominions: violet rift-glass, hammered slag-iron, and night-black plumage with a pale edge.
+        riftglass: ['#08061a','#1e1638','#3a2c68','#6a58b0','#b8f0e0'],
+        slagiron: ['#140f0e','#33282a','#5c4a44','#8e7a6a','#e09a4a'],
+        nightplume: ['#07070c','#15151f','#2a2a3a','#4a4a62','#d8d4e8']
     };
     const config = {
         James_Newton: {kind:'knight', body:'metal', coat:'cloth', tall:39, wide:8},
@@ -97,7 +101,15 @@
         hell_imp: {kind:'goblin', body:'imphide', coat:'imphide', tall:27, wide:6},
         ash_hound: {kind:'wolf', body:'ashpelt'},
         brimstone_brute: {kind:'ghoul', body:'sulphur', coat:'imphide', tall:42, wide:11, unshackled:true, scar:true},
-        lucifero: {kind:'knight', body:'starless', coat:'starless', tall:40, wide:10}
+        lucifero: {kind:'knight', body:'starless', coat:'starless', tall:40, wide:10},
+        // Second Dominion: shade-thin rift stalkers, Beelzebub in violet glass. Third: iron carapaces, Slotos a walking
+        // slag-iron wall. Fourth: feather shrikes, and Plumede lean and quick in black plumage.
+        rift_stalker: {kind:'shade', body:'riftglass', tall:36, wide:7},
+        beelzebub: {kind:'warden', body:'riftglass', coat:'starless', tall:41, wide:10},
+        iron_carapace: {kind:'ghoul', body:'slagiron', coat:'slagiron', tall:38, wide:11, unshackled:true},
+        slotos: {kind:'warden', body:'slagiron', coat:'slagiron', tall:41, wide:11},
+        feather_shrike: {kind:'crow', body:'nightplume'},
+        plumede: {kind:'knight', body:'nightplume', coat:'nightplume', tall:39, wide:8}
     };
     const aliases = {up:'N',right:'E',down:'S',left:'W',north:'N',northeast:'NE',east:'E',southeast:'SE',south:'S',southwest:'SW',west:'W',northwest:'NW'};
     function direction(o) {

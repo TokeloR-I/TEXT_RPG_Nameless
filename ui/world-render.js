@@ -550,6 +550,10 @@
         bard_unstrung: { cloak: '#8a4a2a', hat: '#3a5a3a', scarf: '#d8b860', belt: '#4a3a2a' },
         // Lucifero, beaten and kneeling in the binding circle (CB2): starless black, a pale crownless head.
         lucifero_kneeling: { cloak: '#14121e', hood: '#262036', belt: '#c8b0ff', skin: '#b8b0c8' },
+        // The Second to Fourth Dominions' rulers, beaten and kneeling: Beelzebub in violet glass, Slotos in slag-iron, Plumede in black feathers.
+        beelzebub_kneeling: { cloak: '#1e1638', hood: '#3a2c68', belt: '#b8f0e0', skin: '#a8a0c8' },
+        slotos_kneeling: { cloak: '#33282a', hood: '#5c4a44', belt: '#e09a4a', skin: '#8e7a6a' },
+        plumede_kneeling: { cloak: '#15151f', hood: '#2a2a3a', belt: '#d8d4e8', skin: '#c8c4d8' },
         wharf_hand: { cloak: '#4e5a5e', hood: '#6a6458', hair: '#c8b070', belt: '#2a2018', prop: 'pack' },
         // Hrafnholm (C2-03): the Jarl in woad and silver-grey, Torvald in madder with an axe-hammer, the heir and her sworn
         // shieldmaiden, the Lawspeaker in undyed wool with his staff, and Osric Vane in a southern coat and hat.
@@ -726,8 +730,16 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable', hell_imp: 'goblin', ash_hound: 'wolf', brimstone_brute: 'ghoul', lucifero: 'warden'
+        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable', hell_imp: 'goblin', ash_hound: 'wolf', brimstone_brute: 'ghoul', lucifero: 'warden', rift_stalker: 'shade', beelzebub: 'warden', iron_carapace: 'ghoul', slotos: 'warden', feather_shrike: 'shade', plumede: 'warden'
     };
+
+    function rift(g, px, py, t, [r, gg, b], [r2, g2, b2]) {
+        const k = 0.5 + 0.5 * Math.sin((t || 0) / 420), cx = px + 16, cy = py + 16;
+        g.fillStyle = `rgba(${r}, ${gg}, ${b}, ${(0.18 + 0.12 * k).toFixed(3)})`; g.beginPath(); g.ellipse(cx, cy, 11, 15, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = 'rgba(4, 3, 8, 0.95)'; g.beginPath(); g.ellipse(cx, cy, 4.5, 12, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = `rgba(${r2}, ${g2}, ${b2}, ${(0.6 + 0.3 * k).toFixed(3)})`; g.lineWidth = 1.2; g.beginPath(); g.ellipse(cx, cy, 5, 12.5, 0, 0, Math.PI * 2); g.stroke();
+        for (let i = 0; i < 4; i++) { const a = (t || 0) / 600 + i * 1.6; rect(g, cx + Math.cos(a) * 8, cy + Math.sin(a * 1.3) * 12, 1.5, 1.5, `rgb(${r2}, ${g2}, ${b2})`); }
+    }
 
     // Sprites for objects placed on top of tiles (interactables with a `sprite`).
     const sprites = {
@@ -744,6 +756,10 @@
             for (let i = 0; i < 4; i++) rect(g, px + 7 + i * 2, py + 12 + i * 3, 18 - i * 4, 2, i % 2 ? '#2a1c1c' : '#3a2626');
             rect(g, px + 14, py + 24, 4, 2, '#140c0c');
         },
+        // The rifts in the First Dominion (open once Lucifero is bound): a standing tear in the air, each its own colour.
+        rift_space(g, px, py, T, t) { rift(g, px, py, t, [150, 110, 255], [200, 255, 235]); },
+        rift_iron(g, px, py, T, t) { rift(g, px, py, t, [230, 140, 60], [255, 220, 160]); },
+        rift_wind(g, px, py, T, t) { rift(g, px, py, t, [190, 190, 220], [250, 250, 255]); },
         // CB1: Sven's nets, piled wet at the end of the wharf.
         net_pile(g, px, py, T) {
             g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 25, 12, 4, 0, 0, Math.PI * 2); g.fill();

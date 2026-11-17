@@ -396,6 +396,70 @@
                     { name: 'Infernal Brand', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Burn', chance: 0.5, value: 2, seconds: 4, duration: 2, stackCap: 2 }] }
                 ]
             },
+            // The Second, Third and Fourth Dominions (Tokelo 2026-11-17: "you have freedom on the arenas, model them to how
+            // you see fit"). Rifts in the First Dominion open on them once Lucifero is bound; any order. One new mob each,
+            // and the ruler whose power the union lends. CANDIDATE numbers for Gauge, a step past Lucifero.
+            'rift_stalker': {
+                name: 'Rift Stalker',
+                hp: 48, maxHp: 48, xp: 42, atk: 12, def: 3, spd: 14,
+                critChance: 0.14, critMultiplier: 1.6,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Rift Slash', base_damage: [8, 12] }, { name: 'Blink Strike', base_damage: [9, 13] }]
+            },
+            'beelzebub': {
+                name: 'Beelzebub, Ruler of the Second Dominion', properName: true,
+                hp: 560, maxHp: 560, xp: 300, atk: 17, def: 7, spd: 12,
+                critChance: 0.12, critMultiplier: 1.7,
+                specialFlags: ['boss', 'demon'],
+                skills: [
+                    { name: 'Severing Hand', base_damage: [12, 16] },
+                    { name: 'Spatial Cut', base_damage: [13, 18] },
+                    { name: 'Rift Exchange', base_damage: [12, 17] },
+                    { name: 'Folded Space', base_damage: [12, 16] },
+                    // His one signature condition: the swarm that follows him through every fold.
+                    { name: 'Hollow Swarm', base_damage: [8, 12], effects: [{ type: 'inflict', status: 'Poison', chance: 0.5, value: 2, seconds: 5, duration: 2, stackCap: 2 }] }
+                ]
+            },
+            'iron_carapace': {
+                name: 'Iron Carapace',
+                hp: 124, maxHp: 124, xp: 74, atk: 12, def: 10, spd: 6, tier: 'elite',
+                critChance: 0.06, critMultiplier: 1.5,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Shell Slam', base_damage: [10, 14] }, { name: 'Carapace Ram', base_damage: [11, 15] }]
+            },
+            'slotos': {
+                name: 'Slotos, Ruler of the Third Dominion', properName: true,
+                hp: 760, maxHp: 760, xp: 320, atk: 18, def: 11, spd: 7,
+                critChance: 0.08, critMultiplier: 1.6,
+                specialFlags: ['boss', 'demon'],
+                skills: [
+                    { name: 'Iron Tusk', base_damage: [14, 19] },
+                    { name: 'Stampede', base_damage: [15, 20] },
+                    { name: 'Iron Hail', base_damage: [12, 16] },
+                    // His one signature condition: the floor he shakes keeps shaking in your legs.
+                    { name: 'Earthshaker', base_damage: [10, 14], effects: [{ type: 'inflict', status: 'Slow', chance: 0.6, value: 0.3, seconds: 4, duration: 2 }] }
+                ]
+            },
+            'feather_shrike': {
+                name: 'Feather Shrike',
+                hp: 34, maxHp: 34, xp: 30, atk: 10, def: 1, spd: 17,
+                critChance: 0.16, critMultiplier: 1.6,
+                specialFlags: ['demon'],
+                skills: [{ name: 'Talon Rake', base_damage: [6, 9], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.3, value: 1, seconds: 4, duration: 1, stackCap: 2 }] }, { name: 'Shrike Dive', base_damage: [7, 10] }]
+            },
+            'plumede': {
+                name: 'Plumede, Ruler of the Fourth Dominion', properName: true,
+                hp: 470, maxHp: 470, xp: 300, atk: 16, def: 5, spd: 18,
+                critChance: 0.18, critMultiplier: 1.8,
+                specialFlags: ['boss', 'demon'],
+                skills: [
+                    { name: 'Quick Flurry', base_damage: [8, 11] },
+                    { name: 'Blink Feint', base_damage: [12, 16] },
+                    { name: 'Black Gale', base_damage: [11, 15] },
+                    // Her one signature condition: feathers with edges like glass.
+                    { name: 'Razor Plumes', base_damage: [9, 13], effects: [{ type: 'inflict', status: 'Bleed', chance: 0.5, value: 2, seconds: 4, duration: 2, stackCap: 2 }] }
+                ]
+            },
             'bjarki_grave_bound': {
                 name: 'Bjarki the Grave-Bound',
                 id: 'bjarki_grave_bound',
@@ -1180,11 +1244,11 @@
                         list: {
                             lucifero: { name: 'Lucifero', title: 'Ruler of the First Dominion', power: 'Gravity', contract: 'contract:lucifero', mods: { damage: 0.15 },
                                 skills: ['Gravity Well', 'Heavy Field', 'Gravity Crush'], say: 'Lucifero\'s weight settles into your bones. The ground leans toward you.' },
-                            beelzebub: { name: 'Beelzebub', title: 'Ruler of a Dominion not yet found', power: 'Space', contract: 'contract:beelzebub', mods: { damage: 0.1, speed: 0.1 },
+                            beelzebub: { name: 'Beelzebub', title: 'Ruler of the Second Dominion', power: 'Space', contract: 'contract:beelzebub', mods: { damage: 0.1, speed: 0.1 },
                                 skills: ['Spatial Step', 'Rift Exchange', 'Spatial Cut'], say: 'The distance between things stops meaning much.' },
-                            slotos: { name: 'Slotos', title: 'Ruler of a Dominion not yet found', power: 'Toughness', contract: 'contract:slotos', mods: { defence: 0.25 },
+                            slotos: { name: 'Slotos', title: 'Ruler of the Third Dominion', power: 'Toughness', contract: 'contract:slotos', mods: { defence: 0.25 },
                                 skills: ['Iron Hide', 'Brace', 'Stampede'], say: 'Your skin thickens like old bark. Blows feel far away.' },
-                            plumede: { name: 'Plumede', title: 'Ruler of a Dominion not yet found', power: 'Agility', contract: 'contract:plumede', mods: { speed: 0.2, damage: 0.05 },
+                            plumede: { name: 'Plumede', title: 'Ruler of the Fourth Dominion', power: 'Agility', contract: 'contract:plumede', mods: { speed: 0.2, damage: 0.05 },
                                 skills: ['Fleet Form', 'Blink Feint', 'Quick Flurry'], say: 'Black feathers at your heels. Everything else moves slowly.' }
                         },
                         // Qliphoth Resonance: aspects you already hold, a small boost each while a union is active (two slots).
@@ -1948,6 +2012,89 @@
                         { name: 'Infernal Brand', skill: 'Infernal Brand', shape: 'circle', radius: 62, windupMs: 1200, activeMs: 150, recoveryMs: 1100, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 58] }
                     ]
                 },
+                // The Second Dominion: stalkers that step through a fold and come out at your back; Beelzebub keeps his
+                // distance and cuts across it, steps through space to you, and folds the floor where you stand.
+                rift_stalker: {
+                    speed: 58, detect: 140, alertMs: 600, reach: 22, arcDeg: 100, windupMs: 520, activeMs: 100, recoveryMs: 560, radius: 6, poise: 2, leash: 400,
+                    keepDistance: [0, 22], group: 'pincer',
+                    attacks: [
+                        { name: 'Rift Slash', skill: 'Rift Slash', shape: 'arc', reach: 22, arcDeg: 100, windupMs: 520, activeMs: 100, recoveryMs: 560, cooldownMs: 1500, blockCost: 12, useAt: [0, 24] },
+                        // It is gone, then it is there: a long blink and a cut (0.65 s to read the shimmer).
+                        { name: 'Blink Strike', skill: 'Blink Strike', shape: 'line', reach: 96, width: 12, lunge: 88, windupMs: 650, activeMs: 140, recoveryMs: 800, cooldownMs: 4500, blockCost: 14, staggers: true, useAt: [30, 100] }
+                    ]
+                },
+                beelzebub: {
+                    boss: true, speed: 50, detect: 160, reach: 28, arcDeg: 140, windupMs: 620, activeMs: 120, recoveryMs: 700, radius: 10, poise: 9, hyperArmor: true, leash: 500,
+                    giveUpMs: null, keepDistance: [24, 70], group: 'solo',
+                    attacks: [
+                        { name: 'Severing Hand', skill: 'Severing Hand', shape: 'arc', reach: 28, arcDeg: 140, cooldownMs: 2600, useAt: [0, 32],
+                            combo: [
+                                { windupMs: 620, activeMs: 120, recoveryMs: 240, blockCost: 18 },
+                                { windupMs: 580, activeMs: 120, recoveryMs: 900, blockCost: 24, reverse: true }
+                            ] },
+                        // He cuts the distance itself: a thin line from his hand to you, however far.
+                        { name: 'Spatial Cut', skill: 'Spatial Cut', shape: 'line', reach: 150, width: 10, lunge: 0, windupMs: 760, activeMs: 120, recoveryMs: 800, cooldownMs: 3400, blockCost: 18, useAt: [30, 150] },
+                        // He steps through a fold and comes out of it already swinging.
+                        { name: 'Rift Exchange', skill: 'Rift Exchange', shape: 'line', reach: 130, width: 18, lunge: 120, windupMs: 700, activeMs: 160, recoveryMs: 900, cooldownMs: 5500, blockCost: 22, staggers: true, useAt: [40, 140] },
+                        // Three folds where you stand, a full second to step out.
+                        { name: 'Folded Space', skill: 'Folded Space', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [30, 200] },
+                        // The swarm boils out of him: walk out of 60 px or dodge through (1.2 s).
+                        { name: 'Hollow Swarm', skill: 'Hollow Swarm', shape: 'circle', radius: 60, windupMs: 1200, activeMs: 150, recoveryMs: 1100, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 56] }
+                    ]
+                },
+                // The Third Dominion: carapaces that take a blow on the shell and ram; Slotos is a wall that walks. Hit him
+                // from the side or behind, read the stamp, and never stand in the line of his charge.
+                iron_carapace: {
+                    speed: 34, detect: 130, alertMs: 800, reach: 24, arcDeg: 120, windupMs: 740, activeMs: 140, recoveryMs: 760, radius: 8, poise: 8, hyperArmor: true, leash: 400,
+                    keepDistance: [0, 22], group: 'direct', frontalShield: { arcDeg: 100, damageTaken: 0.5 },
+                    attacks: [
+                        { name: 'Shell Slam', skill: 'Shell Slam', shape: 'arc', reach: 24, arcDeg: 120, windupMs: 740, activeMs: 140, recoveryMs: 760, cooldownMs: 2200, blockCost: 20, knockbackPx: 16, useAt: [0, 26] },
+                        { name: 'Carapace Ram', skill: 'Carapace Ram', shape: 'line', reach: 70, width: 16, lunge: 60, windupMs: 820, activeMs: 160, recoveryMs: 900, cooldownMs: 5500, blockCost: 22, staggers: true, knockbackPx: 20, useAt: [26, 76] }
+                    ]
+                },
+                slotos: {
+                    boss: true, speed: 36, detect: 150, reach: 32, arcDeg: 150, windupMs: 700, activeMs: 140, recoveryMs: 760, radius: 10, poise: 14, hyperArmor: true, leash: 500,
+                    giveUpMs: null, keepDistance: [0, 34], group: 'solo', frontalShield: { arcDeg: 110, damageTaken: 0.5 },
+                    attacks: [
+                        { name: 'Iron Tusk', skill: 'Iron Tusk', shape: 'arc', reach: 32, arcDeg: 150, cooldownMs: 2600, useAt: [0, 36],
+                            combo: [
+                                { windupMs: 700, activeMs: 140, recoveryMs: 260, blockCost: 24 },
+                                { windupMs: 640, activeMs: 140, recoveryMs: 1000, blockCost: 30, reverse: true }
+                            ] },
+                        { name: 'Stampede', skill: 'Stampede', shape: 'line', reach: 150, width: 24, lunge: 130, windupMs: 860, lockMs: 300, activeMs: 260, recoveryMs: 1000, cooldownMs: 6000, blockCost: 30, knockbackPx: 26, staggers: true, parryable: false, useAt: [40, 160] },
+                        // Slag falls from the roof where you stand: three marked spots.
+                        { name: 'Iron Hail', skill: 'Iron Hail', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7500, guardable: false, parryable: false, damageMult: 1.4, useAt: [40, 200] },
+                        // He rears and comes down: walk out of 70 px or dodge through (1.3 s).
+                        { name: 'Earthshaker', skill: 'Earthshaker', shape: 'circle', radius: 70, windupMs: 1300, activeMs: 160, recoveryMs: 1200, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 64] }
+                    ]
+                },
+                // The Fourth Dominion: shrikes that dive in pairs and peel away; Plumede is all speed and no armour. She
+                // can be staggered, and punishes everything you do slowly.
+                feather_shrike: {
+                    speed: 72, detect: 140, alertMs: 500, reach: 18, arcDeg: 90, windupMs: 480, activeMs: 90, recoveryMs: 500, radius: 5, poise: 1, leash: 400,
+                    keepDistance: [0, 18], group: 'pincer', backOffBelow: 30,
+                    attacks: [
+                        { name: 'Talon Rake', skill: 'Talon Rake', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 480, activeMs: 90, recoveryMs: 500, cooldownMs: 1300, blockCost: 8, useAt: [0, 20] },
+                        { name: 'Shrike Dive', skill: 'Shrike Dive', shape: 'line', reach: 80, width: 10, lunge: 72, windupMs: 560, activeMs: 120, recoveryMs: 700, cooldownMs: 3800, blockCost: 10, useAt: [24, 84] }
+                    ]
+                },
+                plumede: {
+                    boss: true, speed: 70, detect: 170, reach: 26, arcDeg: 120, windupMs: 520, activeMs: 100, recoveryMs: 560, radius: 9, poise: 7, leash: 500,
+                    giveUpMs: null, keepDistance: [16, 60], group: 'solo',
+                    attacks: [
+                        { name: 'Quick Flurry', skill: 'Quick Flurry', shape: 'arc', reach: 26, arcDeg: 120, cooldownMs: 2200, useAt: [0, 30],
+                            combo: [
+                                { windupMs: 520, activeMs: 90, recoveryMs: 160, blockCost: 10 },
+                                { windupMs: 480, activeMs: 90, recoveryMs: 160, blockCost: 10, reverse: true },
+                                { windupMs: 500, activeMs: 100, recoveryMs: 800, blockCost: 14 }
+                            ] },
+                        { name: 'Blink Feint', skill: 'Blink Feint', shape: 'line', reach: 120, width: 14, lunge: 110, windupMs: 580, activeMs: 130, recoveryMs: 760, cooldownMs: 4000, blockCost: 18, staggers: true, useAt: [34, 130] },
+                        // A fan of black feathers, edges like glass.
+                        { name: 'Razor Plumes', skill: 'Razor Plumes', shape: 'projectile', reach: 160, width: 10, projSpeed: 300, radius: 5, projectile: 'arcane', windupMs: 600, activeMs: 0, recoveryMs: 700, cooldownMs: 3600, blockCost: 14, useAt: [50, 170] },
+                        // A gale of feathers comes down on four spots at once.
+                        { name: 'Black Gale', skill: 'Black Gale', shape: 'ground', count: 4, radius: 18, leadMs: 250, windupMs: 900, activeMs: 220, recoveryMs: 900, cooldownMs: 7500, guardable: false, parryable: false, damageMult: 1.3, useAt: [30, 220] }
+                    ]
+                },
                 bjarki_grave_bound: {
                     boss: true, speed: 42, detect: 150, reach: 30, arcDeg: 140, windupMs: 660, activeMs: 130, recoveryMs: 720, radius: 10, poise: 10, hyperArmor: true, leash: 400,
                     giveUpMs: null, keepDistance: [0, 40], group: 'solo', frontalShield: { arcDeg: 80, damageTaken: 0.7 },
@@ -2133,6 +2280,44 @@
                                 // Two stars, the second where you stepped to.
                                 { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
                                   combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                            ] }
+                },
+                // The Second to Fourth Dominions' rulers: the post-Warden standard, each enraged in its own power.
+                beelzebub: {
+                    hpMult: 3.2, damageMult: 2.0,
+                    rage: { atHpPct: 0.6, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 40], windupStepSpeed: 50, punishHeal: 'Fold Through', openWith: 'Spatial Cut',
+                            notice: 'Beelzebub stops walking. From now on he is simply wherever he wants to be!',
+                            add: [
+                                // He folds the whole arena and steps across it.
+                                { name: 'Fold Through', skill: 'Rift Exchange', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 820, lockMs: 340, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 32, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
+                                // Two folds, the second where you stepped to.
+                                { name: 'Unfolding', skill: 'Folded Space', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
+                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                            ] }
+                },
+                slotos: {
+                    hpMult: 3.2, damageMult: 2.0,
+                    rage: { atHpPct: 0.6, speedMult: 1.7, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Unstoppable', openWith: 'Earthshaker',
+                            notice: 'Slotos shakes the slag off his hide and lowers his head. Nothing in the Dominion is going to stop him now!',
+                            add: [
+                                // Wall to wall, through anything.
+                                { name: 'Unstoppable', skill: 'Stampede', shape: 'line', reach: 320, width: 26, lunge: 300, windupMs: 880, lockMs: 360, activeMs: 320, recoveryMs: 1100, cooldownMs: 6000, blockCost: 36, knockbackPx: 28, staggers: true, parryable: false, useAt: [50, 330], damageMult: 1.2 },
+                                { name: 'Slag Rain', skill: 'Iron Hail', shape: 'ground', count: 2, radius: 28, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
+                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                            ] }
+                },
+                plumede: {
+                    hpMult: 3.2, damageMult: 2.0,
+                    rage: { atHpPct: 0.6, speedMult: 1.4, windupMult: 0.9, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 380, attackGapMs: 350, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 60, punishHeal: 'Stoop', openWith: 'Blink Feint',
+                            notice: 'Plumede sheds her cloak of feathers, and what is under it is faster still!',
+                            add: [
+                                // A falcon's stoop from one side of the Dominion to the other.
+                                { name: 'Stoop', skill: 'Blink Feint', shape: 'line', reach: 320, width: 18, lunge: 300, windupMs: 700, lockMs: 300, activeMs: 260, recoveryMs: 900, cooldownMs: 5500, blockCost: 28, staggers: true, parryable: false, useAt: [50, 330], damageMult: 1.2 },
+                                { name: 'Feather Storm', skill: 'Black Gale', shape: 'ground', count: 3, radius: 22, leadMs: 400, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.3, useAt: [0, 220],
+                                  combo: [{ windupMs: 860, activeMs: 220, recoveryMs: 200 }, { windupMs: 620, activeMs: 220, recoveryMs: 900 }] }
                             ] }
                 },
                 peat_king: {
@@ -2329,6 +2514,9 @@
             "Bride's Brooch": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { critChance: 0.04, magicDamage: 2 }, sellable: false, description: 'A silver brooch from a bride\'s grave. It is always cold, however long you hold it.' },
             // The First Dominion's ruler (CB2). CANDIDATE stats for Gauge, a step past Bjarki's ring.
             'Signet of the First Dominion': { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, intelligence: 2, maxHp: 14 }, sellable: false, description: 'A heavy ring of black iron with a falling star cut in its face. It pulls very slightly toward the ground, always.' },
+            'Signet of the Second Dominion': { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { agility: 2, intelligence: 2, maxHp: 12 }, sellable: false, description: 'A ring of violet glass with nothing in its setting. Look through the empty setting and the room behind it is a little too far away.' },
+            'Signet of the Third Dominion': { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 24 }, sellable: false, description: 'A thick band of hammered iron, still warm from the slag. It will not dent, and you have tried.' },
+            'Signet of the Fourth Dominion': { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { agility: 3, maxHp: 10 }, sellable: false, description: 'A thin black ring set with one black feather that never lies flat. It lifts when a blow is coming.' },
             "Bjarki's Arm Ring": { type: 'accessory', slot: 'accessory', rarity: 'rare', statModifiers: { strength: 2, maxHp: 12, def: 1 }, sellable: false, description: 'A twisted arm ring of grave-iron, heavy as a promise. It was a chieftain\'s before there was a Crown.' },
             'Apprentice Charm': { type: 'accessory', slot: 'accessory', rarity: 'uncommon', statModifiers: { intelligence: 1 }, sellable: true, sellPrice: 3, description: 'An etched brass charm.' },
             'Wild Herbs': { type: 'material', sellable: true, sellPrice: 1, description: 'Common healing herbs.' },
@@ -3190,6 +3378,12 @@
             "ash_hound": [4, "demon", "common"],
             "brimstone_brute": [4, "demon", "elite"],
             "lucifero": [5, "demon", "boss"],
+            "rift_stalker": [5, "demon", "common"],
+            "beelzebub": [6, "demon", "boss"],
+            "iron_carapace": [5, "demon", "elite"],
+            "slotos": [6, "demon", "boss"],
+            "feather_shrike": [5, "demon", "common"],
+            "plumede": [6, "demon", "boss"],
             "bjarki_grave_bound": [
                 4,
                 "undead",
@@ -3238,6 +3432,9 @@
         statusDefinitions['Drunk'] = { category: 'debuff', maxStacks: 1 };   // controls inverted
         enemies.crow_touched_warden.bossDrops = [{ item: 'Seal-Key of the First Echo', storyKey: 'item:crow_warden_memory_key' }];
         enemies.lucifero.bossDrops = [{ item: 'Signet of the First Dominion', storyKey: 'item:lucifero_signet' }];   // CB2's arena ruler
+        enemies.beelzebub.bossDrops = [{ item: 'Signet of the Second Dominion', storyKey: 'item:beelzebub_signet' }];
+        enemies.slotos.bossDrops = [{ item: 'Signet of the Third Dominion', storyKey: 'item:slotos_signet' }];
+        enemies.plumede.bossDrops = [{ item: 'Signet of the Fourth Dominion', storyKey: 'item:plumede_signet' }];
         for (const cls of Object.values(basePlayerClasses)) for (const id of cls.startingItems) {
             if (!Object.keys(itemDefinitions).some(name => name.toLowerCase() === id.toLowerCase()))
                 itemDefinitions[id] = { type: 'utility', bound: true, sellable: false, description: 'A personal keepsake or utility item.' };

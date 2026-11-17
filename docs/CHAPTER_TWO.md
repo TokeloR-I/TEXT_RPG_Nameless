@@ -79,12 +79,28 @@ game says so yet (the reveal timing is Tokelo's call).
   `contract <name>`); in a fight U merges for 20 s on a 60 s cooldown (6 / 18 turns in turn fights): the demon's mods
   apply and its three skills take the first bar slots. Two Qliphoth Resonance slots (`resonance <slot> <aspect>`;
   Nahemoth: +5% speed while merged). Kits built: Lucifero (gravity), Beelzebub (space), Slotos (toughness), Plumede
-  (agility). Only Lucifero's Dominion exists, so the other three contracts come only from the `bind_contract` cheat
-  until their arenas are built. Varkhiel, Nerezza, Zareth, Malachar and Morvath are later steps of the brief.
+  (agility). All four are earned in play (below); `bind_contract` stays as a cheat. Varkhiel, Nerezza, Zareth,
+  Malachar and Morvath are later steps of the brief.
+- **The Second, Third and Fourth Dominions** (`dominion_beelzebub`, `dominion_slotos`, `dominion_plumede`; Tokelo
+  2026-11-17: "you have freedom on the arenas, model them to how you see fit"): once `contract:lucifero` is set,
+  three rifts open in the First Dominion (west, east, south), one to each, in any order. Each is built like the
+  first: five waves in turn (flags `<ruler>_wave_1..5`), then the ruler (`<ruler>_ruler_beaten`), who kneels in
+  the binding circle; the grimoire binds him there (`contract:<ruler>`), and a rift in the north wall leads back.
+  - Second, **Beelzebub** (space): violet glass islands over a starless void. New mob: rift stalkers that blink in
+    and cut. He keeps his distance, cuts across it (Spatial Cut), steps through a fold (Rift Exchange), folds the
+    floor (Folded Space); signature Poison (Hollow Swarm). Drop: Signet of the Second Dominion.
+  - Third, **Slotos** (toughness): riveted iron plate between slag pits. New mob: iron carapaces with a shielded
+    front. He is a wall with a frontal shield (hit him from the side), Stampede charge, Iron Hail, Earthshaker;
+    signature Slow. Drop: Signet of the Third Dominion.
+  - Fourth, **Plumede** (agility): a pale ledge over a windy chasm. New mob: feather shrikes, fast and fragile.
+    She has no hyper armour (she can be staggered) but a three-hit Quick Flurry, Blink Feint, Razor Plumes and
+    Black Gale; signature Bleed. Drop: Signet of the Fourth Dominion.
+  - One painter for all four Dominions (`ui/scene-underworld.js`, themes `dominion_space`, `dominion_iron`,
+    `dominion_wind`). Numbers are candidates for Gauge, a step past Lucifero. Tests: `tests/109-dominions.test.js`.
 - **CB3 Demonkore's Mark** (`DEMONKORE_THIRD_CONTRACT_REVELATION_AND_FAVOR.md`): the ruler bound third (any order)
   recognises the mark on the grimoire (purchased / seals variants); at home James admits he is Demonkore and gives
   **Demonkore's Favor** (`demonkore_favor`): union duration x3, cooldown -30%, once.
-- Saves: `CONTENT_REVISION` 19 (catch-ups `devil_union_web`, `grimoire_origin`). A save that recruited James on the old easy invitation keeps him at home (catch-up
+- Saves: `CONTENT_REVISION` 20 (catch-ups `devil_union_web`, `grimoire_origin`; 20 adds the three Dominions, no catch-up needed). A save that recruited James on the old easy invitation keeps him at home (catch-up
   `james_terms_kept`). Tests: `tests/101-james-bard.test.js`, scene in `tests/63-original-art.test.js`.
 
 ## How it joins Chapter One
