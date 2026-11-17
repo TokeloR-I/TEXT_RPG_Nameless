@@ -52,24 +52,29 @@ law of twenty winters, who stands with whom, and how the tablet choice is read a
 Tokelo, 2026-11-13: a bard met in Chapter Two who joins you at your homestead. Tokelo, 2026-11-17: the quest line
 in `docs/design/JAMES_DEMONKORE_DEVIL_UNION_NARRATIVE_DESIGN.md`, now built. James IS Demonkore; nothing in the
 game says so yet (the reveal timing is Tokelo's call).
-- **CB1 A Bard Without His Lute:** James plays outside the Stormtide Inn (`skeldvik_james`), drumming on a cask
-  because his lute was stolen. He comes home only after both (any order): three music questions answered right
-  (wrong answers can be retried) and his lute back from **Sven** on the wharf (`skeldvik_sven`, 15,23), either
-  bought back for 40 Gold or claimed under harbour law by fetching Thora. Never a fight. Sven's motive is not
-  written (Tokelo's call). Then he moves to the well (`grounds_james`) and CB1 finishes.
-- **James's shop** (`shopDefinitions.james`): infernal tonics (Brimstone, Sulphur Salts, Hellfire Ash, Blackened
-  Resin; timed buffs, item use `tonic`), demon loot residue, and the **Binding Grimoire** at 100,000 Gold, sold
-  once. Every price and effect is a Gauge candidate.
+- **CB1 A Bard Without His Lute** (in order, director correction 2026-11-17): James plays outside the Stormtide Inn
+  (`skeldvik_james`), drumming on a cask, and says a wharf hand called **Sven** stole his lute. Sven (15,23) tells the
+  truth: James staked it at Hnefatafl and lost it fairly (backstory only, no Hnefatafl to play). The player picks
+  how to get it back: **buy** it (40 Gold), do Sven a **favour** (haul in his nets, `skeldvik_sven_nets` at 22,25), or
+  **roll** him for it (two d6 each from the seeded, saved rng, 5 Gold stake paid only on a lost roll, ties free; a
+  short purse is told so and other routes stay open). Then the lute goes back to James (calling out his lie is
+  optional, `james_lie_called`), he demands a **Mead** (Aslaug sells it; one already owned works), and only then asks
+  his three music questions (wrong answers retry). Then he moves to the well (`grounds_james`) and CB1 finishes.
+- **James's shop** (`shopDefinitions.james`): infernal tonics (Brimstone 14, Sulphur Salts 12, Hellfire Ash 20,
+  Blackened Resin 16; timed buffs, item use `tonic`, priced a little above a Mead), demon loot residue, and the
+  **Binding Grimoire** at 1,000,000 Gold (Tokelo), sold once.
 - **CB2 A Deal with Demonkore:** asking about the book starts it. Two routes, never both: buy the grimoire and
-  James opens the way below at once; or bring back three seals (Invocation on Frostspine Pass 4,16, Dominion on the
-  Gullstrand coast 52,14, Covenant in Hrafnholm 50,23; placements are candidates for Cairn/Tokelo) and he gives the
-  book free. He stays vague until all three are in. Either way a stair opens by the well (`grounds_underworld_stair`).
+  James opens the way below at once; or bring back three seals and he gives the book free. The seals (Tokelo: across
+  chapters 1 and 2, one in the homestead well): Invocation among the graves behind the Kloster (`kloster_seal`, 28,4),
+  Dominion on the Gullstrand shingle (`gullstrand_seal`, 52,14), Covenant at the bottom of the homestead well
+  (`well_seal`, 6,5). He stays vague until all three are in. Either way a stair opens by the well
+  (`grounds_underworld_stair`). The Demonkore reveal is Tokelo's to write.
 - **The First Dominion** (`underworld_arena`, painted by `ui/scene-underworld.js`): built without a picture by
   Tokelo's one-off permission (2026-11-17). Five demon waves (hell imps, ash hounds, brimstone brutes), each shown
   only when the last is beaten, then the ruler **Lucifero** (candidate first ruler, Dark Souls tier boss). Beaten,
   he kneels in the binding circle; opening the grimoire there seals the first contract (`devil_union_contract`,
   `contract:lucifero`) and finishes CB2. The Devil Union class itself comes in the follow-up PR.
-- Saves: `CONTENT_REVISION` 17. A save that recruited James on the old easy invitation keeps him at home (catch-up
+- Saves: `CONTENT_REVISION` 18. A save that recruited James on the old easy invitation keeps him at home (catch-up
   `james_terms_kept`). Tests: `tests/101-james-bard.test.js`, scene in `tests/63-original-art.test.js`.
 
 ## How it joins Chapter One

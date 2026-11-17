@@ -317,10 +317,10 @@
         // order. The objective ids and order are unchanged so a save mid-quest keeps its step.
         CB1: {
             title: 'A Bard Without His Lute', kind: 'side', xp: 20, candidate: true,
-            summary: "A southern bard sings outside the Stormtide Inn with no instrument. He'll follow you home, he says, for three right answers and the lute a man called Sven took from him.",
+            summary: "A southern bard sings outside the Stormtide Inn with no instrument. He'll follow you home, he says, once you get back the lute he swears a wharf hand called Sven stole.",
             objectives: [
                 { id: 'meet', text: 'Listen to the bard outside the Stormtide Inn', on: { type: 'story', id: 'james_met' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
-                { id: 'invite', text: "Win James over: answer his three questions, and get his lute back from Sven", on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
+                { id: 'invite', text: "Win James over: his lute back from Sven, a Mead, then his three questions", on: { type: 'story', id: 'james_recruited' }, marker: { map: 'skeldvik', x: 29, y: 10 } },
                 { id: 'home', text: 'Find James at your homestead', on: { type: 'story', id: 'james_home' }, marker: { map: 'grounds', x: 26, y: 9 } }
             ],
             onComplete: []
@@ -1990,16 +1990,20 @@
     // never names the Devil Union, the nine rulers or the contract rules before the way below is open.
     const SEALS = ['Seal of Invocation', 'Seal of Dominion', 'Seal of Covenant'];
     const RIDDLES_DONE = { flags: ['james_riddle_1', 'james_riddle_2', 'james_riddle_3'] };
-    // Both of James's terms met, in either order: the encore and the move home come next (the talk table checks it).
-    const TERMS_MET = { flags: ['james_riddles_done', 'james_lute_returned'], notFlags: ['james_recruited'] };
+    // CB1 in order (design §2, corrected 2026-11-17): the lute back, then a Mead, then the three questions. All three
+    // done: the encore and the move home come next (the talk table checks it).
+    const TERMS_MET = { flags: ['james_riddles_done', 'james_lute_returned', 'james_mead_given'], notFlags: ['james_recruited'] };
     const RIDDLE_OK = (n, text) => [{ flag: `james_riddle_${n}` }, { flag: 'james_riddles_done', when: RIDDLES_DONE },
         { say: text }];
     // Four answers per question; a wrong answer sends you back to the same question (design: retryable).
     const RIDDLE = (n, right, answers) => answers.map((a, i) => (i === right ? { text: a, to: `right_${n}` } : { text: a, to: `wrong_${n}` }));
     const TERMS = [
-        { text: 'Ask me your questions.', if: { notFlags: ['james_riddles_done'] }, to: 'q1' },
+        { text: "Sven didn't steal your lute. You lost it at Hnefatafl.", if: { items: ["James's Lute"], flags: ['sven_story_heard'] }, to: 'confront' },
         { text: 'Here is your lute.', if: { items: ["James's Lute"] }, to: 'lute_back' },
         { text: 'Where is your lute now?', if: { notFlags: ['james_lute_returned'] }, to: 'lute_where' },
+        { text: 'Here is your Mead.', if: { flags: ['james_lute_returned'], notFlags: ['james_mead_given'], items: ['Mead'] }, to: 'mead' },
+        { text: 'Where do I find Mead?', if: { flags: ['james_lute_returned'], notFlags: ['james_mead_given'] }, to: 'mead_where' },
+        { text: 'Ask me your questions.', if: { flags: ['james_mead_given'], notFlags: ['james_riddles_done'] }, to: 'q1' },
         { text: 'Goodbye.', end: true }
     ];
     const JAMES_HOME = [
@@ -2015,6 +2019,14 @@
     // The way below opens (both routes end here). The stair stands by the well (grounds_underworld_stair).
     const OPEN_BELOW = [{ flag: 'grimoire_obtained' }, { flag: 'underworld_opened' }, { start: 'CB2' },
         { event: { type: 'story', id: 'demonkore_heard' } }, { event: { type: 'story', id: 'grimoire_obtained' } }, { event: { type: 'story', id: 'underworld_opened' } }];
+    const SVEN_GIVES = [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }];
+    const SVEN_OFFER = [
+        { text: 'What would you take for it?', to: 'terms' },
+        { text: 'Buy it back (40 Gold).', if: { gold: 40 }, effects: [{ pay: 40 }], to: 'paid' },
+        { text: 'Is there a favour I could do you instead?', if: { notFlags: ['sven_favour_asked'] }, to: 'favour' },
+        { text: 'Roll you for it (5 Gold stake).', effects: [{ dice: { stake: 5, win: 'sven_dice_won' } }], to: 'dice' },
+        { text: 'Not now.', end: true }
+    ];
     Object.assign(npcs, {
         james: {
             name: 'James', title: 'Bard',
@@ -2066,34 +2078,59 @@
                     ],
                     choices: [{ text: 'There is room at my homestead, if you want it.', to: 'invite' }, { text: 'Goodbye.', end: true }]
                 },
-                // CB1 (design §2): the terms. Either half can be done first.
+                // CB1 (design §2): the terms, in order. James says Sven stole the lute; he lost it to Sven at Hnefatafl.
                 invite: {
                     lines: [['npc', "A room at your homestead? How generous."], ['npc', "But I don't follow every passing stranger."]],
                     choices: [{ text: 'What will convince you?', to: 'terms' }]
                 },
                 terms: {
                     lines: [
-                        ['npc', "Three questions, and one instrument that belongs in my hands."],
-                        ['npc', "Answer my three music questions. And a man called Sven has my lute; he's still on the wharf, by the shipyard lane."]
+                        ['npc', "First, a small matter of my missing lute. Then perhaps we'll talk."],
+                        ['npc', "A wharf hand called Sven stole it from me. He's still down by the shipyard lane, the scoundrel."]
                     ],
                     effects: [{ flag: 'james_terms' }],
                     choices: TERMS
                 },
                 terms_again: {
-                    lines: [['npc', "Three answers and one lute, that's the price of me. I'm cheap, but I'm not free."]],
+                    lines: [['npc', "My lute first, then we'll see. I'm cheap, but I'm not free."]],
                     choices: TERMS
                 },
                 lute_where: {
-                    lines: [['npc', "Sven has it, down the shipyard lane by the barrels. I asked for it nicely, which is the only way I know how to ask."]],
+                    lines: [['npc', "Sven has it, down the shipyard lane by the barrels. Stolen in broad daylight, practically."]],
                     choices: TERMS
+                },
+                // Calling out the lie is optional and blocks nothing (flag kept for later trust or dialogue).
+                confront: {
+                    lines: [['npc', "A cruelly selective account of the evening."]],
+                    choices: [{ text: 'You lied to me.', to: 'confront_2' }, { text: 'Never mind. Here is your lute.', to: 'lute_back' }]
+                },
+                confront_2: {
+                    lines: [['npc', "I preferred to call it an arrangement of the facts."]],
+                    effects: [{ flag: 'james_lie_called' }],
+                    choices: [{ text: 'Here is your lute.', to: 'lute_back' }]
                 },
                 lute_back: {
                     lines: [
                         [null, 'James takes the lute in both hands and turns it over, looking for scratches. He finds one, and decides to forgive it.'],
-                        ['npc', "My darling."], ['npc', "Did he play you? No, don't tell me."]
+                        ['npc', "Oh, wonderful! My precious lute!"],
+                        ['npc', "To repay your kind deed, I shall allow you to buy me a round of Mead for your hard work."]
                     ],
                     effects: [{ removeItem: "James's Lute" }, { flag: 'james_lute_returned' }],
-                    choices: [{ text: 'Ask me your questions.', if: { notFlags: ['james_riddles_done'] }, to: 'q1' }, { text: 'So, the homestead?', if: { flags: ['james_riddles_done'] }, to: 'encore' }, { text: 'Goodbye.', end: true }]
+                    choices: [{ text: '*My* hard work?', to: 'mead_ask' }]
+                },
+                mead_ask: {
+                    lines: [['npc', "Naturally. I would hate to deprive you of the pleasure of generosity."]],
+                    choices: TERMS
+                },
+                mead_where: {
+                    lines: [['npc', "Aslaug pours it at the bar inside the Stormtide, and she pours it honest. One cup will do, for now."]],
+                    choices: TERMS
+                },
+                mead: {
+                    lines: [[null, 'James drinks half the cup in one go, then the other half more slowly, as if it were a song he wanted to last.'],
+                        ['npc', "Now I can think. Three questions, and you may answer at your leisure."]],
+                    effects: [{ removeItem: 'Mead' }, { flag: 'james_mead_given' }],
+                    choices: [{ text: 'Ask me your questions.', if: { notFlags: ['james_riddles_done'] }, to: 'q1' }, { text: 'So, the homestead?', if: { flags: ['james_riddles_done'] }, to: 'encore' }]
                 },
                 // The three music questions (design §2; Q1 references Iron Maiden's "Dance of Death", answer paraphrased).
                 q1: {
@@ -2121,22 +2158,17 @@
                     choices: RIDDLE(3, 1, ['A horn.', 'A lute.', 'A drum.', 'A bell.'])
                 },
                 right_3: {
-                    lines: [['npc', "Exactly. And my own has been stolen."]],
+                    lines: [['npc', "Ah, a musician's answer. Perhaps your ears are worth keeping."]],
                     effects: RIDDLE_OK(3, '(Three of three.)'),
-                    choices: [
-                        { text: 'Here is your lute.', if: { items: ["James's Lute"] }, to: 'lute_back' },
-                        { text: 'So, the homestead?', if: { flags: ['james_lute_returned'] }, to: 'encore' },
-                        { text: 'Where is your lute now?', if: { notFlags: ['james_lute_returned'] }, to: 'lute_where' },
-                        { text: 'Goodbye.', end: true }
-                    ]
+                    choices: [{ text: 'So, the homestead?', to: 'encore' }]
                 },
                 wrong_3: { lines: [['npc', "Close, but no. It's the thing I haven't got."]], choices: [{ text: 'Ask me again.', to: 'q3' }, { text: 'Later.', end: true }] },
                 encore: {
-                    lines: [['npc', "Three answers and my darling lute. You've earned an encore."]],
-                    choices: [{ text: 'The homestead?', to: 'recruit' }]
+                    lines: [['npc', "My lute restored, my thirst quenched, and three fine answers."], ['npc', "Perhaps your homestead deserves a bard."]],
+                    choices: [{ text: "You'll come, then?", to: 'recruit' }]
                 },
                 recruit: {
-                    lines: [['npc', "Lead on. I'll make the journey sound heroic in the next song."]],
+                    lines: [['npc', "With pleasure. Do try to keep a little Mead in stock."]],
                     effects: [{ flag: 'james_recruited' }, { event: { type: 'story', id: 'james_recruited' } }],
                     choices: [{ text: 'See you there.', end: true }]
                 },
@@ -2187,8 +2219,8 @@
                 },
                 seals_where: {
                     lines: [
-                        ['npc', "One under the firs at the bottom of the Frostspine Pass, where the old road bends west. One on the shingle at Gullstrand, past the sea stacks."],
-                        ['npc', "And one in Hrafnholm, in the corner past the cloudberries where the rock closes in. In any order you like."]
+                        ['npc', "One among the graves behind the Kloster, back where you started. One on the shingle at Gullstrand, past the sea stacks."],
+                        ['npc', "And one closer than you'd think: the bottom of your own well. In any order you like."]
                     ],
                     effects: [{ flag: 'seal_hunt' }],
                     choices: JAMES_HOME
@@ -2262,46 +2294,76 @@
         // ------------------------------------------------------------- Sven, who has James's lute (CB1)
         // New NPC (design §2). His reason for taking it is NOT written yet (don't invent one as canon). Both ways to get the
         // lute back are non-lethal: buy it back, or invoke harbour law. He stays in Skeldvik afterwards.
+        // Sven (design §2, director correction 2026-11-17): an ordinary wharf hand, not a thief. James staked the lute on a
+        // game of Hnefatafl and lost it fairly. The player picks how to get it back: buy it, do Sven a favour (haul his
+        // nets in), or win it on the dice (two d6 each, stake lost only on a lost roll). Prices and stake are Gauge candidates.
         sven: {
             name: 'Sven', title: 'Wharf hand',
-            talk: [{ if: { flags: ['james_lute_recovered'] }, node: 'after' }, { node: 'wharf' }],
+            talk: [
+                { if: { flags: ['james_lute_recovered'] }, node: 'after' },
+                { if: { flags: ['sven_dice_won'] }, node: 'dice_won' },
+                { if: { flags: ['sven_nets_hauled'] }, node: 'favour_done' },
+                { if: { flags: ['sven_story_heard'] }, node: 'offer' },
+                { node: 'wharf' }
+            ],
             nodes: {
                 wharf: {
                     lines: [['npc', "Sven. If you're buying, I'm selling; if you're not, the wharf's wide."]],
                     choices: [
-                        { text: "That lute you've got belongs to James the bard.", if: { flags: ['james_terms'] }, to: 'claim' },
-                        { text: 'What are you selling?', to: 'selling' },
+                        { text: 'James says you stole his lute.', if: { flags: ['james_terms'] }, to: 'story' },
                         { text: 'Goodbye.', end: true }
                     ]
                 },
-                selling: {
-                    lines: [['npc', "Today? One lute, southern make, very sweet in the high strings."], ['npc', "Found it, as far as anyone can prove."]],
-                    choices: [{ text: "It belongs to James the bard.", if: { flags: ['james_terms'] }, to: 'claim' }, { text: 'Goodbye.', end: true }]
+                story: {
+                    lines: [['npc', "Stole it? He put it on the table himself."]],
+                    choices: [{ text: 'What table?', to: 'story_2' }]
                 },
-                claim: {
-                    lines: [['npc', "Belongs is a big word on a wharf. It's mine now, and it can be yours, for forty in silver."]],
-                    choices: [
-                        { text: 'Here are forty Gold.', if: { gold: 40 }, effects: [{ pay: 40 }], to: 'paid' },
-                        { text: "Shall I fetch Thora? Harbour law has a word for this.", to: 'law' },
-                        { text: 'Not now.', end: true }
-                    ]
+                story_2: {
+                    lines: [['npc', "Hnefatafl. He played the king, and his king never escaped the board."],
+                        [null, 'Sven lifts a southern lute out of a sea chest, wrapped in a good shirt that is plainly not his.']],
+                    effects: [{ flag: 'sven_story_heard' }],
+                    choices: SVEN_OFFER
+                },
+                offer: {
+                    lines: [['npc', "Still after the bard's lute? It's mine fair and square, but I'm a reasonable man."]],
+                    choices: SVEN_OFFER
+                },
+                terms: {
+                    lines: [['npc', "Forty Gold buys it outright. Or haul my nets in off the wharf and call it a trade."],
+                        ['npc', "Or roll me for it: two dice each, five Gold on the table, ties roll again."]],
+                    choices: SVEN_OFFER
                 },
                 paid: {
                     lines: [[null, 'Sven counts the coins twice, then hands the lute over as if it might bite.'], ['npc', "Pleasure. Tell your bard he tunes it too sharp."]],
-                    effects: [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }],
+                    effects: SVEN_GIVES,
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
-                law: {
-                    lines: [
-                        ['npc', "Thora, of course. She'd have me stood on the wharf in front of everyone by noon."],
-                        [null, 'He looks at the reeve\'s post up on the terrace for a long moment, then hands you the lute, strings first.'],
-                        ['npc', "Take it. Tell your bard he tunes it too sharp."]
-                    ],
-                    effects: [{ item: "James's Lute", key: 'item:james_lute' }, { flag: 'james_lute_recovered' }],
+                favour: {
+                    lines: [['npc', "My nets are drying at the end of the wharf and the tide's on the turn. Haul them in and the lute's yours."]],
+                    effects: [{ flag: 'sven_favour_asked' }],
+                    choices: [{ text: "I'll see to it.", end: true }]
+                },
+                favour_done: {
+                    lines: [['npc', "Nets in, and not one of them tangled. A deal's a deal."], [null, 'He hands you the lute, strings first.']],
+                    effects: SVEN_GIVES,
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                dice: {
+                    lines: [[null, 'Sven scoops the dice back into his hand.'], ['npc', "Dice don't lie, which is more than I can say for your bard."]],
+                    choices: [
+                        { text: 'Take the lute.', if: { flags: ['sven_dice_won'] }, to: 'dice_won' },
+                        { text: 'Roll again (5 Gold stake).', if: { notFlags: ['sven_dice_won'] }, effects: [{ dice: { stake: 5, win: 'sven_dice_won' } }], to: 'dice' },
+                        { text: 'Something else, then.', if: { notFlags: ['sven_dice_won'] }, to: 'offer' },
+                        { text: 'Leave it for now.', if: { notFlags: ['sven_dice_won'] }, end: true }
+                    ]
+                },
+                dice_won: {
+                    lines: [['npc', "Fair's fair. Take it, and tell him to stick to songs."]],
+                    effects: SVEN_GIVES,
                     choices: [{ text: 'Goodbye.', end: true }]
                 },
                 after: {
-                    lines: [['npc', "No more lutes, if that's what you're after. Try me next week."]],
+                    lines: [['npc', "No more lutes. Tell James his king still hasn't escaped."]],
                     choices: [{ text: 'Goodbye.', end: true }]
                 }
             }
@@ -2974,9 +3036,12 @@
             { say: n < 5 ? `The last of them falls into the ash and is gone. Somewhere across the floor, the lava heaves again. (Wave ${n} of 5.)` : 'The last horde is ash. In the middle of the arena the air begins to fold downward, toward the circle. (Wave 5 of 5.)', important: true }] })),
         { id: 'cb2_ruler', on: { type: 'defeat', id: 'underworld_arena_ruler' }, effects: [{ flag: 'underworld_ruler_beaten' },
             { say: 'Lucifero goes down on one knee in the binding circle and stays there. The floor stops leaning. In your pack, the grimoire has gone warm.', important: true }] },
+        // CB1: Sven's favour, hauling his nets in off the wharf (one of three ways to get the lute back).
+        { id: 'cb1_sven_nets', on: { type: 'inspect', id: 'skeldvik_sven_nets' }, if: { flags: ['sven_favour_asked'] }, effects: [
+            { flag: 'sven_nets_hauled' }, { say: 'You haul Sven\'s nets up the wharf hand over hand, wet and heavy, and stack them by his sea chest before the tide reaches them.', important: true }] },
         // CB2's free route: the three seals (design §4, Route B). Each is a short find on a map you already know, in any
-        // order, shown only once James has sent you looking. Placements are proposals for Cairn and Tokelo.
-        ...[['frostspine_seal', 'Seal of Invocation', 'seal_invocation'], ['gullstrand_seal', 'Seal of Dominion', 'seal_dominion'], ['hrafnholm_seal', 'Seal of Covenant', 'seal_covenant']]
+        // order, shown only once James has sent you looking: the Kloster graveyard (Ch1), Gullstrand (Ch2), the homestead well.
+        ...[['kloster_seal', 'Seal of Invocation', 'seal_invocation'], ['gullstrand_seal', 'Seal of Dominion', 'seal_dominion'], ['well_seal', 'Seal of Covenant', 'seal_covenant']]
             .map(([id, item, flag]) => ({ id: `cb2_${flag}`, on: { type: 'inspect', id }, if: { flags: ['seal_hunt'] }, effects: [
                 { flag }, { item, key: `item:${flag}` },
                 { say: 'Three seals. James will want to see them.', important: true, when: { flags: ['seal_invocation', 'seal_dominion', 'seal_covenant'] } }] })),
@@ -3153,7 +3218,7 @@
             // lute count as done, and the lute is in his hands. A save that heard the old fire story about Demonkore has
             // already "asked about the book" (same event), so James's job offer is waiting for it.
             { id: 'james_terms_kept', if: { flags: ['james_recruited'] }, effects: [{ flag: 'james_terms' }, { flag: 'james_riddles_done' },
-                { flag: 'james_riddle_1' }, { flag: 'james_riddle_2' }, { flag: 'james_riddle_3' }, { flag: 'james_lute_recovered' }, { flag: 'james_lute_returned' }] },
+                { flag: 'james_riddle_1' }, { flag: 'james_riddle_2' }, { flag: 'james_riddle_3' }, { flag: 'james_lute_recovered' }, { flag: 'james_lute_returned' }, { flag: 'james_mead_given' }] },
             { id: 'c206_after_bjarki', if: { quests: { C205: 'complete', C206: 'unseen' } }, effects: [{ start: 'C206' }] }] };
 
     (ENSO.story || (ENSO.story = {})).chapter2 = chapter2;

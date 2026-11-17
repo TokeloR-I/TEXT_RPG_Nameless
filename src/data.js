@@ -3230,11 +3230,13 @@
                     "Charcoal-Burner's Staff": { buyPrice: 48, quantity: 1, classes: ['mage'] }, 'Slag-Glass Wand': { buyPrice: 48, quantity: 1, classes: ['necromancer'] },
                     'Padded Jerkin': { buyPrice: 12, quantity: 2 },
                     'Bog Iron': { buyPrice: 6, quantity: 15 }, ...armorStock('hird', 'fjord_hunter', 'runesinger', 'gravebound') } },
-                // James at the homestead (CB1/CB2 design §3): ordinary wares, unusually infernal. Prices are CANDIDATES for Gauge.
-                // The Binding Grimoire's price is the director's illustrative placeholder (100,000 Gold), not a balance target.
-                james: { stock: { 'Brimstone': { buyPrice: 18, quantity: 6 }, 'Sulphur Salts': { buyPrice: 15, quantity: 6 }, 'Hellfire Ash': { buyPrice: 24, quantity: 4 },
-                    'Blackened Resin': { buyPrice: 20, quantity: 4 }, 'Otherworld Residue': { buyPrice: 12, quantity: 6 }, 'Abyssal Ash': { buyPrice: 10, quantity: 6 },
-                    'Binding Grimoire': { buyPrice: 100000, quantity: 1, notFlags: ['grimoire_obtained'] } } },
+                // James at the homestead (CB1/CB2 design §3): ordinary wares, unusually infernal. Team pricing (Tokelo asked the team
+                // to set it, 2026-11-17): each tonic sits a little above a Mead (8 Gold, a stronger buff that also heals but gets you
+                // drunk), so they are a sober, specialised choice rather than the default. The Binding Grimoire costs 1,000,000 Gold
+                // (Tokelo, 2026-11-17): deliberately absurd, so the seals are the real way to it.
+                james: { stock: { 'Brimstone': { buyPrice: 14, quantity: 6 }, 'Sulphur Salts': { buyPrice: 12, quantity: 6 }, 'Hellfire Ash': { buyPrice: 20, quantity: 4 },
+                    'Blackened Resin': { buyPrice: 16, quantity: 4 }, 'Otherworld Residue': { buyPrice: 12, quantity: 6 }, 'Abyssal Ash': { buyPrice: 10, quantity: 6 },
+                    'Binding Grimoire': { buyPrice: 1000000, quantity: 1, notFlags: ['grimoire_obtained'] } } },
                 gudrun: { stock: { 'Mutton': { buyPrice: 5, quantity: 8 }, 'Skyr': { buyPrice: 4, quantity: 8 }, 'Sour Cream': { buyPrice: 3, quantity: 8 },
                     'Butter': { buyPrice: 3, quantity: 8 }, 'Flour': { buyPrice: 3, quantity: 8 }, 'Potato': { buyPrice: 2, quantity: 10 }, 'Cabbage': { buyPrice: 2, quantity: 10 } } }
             }, constructionDefinitions: {

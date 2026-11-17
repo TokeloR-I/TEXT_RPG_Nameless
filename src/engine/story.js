@@ -114,6 +114,8 @@
         //   { stance: id }: stand in that stance of your legendary web (Fenrir's Heir's first wolf, src/engine/stance.js)
         //   { rest: true }: a full night's rest (the homestead bed); { stash: true }: this conversation offers the stash
         //   { pay: n }: hand over n Gold from your purse (gate the choice with the condition `gold: n`; never goes below 0)
+        //   { dice: { stake, win } }: a wager on two six-sided dice each, from the seeded saved rng (Sven's lute, CB1):
+        //   higher total wins, ties roll again for free, a loss pays the stake once; a win sets the flag `win`
         //   any effect may carry `when` (a condition): it runs only if that holds right now (an ending that remembers
         //   which choice you made, without a branch node for every combination)
         // =====================================================================
@@ -131,6 +133,7 @@
                 if (e.removeItem) { const i = this.player.inventory.indexOf(e.removeItem); if (i !== -1) this.player.inventory.splice(i, 1); }
                 if (e.gold) this.storyGold(e.gold, e.key);
                 if (e.pay) this.storyPay(e.pay);
+                if (e.dice) this.storyDice(e.dice);
                 if (e.shop) this.storyShop(e.shop);
                 if (e.construction && this.story.dialogue) this.story.dialogue.construction = e.construction;
                 if (e.construction) this.storyConstruction(e.construction);
@@ -159,6 +162,24 @@
             this.player.gold -= gold;
             this.say(`Paid: ${gold} Gold.`, { important: true, notice: 'item' });
             return true;
+        }
+
+        /** Two dice each against an NPC (CB1: Sven stakes James's lute against your Gold). Every roll is shown; a tie
+         *  rolls again at no cost. Win: the flag `win` is set (the dialogue hands over the prize). Lose: the stake is paid
+         *  once. Uses the engine's seeded rng, which the save keeps, so the result is a real roll and not scripted. */
+        storyDice({ stake, win, who = 'Sven' }) {
+            if (!Number.isSafeInteger(stake) || stake <= 0 || !win) throw new Error('Invalid authored dice wager');
+            if (!this.player || !(this.player.gold >= stake)) { this.refuse('NOT_ENOUGH_GOLD', `Not enough Gold for the stake (${stake}).`); return false; }
+            const d6 = () => 1 + Math.floor(this.rng() * 6);
+            for (let i = 0; i < 50; i++) {
+                const a = [d6(), d6()], b = [d6(), d6()], ta = a[0] + a[1], tb = b[0] + b[1];
+                this.say(`You roll ${a[0]} and ${a[1]} (${ta}). ${who} rolls ${b[0]} and ${b[1]} (${tb}).`, { important: true });
+                if (ta === tb) { this.say('A tie. You roll again, free.'); continue; }
+                if (ta > tb) { if (!this.story.flags.includes(win)) this.story.flags.push(win); this.say('You win the wager.', { important: true }); return true; }
+                this.storyPay(stake);
+                return false;
+            }
+            return false;
         }
 
         /** What a merchant sells (Rook's shopDefinitions; buying is his `buy <shop> <item>` rule). */

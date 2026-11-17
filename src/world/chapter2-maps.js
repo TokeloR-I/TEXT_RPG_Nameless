@@ -140,8 +140,6 @@
                 { id: 'frostspine_cairn', kind: 'inspect', x: 26, y: 7, name: 'Travellers\' cairn',
                     text: 'A cairn at the top of the pass. Everyone who crosses adds a stone. You find you have picked one up without deciding to.' },
                 // CB2 free route (James's seals): only there once he has sent you looking.
-                { id: 'frostspine_seal', kind: 'inspect', x: 4, y: 16, name: 'Iron disc in the snow', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_invocation'] },
-                    text: 'Half buried under the firs where the old road bends west: a disc of black iron the size of your palm, cut with a ring of signs. The snow around it has melted in a perfect circle.' },
                 { id: 'frostspine_herbs', kind: 'forage', forage: 'wild_herbs', x: 6, y: 14, name: 'Wild herbs', sprite: 'herbs',
                     text: 'Yarrow in the lee of the firs, the last green thing before the rock.' },
                 // The Hrimvald kitchen (2026-11-13): berries and juniper on the fells; they grow back.
@@ -269,6 +267,10 @@
                     looks: [{ when: { flags: ['james_lute_returned'] }, sprite: 'bard' }] },
                 // Sven, who has James's lute (CB1): down the shipyard lane by the barrels.
                 { id: 'skeldvik_sven', kind: 'npc', npc: 'sven', x: 15, y: 23, name: 'Sven', sprite: 'wharf_hand' },
+                // CB1: Sven's nets, out only while his favour is asked and not yet done (one way to win James's lute back).
+                { id: 'skeldvik_sven_nets', kind: 'inspect', x: 22, y: 25, name: "Sven's nets", sprite: 'net_pile',
+                    when: { flags: ['sven_favour_asked'], notFlags: ['sven_nets_hauled'] },
+                    text: 'Nets spread to dry at the end of the wharf, heavy with the last tide. The water is already licking at their edges.' },
                 { id: 'skeldvik_bell', kind: 'inspect', x: 39, y: 4, name: 'Harbour bell',
                     text: 'A bronze bell under its own small roof, green with salt, on a terrace of fitted stone above the wharf. It is rung for fog and for ships that are late. The rope is worn smooth at the height of a hand. You put yours where all the others have been.' },
                 { id: 'skeldvik_memorial', kind: 'inspect', x: 12, y: 8, name: 'Memorial stone',
@@ -509,8 +511,6 @@
                 { id: 'hrafnholm_gudrun', kind: 'npc', npc: 'gudrun', x: 33, y: 15, name: 'Gudrun', sprite: 'shepherd' },
                 { id: 'hrafnholm_feast_fire', kind: 'station', station: 'feast_fire', verb: 'Cook at', x: 38, y: 16, name: 'Feast fire', sprite: 'cookfire' },
                 // CB2 free route (James's seals): only there once he has sent you looking.
-                { id: 'hrafnholm_seal', kind: 'inspect', x: 50, y: 23, name: 'Iron disc in the corner', sprite: 'sigil', when: { flags: ['seal_hunt'], notFlags: ['seal_covenant'] },
-                    text: 'In the corner past the cloudberry bushes where the rock closes in, under a drift of old straw: a disc of black iron cut with a ring of signs. Nobody in Hrafnholm will admit to having seen it.' },
                 { id: 'hrafnholm_lingonberries', kind: 'forage', forage: 'lingonberries', x: 46, y: 9, name: 'Lingonberries', sprite: 'lingonberries',
                     text: 'Lingonberries under the firs above the houses.' },
                 { id: 'hrafnholm_cloudberries', kind: 'forage', forage: 'cloudberries', x: 46, y: 23, name: 'Cloudberries', sprite: 'cloudberries',
@@ -1695,7 +1695,18 @@
         spawn: { from_frostspine: { x: 30, y: 9, facing: 'left' } }
     };
 
-    const chapter2Maps = { zones, maps, road, grounds };
+    // CB2's seals outside Chapter Two (Tokelo, 2026-11-17: "in different parts of chapter 1 and 2 and one in the well in
+    // the homestead"). Invocation lies in the Kloster's graveyard (Chapter One), Dominion on the Gullstrand shingle (above),
+    // Covenant at the bottom of the homestead well. Shown only once James has sent you looking.
+    const seals = [
+        { map: 'briarwell_cloister_court', obj: { id: 'kloster_seal', kind: 'inspect', x: 28, y: 4, name: 'Iron disc among the graves', sprite: 'sigil',
+            when: { flags: ['seal_hunt'], notFlags: ['seal_invocation'] },
+            text: 'Pressed into the turf between two nameless graves at the back of the Kloster yard: a disc of black iron cut with a ring of signs. The grass around it has died in a perfect circle, and the monks have mown round it for years.' } },
+        { map: 'well', obj: { id: 'well_seal', kind: 'inspect', x: 6, y: 5, name: 'Iron disc in the silt', sprite: 'sigil',
+            when: { flags: ['seal_hunt'], notFlags: ['seal_covenant'] },
+            text: 'Under the silt at the bottom of your own well, where the water never quite reaches: a disc of black iron cut with a ring of signs. It is warm to the touch. It has been here longer than the house.' } }
+    ];
+    const chapter2Maps = { zones, maps, road, grounds, seals };
     (ENSO.world || (ENSO.world = {})).chapter2Maps = chapter2Maps;
     if (isNode) module.exports = chapter2Maps;
 })(typeof window !== 'undefined' ? window : globalThis);
