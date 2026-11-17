@@ -37,6 +37,24 @@
     // Conditions an enemy can put on you (Bleed, Poison, Burn, Slow): their own glyph and colour (world.css .cond-*), so
     // a wolf's bleed reads differently from a bog light's poison at a glance.
     const CONDITION = { Bleed: { glyph: '♦', key: 'bleed' }, Poison: { glyph: '◉', key: 'poison' }, Burn: { glyph: '✹', key: 'burn' }, Slow: { glyph: '≈', key: 'slow' } };
+    /** 12×12 pixel art from rows of palette keys ('.' = clear): one <rect> per run of a colour. */
+    function pixelSvg(rows, pal) {
+        let r = '';
+        rows.forEach((row, y) => { for (let x = 0; x < row.length;) { const k = row[x]; let n = 1; while (row[x + n] === k) n++; if (pal[k]) r += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${pal[k]}"/>`; x += n; } });
+        return `<svg viewBox="0 0 12 12" width="1.4em" height="1.4em" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+    }
+    // Tokelo 2026-11-17: conditions as pictures. Bleed a red blood drop, Poison a green skull, Burn a flame, Slow a
+    // sluggish stick man (hunched, arms hanging, feet dragging).
+    const CONDITION_SVG = {
+        bleed: pixelSvg(['.....RR.....', '.....RR.....', '....RRRR....', '....RRRR....', '...RRRRRR...', '...RHRRRRR..', '..RHHRRRRR..', '..RHRRRRRR..', '..RRRRRRRR..', '..DRRRRRRD..', '...DRRRRD...', '....DDDD....'],
+            { R: '#e0302a', H: '#ff9a8a', D: '#8a1410' }),
+        poison: pixelSvg(['...GGGGGG...', '..GGGGGGGG..', '.GGGGGGGGGG.', '.GHGGGGGGGG.', '.GKKGGGKKGG.', '.GKKGGGKKGG.', '.GGGGKGGGGG.', '..GGGGGGGG..', '...GKGKGG...', '...GGGGGG...', '....D.D.....', '............'],
+            { G: '#7ccf4a', H: '#c8f0a0', K: '#10200a', D: '#3e7a22' }),
+        burn: pixelSvg(['.....O......', '....OO......', '....OOO..O..', '...OOOO.OO..', '..OOOYOOOO..', '..OOYYYOOO..', '.OOYYYYYOOO.', '.OOYYWYYYOO.', '.OOYYWWYYOO.', '.OOYYWWYYOO.', '..OOYYYYOO..', '...DDDDDD...'],
+            { O: '#f07020', Y: '#ffc040', W: '#fff4c0', D: '#b03a10' }),
+        slow: pixelSvg(['............', '......BB....', '......BB....', '.....B......', '....BBB.....', '...B.B.B....', 'L.B..B..B...', '.....B......', 'L...B.B.....', '....B..B....', 'L..B...B....', '.BB.....BB..'],
+            { B: '#70b8ff', L: '#3a6a9a' })
+    };
     const TARGET_GLYPH = { self: '◈', ally: '◈', enemy_single: '✦', enemy_all: '✺', enemy_aoe: '✺', all: '✺' };
     const NOTICE_MS = 3600;
     const NOTICE_MAX = 4;
@@ -471,6 +489,7 @@
                 attr(e.el, 'title', c.title);
                 // A meal or a beer: its icon stands in for the glyph and the dish's name (still in the tooltip).
                 if (c.icon) { if (put(e.g, 't', `icon:${c.icon}`)) e.g.innerHTML = FOOD_SVG[c.icon] || ''; text(e.n, ''); }
+                else if (c.condition && CONDITION_SVG[c.condition]) { if (put(e.g, 't', `cond:${c.condition}`)) e.g.innerHTML = CONDITION_SVG[c.condition]; text(e.n, ''); }   // a picture, the name in the tooltip
                 else { text(e.g, c.glyph); text(e.n, c.name); } text(e.x, c.stacks ? `×${c.stacks}` : ''); text(e.t, c.left);
                 width(e.d, c.frac == null ? '0%' : qpct(c.frac, 16));
             }
