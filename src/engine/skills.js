@@ -332,7 +332,8 @@
 
         minionCap() {
             const bonus = this.player.traits.some((t) => /\+3 max minions/i.test(t.name)) ? 3 : 0;
-            return this.data.gameRules.baseMinionCap + bonus;
+            const mods = this.player.traits.reduce((n, t) => n + ((t.mods && t.mods.minionCap) || 0), 0);   // data: a passive's mods.minionCap (Legion of the Dead)
+            return this.data.gameRules.baseMinionCap + bonus + mods;
         }
 
         /** A minion joins your side. `life` ({ seconds, turns }) or the template's lifetime makes it a timed body (shadows). */

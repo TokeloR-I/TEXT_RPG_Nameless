@@ -503,6 +503,18 @@
                 resistances: [], specialFlags: ['spirit'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
                 skills: [{ name: 'Spirit Bite', description: 'Deals 3-5 damage.', base_damage: [3, 5], target: 'enemy_single', damage_type: 'physical' }]
             },
+            // Deathlord Eternal: Raise the Fallen Host. Grave-knights in rusted black plate; they fade with the fight.
+            'deathless_thrall': {
+                name: 'Deathless Thrall', hp: 30, maxHp: 30, atk: 5, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['undead'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
+                skills: [{ name: 'Grave-Blade', description: 'Deals 4-6 damage.', base_damage: [4, 6], target: 'enemy_single', damage_type: 'necrotic' }]
+            },
+            // Reality Breaker: Mirror Self. You, twice, out of a mirror that is not there; cracked glass at the edges.
+            'mirror_self': {
+                name: 'Mirror Self', hp: 24, maxHp: 24, atk: 4, def: 2, spd: 13, critChance: 0.1, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['spirit'], lifetimeSeconds: 12, lifetimeTurns: 4, fadesWithFight: true,
+                skills: [{ name: 'Mirror Cut', description: 'Deals 4-6 damage.', base_damage: [4, 6], target: 'enemy_single', damage_type: 'magic' }]
+            },
             'shadow_stag': {
                 name: 'Shadow Stag', hp: 40, maxHp: 40, atk: 6, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
                 resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 20, lifetimeTurns: 7, fadesWithFight: true,
@@ -697,7 +709,7 @@
             // Tokelo 2026-11-01: fill your army and raise a champion; costed and on a cooldown instead of once per fight.
             'March of Endless Bones': { description: 'Raise skeletons up to your minion limit, plus a Skeleton Champion with double a skeleton\'s stats.', cost: 6, cooldown: 45, resource: 'Soul Energy', effects: [{ type: 'raise_army', summon_type: 'skeleton', champion: 'skeleton_champion' }], target: 'self' }, // Black Pharaoh Ascended
             'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', liveDescription: 'Every enemy around you (160 px) gains 10 Infection stacks that deal true damage.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe', stacks: 10 }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
-            'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', liveDescription: 'All enemies become undead under your control for 3 s.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
+            'Death’s Dominion': { description: 'Every enemy kneels to you: 24–32 necrotic dmg each, and they cannot act for 2 turns.', liveDescription: 'Every enemy around you (140 px) kneels to the Deathlord: 24–32 necrotic dmg each, and they cannot act for 6 s (bosses resist through Control Resistance). Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [24, 32], effects: [{ type: 'control_all_enemies', duration: 2 }], target: 'all_enemies', damage_type: 'necrotic' }, // Deathlord Eternal Legendary (docs/design/LEGENDARY_WEBS.md)
 
 
             // Fallen Seraphim Legendary (Tokelo 2026-11-04): heavenly light that fell. Like the other legendary skills,
@@ -741,6 +753,41 @@
             'Call of the Pack': { description: 'Two spectral wolves run beside you for 5 turns.', liveDescription: 'Two spectral wolves run beside you for 15 s (20 HP each). Each bites for 3–5 about once a second, and enemies may go for them instead of you. 24 s cooldown. Free: Fenrir\'s gift.', cost: 0, cooldown: 24, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'spectral_wolf', count: 2 }], target: 'self' },
             'Gleipnir\'s Bane': { description: 'Break the chain: shed every stun, slow and debuff, and the next hit on you is absorbed.', liveDescription: 'Break the chain: shed every stun, slow and debuff, and absorb the next hit (12 s). 18 s cooldown.', cost: 1, cooldown: 18, resource: 'any', effects: [{ type: 'cleanse', categories: ['control', 'debuff'] }, { type: 'absorb_hit', duration: 2, say: 'breaks the chain, and the broken links hang round you like armour.' }], target: 'self' },
             'Twin Eclipse': { description: 'Sun and moon go dark at once: 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Sun and moon go dark at once around you (100 px): 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown. Any stance.', cost: 3, cooldown: 20, resource: 'any', base_damage: [14, 20], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+
+            // Deathlord Eternal (legendary web, docs/design/LEGENDARY_WEBS.md): Eternal Lich + Abyssal King + the Throne of Bones.
+            // Three paths: the Legion (the dead that serve), the Throne (the king who cannot fall) and the Grave (souls taken).
+            // Paid from your own class resource ('any'); the gifts are free and run on their cooldowns. Gauge's first numbers.
+            // The Legion
+            'Raise the Fallen Host': { description: 'Two Deathless Thralls climb out of the ground and fight for you for 5 turns.', liveDescription: 'Two Deathless Thralls climb out of the ground beside you for 15 s (30 HP each). Each swings a grave-blade for 4–6 about once a second, and enemies may go for them instead of you. 22 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 22, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'deathless_thrall', count: 2 }], target: 'self' },
+            'Banner of Bones': { description: 'Raise a banner of bones over your dead: +25% damage for 3 turns.', liveDescription: 'Raise a banner of bones: +25% damage for 10 s. 20 s cooldown.', cost: 1, cooldown: 20, resource: 'any', effects: [{ type: 'self_buff', name: 'Banner of Bones', status_type: 'damage_boost', value: 0.25, duration: 3 }], target: 'self' },
+            'Grave Tide': { description: 'The ground gives up its dead: 12–16 necrotic dmg to every enemy and slow them 50% for 2 turns.', liveDescription: 'Bony hands burst from the ground around you (96 px): 12–16 necrotic dmg to every enemy, slowed 50% for 6 s. 14 s cooldown.', cost: 2, cooldown: 14, resource: 'any', base_damage: [12, 16], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            // The Throne
+            'Abyssal Mantle': { description: 'Pull the abyss round you like a cloak: take 30% less damage for 3 turns.', liveDescription: 'Pull the abyss round you like a cloak: take 30% less damage for 9 s. 20 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 20, resource: 'any', effects: [{ type: 'damage_reduction', value: 0.3, duration: 3 }], target: 'self' },
+            'Sentence of Silence': { description: 'A king\'s word: 16–22 necrotic dmg to one enemy, silenced for 2 turns (basic attacks only).', liveDescription: 'Speak a king\'s word at one enemy: 16–22 necrotic dmg, silenced for 6 s (only its plain attack). 12 s cooldown.', cost: 1, cooldown: 12, resource: 'any', base_damage: [16, 22], effects: [{ type: 'silence', duration: 2 }], target: 'enemy_single', damage_type: 'necrotic' },
+            'Throne of Bones': { description: 'Sit the throne for a breath: the next 2 hits on you are absorbed and you take 40% less damage for 2 turns.', liveDescription: 'A throne of bones rises round you: the next 2 hits are absorbed, and you take 40% less damage for 6 s. 30 s cooldown.', cost: 2, cooldown: 30, resource: 'any', effects: [{ type: 'absorb_hit', duration: 2, say: 'sits the throne of bones; it closes round them like a cage turned inside out.' }, { type: 'absorb_hit', duration: 2, say: 'is walled in bone a second time.' }, { type: 'damage_reduction', value: 0.4, duration: 2 }], target: 'self' },
+            'Fall of the Abyssal King': { description: 'The king comes down on them: 26–34 necrotic dmg to every enemy and stun them for 1 turn.', liveDescription: 'Come down like the Abyssal King (120 px): 26–34 necrotic dmg to every enemy, stunned for 3 s. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [26, 34], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            // The Grave
+            'Soul Reap': { description: 'A scythe of grave-light takes a piece of one soul: 22–28 necrotic dmg, and you heal for 30% of it.', liveDescription: 'Throw a scythe of grave-light at one enemy: 22–28 necrotic dmg, and you heal for 30% of it. 4 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 4, resource: 'any', base_damage: [22, 28], effects: [{ type: 'heal_from_damage', ratio: 0.3 }], target: 'enemy_single', damage_type: 'necrotic' },
+            'Withering Decree': { description: 'Everything near you starts to die: every enemy rots for 4 dmg a turn for 3 turns and takes 50% more damage over time.', liveDescription: 'Decree that everything around you (100 px) dies: each enemy rots for 4 a pulse for 9 s and takes 50% more damage over time. 16 s cooldown.', cost: 2, cooldown: 16, resource: 'any', effects: [{ type: 'wither', value: 0.5, duration: 3 }, { type: 'dot', dot_type: 'rot', value: 4, duration: 3 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            'Requiem': { description: 'Sing them down: 30–40 necrotic dmg to every enemy, doubled against those under 30% HP.', liveDescription: 'Sing a requiem around you (110 px): 30–40 necrotic dmg to every enemy, doubled against any under 30% HP. 40 s cooldown.', cost: 4, cooldown: 40, resource: 'any', base_damage: [30, 40], effects: [{ type: 'execute_bonus', threshold: 0.3, value: 1 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+
+            // Reality Breaker (legendary web, docs/design/LEGENDARY_WEBS.md): Arcane Hollow + a reality-breaking event. Three paths:
+            // Fracture (break things), Paradox (break time) and Mirror (break what they see). Paid from your own class resource ('any').
+            // Fracture
+            'Shatterpoint': { description: 'Find the crack in a thing and push: 22–28 magic dmg to one enemy, half its armour ignored.', liveDescription: 'Throw a shard of broken reality at one enemy: 22–28 magic dmg, half its armour ignored. 3 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 3, resource: 'any', base_damage: [22, 28], effects: [{ type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
+            'Fault Line': { description: 'Tear the world in a line: 16–22 magic dmg to every enemy on it, slowed 40% for 2 turns.', liveDescription: 'Tear the world open in a line 96 px long: 16–22 magic dmg to each enemy on it, slowed 40% for 6 s. 10 s cooldown.', cost: 1, cooldown: 10, resource: 'any', base_damage: [16, 22], effects: [{ type: 'slow', value: 0.4, duration: 2 }], target: 'enemy_aoe', damage_type: 'magic' },
+            'Shatter Cascade': { description: 'One crack becomes many: 14–18 magic dmg to one enemy, and it splits to 3 more.', liveDescription: 'Crack one enemy and let it spread: 14–18 magic dmg, splitting to 3 more enemies. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [14, 18], effects: [{ type: 'chain_lightning', count: 3 }], target: 'enemy_single', damage_type: 'magic' },
+            'Unwrite': { description: 'Erase one enemy from the page: 40–52 true dmg, doubled against one under 30% HP.', liveDescription: 'Unwrite one enemy: 40–52 true dmg, doubled against one under 30% HP. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [40, 52], effects: [{ type: 'true_damage' }, { type: 'execute_bonus', threshold: 0.3, value: 1 }], target: 'enemy_single', damage_type: 'magic' },
+            // Paradox
+            'Phase Shift': { description: 'Be half a moment out of step: for 2 turns, every attack on you has a 45% chance to miss.', liveDescription: 'Step half a moment out of time: for 6 s, every attack on you has a 45% chance to pass through. 14 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.45, duration: 2, persistent: true }], target: 'self' },
+            'Null Moment': { description: 'A moment that never happened: every enemy is frozen in it for 1 turn.', liveDescription: 'Cut a moment out of time around you (110 px): every enemy is frozen for 3 s (bosses resist repeats). 30 s cooldown.', cost: 3, cooldown: 30, resource: 'any', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'enemy_aoe' },
+            'Borrowed Time': { description: 'Take time from tomorrow: act again at once.', liveDescription: 'Take time from tomorrow: your cooldowns and swings run 30% faster for 8 s. 25 s cooldown.', cost: 2, cooldown: 25, resource: 'any', effects: [{ type: 'extra_turn', liveSpeedup: 0.3 }], target: 'self' },
+            'Rewind': { description: 'It did not happen: your HP goes back to what it was 2 turns ago, and every DoT and debuff on you is undone.', liveDescription: 'Wind yourself back: your HP returns to what it was about 6 s ago, and every DoT and debuff on you is undone. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'revert_hp', turns: 3 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
+            // Mirror
+            'Prism Flash': { description: 'Reality shows its seams: 8–12 magic dmg to every enemy near you, and they miss 40% of attacks for 2 turns.', liveDescription: 'Light breaks into colours around you (90 px): 8–12 magic dmg to every enemy, blinded for 5 s (40% of their attacks miss). 12 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 12, resource: 'any', base_damage: [8, 12], effects: [{ type: 'blind', value: 0.4, duration: 2, seconds: 5 }], target: 'enemy_aoe', damage_type: 'magic' },
+            'Mirror Self': { description: 'Two of you step out of a mirror that is not there and fight for 4 turns.', liveDescription: 'Two mirror selves step out beside you for 12 s (24 HP each). Each cuts for 4–6 about once a second, and enemies may go for them instead of you. 24 s cooldown.', cost: 2, cooldown: 24, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'mirror_self', count: 2 }], target: 'self' },
+            'Lie Made Real': { description: 'Tell one enemy a lie it has to believe: 18–24 magic dmg and stunned for 1 turn.', liveDescription: 'Tell one enemy a lie it has to believe: 18–24 magic dmg, stunned for 3 s (bosses resist repeats). 14 s cooldown.', cost: 2, cooldown: 14, resource: 'any', base_damage: [18, 24], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_single', damage_type: 'magic' },
+            'Reality Collapse': { description: 'The world folds in on one spot: 28–36 magic dmg to every enemy there, stunned for 1 turn.', liveDescription: 'Fold the world in on a spot up to 130 px away (56 px wide): 28–36 magic dmg to each enemy there, stunned for 3 s. 40 s cooldown.', cost: 4, cooldown: 40, resource: 'any', base_damage: [28, 36], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'magic' },
 
             // Devil Union (Tokelo 2026-11-17, docs/design/DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md, prototype: "build now,
             // rework later"). `union` = the demon you must be merged with (src/engine/union.js); while merged, its three skills sit
@@ -1110,11 +1157,47 @@
             // opens once every listed evolution stage is reached ('<branch>.<stage 1-5>', any class) and its story event has
             // happened. Names and lore: legendaryAndSecretClasses. The Hollow King stays a full transformation (no web).
             legendaryWebs: {
+                // Deathlord Eternal (docs/design/LEGENDARY_WEBS.md): Eternal Lich + Abyssal King + the Throne of Bones. Three paths:
+                // the Legion (the dead that serve), the Throne (the king who cannot fall), the Grave (souls taken). Deathlord
+                // Ascendant needs all three capstones. Gifts: one skill from each path, owned free when the web opens.
                 deathlord_eternal: {
                     requires: { stages: ['soulbinder.5', 'vanguard.5'], event: 'the Throne of Bones' },   // Eternal Lich + Abyssal King
+                    ranks: [
+                        { name: 'Deathlord', at: 1 },
+                        { name: 'Lord of the Kept', at: 8, points: 1, flag: 'deathlord_rank_kept', say: 'The dead in the ground near you turn over in their sleep, toward you.' },
+                        { name: 'Deathlord Ascendant', node: 'deathlord_eternal.ascendant', flag: 'deathlord_rank_ascendant', say: 'A throne of bone waits wherever you stop walking. You no longer sit on it. You are it.' }
+                    ],
+                    heartTraits: [{ name: 'Deathlord\'s Mantle', effect: 'Death answers to you: +30% damage, take 30% less damage.', mods: { damageDealt: 0.3, damageTaken: -0.3 } }],
+                    gifts: ['deathlord_eternal.fallen_host', 'deathlord_eternal.abyssal_mantle', 'deathlord_eternal.soul_reap'],
                     nodes: [
-                        { id: 'deathlord_eternal.legion', kind: 'passive', trait: { name: 'Legion of the Dead', effect: 'Unlimited minion cap for 5 turns.' }, links: ['heart.deathlord_eternal'] },
-                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', links: ['deathlord_eternal.legion'] }
+                        // The Legion
+                        { id: 'deathlord_eternal.fallen_host', kind: 'active', skill: 'Raise the Fallen Host', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.legion', kind: 'passive', minLevel: 14, links: ['deathlord_eternal.fallen_host'],
+                            trait: { name: 'Legion of the Dead', effect: 'Your dead never run short: +2 max minions.', mods: { minionCap: 2 } } },
+                        { id: 'deathlord_eternal.banner', kind: 'active', skill: 'Banner of Bones', minLevel: 14, links: ['deathlord_eternal.fallen_host'] },
+                        { id: 'deathlord_eternal.grave_tide', kind: 'active', skill: 'Grave Tide', minLevel: 15, links: ['deathlord_eternal.banner'] },
+                        { id: 'deathlord_eternal.marrow_pact', kind: 'passive', minLevel: 16, links: ['deathlord_eternal.grave_tide', 'deathlord_eternal.legion'],
+                            trait: { name: 'Marrow Pact', effect: 'The dead lend you their strength: +10% damage.', mods: { damageDealt: 0.1 } } },
+                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', minLevel: 18, links: ['deathlord_eternal.marrow_pact'] },
+                        // The Throne
+                        { id: 'deathlord_eternal.abyssal_mantle', kind: 'active', skill: 'Abyssal Mantle', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.crown_of_bone', kind: 'passive', minLevel: 14, links: ['deathlord_eternal.abyssal_mantle'],
+                            trait: { name: 'Crown of Bone', effect: 'A crown that was never yours to take off: take 10% less damage.', mods: { damageTaken: -0.1 } } },
+                        { id: 'deathlord_eternal.sentence', kind: 'active', skill: 'Sentence of Silence', minLevel: 14, links: ['deathlord_eternal.abyssal_mantle'] },
+                        { id: 'deathlord_eternal.throne', kind: 'active', skill: 'Throne of Bones', minLevel: 15, links: ['deathlord_eternal.sentence'] },
+                        { id: 'deathlord_eternal.undying_king', kind: 'passive', minLevel: 16, links: ['deathlord_eternal.throne', 'deathlord_eternal.crown_of_bone'],
+                            trait: { name: 'The Undying King', effect: 'Kings die hardest: +40% damage while under 30% HP.', mods: { lowHpDamage: { below: 0.3, value: 0.4 } } } },
+                        { id: 'deathlord_eternal.fall_of_the_king', kind: 'active', skill: 'Fall of the Abyssal King', minLevel: 18, links: ['deathlord_eternal.undying_king'] },
+                        // The Grave
+                        { id: 'deathlord_eternal.soul_reap', kind: 'active', skill: 'Soul Reap', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.withering_decree', kind: 'active', skill: 'Withering Decree', minLevel: 14, links: ['deathlord_eternal.soul_reap'] },
+                        { id: 'deathlord_eternal.grave_hunger', kind: 'passive', minLevel: 15, links: ['deathlord_eternal.withering_decree'],
+                            trait: { name: 'Hunger of the Grave', effect: 'The grave wants the strong most: +20% damage against bosses and the Undead.', mods: { damageVsFlags: { boss: 0.2, undead: 0.2 } } } },
+                        { id: 'deathlord_eternal.requiem', kind: 'active', skill: 'Requiem', minLevel: 18, links: ['deathlord_eternal.grave_hunger'] },
+                        // All three
+                        { id: 'deathlord_eternal.ascendant', kind: 'passive', minLevel: 20, needs: ['deathlord_eternal.deaths_dominion', 'deathlord_eternal.fall_of_the_king', 'deathlord_eternal.requiem'],
+                            links: ['deathlord_eternal.deaths_dominion', 'deathlord_eternal.fall_of_the_king', 'deathlord_eternal.requiem'],
+                            trait: { name: 'Deathlord Ascendant', effect: 'The legion, the throne and the grave are one: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
                 },
                 // Fallen Seraphim (Tokelo 2026-11-04): no evolution needed. Stare at the robed statue in the Kloster's inner
@@ -1198,11 +1281,11 @@
                         switchCooldownSeconds: 8, switchCooldownTurns: 3,
                         bond: { max: 100, gainPerSecond: 25 / 15, fadePerSecond: 0.5 },
                         list: {
-                            fenrir: { name: 'Fenrir', title: 'the Bound Wolf', bond: false, say: 'You hold both wolves at heel. Neither runs; neither fades.' },
-                            skoll: { name: 'Sköll', title: 'the Sun Chaser', bond: true, say: 'Sköll runs ahead of you, trailing sunfire.',
+                            fenrir: { look: { palette: 'chain', motes: 'chain', companion: false }, name: 'Fenrir', title: 'the Bound Wolf', bond: false, say: 'You hold both wolves at heel. Neither runs; neither fades.' },
+                            skoll: { look: { palette: 'sun', motes: 'rise', companion: true }, name: 'Sköll', title: 'the Sun Chaser', bond: true, say: 'Sköll runs ahead of you, trailing sunfire.',
                                 tiers: [{ at: 25, mods: { damage: 0.05 }, text: '+5% damage.' }, { at: 50, mods: { damage: 0.1 }, text: '+10% damage.' },
                                     { at: 75, mods: { damage: 0.15 }, text: '+15% damage.' }, { at: 100, mods: { damage: 0.2 }, text: '+20% damage.' }] },
-                            hati: { name: 'Hati', title: 'the Moon Chaser', bond: true, say: 'Hati closes round you like a moonless night.',
+                            hati: { look: { palette: 'moon', motes: 'sink', companion: true }, name: 'Hati', title: 'the Moon Chaser', bond: true, say: 'Hati closes round you like a moonless night.',
                                 tiers: [{ at: 25, mods: { speed: 0.03, defence: 0.03 }, text: '+3% speed, 3% less damage taken.' },
                                     { at: 50, mods: { speed: 0.06, defence: 0.06 }, text: '+6% speed, 6% less damage taken.' },
                                     { at: 75, mods: { speed: 0.09, defence: 0.09 }, text: '+9% speed, 9% less damage taken.' },
@@ -1277,8 +1360,45 @@
                             ])
                     ]
                 },
-                // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
-                reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
+                // Reality Breaker (docs/design/LEGENDARY_WEBS.md): Arcane Hollow + a reality-breaking event (the event is still to
+                // be written). Three paths: Fracture (break things), Paradox (break time), Mirror (break what they see).
+                reality_breaker: {
+                    requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' },
+                    ranks: [
+                        { name: 'Cracked', at: 1 },
+                        { name: 'Seam-Walker', at: 7, points: 1, flag: 'reality_rank_seam', say: 'You can see the seams now: thin bright lines where the world was stitched together.' },
+                        { name: 'Reality Unmade', node: 'reality_breaker.unmade', flag: 'reality_rank_unmade', say: 'For a moment nothing is true but you. Then the world remembers itself, carefully.' }
+                    ],
+                    heartTraits: [{ name: 'Unreal', effect: 'The world bends round you: +30% damage, take 30% less damage.', mods: { damageDealt: 0.3, damageTaken: -0.3 } }],
+                    gifts: ['reality_breaker.shatterpoint', 'reality_breaker.phase_shift', 'reality_breaker.prism_flash'],
+                    nodes: [
+                        // Fracture
+                        { id: 'reality_breaker.shatterpoint', kind: 'active', skill: 'Shatterpoint', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.fault_line', kind: 'active', skill: 'Fault Line', minLevel: 14, links: ['reality_breaker.shatterpoint'] },
+                        { id: 'reality_breaker.fractured_mind', kind: 'passive', minLevel: 14, links: ['reality_breaker.shatterpoint'],
+                            trait: { name: 'Fractured Mind', effect: 'You think in cracks now: +10% damage.', mods: { damageDealt: 0.1 } } },
+                        { id: 'reality_breaker.cascade', kind: 'active', skill: 'Shatter Cascade', minLevel: 15, links: ['reality_breaker.fault_line'] },
+                        { id: 'reality_breaker.unwrite', kind: 'active', skill: 'Unwrite', minLevel: 18, links: ['reality_breaker.cascade', 'reality_breaker.fractured_mind'] },
+                        // Paradox
+                        { id: 'reality_breaker.phase_shift', kind: 'active', skill: 'Phase Shift', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.paradox_skin', kind: 'passive', minLevel: 14, links: ['reality_breaker.phase_shift'],
+                            trait: { name: 'Paradox Skin', effect: 'Half of every blow lands in a moment you are not in: take 10% less damage.', mods: { damageTaken: -0.1 } } },
+                        { id: 'reality_breaker.borrowed_time', kind: 'active', skill: 'Borrowed Time', minLevel: 14, links: ['reality_breaker.phase_shift'] },
+                        { id: 'reality_breaker.null_moment', kind: 'active', skill: 'Null Moment', minLevel: 15, links: ['reality_breaker.borrowed_time'] },
+                        { id: 'reality_breaker.rewind', kind: 'active', skill: 'Rewind', minLevel: 18, links: ['reality_breaker.null_moment', 'reality_breaker.paradox_skin'] },
+                        // Mirror
+                        { id: 'reality_breaker.prism_flash', kind: 'active', skill: 'Prism Flash', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.mirror_self', kind: 'active', skill: 'Mirror Self', minLevel: 14, links: ['reality_breaker.prism_flash'] },
+                        { id: 'reality_breaker.lie_made_real', kind: 'active', skill: 'Lie Made Real', minLevel: 15, links: ['reality_breaker.mirror_self'] },
+                        { id: 'reality_breaker.unseen_seams', kind: 'passive', minLevel: 16, links: ['reality_breaker.lie_made_real'],
+                            trait: { name: 'Unseen Seams', effect: 'You strike where the world is thinnest: +20% damage against the Void and bosses.', mods: { damageVsFlags: { void: 0.2, boss: 0.2 } } } },
+                        { id: 'reality_breaker.collapse', kind: 'active', skill: 'Reality Collapse', minLevel: 18, links: ['reality_breaker.unseen_seams'] },
+                        // All three
+                        { id: 'reality_breaker.unmade', kind: 'passive', minLevel: 20, needs: ['reality_breaker.unwrite', 'reality_breaker.rewind', 'reality_breaker.collapse'],
+                            links: ['reality_breaker.unwrite', 'reality_breaker.rewind', 'reality_breaker.collapse'],
+                            trait: { name: 'Reality Unmade', effect: 'Nothing is true but what you allow: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
+                    ]
+                }
             }
         };
 
@@ -1391,7 +1511,8 @@
             'Soul Chain':       { category: 'debuff' },
             // --- turn denial / control
             'Stun':             { category: 'control', control: 'hard' },
-            'Frozen in time':   { category: 'control', control: 'hard' },   // Freeze Time: hard per affected target
+            'Frozen in time':   { category: 'control', control: 'hard' },
+            'Dominated':        { category: 'control', control: 'hard' },   // Death's Dominion (Deathlord Eternal): kneels, cannot act   // Freeze Time: hard per affected target
             'Confused':         { category: 'control', control: 'hard' },   // only applied when the roll skips the turn
             'Entranced':        { category: 'control', control: 'hard' },
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
@@ -1412,6 +1533,10 @@
             'Riposte':          { category: 'buff' },
             'Guaranteed Crit':  { category: 'buff' },
             'Taunt':            { category: 'buff' },
+            'Abyssal Mantle':   { category: 'buff' },     // Deathlord Eternal and Reality Breaker buffs (docs/design/LEGENDARY_WEBS.md)
+            'Throne of Bones':  { category: 'buff' },
+            'Banner of Bones':  { category: 'buff' },
+            'Phase Shift':      { category: 'buff' },
             'Halo of Ash':      { category: 'buff' },     // Fallen Seraphim buffs, so a buff cleanse sees them
             'Feather Ward':     { category: 'buff' },
             'Wingstep':         { category: 'buff' },
@@ -1494,6 +1619,11 @@
                     'Feather Ward':       { seconds: 12, maxStacks: 2 },   // each stack absorbs one hit; 14 s cooldown
                     'Wingstep':           { seconds: 6,  maxStacks: 1 },   // 40% to dodge every attack; 14 s cooldown
                     'The Coal Carried Down': { seconds: 10, maxStacks: 1 },
+                    // Deathlord Eternal and Reality Breaker (docs/design/LEGENDARY_WEBS.md)
+                    'Abyssal Mantle':     { seconds: 9,  maxStacks: 1 },   // 30% damage reduction; 20 s cooldown
+                    'Throne of Bones':    { seconds: 6,  maxStacks: 2 },   // two absorbed hits + 40% reduction; 30 s cooldown
+                    'Banner of Bones':    { seconds: 10, maxStacks: 1 },   // +25% damage; 20 s cooldown
+                    'Phase Shift':        { seconds: 6,  maxStacks: 1 },   // 45% to dodge every attack; 14 s cooldown
                     // Fenrir's Heir (docs/design/FENRIRS_HEIR.md)
                     'Firehowl':           { seconds: 9,  maxStacks: 1 },   // +25% damage; 20 s cooldown   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
                     // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
@@ -1698,6 +1828,38 @@
                     'Night\'s Dominion': { shape: 'circle', radius: 80, castMs: 400 },
                     'Devour the Moon':   { shape: 'circle', radius: 120, castMs: 600, pullPx: 48 },
                     'Twin Eclipse':      { shape: 'circle', radius: 100, castMs: 450 },
+                    'Call of the Pack':  {
+                        shape: 'summon', range: 40, castMs: 300,
+                        minion: { radius: 5, speed: 120, followMin: 14, followMax: 34, engageRadius: 170, teleportBeyond: 220,
+                            attack: { skill: 'Spirit Bite', shape: 'arc', reach: 16, arcDeg: 80, windupMs: 200, activeMs: 70, recoveryMs: 260, cooldownMs: 1000 } }
+                    },
+                    // Deathlord Eternal (docs/design/LEGENDARY_WEBS.md)
+                    'Raise the Fallen Host': {
+                        shape: 'summon', range: 40, castMs: 500,
+                        minion: { radius: 6, speed: 70, followMin: 18, followMax: 36, engageRadius: 130, teleportBeyond: 220,
+                            attack: { skill: 'Grave-Blade', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 320, activeMs: 80, recoveryMs: 380, cooldownMs: 1100 } }
+                    },
+                    'Grave Tide':        { shape: 'circle', radius: 96, castMs: 400 },
+                    'Sentence of Silence': { shape: 'projectile', range: 150, speed: 260, radius: 6, castMs: 300, projectile: 'necrotic' },
+                    'Fall of the Abyssal King': { shape: 'circle', radius: 120, castMs: 550 },
+                    'Soul Reap':         { shape: 'projectile', range: 160, speed: 300, radius: 7, castMs: 260, projectile: 'necrotic' },
+                    'Withering Decree':  { shape: 'circle', radius: 100, castMs: 400 },
+                    'Requiem':           { shape: 'circle', radius: 110, castMs: 600 },
+                    'Death’s Dominion':  { shape: 'circle', radius: 140, castMs: 600 },
+                    // Reality Breaker (docs/design/LEGENDARY_WEBS.md)
+                    'Shatterpoint':      { shape: 'projectile', range: 170, speed: 320, radius: 6, castMs: 240, projectile: 'prism' },
+                    'Fault Line':        { shape: 'line', reach: 96, width: 16, castMs: 350 },
+                    'Shatter Cascade':   { shape: 'projectile', range: 150, speed: 300, radius: 6, castMs: 280, projectile: 'prism' },
+                    'Unwrite':           { shape: 'line', reach: 70, width: 14, castMs: 500, maxTargets: 1 },
+                    'Null Moment':       { shape: 'circle', radius: 110, castMs: 400 },
+                    'Prism Flash':       { shape: 'circle', radius: 90, castMs: 250 },
+                    'Mirror Self':       {
+                        shape: 'summon', range: 32, castMs: 250,
+                        minion: { radius: 5, speed: 100, followMin: 12, followMax: 28, engageRadius: 150, teleportBeyond: 200,
+                            attack: { skill: 'Mirror Cut', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 180, activeMs: 70, recoveryMs: 220, cooldownMs: 900 } }
+                    },
+                    'Lie Made Real':     { shape: 'projectile', range: 140, speed: 280, radius: 6, castMs: 300, projectile: 'prism' },
+                    'Reality Collapse':  { shape: 'ground', range: 130, radius: 56, castMs: 550 },
                     // Devil Union (union.js): a ground shape with pullPx drags toward the spot (Gravity Well), not toward you.
                     'Gravity Well':      { shape: 'ground', range: 96, radius: 48, castMs: 300, pullPx: 30 },
                     'Heavy Field':       { shape: 'circle', radius: 48, castMs: 250 },
@@ -2014,8 +2176,11 @@
                                 { windupMs: 640, activeMs: 130, recoveryMs: 240, blockCost: 20 },
                                 { windupMs: 600, activeMs: 130, recoveryMs: 900, blockCost: 26, reverse: true }
                             ] },
-                        // A dark point opens and drags you toward him: rooted, pulled, then the blow.
-                        { name: 'Gravity Well', skill: 'Gravity Well', shape: 'projectile', reach: 160, width: 12, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6500, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 34 }, useAt: [44, 160] },
+                        // A dark point opens and drags you toward him: rooted, pulled, then the blow (Pressed Flat, every phase:
+                        // raise your guard or eat it; docs/design/DOMINION_BOSSES.md).
+                        { name: 'Gravity Well', skill: 'Gravity Well', shape: 'projectile', reach: 160, width: 12, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6500, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 34 }, useAt: [44, 160],
+                            followUp: 'Pressed Flat', followUpMs: 200, followUpAlways: true },
+                        { name: 'Pressed Flat', skill: 'Crushing Weight', shape: 'line', reach: 84, width: 18, lunge: 40, windupMs: 520, lockMs: 220, activeMs: 140, recoveryMs: 1000, blockCost: 30, parryable: true, followUpOnly: true, damageMult: 1.4 },
                         // Stars fall where you stand: three marked circles, a full second to step out.
                         { name: 'Falling Star', skill: 'Falling Star', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [36, 200] },
                         // The brand: the floor round him glows with his sign. Walk out of 62 px or dodge through (1.2 s).
@@ -2278,26 +2443,90 @@
                                   combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
                             ] }
                 },
-                // The First Dominion's ruler (CB2): the post-Warden standard (BOSS_DIFFICULTY.md). Candidate numbers for Gauge.
+                // ---- The Dominion rulers (Tokelo 2026-11-18: "the luficero boss is just a tank that has 2 moves really not
+                // difficult the dark souls part is a giant health bar and no move threatening the player in any way").
+                // docs/design/DOMINION_BOSSES.md. Each fights in three acts: its base kit (now cycling through all of it,
+                // `alternateSpecials`, instead of throwing the same two specials from range), a second phase that adds its
+                // power's signature moves, and the rage. Less health, more that kills you. Numbers for Gauge.
                 lucifero: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
-                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Descent', openWith: 'Gravity Well',
-                            notice: 'Lucifero lets go of his own weight, and the whole Dominion leans toward him!',
+                    hpMult: 2.4, damageMult: 2.3, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },   // the basalt floor in sim px (16 px tiles), lava corners inside it
+                    // Collapse of the Dominion: the floor caves in, a pattern at a time. The inner ring is safe far out, the outer
+                    // ring safe close in (where his fists are), the cross and the sides each leave a different quarter standing.
+                    arenaPatterns: [
+                        { name: 'Inner Fall', zones: [{ kind: 'ring', r: 0.05, count: 8, size: 0.03 }, { kind: 'ring', r: 0.11, count: 14, size: 0.03 }] },
+                        { name: 'Outer Fall', zones: [{ kind: 'ring', r: 0.2, count: 22, size: 0.03 }, { kind: 'ring', r: 0.28, count: 28, size: 0.03 }] },
+                        { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.2 }, { kind: 'column', fx: 0.5, w: 0.13 }] },
+                        { name: 'Sides', zones: [{ kind: 'column', fx: 0.12, w: 0.24 }, { kind: 'column', fx: 0.88, w: 0.24 }, { kind: 'band', fy: 0.08, h: 0.16 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: the floor leans toward him for the rest of the fight (walking away gets you nowhere fast),
+                        // and he starts to use it: Event Horizon drags you into a nova, Descent crosses the arena to you, two
+                        // stars fall where you stand and where you stepped.
+                        { fromHpPct: 0.7, openWith: 'Event Horizon', speed: 50, gravity: { pxPerS: 18, radius: 420 },
+                          notice: 'The floor of the Dominion tilts toward Lucifero. Everything slides to him now, you too.',
+                          add: [
+                              // The air bends in: 1.6 s of pull (64 px/s, close to a walk), then the nova. Sprint or dodge out of 54 px.
+                              { name: 'Event Horizon', skill: 'Gravity Well', shape: 'circle', radius: 54, windupMs: 1600, activeMs: 150, recoveryMs: 1300, cooldownMs: 11000, guardable: false, parryable: false, damageMult: 1.8, knockbackPx: 30, staggers: true, pull: { pxPerS: 64, radius: 260 }, useAt: [0, 240] },
+                              // He falls sideways across the arena as if the floor were a cliff.
+                              { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 900, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 7000, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [60, 320], damageMult: 1.2 },
+                              // Two stars, the second where you stepped to.
+                              { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
+                                combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] },
+                              // Three blows that walk you down, the last one the whole weight of him (a circle: don't stand close).
+                              { name: 'Weight of the Fallen', skill: 'Crushing Weight', shape: 'arc', reach: 32, arcDeg: 150, cooldownMs: 6000, useAt: [0, 36],
+                                combo: [{ windupMs: 600, activeMs: 120, recoveryMs: 120, blockCost: 22 }, { windupMs: 500, activeMs: 120, recoveryMs: 120, blockCost: 22, reverse: true },
+                                        { shape: 'circle', radius: 46, windupMs: 700, activeMs: 150, recoveryMs: 1200, guardable: false, parryable: false, damageMult: 1.5 }] }
+                          ] }
+                    ],
+                    // Phase 3 is the rage: the floor caves in, a black sun follows you, the pull gets stronger and the
+                    // horizon wider; heal where he can see it and he falls on you.
+                    rage: { atHpPct: 0.35, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Descent', openWith: 'Collapse of the Dominion', gravity: { pxPerS: 26, radius: 420 },
+                            notice: 'Lucifero lets go of his own weight, and the whole Dominion begins to fall in toward him!',
+                            attackOverrides: { 'Event Horizon': { pull: { pxPerS: 76, radius: 300 }, radius: 62, cooldownMs: 9000, damageMult: 2.0 } },
                             add: [
-                                // He falls sideways across the arena as if the floor were a cliff.
-                                { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
-                                // Two stars, the second where you stepped to.
-                                { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
-                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                                { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 5500, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
+                                // The floor caves in: two patterns back to back (the second on a shorter tell), then a rest.
+                                { name: 'Collapse of the Dominion', skill: 'Falling Star', shape: 'arena', windupMs: 1700, activeMs: 250, recoveryMs: 1800, cooldownMs: 14000, quietMs: 3000, guardable: false, parryable: false, damageMult: 2.2,
+                                  chain: { min: 2, max: 2, windupMs: 1200, gapMs: 350 } },
+                                // A black sun hangs over you and follows, locks, falls.
+                                { name: 'Black Sun', skill: 'Falling Star', shape: 'mark', radius: 28, reachPx: 280, windupMs: 1700, lockMs: 600, activeMs: 220, recoveryMs: 900, cooldownMs: 8000, guardable: false, parryable: false, damageMult: 2.4,
+                                  markText: 'A black sun hangs over you! Move before it falls.' }
                             ] }
                 },
-                // The Second to Fourth Dominions' rulers: the post-Warden standard, each enraged in its own power.
+                // The Second to Fourth Dominions' rulers: the same three acts, each in its own power.
                 beelzebub: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    arenaPatterns: [
+                        { name: 'Shards', zones: [{ kind: 'band', fy: 0.25, h: 0.16 }, { kind: 'band', fy: 0.75, h: 0.16 }, { kind: 'column', fx: 0.3, w: 0.1 }, { kind: 'column', fx: 0.7, w: 0.1 }] },
+                        { name: 'Panes', zones: [{ kind: 'spot', fx: 0.2, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.5, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.8, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.35, fy: 0.72, r: 0.1 }, { kind: 'spot', fx: 0.65, fy: 0.72, r: 0.1 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: he stops walking. He steps out of a fold behind you, folds space round you, and shatters the floor.
+                        { fromHpPct: 0.7, openWith: 'Behind You',
+                          notice: 'Space folds round Beelzebub. Stop watching where he is, and watch where you are.',
+                          add: [
+                              // He is behind you, already swinging: 0.62 s to turn and guard, or dodge.
+                              { name: 'Behind You', skill: 'Severing Hand', shape: 'arc', reach: 30, arcDeg: 160, blink: { px: 26, at: 'behind' }, windupMs: 620, activeMs: 120, recoveryMs: 900, cooldownMs: 6000, blockCost: 24, damageMult: 1.3, useAt: [0, 300] },
+                              // A fold closes round you: it follows you, locks, and snaps shut.
+                              { name: 'Spatial Anchor', skill: 'Folded Space', shape: 'mark', radius: 26, reachPx: 280, windupMs: 1500, lockMs: 550, activeMs: 200, recoveryMs: 900, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 2.0,
+                                markText: 'Space folds round you! Step out before it closes.' },
+                              { name: 'Shattered Distance', skill: 'Spatial Cut', shape: 'arena', windupMs: 1600, activeMs: 220, recoveryMs: 1600, cooldownMs: 13000, quietMs: 3000, guardable: false, parryable: false, damageMult: 2.0,
+                                chain: { min: 2, max: 2, windupMs: 1150, gapMs: 350 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 40], windupStepSpeed: 50, punishHeal: 'Fold Through', openWith: 'Spatial Cut',
-                            notice: 'Beelzebub stops walking. From now on he is simply wherever he wants to be!',
+                            notice: 'Beelzebub stops pretending to be in one place. He is simply wherever he wants to be!',
+                            attackOverrides: { 'Behind You': { cooldownMs: 4000 } },
                             add: [
                                 // He folds the whole arena and steps across it.
                                 { name: 'Fold Through', skill: 'Rift Exchange', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 820, lockMs: 340, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 32, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
@@ -2307,10 +2536,31 @@
                             ] }
                 },
                 slotos: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.7, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                    hpMult: 2.3, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    // Aftershock: the floor heaves near him, then far from him. Step out, then step back in.
+                    arenaPatterns: [
+                        { name: 'Near', zones: [{ kind: 'ring', r: 0.05, count: 8, size: 0.045 }, { kind: 'ring', r: 0.1, count: 12, size: 0.045 }] },
+                        { name: 'Far', zones: [{ kind: 'ring', r: 0.17, count: 16, size: 0.045 }, { kind: 'ring', r: 0.24, count: 20, size: 0.045 }, { kind: 'ring', r: 0.31, count: 24, size: 0.04 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: he charges three times running, each one turned on you, and the foundry floor heaves.
+                        { fromHpPct: 0.7, openWith: 'Iron Rampage',
+                          notice: 'Slotos digs his tusks into the iron floor, and the whole foundry starts to shake.',
+                          add: [
+                              { name: 'Iron Rampage', skill: 'Stampede', shape: 'line', reach: 200, width: 24, lunge: 180, cooldownMs: 9000, blockCost: 32, knockbackPx: 26, staggers: true, parryable: false, damageMult: 1.1, useAt: [0, 260],
+                                combo: [{ windupMs: 900, lockMs: 300, activeMs: 260, recoveryMs: 250 }, { windupMs: 700, lockMs: 300, activeMs: 260, recoveryMs: 250 }, { windupMs: 700, lockMs: 300, activeMs: 260, recoveryMs: 1400 }] },
+                              { name: 'Aftershock', skill: 'Earthshaker', shape: 'arena', windupMs: 1500, activeMs: 220, recoveryMs: 1500, cooldownMs: 12000, quietMs: 3000, guardable: false, parryable: false, damageMult: 1.6,
+                                chain: { min: 2, max: 2, windupMs: 1100, gapMs: 300 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.7, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Unstoppable', openWith: 'Earthshaker',
                             notice: 'Slotos shakes the slag off his hide and lowers his head. Nothing in the Dominion is going to stop him now!',
+                            attackOverrides: { 'Iron Rampage': { cooldownMs: 7000 } },
                             add: [
                                 // Wall to wall, through anything.
                                 { name: 'Unstoppable', skill: 'Stampede', shape: 'line', reach: 320, width: 26, lunge: 300, windupMs: 880, lockMs: 360, activeMs: 320, recoveryMs: 1100, cooldownMs: 6000, blockCost: 36, knockbackPx: 28, staggers: true, parryable: false, useAt: [50, 330], damageMult: 1.2 },
@@ -2319,8 +2569,30 @@
                             ] }
                 },
                 plumede: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.4, windupMult: 0.9, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 380, attackGapMs: 350, damageMult: 1.4,
+                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    // Gale Wall: the wind comes off the drop in sheets.
+                    arenaPatterns: [
+                        { name: 'Rows', zones: [{ kind: 'band', fy: 0.15, h: 0.18 }, { kind: 'band', fy: 0.5, h: 0.18 }, { kind: 'band', fy: 0.85, h: 0.18 }] },
+                        { name: 'Columns', zones: [{ kind: 'column', fx: 0.15, w: 0.13 }, { kind: 'column', fx: 0.4, w: 0.13 }, { kind: 'column', fx: 0.65, w: 0.13 }, { kind: 'column', fx: 0.9, w: 0.13 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: she takes to the wind: three dives running, an owl's eye on you, and the gale.
+                        { fromHpPct: 0.7, openWith: 'Talon Cascade',
+                          notice: 'Plumede takes to the wind. She will not land again unless she wants to.',
+                          add: [
+                              { name: 'Talon Cascade', skill: 'Blink Feint', shape: 'line', reach: 140, width: 14, lunge: 130, cooldownMs: 8000, blockCost: 20, staggers: true, parryable: false, damageMult: 1.0, useAt: [0, 220],
+                                combo: [{ windupMs: 620, lockMs: 220, activeMs: 160, recoveryMs: 150 }, { windupMs: 520, lockMs: 220, activeMs: 160, recoveryMs: 150 }, { windupMs: 520, lockMs: 220, activeMs: 160, recoveryMs: 1100 }] },
+                              { name: 'Owl\'s Eye', skill: 'Razor Plumes', shape: 'mark', radius: 24, reachPx: 300, windupMs: 1300, lockMs: 500, activeMs: 200, recoveryMs: 800, cooldownMs: 8000, guardable: false, parryable: false, damageMult: 1.8,
+                                markText: 'An owl\'s eye is on you! Move before she stoops.' },
+                              { name: 'Gale Wall', skill: 'Black Gale', shape: 'arena', windupMs: 1500, activeMs: 220, recoveryMs: 1500, cooldownMs: 12000, quietMs: 3000, guardable: false, parryable: false, damageMult: 1.9,
+                                chain: { min: 2, max: 2, windupMs: 1000, gapMs: 300 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.4, windupMult: 0.9, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 380, attackGapMs: 350, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 60, punishHeal: 'Stoop', openWith: 'Blink Feint',
                             notice: 'Plumede sheds her cloak of feathers, and what is under it is faster still!',
                             add: [
@@ -3611,6 +3883,59 @@
                 brew_mead:           { station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 2 }, output: 'Mead', yield: 2 },
                 brew_lingonberry_mead:{ station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 1, 'Lingonberries': 2 }, output: 'Lingonberry Mead', yield: 2 },
                 brew_juniper_ale:    { station: 'meadery', verb: 'Brewed', ingredients: { 'Barley': 2, 'Juniper Berries': 1 }, output: 'Juniper Ale', yield: 3 }
+            }, skillVfx: {
+                // Each legendary skill's own look in the world (ui/legend-fx.js: style = how it is drawn, palette = its colours).
+                // Tokelo 2026-11-18: the legendary skills had no visual effects. A test checks every legendary web skill has one.
+                'Fallen Judgement': { style: 'spear', palette: 'radiant' },
+                'Brand of the Watcher': { style: 'sigil', palette: 'radiant' },
+                'Rain of Feathers': { style: 'feathers', palette: 'radiant' },
+                'Verdict of Ash': { style: 'verdict', palette: 'radiant' },
+                'Halo of Ash': { style: 'halo', palette: 'radiant' },
+                'Feather Ward': { style: 'wing_wrap', palette: 'radiant' },
+                'Mercy of the Fallen': { style: 'mercy', palette: 'radiant' },
+                'Ashen Communion': { style: 'ashfall', palette: 'radiant' },
+                'The Coal Carried Down': { style: 'coal', palette: 'radiant' },
+                'Wingstep': { style: 'wingstep', palette: 'radiant' },
+                'Gale of Pinions': { style: 'gale', palette: 'radiant' },
+                'Wings of Sorrow': { style: 'six_wings', palette: 'radiant' },
+                'Judgement from Above': { style: 'pillars', palette: 'radiant' },
+                'Six-Winged Descent': { style: 'descent', palette: 'radiant' },
+                'Solar Fang': { style: 'wolf_head', palette: 'sun' },
+                'Firehowl': { style: 'howl', palette: 'sun' },
+                'Sunfang Rush': { style: 'rush', palette: 'sun' },
+                'Firestorm': { style: 'meteors', palette: 'sun' },
+                'Devour the Sun': { style: 'devour_sun', palette: 'sun' },
+                'Black Maw': { style: 'maw', palette: 'moon' },
+                'Darkhowl': { style: 'howl', palette: 'moon' },
+                'Moonless Grasp': { style: 'jaws', palette: 'moon' },
+                'Night\'s Dominion': { style: 'drain', palette: 'moon' },
+                'Devour the Moon': { style: 'devour_moon', palette: 'moon' },
+                'Call of the Pack': { style: 'pack', palette: 'eclipse' },
+                'Gleipnir\'s Bane': { style: 'chains', palette: 'chain' },
+                'Twin Eclipse': { style: 'eclipse', palette: 'eclipse' },
+                'Raise the Fallen Host': { style: 'grave_rise', palette: 'grave' },
+                'Banner of Bones': { style: 'banner', palette: 'grave' },
+                'Grave Tide': { style: 'hands', palette: 'grave' },
+                'Death’s Dominion': { style: 'dominion', palette: 'grave' },
+                'Abyssal Mantle': { style: 'mantle', palette: 'abyss' },
+                'Sentence of Silence': { style: 'word', palette: 'abyss' },
+                'Throne of Bones': { style: 'throne', palette: 'grave' },
+                'Fall of the Abyssal King': { style: 'kingfall', palette: 'abyss' },
+                'Soul Reap': { style: 'scythe', palette: 'grave' },
+                'Withering Decree': { style: 'rot', palette: 'grave' },
+                'Requiem': { style: 'requiem', palette: 'grave' },
+                'Shatterpoint': { style: 'shard', palette: 'prism' },
+                'Fault Line': { style: 'fault', palette: 'prism' },
+                'Shatter Cascade': { style: 'shard', palette: 'prism' },
+                'Unwrite': { style: 'unwrite', palette: 'prism' },
+                'Phase Shift': { style: 'phase', palette: 'prism' },
+                'Null Moment': { style: 'null', palette: 'prism' },
+                'Borrowed Time': { style: 'borrowed', palette: 'prism' },
+                'Rewind': { style: 'rewind', palette: 'prism' },
+                'Prism Flash': { style: 'prism', palette: 'prism' },
+                'Mirror Self': { style: 'mirror', palette: 'prism' },
+                'Lie Made Real': { style: 'lie', palette: 'prism' },
+                'Reality Collapse': { style: 'collapse', palette: 'prism' }
             }, forageDefinitions: {
                 // World objects of kind 'forage' (src/engine/kitchen.js): gathered, then back after regrowSeconds of calm time.
                 chanterelles: { item: 'Chanterelles', yield: 2, regrowSeconds: 150 },

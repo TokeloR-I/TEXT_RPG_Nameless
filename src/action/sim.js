@@ -319,7 +319,8 @@
                             a.phaseIdx = idx; const ph = b.phases[idx];
                             if (ph.openWith) { a.openWith = ph.openWith; a.atkReady[ph.openWith] = 0; }
                             if (ph.speed) a.prof = { ...a.prof, speed: ph.speed };
-                            this.fx.push({ type: 'phase', x: a.x, y: a.y, phase: idx + 1 });
+                            this.fx.push({ type: 'phase', x: a.x, y: a.y, phase: idx + 1, ...(ph.notice ? { text: ph.notice } : {}) });
+                            if (ph.notice && this.engine.say) this.engine.say(ph.notice, { important: true });
                         }
                     }
                     if (a.resolve) this.stepResolve(a);
@@ -487,6 +488,9 @@
             if (p.state === 'move' && !p.moving) p.state = 'idle';
             const bx = p.x, by = p.y;
             this.moveBody(p, vx * dt, vy * dt, null, (R.player || {}).cornerSlidePx ?? 6);
+            const grav = this.gravityOn(p);   // Lucifero: the floor leans toward him, and Event Horizon drags you in
+            if (grav) this.moveBody(p, grav.x * dt, grav.y * dt, null, (R.player || {}).cornerSlidePx ?? 6);
+            p.gravity = grav;
             p.vx = (p.x - bx) / dt; p.vy = (p.y - by) / dt;   // for leading ground attacks
             p.facing = facingOf(p.angle);     // 4-way: the tile in front (E), exits and saves
             p.facing8 = facing8Of(p.angle);   // 8-way: what the sprite shows
@@ -574,6 +578,7 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + Math.round((shape.activeMs || 0) * haste) + recovery;
             this.fx.push({ type: r.resolved ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: r.skill });
+            if (slot != null) this.skillFx('start', r.skill, shape);
             if (shape.shape === 'dash') this.beginDash(p.attack, blink);
         }
 
@@ -616,6 +621,7 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
             this.fx.push({ type: atOnce ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: name });
+            this.skillFx('start', name, shape);
             if (kind === 'dash') this.beginDash(p.attack, blink);
         }
 
@@ -689,6 +695,18 @@
             }
         }
 
+        /**
+         * A skill's own look (ui/legend-fx.js reads data.skillVfx by name): 'start' when it is cast, 'fire' when its
+         * shape comes out (cx, cy: where it lands), 'impact' where a projectile stops. In a fight or out of one alike.
+         */
+        skillFx(phase, skill, shape, at = null) {
+            if (!skill) return;
+            const p = this.player;
+            const s = shape || {};
+            this.fx.push({ type: 'skill_fx', phase, skill, x: p.x, y: p.y, angle: p.angle, kind: s.shape || s.kind || 'arc',
+                cx: at ? at.x : p.x, cy: at ? at.y : p.y, radius: s.radius || 0, reach: s.reach || s.range || 0, width: s.width || 0, castMs: s.castMs || 0 });
+        }
+
         stepAttack() {
             const p = this.player;
             const at = p.attack;
@@ -706,17 +724,26 @@
             const p = this.player;
             const s = at.shape;
             const kind = s.shape || s.kind || 'arc';
+            if (!at.isBasic) {   // the skill's own look where it comes out
+                let spot = null;
+                if (kind === 'ground') {
+                    const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
+                    const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
+                    spot = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
+                }
+                this.skillFx('fire', at.skill, s, spot);
+            }
             if (kind === 'projectile') {
-                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
+                this.projectiles.push({ owner: 'player', skill: at.isBasic ? null : at.skill, castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
                     burst: s.burstRadius || 0, burstKind: s.burstKind || 'fire' });   // a bomb or flask bursts where it lands (Saboteur)
                 return;
             }
             if (at.cosmetic) {   // out of a fight: the shape shows, nothing is hit
-                if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
+                if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40, skill: at.skill });
                 if (kind === 'ground') {
                     const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
                     const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
-                    this.fx.push({ type: 'aoe', x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, radius: s.radius || 30 });
+                    this.fx.push({ type: 'aoe', x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, radius: s.radius || 30, skill: at.skill });
                 }
                 return;
             }
@@ -732,13 +759,13 @@
                 const c = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
                 hits = this.liveActors().filter((a) => dist(c, a) <= (s.radius || 30) + a.r);
                 center = c;
-                this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: s.radius || 30 });
+                this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: s.radius || 30, skill: at.skill });
             } else {
                 const reach = s.reach || s.range || 20;
                 const half = ((s.arcDeg || 100) / 2) * DEG;
                 hits = this.liveActors().filter((a) => dist(p, a) <= reach + a.r && (dist(p, a) < a.r + p.r || angleDiff(p.angle, angleTo(p, a)) <= half) && this.lineOfSight(p, a));
             }
-            if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
+            if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40, skill: at.skill });
             hits.sort((a, b) => dist(p, a) - dist(p, b));
             this.resolve(at.castId, hits);
             // Hati's darkness (Black Maw, Devour the Moon): drag each enemy it touched toward you, never through you. Bosses hold.
@@ -922,11 +949,22 @@
             }
             const pr = a.prof;
             if (Array.isArray(pr.attacks) && pr.attacks.length) {
-                const list = pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
+                let list = pr.attacks.map((x, i) => ({ name: x.name || `${x.skill || 'attack'}#${i}`, ...x }));
+                // A boss with an attack list and `phases` (the Dominion rulers, docs/design/DOMINION_BOSSES.md): each phase
+                // reached adds whole moves on top (a re-used name replaces the old move), can drop moves and retune them.
+                const self = a.illusionOf || a;
+                if (b && b.phases && self.hp != null && self.maxHp) for (const x of b.phases) {
+                    if (self.hp / self.maxHp > x.fromHpPct + 1e-9) continue;
+                    const add = (x.add || []).filter((m) => m && typeof m === 'object');
+                    if (add.length) list = add.map((m) => ({ ...m })).concat(list.filter((m) => !add.some((n) => n.name === m.name)));
+                    if (x.drop) list = list.filter((m) => !x.drop.includes(m.name));
+                    if (x.attackOverrides) list = list.map((m) => ({ ...m, ...(x.attackOverrides[m.name] || {}) }));
+                }
                 const rg = b && this.ragedCfg(a);   // a boss with an attack list: rage adds whole moves and can retune old ones
                 if (!rg) return list;
                 const over = rg.attackOverrides || {};
-                return (rg.add || []).filter((x) => x && typeof x === 'object').map((x) => ({ ...x })).concat(list.map((x) => ({ ...x, ...(over[x.name] || {}) })));
+                const radd = (rg.add || []).filter((x) => x && typeof x === 'object');
+                return radd.map((x) => ({ ...x })).concat(list.filter((x) => !radd.some((n) => n.name === x.name)).map((x) => ({ ...x, ...(over[x.name] || {}) })));
             }
             return [{ name: 'primary', shape: pr.shape, reach: pr.reach, arcDeg: pr.arcDeg, width: pr.width, lunge: pr.lunge, windupMs: pr.windupMs, activeMs: pr.activeMs, recoveryMs: pr.recoveryMs, projSpeed: pr.projSpeed, projectile: pr.projectile }];
         }
@@ -1013,8 +1051,51 @@
             }
             a.windup = { skill: r.skill, atk: st, base: atk, step, start: this.now, end: a.stateEnd, foe };
             if (st.shape === 'ground') a.windup.circles = this.groundTargets(a, st);
-            if (st.shape === 'mark' || st.markRider) { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target }); }
+            if (st.shape === 'mark' || st.markRider) { a.windup.mark = { x: foe.x, y: foe.y, locked: false, target: foe === this.player ? 'player' : foe.sid }; this.fx.push({ type: 'crow_mark', x: foe.x, y: foe.y, target: a.windup.mark.target, ...(st.markText ? { text: st.markText } : {}) }); }
+            if (st.blink) this.blinkTo(a, foe, st.blink);
             if (st.shape === 'arena') a.windup.storm = this.nextStorm(a);
+        }
+
+        /**
+         * Blink (Beelzebub's folds, docs/design/DOMINION_BOSSES.md): as the wind-up starts the boss steps out of space
+         * `blink.px` from its foe, behind it ('behind': opposite the way the foe faces) or at its side ('side'), if the
+         * body fits there; then the wind-up plays as usual, so the tell is still the whole warning.
+         */
+        blinkTo(a, foe, blink) {
+            if (!foe) return;
+            const px = blink.px || 30;
+            const face = foe === this.player ? this.player.angle : angleTo(foe, a);
+            const tries = blink.at === 'side' ? [face + Math.PI / 2, face - Math.PI / 2, face + Math.PI] : [face + Math.PI, face + Math.PI * 0.75, face - Math.PI * 0.75];
+            for (const ang of tries) {
+                const x = foe.x + Math.cos(ang) * px, y = foe.y + Math.sin(ang) * px;
+                if (this.bodyBlocked(x, y, a.r)) continue;
+                this.fx.push({ type: 'teleport', x: a.x, y: a.y, toX: x, toY: y });
+                a.x = x; a.y = y; a.path = null;
+                a.angle = angleTo(a, foe);
+                return;
+            }
+        }
+
+        /**
+         * Gravity on the player (Lucifero, docs/design/DOMINION_BOSSES.md), px/s toward each source, summed:
+         * a boss phase's (or its rage's) `gravity` all fight long, and an attack's `pull` while it winds up and lands.
+         * A dodge or a sprint gets you clear; walking against a pull does not.
+         */
+        gravityOn(p) {
+            if (!this.engaged) return null;
+            let vx = 0, vy = 0;
+            for (const a of this.actors) {
+                if (a.dead || !a.engineId || a.illusionOf || !this.groups[a.encounterId] || !this.groups[a.encounterId].engaged) continue;
+                const d = dist(a, p);
+                if (d < a.r + p.r + 2) continue;
+                const rg = this.ragedCfg(a), ph = this.bossPhase(a);
+                let pull = ((rg && rg.gravity) || (ph && ph.gravity) || {}).pxPerS || 0;
+                const st = a.windup && (a.state === 'windup' || a.state === 'active') ? a.windup.atk : null;
+                if (st && st.pull && d <= (st.pull.radius || 200)) pull += st.pull.pxPerS || 0;
+                if (!pull) continue;
+                vx += ((a.x - p.x) / d) * pull; vy += ((a.y - p.y) / d) * pull;
+            }
+            return vx || vy ? { x: vx, y: vy } : null;
         }
 
         /** Crow shadows: one on the player, the rest where they're heading (Thorne §5). */
@@ -1163,7 +1244,8 @@
         }
         /** The next crow storm in the fixed cycle, as hitbox shapes (circles and bands). */
         nextStorm(a) {
-            const list = (this.bossOf(a) || {}).crowStorms || [];
+            const b0 = this.bossOf(a) || {};
+            const list = b0.arenaPatterns || b0.crowStorms || [];   // the Warden's crow storms, or a Dominion ruler's patterns
             if (!list.length) return { name: null, shapes: [] };
             const pat = list[a.stormIdx % list.length];
             a.stormIdx++;
@@ -1296,7 +1378,7 @@
                     if (st.onHit.pullPx) this.moveBody(p, -Math.cos(away) * st.onHit.pullPx, -Math.sin(away) * st.onHit.pullPx);
                     this.fx.push({ type: 'notice', text: 'Chained! You can\'t move.' });
                 }
-                const fu = this.ragedCfg(a) && st.followUp;   // rage: a blow that lands is followed straight up (Chain Lock -> Gallows Drop)
+                const fu = (this.ragedCfg(a) || st.followUpAlways) && st.followUp;   // rage (or always): a blow that lands is followed straight up (Chain Lock -> Gallows Drop)
                 if (fu && !a.dead) { a.openWith = fu; a.atkReady[fu] = 0; a.attackReadyAt = Math.min(a.attackReadyAt || 0, this.now + (st.followUpMs || 250)); }
                 this.fx.push({ type: 'player_hit', x: p.x, y: p.y });
                 for (const name of r.inflicted || []) this.fx.push({ type: 'condition', x: p.x, y: p.y, name });   // the wolf's bite bleeds you
@@ -1638,6 +1720,8 @@
         // =====================================================================
         // Projectiles, bodies, pickups, interact
         // =====================================================================
+        impactFx(pj) { if (pj.skill) this.fx.push({ type: 'skill_fx', phase: 'impact', skill: pj.skill, x: pj.x, y: pj.y, angle: pj.angle, cx: pj.x, cy: pj.y, kind: 'projectile', radius: pj.r }); }
+
         stepProjectiles() {
             const dt = STEP / 1000;
             const keep = [];
@@ -1646,7 +1730,7 @@
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
                 const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player' && pj.cosmetic) {   // cast out of a fight: flies to its range or a wall
-                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); this.impactFx(pj); continue; }
                 } else if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
                     if (pj.burst && (hit || wall || pj.travelled >= pj.range)) {   // bomb or flask: everyone in the blast, nearest first
@@ -1656,8 +1740,8 @@
                         this.resolve(pj.castId, hits);
                         continue;
                     }
-                    if (hit) { this.resolve(pj.castId, [hit]); continue; }
-                    if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (hit) { this.impactFx(pj); this.resolve(pj.castId, [hit]); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); this.impactFx(pj); continue; }
                 } else {
                     const a = pj.actor;
                     if (a.dead || !a.engineId || !a.windup) continue;
@@ -1783,6 +1867,13 @@
                     hp: a.illusionOf ? a.illusionOf.hp : a.hp, maxHp: a.illusionOf ? a.illusionOf.maxHp : a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
                     mark: a.state === 'windup' && a.windup && a.windup.mark ? { x: a.windup.mark.x, y: a.windup.mark.y, locked: a.windup.mark.locked, target: a.windup.mark.target } : null,
                     storm: a.state === 'windup' && a.windup && a.windup.storm ? a.windup.storm.name : null,
+                    // Gravity it puts on you right now (Lucifero): an attack's pull, or its phase's lean toward it.
+                    pull: !a.dead && a.engineId && this.engaged ? (() => {
+                        const st = a.windup && (a.state === 'windup' || a.state === 'active') ? a.windup.atk : null;
+                        if (st && st.pull) return { radius: st.pull.radius || 200, strong: true };
+                        const g = (this.ragedCfg(a) || {}).gravity || (this.bossPhase(a) || {}).gravity;
+                        return g ? { radius: g.radius || 220, strong: false } : null;
+                    })() : null,
                     engaged: !!this.groups[a.encounterId].engaged, statuses: (a.illusionOf ? a.illusionOf.statuses : a.statuses) || [], stunned: a.stunned, phase: (a.illusionOf ? a.illusionOf.phaseIdx : a.phaseIdx) + 1, phases: this.bossOf(a) && this.bossOf(a).phases ? this.bossOf(a).phases.length : null,
                     telegraph: a.state === 'windup' && a.windup ? { ...this.enemyShape(a), progress: (this.now - a.windup.start) / Math.max(1, a.windup.end - a.windup.start), boss: !!a.prof.boss, skill: a.windup.skill } : null
                 })),
@@ -1794,7 +1885,7 @@
                     hp: m.hp, maxHp: m.maxHp, statuses: m.statuses || [], stunned: !!m.stunned, taunting: !!m.taunting,
                     timeLeftMs: m.dead || !this.followerTimeLeft ? null : this.followerTimeLeft()   // out of a fight: time before it crumbles
                 })),
-                projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
+                projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner, skill: pj.skill || null })),
                 mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
                 engaged: this.engaged
             };

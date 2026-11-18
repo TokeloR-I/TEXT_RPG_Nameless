@@ -86,6 +86,15 @@
                     e.encounterId = id;
                     const hpMult = (((this.actionRules().bosses || {})[e.key]) || {}).hpMult;   // action play hits far more often than a v2 swing (Gauge)
                     if (hpMult > 0 && hpMult !== 1) e.hp = e.maxHp = Math.round(e.maxHp * hpMult);
+                    // A boss with `scaleToLevel` (the Dominion rulers, docs/design/DOMINION_BOSSES.md) grows with every level the
+                    // player has over its own: more HP, harder blows and thicker hide, so coming back strong never makes it a tank.
+                    const sc = (((this.actionRules().bosses || {})[e.key]) || {}).scaleToLevel;
+                    const over = sc && this.player ? Math.max(0, (this.player.level || 1) - (sc.level || 1)) : 0;
+                    if (over > 0) {
+                        e.hp = e.maxHp = Math.round(e.maxHp * (1 + (sc.hp || 0) * over));
+                        if (sc.atk) e.atk = Math.round(e.atk * (1 + sc.atk * over));
+                        if (sc.def) e.def = Math.round(e.def * (1 + sc.def * over));
+                    }
                 }
                 a.groups[id] = { encounterId: id, ids: enemies.map((e) => e.id), at: at ? { mapId: at.mapId, x: at.x, y: at.y } : null };
                 this.out.push({ type: 'action.engage', encounterId: id, ids: a.groups[id].ids.slice() });
