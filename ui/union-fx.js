@@ -5,7 +5,7 @@
  * wrapped in that demon's dark armor: the sprite's cloth, metal and hair are recoloured to it (a palette, no new
  * sheets), its own pieces are drawn on and around the body, and black smoke curls off you the whole time. Each look
  * is ENSO's own design:
- *   lucifero   (follows Tokelo's design picture) a spiked hood-helm with violet eyes, a black halo in a curl of purple
+ *   lucifero   (follows Tokelo's design picture) a spiked hood-helm with violet eyes (with Heavy Field), a black halo in a curl of purple
  *              smoke, chevron plate with a glowing V, belt and tabard, four clawed shadow arms, a torn skirt, a
  *              gravity vortex with rocks at the feet.
  *   beelzebub  violet rift-glass; glass shards on the shoulders; a cracked halo; flies turning round you (space).
@@ -237,8 +237,9 @@
     const half = (rows) => rows.map((r) => r + [...r].reverse().join(''));
     // Tokelo (16:00): the helms are not the merge's everyday look; each comes on with one union skill and goes with it.
     const HELMS = {
-        // Lucifero wears his always while merged (Tokelo's reference): a spiked hood-helm, the face in shadow, violet eyes.
-        lucifero: { top: 41, always: true, colours: { o: '#0c0a12', d: '#2a2238', m: '#463a5a', l: '#7a6c96', s: '#08060c', e: '#f0a0ff', g: '#a040e0', h: '#1a1424' },
+        // Lucifero's spiked hood-helm (Tokelo's reference: the face in shadow, violet eyes). Tokelo (2026-11-17 18:58):
+        // "take the helm off and apply to a skill like the others": it comes on for CAST_SHOW_MS after Heavy Field.
+        lucifero: { top: 41, skill: 'Heavy Field', colours: { o: '#0c0a12', d: '#2a2238', m: '#463a5a', l: '#7a6c96', s: '#08060c', e: '#f0a0ff', g: '#a040e0', h: '#1a1424' },
             rows: half([
                 '........o', '.......ol', '......odl', '.....oddm', '...ooddmm', '..ohdddmm', '.ohddmmdm', '.ohdmddsd',
                 'ohhdssss', 'ohdmseess', 'ohdmsgees', 'ohdmssssg', '.ohdmssss', '.ohhdmsss', '..ohhdmss', '...ooohhd'].map((r) => r.padEnd(9, 's').slice(0, 9))) },
@@ -253,7 +254,10 @@
     };
     // Facing away you see the back of the helm: the face colours go dark.
     const BACK = { p: 'm', e: 'm', b: 'm', s: 'm', n: 'm', w: 'm', l: 'm' };
-    /** Is the helm on? Only while its skill's status is on you (view.statuses: the names, from ui/world-ui.js). */
+    /** How long a skill that leaves no status on you (Heavy Field) still counts as on, after the cast: its slow's 6 s. */
+    const CAST_SHOW_MS = 6000;
+    /** Is the helm on? Only while its skill's status is on you, or it was cast in the last CAST_SHOW_MS (view.statuses:
+     *  the names, from ui/world-ui.js). */
     const helmOn = (id, view) => !!(HELMS[id] && (HELMS[id].always || (view && Array.isArray(view.statuses) && view.statuses.includes(HELMS[id].skill))));
     function helm(g, cx, base, id, k, view, now) {
         const H = HELMS[id];
@@ -382,7 +386,7 @@
         try { if (LOWER[st.id]) spiderBody(g, cx, base, L, st.k, view, now, 'front', LOWER[st.id].hips); helm(g, cx, base, st.id, st.k, view, now); FRONT[st.id](g, cx, base, L, st.k, view, now); burst(g, cx, base, L, st.burst); } finally { g.restore(); }
     }
 
-    const api = { LOOKS, HELMS, PLATE, helmOn, palette, state, reset, behind, front, lowerBody };
+    const api = { LOOKS, HELMS, PLATE, CAST_SHOW_MS, helmOn, palette, state, reset, behind, front, lowerBody };
     ENSO.unionFx = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
