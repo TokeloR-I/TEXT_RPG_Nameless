@@ -31,7 +31,9 @@
     // Effect types a self skill may run out of a fight (pre-buffing): ones that only give the caster a status or
     // touch its own HP and resource. A skill with any other handled effect works in a fight only.
     const CALM_EFFECTS = new Set(['damage_reduction', 'apply_status', 'absorb_hit', 'dodge_chance', 'counter_attack', 'avoid_next_hit',
-        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'heal_percent', 'extra_turn', 'channel_ghosts', 'self_buff']);
+        'bonus_damage_vs_flag_percent', 'gain_resource', 'take_true_damage', 'heal_percent', 'extra_turn', 'channel_ghosts', 'self_buff', 'cleanse']);
+    // Effect types that raise bodies: cast out of a fight they become followers (actionSummonFollower) that join the next one.
+    const SUMMON_EFFECTS = new Set(['summon', 'shadow_summon', 'raise_army', 'ghoul_shield']);
 
     class ActionCombatMethods {
         /** Is the current fight an action (in-world) one? */
@@ -70,6 +72,7 @@
                     enemies = this.combat.enemies;
                     this.actionRestoreFollowers();
                     this.actionRestoreBuffs(buffs);
+                    if (this.unionEnterFight) this.unionEnterFight();   // a Devil Union called out of the fight comes along (union.js)
                 } else if (this.actionActive()) {
                     if (this.combat.action.groups[id]) { this.refuse('ALREADY_ENGAGED', 'They are already on you.'); return null; }
                     // A second group joins without startCombat(): that would wipe the player's statuses and CR.
@@ -463,6 +466,7 @@
             p.statusEffects = [];
             this.actionKeepFollowers(c);
             this.actionCalmBuffs(kept);
+            if (this.unionLeaveFight) this.unionLeaveFight(c);   // the union and its cooldown run on out of the fight (union.js)
             if (won) {
                 const healed = this.heal(p, Math.floor(p.maxHp * this.data.gameRules.postFightHealPct));
                 if (healed > 0) this.say(`You catch your breath. +${healed} HP (${p.hp}/${p.maxHp}).`);
@@ -482,6 +486,7 @@
             this.combat = null;
             p.statusEffects = [];
             if (this.world) this.world.followers = [];   // a fall scatters your summons
+            if (this.unionLeaveFight) this.unionLeaveFight(c, { fell: true });   // and ends a union (its cooldown keeps counting)
             p.hp = Math.max(1, Math.floor(p.maxHp * ((this.actionRules().respawn || {}).hpPct ?? 0.5)));
             if (this.world) { this.world.lastEncounter = groups[0] || null; this.world.lastResult = 'defeat'; }
             this.say(`You wake somewhere safe, aching. (${p.hp}/${p.maxHp} HP)`, { important: true });
@@ -506,9 +511,23 @@
             const f = (this.world && this.world.followers) || [];
             if (!f.length || !this.combat) return;
             const c = this.combat;
+            const calm = this.world.calm;
             c.minions.push(...f);
             c.nextMinionId = Math.max(c.nextMinionId || 1, ...f.map((m) => Number(String(m.id).split('_')[1]) + 1 || 1));
             this.world.followers = [];
+            for (const m of f) {
+                if (m.calmLife) {   // a shadow raised out of the fight keeps the time it had left
+                    const left = Math.max(1, ((m.calmEndsAt || 0) - ((calm && calm.now) || 0)) / 1000);
+                    m.timed = true;
+                    this.applyStatus(this.player, m, { name: 'Shadow-bound', type: 'lifetime', duration: m.calmLife.turns || 1, seconds: left });
+                }
+                if (m.pendingGhoul) {   // Raise Ghoul cast before the fight: its shield starts now
+                    const eff = m.pendingGhoul;
+                    m.ghoul = { phase: 'shield', stored: 0, capacity: eff.capacity || 60, effect: eff };
+                    this.applyStatus(this.player, this.player, { name: 'Ghoul Shield', type: 'ghoul_shield', minionId: m.id, duration: eff.duration || 3, seconds: eff.seconds });
+                }
+                delete m.calmLife; delete m.calmEndsAt; delete m.pendingGhoul;
+            }
             const names = [...new Set(f.map((m) => m.name))];
             this.say(`Your ${names.join(' and ')} ${f.length > 1 ? 'join' : 'joins'} the fight.`);
         }
@@ -574,12 +593,16 @@
             if (!sk) return { ok: false, error: { code: 'UNKNOWN_SKILL', message: `Unknown skill '${name}'.` } };
             if (!this.player || (!this.player.skills.includes(name) && !this.unionGrants(name))) return { ok: false, error: { code: 'SKILL_NOT_KNOWN', message: `You don't know the skill '${name}'.` } };
             const skill = this.playerSkill(name);
-            return { ok: true, skill: name, shape: this.actionShape(name, false, skill.target || 'enemy_single'), summon: (skill.effects || []).some((x) => x.type === 'summon') };
+            return { ok: true, skill: name, shape: this.actionShape(name, false, skill.target || 'enemy_single'), summon: (skill.effects || []).some((x) => SUMMON_EFFECTS.has(x.type)) };
         }
 
         /**
-         * A summon skill cast out of a fight: pay its cost and the minion follows you (world.followers) until the
-         * linger timer runs out or the next fight starts, which it joins. Same cap as in a fight.
+         * A summon skill cast out of a fight (Tokelo 2026-11-18: "make every skill or attack be available out of combat
+         * too"): pay its cost and what it raises follows you (world.followers) until the linger timer runs out or the
+         * next fight starts, which it joins. Same cap as in a fight. Raise Skeleton raises one; Shadow Clone, Shadow
+         * Hounds and Call of the Pack their count of shadows, which fade on the calm clock after their lifetime; March of
+         * Endless Bones and Shade Legion fill the ranks and add the champion; Raise Ghoul's ghoul throws itself in front
+         * of you as the fight starts (its shield runs from then).
          */
         actionSummonFollower(name) {
             return this.actionRun(() => {
@@ -588,24 +611,69 @@
                 const pre = this.actionSkillPreview(name);
                 if (!pre.ok) { this.refuse(pre.error.code, pre.error.message); return null; }
                 const skill = this.playerSkill(name);
-                const eff = (skill.effects || []).find((x) => x.type === 'summon');
+                const eff = (skill.effects || []).find((x) => SUMMON_EFFECTS.has(x.type));
                 if (!eff) { this.refuse('NOT_A_SUMMON', `${name} doesn't summon.`); return null; }
                 const p = this.player;
                 const cost = this.skillCost(skill);
                 if (p.resource.current < cost) { this.refuse('NOT_ENOUGH_RESOURCE', `Not enough ${p.resource.type}! (${name} needs ${cost}, you have ${p.resource.current})`); return null; }
                 const f = this.world.followers || (this.world.followers = []);
-                if (f.filter((m) => m.hp > 0).length >= this.minionCap()) { this.refuse('REQUIREMENT_FAILED', `You can't control more than ${this.minionCap()} minions.`); return null; }
-                const tpl = this.data.minionDefinitions[eff.summon_type];
-                if (!tpl) { this.refuse('INVALID_SUMMON', `No minion '${eff.summon_type}'.`); return null; }
-                const id = `minion_${this.world.nextFollowerId || 1001}`;   // apart from a fight's own minion_1, 2, … (restore keeps ids unique)
-                this.world.nextFollowerId = (this.world.nextFollowerId || 1001) + 1;
-                const m = { ...JSON.parse(JSON.stringify(tpl)), id, summonType: eff.summon_type, ownerId: p.id, isPlayer: false, isMinion: true, statusEffects: [] };
-                if (eff.apply_effect && m.skills[0]) m.skills[0] = { ...m.skills[0], effects: [...(m.skills[0].effects || []), eff.apply_effect] };   // as the summon effect does
+                const live = () => f.filter((m) => m.hp > 0);
+                const cap = this.minionCap();
+                const type = eff.summon_type || (eff.type === 'ghoul_shield' ? 'ghoul' : null);
+                if (eff.type === 'ghoul_shield' && live().some((m) => m.pendingGhoul)) { this.refuse('REQUIREMENT_FAILED', 'Your ghoul is already guarding you.'); return null; }
+                if (eff.type !== 'raise_army' && live().length >= cap) { this.refuse('REQUIREMENT_FAILED', `You can't control more than ${cap} minions.`); return null; }
+                if (!this.data.minionDefinitions[type]) { this.refuse('INVALID_SUMMON', `No minion '${type}'.`); return null; }
+                const calm = this.actionCalm();
+                const raise = (kind, life = null) => {
+                    const tpl = this.data.minionDefinitions[kind];
+                    if (!tpl) return null;
+                    const id = `minion_${this.world.nextFollowerId || 1001}`;   // apart from a fight's own minion_1, 2, … (restore keeps ids unique)
+                    this.world.nextFollowerId = (this.world.nextFollowerId || 1001) + 1;
+                    const m = { ...JSON.parse(JSON.stringify(tpl)), id, summonType: kind, ownerId: p.id, isPlayer: false, isMinion: true, statusEffects: [] };
+                    let seconds = (life && life.seconds) || tpl.lifetimeSeconds, turns = (life && life.turns) || tpl.lifetimeTurns;
+                    if (seconds || turns) {   // a shadow: it fades on the calm clock as it would in a fight (summon(), skills.js)
+                        if ((tpl.specialFlags || []).includes('shadow') && this.hasTrait('Long Shadows')) { seconds = (seconds || 0) + 5; turns = (turns || 0) + 1; }
+                        const ms = seconds ? seconds * 1000 : this.rtTurnsToMs(turns);
+                        m.calmLife = { seconds: seconds || null, turns: turns || 1 };
+                        m.calmEndsAt = calm.now + ms;
+                    }
+                    f.push(m);
+                    return m;
+                };
+                const raised = [];
+                if (eff.type === 'summon') {
+                    const m = raise(type);
+                    if (eff.apply_effect && m.skills[0]) m.skills[0] = { ...m.skills[0], effects: [...(m.skills[0].effects || []), eff.apply_effect] };   // as the summon effect does
+                    raised.push(m);
+                } else if (eff.type === 'shadow_summon') {
+                    for (let i = 0; i < (eff.count || 1) && live().length < cap; i++) raised.push(raise(type));
+                } else if (eff.type === 'ghoul_shield') {
+                    const m = raise(type);
+                    m.pendingGhoul = eff;
+                    raised.push(m);
+                } else {   // raise_army: the ranks up to the cap, plus one champion
+                    const life = eff.seconds || eff.duration ? { seconds: eff.seconds, turns: eff.duration } : null;
+                    const ranks = () => live().filter((m) => m.summonType !== eff.champion).length;
+                    while (ranks() < cap) { const m = raise(type, life); if (!m) break; raised.push(m); }
+                    if (eff.champion && !live().some((m) => m.summonType === eff.champion)) { const c = raise(eff.champion, life); if (c) raised.push(c); }
+                    if (!raised.length) { this.refuse('REQUIREMENT_FAILED', 'Your army is already at full strength.'); return null; }
+                }
                 if (cost > 0) { p.resource.current -= cost; this.say(`Used ${cost} ${p.resource.type}.`); }
-                f.push(m);
-                this.say(`${p.name} summons a ${m.name}!`);
-                return { id, shape: pre.shape };
+                const names = raised.map((m) => m.name);
+                this.say(raised.length > 1 ? `${p.name} uses ${name}: ${names.length} rise (${[...new Set(names)].join(', ')}) and follow you.` : `${p.name} summons a ${names[0]}!`);
+                return { id: raised[0].id, ids: raised.map((m) => m.id), shape: pre.shape };
             });
+        }
+
+        /** Out of a fight: shadows raised out of one fade when their time on the calm clock is up. */
+        actionFadeFollowers() {
+            const calm = this.world && this.world.calm;
+            const f = (this.world && this.world.followers) || [];
+            const gone = calm ? f.filter((m) => m.calmEndsAt != null && m.calmEndsAt <= calm.now) : [];
+            if (!gone.length) return false;
+            this.world.followers = f.filter((m) => !gone.includes(m));
+            for (const m of gone) { this.say(`${m.name} melts back into the shadows.`); this.out.push({ type: 'action.minion_faded', minionId: m.id }); }
+            return true;
         }
 
         // =====================================================================
@@ -628,12 +696,17 @@
             calm.now += Math.max(0, Number(ms) || 0);
             for (const k of Object.keys(calm.cooldowns)) if (calm.cooldowns[k] <= calm.now) delete calm.cooldowns[k];
             this.foodRegen(ms);   // meal regeneration keeps working out of a fight (src/engine/kitchen.js)
+            const unionEnded = !!(this.unionCalmTick && this.unionCalmTick());   // a Devil Union called out of a fight runs out (union.js)
+            const faded = this.actionFadeFollowers();
             const gone = this.player.statusEffects.filter((x) => x.calm && x.rtEndsAt != null && x.rtEndsAt <= calm.now);
-            if (!gone.length) return [];
+            if (!gone.length) return unionEnded || faded ? this.flush() : [];
             this.player.statusEffects = this.player.statusEffects.filter((x) => !gone.includes(x));
             for (const x of gone) this.say(`[${x.name}] wears off ${this.player.name}.`);
             return this.flush();
         }
+
+        /** Pure. The effects of a skill that work on the caster out of a fight. */
+        actionCalmEffects(skill) { return ((skill && skill.effects) || []).filter((x) => this.effects[x.type] && CALM_EFFECTS.has(x.type)); }
 
         /** Why this skill can't be cast as a pre-buff right now, or null. Pure. */
         actionPrebuffProblem(name) {
@@ -641,9 +714,10 @@
             if (!pre.ok) return pre.error;
             const skill = this.playerSkill(name);
             const kind = skill.target || 'enemy_single';
-            const handled = (skill.effects || []).filter((x) => this.effects[x.type]);
-            if (!(kind === 'self' || (kind === 'ally_single' && !skill.base_damage)) || !handled.length || handled.some((x) => !CALM_EFFECTS.has(x.type)))
-                return { code: 'FIGHT_ONLY', message: `${name} only works in a fight.` };
+            // What a self skill can do with no fight on: its effects on you (statuses, heals, cleanses). Anything that
+            // needs a foe (a taunt, a zone) waits for one; with nothing left the skill just plays (the sim, no cost).
+            if (!(kind === 'self' || (kind === 'ally_single' && !skill.base_damage)) || !this.actionCalmEffects(skill).length)
+                return { code: 'FIGHT_ONLY', message: `${name} has nothing to work on out of a fight.` };
             const calm = this.actionCalm();
             const ready = calm && calm.cooldowns[name];
             if (ready != null && ready > calm.now) return { code: 'ON_COOLDOWN', message: `${name} is on cooldown (${Math.ceil((ready - calm.now) / 1000)}s).` };
@@ -669,7 +743,7 @@
                 const before = new Map(p.statusEffects.map((x) => [x, JSON.stringify(x)]));
                 if (cost > 0) { p.resource.current -= cost; this.say(`Used ${cost} ${p.resource.type}.`); }
                 this.say(`${p.name} uses ${name}.`);
-                this.castSkill(p, skill, [p]);
+                this.castSkill(p, { ...skill, effects: this.actionCalmEffects(skill) }, [p]);
                 for (const x of p.statusEffects) {
                     if (before.has(x) && before.get(x) === JSON.stringify(x)) continue;   // untouched by this cast
                     const total = this.rtStatusTotalMs(x);   // the same timing rtStatusApplied gives it in a fight

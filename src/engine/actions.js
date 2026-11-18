@@ -112,7 +112,7 @@
                 case 'switch_stance': this.switchStance(String(a.stance || '')); return;   // legendary stances (stance.js)
                 case 'equip_union': this.equipUnion(String(a.union || '')); return;   // Devil Union (union.js)
                 case 'set_resonance': this.setResonance(a.slot, a.aspect == null ? null : String(a.aspect)); return;
-                case 'union': this.activateUnion(); return;
+                case 'union': this.activateUnion(a.union ? String(a.union) : null); return;   // out of a fight too (calm clock)
                 case 'describe': this.describe(a.subject); return;
                 case 'quit': this.mode = 'game_over'; this.say('Thanks for playing! Type \'start\' to play again.', { important: true }); return;
                 case 'cheat': this.cheat(a.cheat, a.amount); return;
@@ -162,8 +162,9 @@
             const p = this.player;
             if (WEB_ACTIONS.has(a.type)) { const busy = this.webCombatProblem(); this.refuse(busy.code, busy.message); return; }
             if (a.type === 'switch_stance') { this.switchStance(String(a.stance || '')); return; }   // any fight mode; never uses the turn
-            if (a.type === 'union') { this.activateUnion(); return; }   // Devil Union (union.js): any fight mode; never uses the turn
-            if (a.type === 'equip_union' || a.type === 'set_resonance') { this.refuse('IN_COMBAT', "You can't change your contract or resonance in a fight."); return; }
+            if (a.type === 'union') { this.activateUnion(a.union ? String(a.union) : null); return; }   // Devil Union (union.js): any fight mode; never uses the turn
+            if (a.type === 'equip_union') { this.equipUnion(String(a.union || '')); return; }   // choosing a demon is free while you aren't merged
+            if (a.type === 'set_resonance') { this.setResonance(a.slot, a.aspect == null ? null : String(a.aspect)); return; }
             if (this.rtActive()) { if (a.type === 'set_skill_slot') this.setSkillSlot(a.slot, a.skillId); else this.rtPerformCombat(a); return; }   // combat v2 (realtime.js)
             if (!c.awaitingPlayer) { this.refuse('NOT_YOUR_TURN', 'Not your turn!'); return; }
             if (this.turnOrderPending()) { this.performTurnOrder(a); return; }   // D-09 (src/engine/turn-order.js)

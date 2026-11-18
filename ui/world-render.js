@@ -1052,7 +1052,7 @@
             // Devil Union (Tokelo 2026-11-17, ui/union-fx.js): merged, the hero wears the demon's dark armor.
             const fx = ENSO.unionFx, merge = fx ? fx.state(view.union || null, time) : null;
             view.armor = merge && merge.k > 0.5 ? fx.palette(merge.id) : null;
-            if (merge && !away) fx.behind(g, cx, base, merge, view, time);
+            if (merge) fx.behind(g, cx, base, merge, view, time);                  // what is behind you at this facing (8 ways)
             const cut = merge ? fx.lowerBody(merge) : 0;                            // Beelzebub: a spider from the hips down
             if (cut) { g.save(); g.beginPath(); g.rect(cx - 64, base - 120, 128, 120 - cut); g.clip(); }
             ENSO.sprites.drawCharacter(g, cx, base, {
@@ -1062,7 +1062,6 @@
                 flash: !view.reducedMotion && view.anim === 'hurt' && view.animT != null && view.animT < 140 ? (view.animT < 70 ? 0.85 : 0.85 * (1 - (view.animT - 70) / 70)) : 0
             }, view.anim && view.animT != null ? view.animT : !view.anim && view.gaitT != null ? view.gaitT : time);   // combat v3: swing / dodge / guard / hurt
             if (cut) g.restore();
-            if (merge && away) fx.behind(g, cx, base, merge, view, time);
             if (merge) fx.front(g, cx, base, merge, view, time);
             if (look.wings && away) ENSO.gazeFx.playerWings(g, cx, base, view.facing, time);
             if (look.halo) ENSO.gazeFx.playerHalo(g, cx, base, time);

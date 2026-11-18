@@ -579,8 +579,9 @@
 
         /**
          * A skill pressed with no fight on: it plays exactly as it would in one (the bolt flies, the buff glows, the
-         * dash moves you, a summon rises and follows you) with nothing to hit. Only summons change anything (they
-         * pay and join world.followers); nothing else is spent. Never a weapon swing.
+         * dash moves you, a summon rises and follows you) with nothing to hit. Nothing is combat-only (Tokelo
+         * 2026-11-18): summons pay and join world.followers, self skills work on you (actionPrebuff), a blink with no
+         * enemy to step behind steps you forward, and attacks fly with nothing to hit (free). Never a weapon swing.
          */
         startCalmSkill(slot) {
             const p = this.player;
@@ -590,8 +591,8 @@
             const pre = e.actionSkillPreview(name);
             if (!pre.ok) { this.fx.push({ type: 'refused', code: pre.error.code, text: pre.error.message }); return; }
             const shape = pre.shape;
-            if (shape.teleport) { this.fx.push({ type: 'notice', text: `${name}: no enemy in reach to step behind.` }); return; }
-            if (shape.shape === 'summon' && !pre.summon) { this.fx.push({ type: 'notice', text: `${name} only works in a fight.` }); return; }   // Raise Ghoul, March
+            const blink = shape.teleport ? this.calmBlinkSpot(shape) : null;   // Shadowstep, Rift Exchange: a step into the shadows ahead
+            if (shape.teleport && !blink) { this.fx.push({ type: 'notice', text: `${name}: no room to step there.` }); return; }
             if (pre.summon) {
                 const r = e.actionSummonFollower(name);
                 this.collect(r.events);
@@ -601,8 +602,7 @@
                 // A self buff works for real: cast now, it lasts its usual time and comes into the next fight.
                 const problem = e.actionPrebuffProblem(name);
                 if (problem && problem.code !== 'FIGHT_ONLY') { this.fx.push({ type: 'refused', code: problem.code, text: problem.message }); return; }
-                if (problem) this.fx.push({ type: 'notice', text: problem.message });
-                else {
+                if (!problem) {   // FIGHT_ONLY: nothing on you to work on (a taunt, a zone): it still plays, for free
                     const r = e.actionPrebuff(name);
                     this.collect(r.events);
                     if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
@@ -616,7 +616,21 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
             this.fx.push({ type: atOnce ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: name });
-            if (kind === 'dash') this.beginDash(p.attack, null);
+            if (kind === 'dash') this.beginDash(p.attack, blink);
+        }
+
+        /** Out of a fight a blink has no one to step behind: it takes you to where you aim, or ahead, within its range. */
+        calmBlinkSpot(shape) {
+            const p = this.player;
+            const aim = this.input.aim;
+            const range = Math.min(shape.range || 110, 72);
+            const ang = aim ? Math.atan2(aim.y - p.y, aim.x - p.x) : p.angle;
+            const far = aim ? Math.min(range, Math.hypot(aim.x - p.x, aim.y - p.y)) : range;
+            for (let d = far; d >= 12; d -= 4) {
+                const x = p.x + Math.cos(ang) * d, y = p.y + Math.sin(ang) * d;
+                if (!this.bodyBlocked(x, y, p.r || 6) && this.lineOfSight(p, { x, y })) return { actor: null, spot: { x, y }, angle: ang };
+            }
+            return null;
         }
 
         /**
@@ -660,9 +674,9 @@
             if (s.teleport && blink) {
                 const from = { x: p.x, y: p.y };
                 p.x = blink.spot.x; p.y = blink.spot.y;
-                p.angle = angleTo(p, blink.actor);
+                p.angle = blink.actor ? angleTo(p, blink.actor) : blink.angle != null ? blink.angle : p.angle;
                 p.iframesUntil = Math.max(p.iframesUntil, this.now + (s.iframeMs || 150));
-                at.target = blink.actor;
+                at.target = blink.actor || null;
                 this.fx.push({ type: 'teleport', x: from.x, y: from.y, toX: p.x, toY: p.y });
                 this.playerTile();
                 return;

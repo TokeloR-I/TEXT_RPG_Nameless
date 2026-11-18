@@ -18,7 +18,7 @@
  * timer from getRealtimeState(), positions and stamina from the sim.
  *
  * Keys (direction doc §3): LMB or 1 = basic attack, 2–6 = engine skill-bar slots 0–4, R = slot 5, H = quick heal,
- * T = next stance (Fenrir's Heir, shown only with a stance web). U = Devil Union: merge in a fight, next contract out of one.
+ * T = next stance (Fenrir's Heir, shown only with a stance web). U = Devil Union: choose a contracted demon and merge, in a fight or out.
  * slotForKey(ev) gives the same mapping to the input code, so the HUD's key hints never disagree.
  * ========================================================================= */
 (function (global) {
@@ -179,19 +179,19 @@
     }
 
     /** The union cell (U): Devil Union (engine.getUnion(), src/engine/union.js). Hidden without a contract.
-     *  In a fight U merges with the equipped demon (shows the time left while merged, the cooldown after); out of one,
-     *  U equips the next contracted demon. */
+     *  U merges, in a fight or out of one (Tokelo 2026-11-18); with more than one contract it first asks which demon
+     *  (ui/world-ui.js, the Devil Union page). Shows the time left while merged, the cooldown after. */
     const UNION_KEY = 'U';
     function unionCell(engine) {
         const v = engine && typeof engine.getUnion === 'function' ? engine.getUnion() : null;
         if (!v || !v.equipped) return null;
         const owned = v.unions.filter((u) => u.contract);
         const cur = owned.find((u) => u.id === (v.active || v.equipped)) || owned[0];
-        const next = owned[(owned.indexOf(cur) + 1) % owned.length];
         const wait = !v.enabled && v.reason && v.reason.code === 'UNION_COOLDOWN' ? v.readyInMs || 0 : 0;
-        return { id: cur.id, active: !!v.active, next: next && next.id !== cur.id ? next.id : null, endsInMs: v.endsInMs, readyInMs: wait,
+        const choose = !v.active && owned.length > 1;
+        return { id: cur.id, active: !!v.active, choose, owned: owned.map((u) => u.id), endsInMs: v.endsInMs, readyInMs: wait,
             enabled: !!v.enabled || !!v.active, glyph: '⛧',
-            title: `${UNION_KEY} · ${v.active ? `One with ${cur.name}` : `Union: ${cur.name}`}${cur.power ? ` (${cur.power})` : ''}${wait ? ` · ready in ${secondsText(wait)}s` : ''}${v.favor ? " · Demonkore's Favor" : ''}` };
+            title: `${UNION_KEY} · ${v.active ? `One with ${cur.name}` : choose ? `Devil Union: choose a demon (last: ${cur.name})` : `Devil Union: ${cur.name}`}${!v.active && cur.power ? ` (${cur.power})` : ''}${wait ? ` · ready in ${secondsText(wait)}s` : ''}${v.favor ? " · Demonkore's Favor" : ''}` };
     }
 
     function viewModel(engine, simView, now = 0) {
@@ -428,7 +428,7 @@
         const stanceG = h('span', 'glyph', stanceEl, '☀'); const stanceN = h('span', 'secs', stanceEl); h('span', 'key', stanceEl, STANCE_KEY);
         const stanceFns = [];
         stanceEl.addEventListener('pointerdown', (e) => { stop(e); stanceFns.forEach((f) => f()); });
-        // Devil Union: U or a click merges with the equipped demon (in a fight) or equips the next contract (out of one).
+        // Devil Union: U or a click chooses a demon and merges (in a fight or out of one).
         const unionEl = h('div', 'ahud-slot dodge union', barEl);
         unionEl.setAttribute('role', 'button');
         const unionG = h('span', 'glyph', unionEl, '⛧'); const unionN = h('span', 'secs', unionEl); h('span', 'key', unionEl, UNION_KEY);
