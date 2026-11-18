@@ -207,8 +207,13 @@ test('Skill Web: a legendary web (Deathlord Eternal) opens on its conditions and
     const r = g.act({ type: 'learn_node', nodeId: 'Deathlord Eternal' });
     assert.ok(r.ok);
     assert.ok(r.events.some((e) => /the Deathlord Eternal web opens/.test(e.text || '')));
+    // The web's gifts come with the heart (one skill from each path), free.
+    for (const sk of ['Raise the Fallen Host', 'Abyssal Mantle', 'Soul Reap']) assert.ok(g.player.skills.includes(sk), sk);
     assert.ok(g.act({ type: 'learn_node', nodeId: 'Legion of the Dead' }).ok);
-    assert.ok(g.act({ type: 'learn_node', nodeId: 'Death’s Dominion' }).ok);
+    assert.strictEqual(g.minionCap(), data.gameRules.baseMinionCap + 2, 'Legion of the Dead: +2 max minions');
+    assert.strictEqual(g.act({ type: 'learn_node', nodeId: 'Death’s Dominion' }).error.code !== undefined, true);   // a capstone: level 18, end of the Legion path
+    levelTo(g, 18);
+    for (const id of ['Banner of Bones', 'Grave Tide', 'Marrow Pact', 'Death’s Dominion']) assert.ok(g.act({ type: 'learn_node', nodeId: id }).ok, id);
     // On top of the build: the necromancer keeps everything, still walks as the Eternal Lich.
     assert.ok(g.player.skills.includes('Eternal Lich Unmake') && g.player.skills.includes('Oblivion Reign') && g.player.skills.includes('Death’s Dominion'));
     assert.strictEqual(g.progression.evolutionName, 'Eternal Lich');

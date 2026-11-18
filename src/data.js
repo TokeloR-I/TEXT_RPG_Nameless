@@ -503,6 +503,18 @@
                 resistances: [], specialFlags: ['spirit'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
                 skills: [{ name: 'Spirit Bite', description: 'Deals 3-5 damage.', base_damage: [3, 5], target: 'enemy_single', damage_type: 'physical' }]
             },
+            // Deathlord Eternal: Raise the Fallen Host. Grave-knights in rusted black plate; they fade with the fight.
+            'deathless_thrall': {
+                name: 'Deathless Thrall', hp: 30, maxHp: 30, atk: 5, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['undead'], lifetimeSeconds: 15, lifetimeTurns: 5, fadesWithFight: true,
+                skills: [{ name: 'Grave-Blade', description: 'Deals 4-6 damage.', base_damage: [4, 6], target: 'enemy_single', damage_type: 'necrotic' }]
+            },
+            // Reality Breaker: Mirror Self. You, twice, out of a mirror that is not there; cracked glass at the edges.
+            'mirror_self': {
+                name: 'Mirror Self', hp: 24, maxHp: 24, atk: 4, def: 2, spd: 13, critChance: 0.1, critMultiplier: 1.5,
+                resistances: [], specialFlags: ['spirit'], lifetimeSeconds: 12, lifetimeTurns: 4, fadesWithFight: true,
+                skills: [{ name: 'Mirror Cut', description: 'Deals 4-6 damage.', base_damage: [4, 6], target: 'enemy_single', damage_type: 'magic' }]
+            },
             'shadow_stag': {
                 name: 'Shadow Stag', hp: 40, maxHp: 40, atk: 6, def: 3, spd: 10, critChance: 0.05, critMultiplier: 1.5,
                 resistances: [], specialFlags: ['shadow'], lifetimeSeconds: 20, lifetimeTurns: 7, fadesWithFight: true,
@@ -697,7 +709,7 @@
             // Tokelo 2026-11-01: fill your army and raise a champion; costed and on a cooldown instead of once per fight.
             'March of Endless Bones': { description: 'Raise skeletons up to your minion limit, plus a Skeleton Champion with double a skeleton\'s stats.', cost: 6, cooldown: 45, resource: 'Soul Energy', effects: [{ type: 'raise_army', summon_type: 'skeleton', champion: 'skeleton_champion' }], target: 'self' }, // Black Pharaoh Ascended
             'Plague of Ages': { description: 'All enemies instantly gain max Infection stacks; infections deal true dmg.', liveDescription: 'Every enemy around you (160 px) gains 10 Infection stacks that deal true damage.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'apply_max_infection_aoe', stacks: 10 }, { type: 'infections_true_damage' }], target: 'all_enemies' }, // Plague Sovereign Ascended
-            'Death’s Dominion': { description: 'All enemies instantly become undead under your control for 1 turn.', liveDescription: 'All enemies become undead under your control for 3 s.', cost: 'all', resource: 'Soul Energy', oncePerFight: true, effects: [{ type: 'control_all_enemies', duration: 1 }], target: 'all_enemies' }, // Deathlord Eternal Legendary
+            'Death’s Dominion': { description: 'Every enemy kneels to you: 24–32 necrotic dmg each, and they cannot act for 2 turns.', liveDescription: 'Every enemy around you (140 px) kneels to the Deathlord: 24–32 necrotic dmg each, and they cannot act for 6 s (bosses resist through Control Resistance). Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [24, 32], effects: [{ type: 'control_all_enemies', duration: 2 }], target: 'all_enemies', damage_type: 'necrotic' }, // Deathlord Eternal Legendary (docs/design/LEGENDARY_WEBS.md)
 
 
             // Fallen Seraphim Legendary (Tokelo 2026-11-04): heavenly light that fell. Like the other legendary skills,
@@ -741,6 +753,41 @@
             'Call of the Pack': { description: 'Two spectral wolves run beside you for 5 turns.', liveDescription: 'Two spectral wolves run beside you for 15 s (20 HP each). Each bites for 3–5 about once a second, and enemies may go for them instead of you. 24 s cooldown. Free: Fenrir\'s gift.', cost: 0, cooldown: 24, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'spectral_wolf', count: 2 }], target: 'self' },
             'Gleipnir\'s Bane': { description: 'Break the chain: shed every stun, slow and debuff, and the next hit on you is absorbed.', liveDescription: 'Break the chain: shed every stun, slow and debuff, and absorb the next hit (12 s). 18 s cooldown.', cost: 1, cooldown: 18, resource: 'any', effects: [{ type: 'cleanse', categories: ['control', 'debuff'] }, { type: 'absorb_hit', duration: 2, say: 'breaks the chain, and the broken links hang round you like armour.' }], target: 'self' },
             'Twin Eclipse': { description: 'Sun and moon go dark at once: 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 2 turns.', liveDescription: 'Sun and moon go dark at once around you (100 px): 14–20 dmg to every enemy, each [Exposed] (+15% dmg taken) for 6 s. 20 s cooldown. Any stance.', cost: 3, cooldown: 20, resource: 'any', base_damage: [14, 20], effects: [{ type: 'apply_mark', mark: 'Expose', value: 0.15, duration: 2 }], target: 'enemy_aoe', damage_type: 'shadow' },
+
+            // Deathlord Eternal (legendary web, docs/design/LEGENDARY_WEBS.md): Eternal Lich + Abyssal King + the Throne of Bones.
+            // Three paths: the Legion (the dead that serve), the Throne (the king who cannot fall) and the Grave (souls taken).
+            // Paid from your own class resource ('any'); the gifts are free and run on their cooldowns. Gauge's first numbers.
+            // The Legion
+            'Raise the Fallen Host': { description: 'Two Deathless Thralls climb out of the ground and fight for you for 5 turns.', liveDescription: 'Two Deathless Thralls climb out of the ground beside you for 15 s (30 HP each). Each swings a grave-blade for 4–6 about once a second, and enemies may go for them instead of you. 22 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 22, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'deathless_thrall', count: 2 }], target: 'self' },
+            'Banner of Bones': { description: 'Raise a banner of bones over your dead: +25% damage for 3 turns.', liveDescription: 'Raise a banner of bones: +25% damage for 10 s. 20 s cooldown.', cost: 1, cooldown: 20, resource: 'any', effects: [{ type: 'self_buff', name: 'Banner of Bones', status_type: 'damage_boost', value: 0.25, duration: 3 }], target: 'self' },
+            'Grave Tide': { description: 'The ground gives up its dead: 12–16 necrotic dmg to every enemy and slow them 50% for 2 turns.', liveDescription: 'Bony hands burst from the ground around you (96 px): 12–16 necrotic dmg to every enemy, slowed 50% for 6 s. 14 s cooldown.', cost: 2, cooldown: 14, resource: 'any', base_damage: [12, 16], effects: [{ type: 'slow', value: 0.5, duration: 2 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            // The Throne
+            'Abyssal Mantle': { description: 'Pull the abyss round you like a cloak: take 30% less damage for 3 turns.', liveDescription: 'Pull the abyss round you like a cloak: take 30% less damage for 9 s. 20 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 20, resource: 'any', effects: [{ type: 'damage_reduction', value: 0.3, duration: 3 }], target: 'self' },
+            'Sentence of Silence': { description: 'A king\'s word: 16–22 necrotic dmg to one enemy, silenced for 2 turns (basic attacks only).', liveDescription: 'Speak a king\'s word at one enemy: 16–22 necrotic dmg, silenced for 6 s (only its plain attack). 12 s cooldown.', cost: 1, cooldown: 12, resource: 'any', base_damage: [16, 22], effects: [{ type: 'silence', duration: 2 }], target: 'enemy_single', damage_type: 'necrotic' },
+            'Throne of Bones': { description: 'Sit the throne for a breath: the next 2 hits on you are absorbed and you take 40% less damage for 2 turns.', liveDescription: 'A throne of bones rises round you: the next 2 hits are absorbed, and you take 40% less damage for 6 s. 30 s cooldown.', cost: 2, cooldown: 30, resource: 'any', effects: [{ type: 'absorb_hit', duration: 2, say: 'sits the throne of bones; it closes round them like a cage turned inside out.' }, { type: 'absorb_hit', duration: 2, say: 'is walled in bone a second time.' }, { type: 'damage_reduction', value: 0.4, duration: 2 }], target: 'self' },
+            'Fall of the Abyssal King': { description: 'The king comes down on them: 26–34 necrotic dmg to every enemy and stun them for 1 turn.', liveDescription: 'Come down like the Abyssal King (120 px): 26–34 necrotic dmg to every enemy, stunned for 3 s. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [26, 34], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            // The Grave
+            'Soul Reap': { description: 'A scythe of grave-light takes a piece of one soul: 22–28 necrotic dmg, and you heal for 30% of it.', liveDescription: 'Throw a scythe of grave-light at one enemy: 22–28 necrotic dmg, and you heal for 30% of it. 4 s cooldown. Free: the Throne\'s gift.', cost: 0, cooldown: 4, resource: 'any', base_damage: [22, 28], effects: [{ type: 'heal_from_damage', ratio: 0.3 }], target: 'enemy_single', damage_type: 'necrotic' },
+            'Withering Decree': { description: 'Everything near you starts to die: every enemy rots for 4 dmg a turn for 3 turns and takes 50% more damage over time.', liveDescription: 'Decree that everything around you (100 px) dies: each enemy rots for 4 a pulse for 9 s and takes 50% more damage over time. 16 s cooldown.', cost: 2, cooldown: 16, resource: 'any', effects: [{ type: 'wither', value: 0.5, duration: 3 }, { type: 'dot', dot_type: 'rot', value: 4, duration: 3 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+            'Requiem': { description: 'Sing them down: 30–40 necrotic dmg to every enemy, doubled against those under 30% HP.', liveDescription: 'Sing a requiem around you (110 px): 30–40 necrotic dmg to every enemy, doubled against any under 30% HP. 40 s cooldown.', cost: 4, cooldown: 40, resource: 'any', base_damage: [30, 40], effects: [{ type: 'execute_bonus', threshold: 0.3, value: 1 }], target: 'enemy_aoe', damage_type: 'necrotic' },
+
+            // Reality Breaker (legendary web, docs/design/LEGENDARY_WEBS.md): Arcane Hollow + a reality-breaking event. Three paths:
+            // Fracture (break things), Paradox (break time) and Mirror (break what they see). Paid from your own class resource ('any').
+            // Fracture
+            'Shatterpoint': { description: 'Find the crack in a thing and push: 22–28 magic dmg to one enemy, half its armour ignored.', liveDescription: 'Throw a shard of broken reality at one enemy: 22–28 magic dmg, half its armour ignored. 3 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 3, resource: 'any', base_damage: [22, 28], effects: [{ type: 'ignore_armor_percent', value: 0.5 }], target: 'enemy_single', damage_type: 'magic' },
+            'Fault Line': { description: 'Tear the world in a line: 16–22 magic dmg to every enemy on it, slowed 40% for 2 turns.', liveDescription: 'Tear the world open in a line 96 px long: 16–22 magic dmg to each enemy on it, slowed 40% for 6 s. 10 s cooldown.', cost: 1, cooldown: 10, resource: 'any', base_damage: [16, 22], effects: [{ type: 'slow', value: 0.4, duration: 2 }], target: 'enemy_aoe', damage_type: 'magic' },
+            'Shatter Cascade': { description: 'One crack becomes many: 14–18 magic dmg to one enemy, and it splits to 3 more.', liveDescription: 'Crack one enemy and let it spread: 14–18 magic dmg, splitting to 3 more enemies. 12 s cooldown.', cost: 2, cooldown: 12, resource: 'any', base_damage: [14, 18], effects: [{ type: 'chain_lightning', count: 3 }], target: 'enemy_single', damage_type: 'magic' },
+            'Unwrite': { description: 'Erase one enemy from the page: 40–52 true dmg, doubled against one under 30% HP.', liveDescription: 'Unwrite one enemy: 40–52 true dmg, doubled against one under 30% HP. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, base_damage: [40, 52], effects: [{ type: 'true_damage' }, { type: 'execute_bonus', threshold: 0.3, value: 1 }], target: 'enemy_single', damage_type: 'magic' },
+            // Paradox
+            'Phase Shift': { description: 'Be half a moment out of step: for 2 turns, every attack on you has a 45% chance to miss.', liveDescription: 'Step half a moment out of time: for 6 s, every attack on you has a 45% chance to pass through. 14 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 14, resource: 'any', effects: [{ type: 'dodge_chance', value: 0.45, duration: 2, persistent: true }], target: 'self' },
+            'Null Moment': { description: 'A moment that never happened: every enemy is frozen in it for 1 turn.', liveDescription: 'Cut a moment out of time around you (110 px): every enemy is frozen for 3 s (bosses resist repeats). 30 s cooldown.', cost: 3, cooldown: 30, resource: 'any', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'enemy_aoe' },
+            'Borrowed Time': { description: 'Take time from tomorrow: act again at once.', liveDescription: 'Take time from tomorrow: your cooldowns and swings run 30% faster for 8 s. 25 s cooldown.', cost: 2, cooldown: 25, resource: 'any', effects: [{ type: 'extra_turn', liveSpeedup: 0.3 }], target: 'self' },
+            'Rewind': { description: 'It did not happen: your HP goes back to what it was 2 turns ago, and every DoT and debuff on you is undone.', liveDescription: 'Wind yourself back: your HP returns to what it was about 6 s ago, and every DoT and debuff on you is undone. Once per fight.', cost: 'all', resource: 'any', oncePerFight: true, effects: [{ type: 'revert_hp', turns: 3 }, { type: 'cleanse', categories: ['dot', 'debuff'] }], target: 'self' },
+            // Mirror
+            'Prism Flash': { description: 'Reality shows its seams: 8–12 magic dmg to every enemy near you, and they miss 40% of attacks for 2 turns.', liveDescription: 'Light breaks into colours around you (90 px): 8–12 magic dmg to every enemy, blinded for 5 s (40% of their attacks miss). 12 s cooldown. Free: the crack\'s gift.', cost: 0, cooldown: 12, resource: 'any', base_damage: [8, 12], effects: [{ type: 'blind', value: 0.4, duration: 2, seconds: 5 }], target: 'enemy_aoe', damage_type: 'magic' },
+            'Mirror Self': { description: 'Two of you step out of a mirror that is not there and fight for 4 turns.', liveDescription: 'Two mirror selves step out beside you for 12 s (24 HP each). Each cuts for 4–6 about once a second, and enemies may go for them instead of you. 24 s cooldown.', cost: 2, cooldown: 24, resource: 'any', effects: [{ type: 'shadow_summon', summon_type: 'mirror_self', count: 2 }], target: 'self' },
+            'Lie Made Real': { description: 'Tell one enemy a lie it has to believe: 18–24 magic dmg and stunned for 1 turn.', liveDescription: 'Tell one enemy a lie it has to believe: 18–24 magic dmg, stunned for 3 s (bosses resist repeats). 14 s cooldown.', cost: 2, cooldown: 14, resource: 'any', base_damage: [18, 24], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_single', damage_type: 'magic' },
+            'Reality Collapse': { description: 'The world folds in on one spot: 28–36 magic dmg to every enemy there, stunned for 1 turn.', liveDescription: 'Fold the world in on a spot up to 130 px away (56 px wide): 28–36 magic dmg to each enemy there, stunned for 3 s. 40 s cooldown.', cost: 4, cooldown: 40, resource: 'any', base_damage: [28, 36], effects: [{ type: 'stun', duration: 1 }], target: 'enemy_aoe', damage_type: 'magic' },
 
             // Devil Union (Tokelo 2026-11-17, docs/design/DEVIL_UNION_LEGENDARY_CLASS_IMPLEMENTATION_BRIEF.md, prototype: "build now,
             // rework later"). `union` = the demon you must be merged with (src/engine/union.js); while merged, its three skills sit
@@ -1110,11 +1157,47 @@
             // opens once every listed evolution stage is reached ('<branch>.<stage 1-5>', any class) and its story event has
             // happened. Names and lore: legendaryAndSecretClasses. The Hollow King stays a full transformation (no web).
             legendaryWebs: {
+                // Deathlord Eternal (docs/design/LEGENDARY_WEBS.md): Eternal Lich + Abyssal King + the Throne of Bones. Three paths:
+                // the Legion (the dead that serve), the Throne (the king who cannot fall), the Grave (souls taken). Deathlord
+                // Ascendant needs all three capstones. Gifts: one skill from each path, owned free when the web opens.
                 deathlord_eternal: {
                     requires: { stages: ['soulbinder.5', 'vanguard.5'], event: 'the Throne of Bones' },   // Eternal Lich + Abyssal King
+                    ranks: [
+                        { name: 'Deathlord', at: 1 },
+                        { name: 'Lord of the Kept', at: 8, points: 1, flag: 'deathlord_rank_kept', say: 'The dead in the ground near you turn over in their sleep, toward you.' },
+                        { name: 'Deathlord Ascendant', node: 'deathlord_eternal.ascendant', flag: 'deathlord_rank_ascendant', say: 'A throne of bone waits wherever you stop walking. You no longer sit on it. You are it.' }
+                    ],
+                    heartTraits: [{ name: 'Deathlord\'s Mantle', effect: 'Death answers to you: +30% damage, take 30% less damage.', mods: { damageDealt: 0.3, damageTaken: -0.3 } }],
+                    gifts: ['deathlord_eternal.fallen_host', 'deathlord_eternal.abyssal_mantle', 'deathlord_eternal.soul_reap'],
                     nodes: [
-                        { id: 'deathlord_eternal.legion', kind: 'passive', trait: { name: 'Legion of the Dead', effect: 'Unlimited minion cap for 5 turns.' }, links: ['heart.deathlord_eternal'] },
-                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', links: ['deathlord_eternal.legion'] }
+                        // The Legion
+                        { id: 'deathlord_eternal.fallen_host', kind: 'active', skill: 'Raise the Fallen Host', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.legion', kind: 'passive', minLevel: 14, links: ['deathlord_eternal.fallen_host'],
+                            trait: { name: 'Legion of the Dead', effect: 'Your dead never run short: +2 max minions.', mods: { minionCap: 2 } } },
+                        { id: 'deathlord_eternal.banner', kind: 'active', skill: 'Banner of Bones', minLevel: 14, links: ['deathlord_eternal.fallen_host'] },
+                        { id: 'deathlord_eternal.grave_tide', kind: 'active', skill: 'Grave Tide', minLevel: 15, links: ['deathlord_eternal.banner'] },
+                        { id: 'deathlord_eternal.marrow_pact', kind: 'passive', minLevel: 16, links: ['deathlord_eternal.grave_tide', 'deathlord_eternal.legion'],
+                            trait: { name: 'Marrow Pact', effect: 'The dead lend you their strength: +10% damage.', mods: { damageDealt: 0.1 } } },
+                        { id: 'deathlord_eternal.deaths_dominion', kind: 'active', skill: 'Death’s Dominion', minLevel: 18, links: ['deathlord_eternal.marrow_pact'] },
+                        // The Throne
+                        { id: 'deathlord_eternal.abyssal_mantle', kind: 'active', skill: 'Abyssal Mantle', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.crown_of_bone', kind: 'passive', minLevel: 14, links: ['deathlord_eternal.abyssal_mantle'],
+                            trait: { name: 'Crown of Bone', effect: 'A crown that was never yours to take off: take 10% less damage.', mods: { damageTaken: -0.1 } } },
+                        { id: 'deathlord_eternal.sentence', kind: 'active', skill: 'Sentence of Silence', minLevel: 14, links: ['deathlord_eternal.abyssal_mantle'] },
+                        { id: 'deathlord_eternal.throne', kind: 'active', skill: 'Throne of Bones', minLevel: 15, links: ['deathlord_eternal.sentence'] },
+                        { id: 'deathlord_eternal.undying_king', kind: 'passive', minLevel: 16, links: ['deathlord_eternal.throne', 'deathlord_eternal.crown_of_bone'],
+                            trait: { name: 'The Undying King', effect: 'Kings die hardest: +40% damage while under 30% HP.', mods: { lowHpDamage: { below: 0.3, value: 0.4 } } } },
+                        { id: 'deathlord_eternal.fall_of_the_king', kind: 'active', skill: 'Fall of the Abyssal King', minLevel: 18, links: ['deathlord_eternal.undying_king'] },
+                        // The Grave
+                        { id: 'deathlord_eternal.soul_reap', kind: 'active', skill: 'Soul Reap', links: ['heart.deathlord_eternal'] },
+                        { id: 'deathlord_eternal.withering_decree', kind: 'active', skill: 'Withering Decree', minLevel: 14, links: ['deathlord_eternal.soul_reap'] },
+                        { id: 'deathlord_eternal.grave_hunger', kind: 'passive', minLevel: 15, links: ['deathlord_eternal.withering_decree'],
+                            trait: { name: 'Hunger of the Grave', effect: 'The grave wants the strong most: +20% damage against bosses and the Undead.', mods: { damageVsFlags: { boss: 0.2, undead: 0.2 } } } },
+                        { id: 'deathlord_eternal.requiem', kind: 'active', skill: 'Requiem', minLevel: 18, links: ['deathlord_eternal.grave_hunger'] },
+                        // All three
+                        { id: 'deathlord_eternal.ascendant', kind: 'passive', minLevel: 20, needs: ['deathlord_eternal.deaths_dominion', 'deathlord_eternal.fall_of_the_king', 'deathlord_eternal.requiem'],
+                            links: ['deathlord_eternal.deaths_dominion', 'deathlord_eternal.fall_of_the_king', 'deathlord_eternal.requiem'],
+                            trait: { name: 'Deathlord Ascendant', effect: 'The legion, the throne and the grave are one: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
                     ]
                 },
                 // Fallen Seraphim (Tokelo 2026-11-04): no evolution needed. Stare at the robed statue in the Kloster's inner
@@ -1198,11 +1281,11 @@
                         switchCooldownSeconds: 8, switchCooldownTurns: 3,
                         bond: { max: 100, gainPerSecond: 25 / 15, fadePerSecond: 0.5 },
                         list: {
-                            fenrir: { name: 'Fenrir', title: 'the Bound Wolf', bond: false, say: 'You hold both wolves at heel. Neither runs; neither fades.' },
-                            skoll: { name: 'Sköll', title: 'the Sun Chaser', bond: true, say: 'Sköll runs ahead of you, trailing sunfire.',
+                            fenrir: { look: { palette: 'chain', motes: 'chain', companion: false }, name: 'Fenrir', title: 'the Bound Wolf', bond: false, say: 'You hold both wolves at heel. Neither runs; neither fades.' },
+                            skoll: { look: { palette: 'sun', motes: 'rise', companion: true }, name: 'Sköll', title: 'the Sun Chaser', bond: true, say: 'Sköll runs ahead of you, trailing sunfire.',
                                 tiers: [{ at: 25, mods: { damage: 0.05 }, text: '+5% damage.' }, { at: 50, mods: { damage: 0.1 }, text: '+10% damage.' },
                                     { at: 75, mods: { damage: 0.15 }, text: '+15% damage.' }, { at: 100, mods: { damage: 0.2 }, text: '+20% damage.' }] },
-                            hati: { name: 'Hati', title: 'the Moon Chaser', bond: true, say: 'Hati closes round you like a moonless night.',
+                            hati: { look: { palette: 'moon', motes: 'sink', companion: true }, name: 'Hati', title: 'the Moon Chaser', bond: true, say: 'Hati closes round you like a moonless night.',
                                 tiers: [{ at: 25, mods: { speed: 0.03, defence: 0.03 }, text: '+3% speed, 3% less damage taken.' },
                                     { at: 50, mods: { speed: 0.06, defence: 0.06 }, text: '+6% speed, 6% less damage taken.' },
                                     { at: 75, mods: { speed: 0.09, defence: 0.09 }, text: '+9% speed, 9% less damage taken.' },
@@ -1277,8 +1360,45 @@
                             ])
                     ]
                 },
-                // Thorne: Reality Breaker's skills are not designed yet; the web opens with its heart only.
-                reality_breaker: { requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' }, nodes: [] }
+                // Reality Breaker (docs/design/LEGENDARY_WEBS.md): Arcane Hollow + a reality-breaking event (the event is still to
+                // be written). Three paths: Fracture (break things), Paradox (break time), Mirror (break what they see).
+                reality_breaker: {
+                    requires: { stages: ['illusionist.5'], event: 'a reality-breaking event (not designed yet)' },
+                    ranks: [
+                        { name: 'Cracked', at: 1 },
+                        { name: 'Seam-Walker', at: 7, points: 1, flag: 'reality_rank_seam', say: 'You can see the seams now: thin bright lines where the world was stitched together.' },
+                        { name: 'Reality Unmade', node: 'reality_breaker.unmade', flag: 'reality_rank_unmade', say: 'For a moment nothing is true but you. Then the world remembers itself, carefully.' }
+                    ],
+                    heartTraits: [{ name: 'Unreal', effect: 'The world bends round you: +30% damage, take 30% less damage.', mods: { damageDealt: 0.3, damageTaken: -0.3 } }],
+                    gifts: ['reality_breaker.shatterpoint', 'reality_breaker.phase_shift', 'reality_breaker.prism_flash'],
+                    nodes: [
+                        // Fracture
+                        { id: 'reality_breaker.shatterpoint', kind: 'active', skill: 'Shatterpoint', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.fault_line', kind: 'active', skill: 'Fault Line', minLevel: 14, links: ['reality_breaker.shatterpoint'] },
+                        { id: 'reality_breaker.fractured_mind', kind: 'passive', minLevel: 14, links: ['reality_breaker.shatterpoint'],
+                            trait: { name: 'Fractured Mind', effect: 'You think in cracks now: +10% damage.', mods: { damageDealt: 0.1 } } },
+                        { id: 'reality_breaker.cascade', kind: 'active', skill: 'Shatter Cascade', minLevel: 15, links: ['reality_breaker.fault_line'] },
+                        { id: 'reality_breaker.unwrite', kind: 'active', skill: 'Unwrite', minLevel: 18, links: ['reality_breaker.cascade', 'reality_breaker.fractured_mind'] },
+                        // Paradox
+                        { id: 'reality_breaker.phase_shift', kind: 'active', skill: 'Phase Shift', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.paradox_skin', kind: 'passive', minLevel: 14, links: ['reality_breaker.phase_shift'],
+                            trait: { name: 'Paradox Skin', effect: 'Half of every blow lands in a moment you are not in: take 10% less damage.', mods: { damageTaken: -0.1 } } },
+                        { id: 'reality_breaker.borrowed_time', kind: 'active', skill: 'Borrowed Time', minLevel: 14, links: ['reality_breaker.phase_shift'] },
+                        { id: 'reality_breaker.null_moment', kind: 'active', skill: 'Null Moment', minLevel: 15, links: ['reality_breaker.borrowed_time'] },
+                        { id: 'reality_breaker.rewind', kind: 'active', skill: 'Rewind', minLevel: 18, links: ['reality_breaker.null_moment', 'reality_breaker.paradox_skin'] },
+                        // Mirror
+                        { id: 'reality_breaker.prism_flash', kind: 'active', skill: 'Prism Flash', links: ['heart.reality_breaker'] },
+                        { id: 'reality_breaker.mirror_self', kind: 'active', skill: 'Mirror Self', minLevel: 14, links: ['reality_breaker.prism_flash'] },
+                        { id: 'reality_breaker.lie_made_real', kind: 'active', skill: 'Lie Made Real', minLevel: 15, links: ['reality_breaker.mirror_self'] },
+                        { id: 'reality_breaker.unseen_seams', kind: 'passive', minLevel: 16, links: ['reality_breaker.lie_made_real'],
+                            trait: { name: 'Unseen Seams', effect: 'You strike where the world is thinnest: +20% damage against the Void and bosses.', mods: { damageVsFlags: { void: 0.2, boss: 0.2 } } } },
+                        { id: 'reality_breaker.collapse', kind: 'active', skill: 'Reality Collapse', minLevel: 18, links: ['reality_breaker.unseen_seams'] },
+                        // All three
+                        { id: 'reality_breaker.unmade', kind: 'passive', minLevel: 20, needs: ['reality_breaker.unwrite', 'reality_breaker.rewind', 'reality_breaker.collapse'],
+                            links: ['reality_breaker.unwrite', 'reality_breaker.rewind', 'reality_breaker.collapse'],
+                            trait: { name: 'Reality Unmade', effect: 'Nothing is true but what you allow: +15% damage and 10% less damage taken.', mods: { damageDealt: 0.15, damageTaken: -0.1 } } }
+                    ]
+                }
             }
         };
 
@@ -1391,7 +1511,8 @@
             'Soul Chain':       { category: 'debuff' },
             // --- turn denial / control
             'Stun':             { category: 'control', control: 'hard' },
-            'Frozen in time':   { category: 'control', control: 'hard' },   // Freeze Time: hard per affected target
+            'Frozen in time':   { category: 'control', control: 'hard' },
+            'Dominated':        { category: 'control', control: 'hard' },   // Death's Dominion (Deathlord Eternal): kneels, cannot act   // Freeze Time: hard per affected target
             'Confused':         { category: 'control', control: 'hard' },   // only applied when the roll skips the turn
             'Entranced':        { category: 'control', control: 'hard' },
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
@@ -1412,6 +1533,10 @@
             'Riposte':          { category: 'buff' },
             'Guaranteed Crit':  { category: 'buff' },
             'Taunt':            { category: 'buff' },
+            'Abyssal Mantle':   { category: 'buff' },     // Deathlord Eternal and Reality Breaker buffs (docs/design/LEGENDARY_WEBS.md)
+            'Throne of Bones':  { category: 'buff' },
+            'Banner of Bones':  { category: 'buff' },
+            'Phase Shift':      { category: 'buff' },
             'Halo of Ash':      { category: 'buff' },     // Fallen Seraphim buffs, so a buff cleanse sees them
             'Feather Ward':     { category: 'buff' },
             'Wingstep':         { category: 'buff' },
@@ -1494,6 +1619,11 @@
                     'Feather Ward':       { seconds: 12, maxStacks: 2 },   // each stack absorbs one hit; 14 s cooldown
                     'Wingstep':           { seconds: 6,  maxStacks: 1 },   // 40% to dodge every attack; 14 s cooldown
                     'The Coal Carried Down': { seconds: 10, maxStacks: 1 },
+                    // Deathlord Eternal and Reality Breaker (docs/design/LEGENDARY_WEBS.md)
+                    'Abyssal Mantle':     { seconds: 9,  maxStacks: 1 },   // 30% damage reduction; 20 s cooldown
+                    'Throne of Bones':    { seconds: 6,  maxStacks: 2 },   // two absorbed hits + 40% reduction; 30 s cooldown
+                    'Banner of Bones':    { seconds: 10, maxStacks: 1 },   // +25% damage; 20 s cooldown
+                    'Phase Shift':        { seconds: 6,  maxStacks: 1 },   // 45% to dodge every attack; 14 s cooldown
                     // Fenrir's Heir (docs/design/FENRIRS_HEIR.md)
                     'Firehowl':           { seconds: 9,  maxStacks: 1 },   // +25% damage; 20 s cooldown   // once per fight: 50% damage reduction   // Time Mage: cooldowns and swings 30% faster (liveSpeedup); 20 s cooldown
                     // Channel the Grave's ghosts (necromancer, Tokelo 2026-11-01): 20 s each, 30 s cooldown, so 10 s without
@@ -1698,6 +1828,38 @@
                     'Night\'s Dominion': { shape: 'circle', radius: 80, castMs: 400 },
                     'Devour the Moon':   { shape: 'circle', radius: 120, castMs: 600, pullPx: 48 },
                     'Twin Eclipse':      { shape: 'circle', radius: 100, castMs: 450 },
+                    'Call of the Pack':  {
+                        shape: 'summon', range: 40, castMs: 300,
+                        minion: { radius: 5, speed: 120, followMin: 14, followMax: 34, engageRadius: 170, teleportBeyond: 220,
+                            attack: { skill: 'Spirit Bite', shape: 'arc', reach: 16, arcDeg: 80, windupMs: 200, activeMs: 70, recoveryMs: 260, cooldownMs: 1000 } }
+                    },
+                    // Deathlord Eternal (docs/design/LEGENDARY_WEBS.md)
+                    'Raise the Fallen Host': {
+                        shape: 'summon', range: 40, castMs: 500,
+                        minion: { radius: 6, speed: 70, followMin: 18, followMax: 36, engageRadius: 130, teleportBeyond: 220,
+                            attack: { skill: 'Grave-Blade', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 320, activeMs: 80, recoveryMs: 380, cooldownMs: 1100 } }
+                    },
+                    'Grave Tide':        { shape: 'circle', radius: 96, castMs: 400 },
+                    'Sentence of Silence': { shape: 'projectile', range: 150, speed: 260, radius: 6, castMs: 300, projectile: 'necrotic' },
+                    'Fall of the Abyssal King': { shape: 'circle', radius: 120, castMs: 550 },
+                    'Soul Reap':         { shape: 'projectile', range: 160, speed: 300, radius: 7, castMs: 260, projectile: 'necrotic' },
+                    'Withering Decree':  { shape: 'circle', radius: 100, castMs: 400 },
+                    'Requiem':           { shape: 'circle', radius: 110, castMs: 600 },
+                    'Death’s Dominion':  { shape: 'circle', radius: 140, castMs: 600 },
+                    // Reality Breaker (docs/design/LEGENDARY_WEBS.md)
+                    'Shatterpoint':      { shape: 'projectile', range: 170, speed: 320, radius: 6, castMs: 240, projectile: 'prism' },
+                    'Fault Line':        { shape: 'line', reach: 96, width: 16, castMs: 350 },
+                    'Shatter Cascade':   { shape: 'projectile', range: 150, speed: 300, radius: 6, castMs: 280, projectile: 'prism' },
+                    'Unwrite':           { shape: 'line', reach: 70, width: 14, castMs: 500, maxTargets: 1 },
+                    'Null Moment':       { shape: 'circle', radius: 110, castMs: 400 },
+                    'Prism Flash':       { shape: 'circle', radius: 90, castMs: 250 },
+                    'Mirror Self':       {
+                        shape: 'summon', range: 32, castMs: 250,
+                        minion: { radius: 5, speed: 100, followMin: 12, followMax: 28, engageRadius: 150, teleportBeyond: 200,
+                            attack: { skill: 'Mirror Cut', shape: 'arc', reach: 18, arcDeg: 90, windupMs: 180, activeMs: 70, recoveryMs: 220, cooldownMs: 900 } }
+                    },
+                    'Lie Made Real':     { shape: 'projectile', range: 140, speed: 280, radius: 6, castMs: 300, projectile: 'prism' },
+                    'Reality Collapse':  { shape: 'ground', range: 130, radius: 56, castMs: 550 },
                     // Devil Union (union.js): a ground shape with pullPx drags toward the spot (Gravity Well), not toward you.
                     'Gravity Well':      { shape: 'ground', range: 96, radius: 48, castMs: 300, pullPx: 30 },
                     'Heavy Field':       { shape: 'circle', radius: 48, castMs: 250 },
@@ -3611,6 +3773,59 @@
                 brew_mead:           { station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 2 }, output: 'Mead', yield: 2 },
                 brew_lingonberry_mead:{ station: 'meadery', verb: 'Brewed', ingredients: { 'Honey': 1, 'Lingonberries': 2 }, output: 'Lingonberry Mead', yield: 2 },
                 brew_juniper_ale:    { station: 'meadery', verb: 'Brewed', ingredients: { 'Barley': 2, 'Juniper Berries': 1 }, output: 'Juniper Ale', yield: 3 }
+            }, skillVfx: {
+                // Each legendary skill's own look in the world (ui/legend-fx.js: style = how it is drawn, palette = its colours).
+                // Tokelo 2026-11-18: the legendary skills had no visual effects. A test checks every legendary web skill has one.
+                'Fallen Judgement': { style: 'spear', palette: 'radiant' },
+                'Brand of the Watcher': { style: 'sigil', palette: 'radiant' },
+                'Rain of Feathers': { style: 'feathers', palette: 'radiant' },
+                'Verdict of Ash': { style: 'verdict', palette: 'radiant' },
+                'Halo of Ash': { style: 'halo', palette: 'radiant' },
+                'Feather Ward': { style: 'wing_wrap', palette: 'radiant' },
+                'Mercy of the Fallen': { style: 'mercy', palette: 'radiant' },
+                'Ashen Communion': { style: 'ashfall', palette: 'radiant' },
+                'The Coal Carried Down': { style: 'coal', palette: 'radiant' },
+                'Wingstep': { style: 'wingstep', palette: 'radiant' },
+                'Gale of Pinions': { style: 'gale', palette: 'radiant' },
+                'Wings of Sorrow': { style: 'six_wings', palette: 'radiant' },
+                'Judgement from Above': { style: 'pillars', palette: 'radiant' },
+                'Six-Winged Descent': { style: 'descent', palette: 'radiant' },
+                'Solar Fang': { style: 'wolf_head', palette: 'sun' },
+                'Firehowl': { style: 'howl', palette: 'sun' },
+                'Sunfang Rush': { style: 'rush', palette: 'sun' },
+                'Firestorm': { style: 'meteors', palette: 'sun' },
+                'Devour the Sun': { style: 'devour_sun', palette: 'sun' },
+                'Black Maw': { style: 'maw', palette: 'moon' },
+                'Darkhowl': { style: 'howl', palette: 'moon' },
+                'Moonless Grasp': { style: 'jaws', palette: 'moon' },
+                'Night\'s Dominion': { style: 'drain', palette: 'moon' },
+                'Devour the Moon': { style: 'devour_moon', palette: 'moon' },
+                'Call of the Pack': { style: 'pack', palette: 'eclipse' },
+                'Gleipnir\'s Bane': { style: 'chains', palette: 'chain' },
+                'Twin Eclipse': { style: 'eclipse', palette: 'eclipse' },
+                'Raise the Fallen Host': { style: 'grave_rise', palette: 'grave' },
+                'Banner of Bones': { style: 'banner', palette: 'grave' },
+                'Grave Tide': { style: 'hands', palette: 'grave' },
+                'Death’s Dominion': { style: 'dominion', palette: 'grave' },
+                'Abyssal Mantle': { style: 'mantle', palette: 'abyss' },
+                'Sentence of Silence': { style: 'word', palette: 'abyss' },
+                'Throne of Bones': { style: 'throne', palette: 'grave' },
+                'Fall of the Abyssal King': { style: 'kingfall', palette: 'abyss' },
+                'Soul Reap': { style: 'scythe', palette: 'grave' },
+                'Withering Decree': { style: 'rot', palette: 'grave' },
+                'Requiem': { style: 'requiem', palette: 'grave' },
+                'Shatterpoint': { style: 'shard', palette: 'prism' },
+                'Fault Line': { style: 'fault', palette: 'prism' },
+                'Shatter Cascade': { style: 'shard', palette: 'prism' },
+                'Unwrite': { style: 'unwrite', palette: 'prism' },
+                'Phase Shift': { style: 'phase', palette: 'prism' },
+                'Null Moment': { style: 'null', palette: 'prism' },
+                'Borrowed Time': { style: 'borrowed', palette: 'prism' },
+                'Rewind': { style: 'rewind', palette: 'prism' },
+                'Prism Flash': { style: 'prism', palette: 'prism' },
+                'Mirror Self': { style: 'mirror', palette: 'prism' },
+                'Lie Made Real': { style: 'lie', palette: 'prism' },
+                'Reality Collapse': { style: 'collapse', palette: 'prism' }
             }, forageDefinitions: {
                 // World objects of kind 'forage' (src/engine/kitchen.js): gathered, then back after regrowSeconds of calm time.
                 chanterelles: { item: 'Chanterelles', yield: 2, regrowSeconds: 150 },

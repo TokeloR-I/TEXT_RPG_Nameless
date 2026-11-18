@@ -435,6 +435,13 @@
         },
         apply(ctx) { ctx.engine.openTurnOrderWindow(ctx.caster, ctx.effect.duration || 3); }
     });
+    register('control_all_enemies', { // Death's Dominion (Deathlord Eternal): every enemy hit kneels and cannot act (hard control, CR applies)
+        applies: { name: 'Dominated', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
+        apply(ctx) {
+            const knelt = living(ctx).filter((t) => skip(ctx, t, ctx.effect.duration || 1, 'Dominated'));
+            ctx.engine.say(knelt.length ? `${knelt.map((t) => t.name).join(', ')} kneel${knelt.length === 1 ? 's' : ''} to the Deathlord.` : 'Nothing here will kneel.');
+        }
+    });
     register('freeze_enemies', { // Freeze Time
         applies: { name: 'Frozen in time', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
         apply(ctx) {
