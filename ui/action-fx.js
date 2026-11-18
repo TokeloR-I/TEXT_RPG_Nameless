@@ -856,7 +856,8 @@
     const api = {
         createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS, crowMark, resolveAura,
         pixelText, textWidth, // helpers
-        TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth
+        TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth,
+        BODIES: SHADOW_BODIES   // ui/legend-fx.js adds the legendary summons (spirit wolves, thralls, mirror selves)
     };
     ENSO.actionFx = api;
     if (isNode) module.exports = api;

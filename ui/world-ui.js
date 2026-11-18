@@ -2113,6 +2113,20 @@
     let lastActionFrame = 0;
     const AFX = ENSO.actionFx;
     const afx = ACTION ? AFX.createFx() : null;
+    // Legendary skills' own looks and Fenrir's Heir's stance on you (ui/legend-fx.js; data.skillVfx, stances.list.<id>.look).
+    const LFX = ENSO.legendFx || null;
+    const lfx = ACTION && LFX ? LFX.createFx(DATA.skillVfx || {}) : null;
+    let lastStance = null;
+    /** The stance you hold, as legend-fx draws it (null: no stance web). */
+    function stanceLook() {
+        const st = engine.getStance ? engine.getStance() : null;
+        if (!st || !st.active) return null;
+        const web = ((DATA.skillWeb || {}).legendaryWebs || {})[st.web];
+        const def = web && web.stances && web.stances.list[st.active];
+        if (!def || !def.look) return null;
+        const row = st.stances.find((x) => x.id === st.active) || {};
+        return { id: st.active, ...def.look, bond: row.bond || 0, facing: sim && sim.player ? (Math.cos(sim.player.angle) < 0 ? 'left' : 'right') : 'right' };
+    }
     const aim = { x: 0, y: 0, screenX: null, screenY: null, movedAt: 0 };
     const press = { attack: false, pointerAttack: false, dodge: false, interact: false, slot: null };
     let guardHeld = false;
@@ -2330,10 +2344,12 @@
             case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); break;
             case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); break;
-            case 'aoe': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
+            case 'aoe': if (lfx && ev.skill && (DATA.skillVfx || {})[ev.skill]) break;   // a legendary skill draws its own (ui/legend-fx.js)
+                afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
             case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
             case 'mines': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'physical' }, now); break;
             case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); break;
+            case 'skill_fx': if (lfx) lfx.event(ev, now); break;   // a legendary skill's own look (ui/legend-fx.js)
             case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); break;
             case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); break;
             case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: CONDITION_COLOUR[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
@@ -2469,6 +2485,8 @@
             for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
             for (const m of sim.view().mines || []) drawMine(g, m, ctx.time);   // Explosive Caltrops
+            const look = lfx ? stanceLook() : null;   // Fenrir's Heir: the wolf you stand with, on the ground under you
+            if (look) LFX.stanceAura(g, Math.round(sim.player.x), Math.round(sim.player.y + (sim.player.r || 5)), look, ctx.time, 'ground');
         });
         // Over the bodies: the player's swing, projectiles, sparks and numbers.
         renderer.addHook('foreground', (g, ctx) => {
@@ -2479,7 +2497,17 @@
                 const s = p.attack.shape;
                 AFX.swing(g, { x: Math.round(p.x), y: Math.round(p.y), angle: p.angle, arc: ((s.arcDeg || 100) * Math.PI) / 180, reach: s.reach || s.radius || 20, progress: p.attack.progress, cls: engine.player.className });
             }
-            for (const pj of v.projectiles) AFX.projectile(g, { x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, now: ctx.time });
+            for (const pj of v.projectiles) if (!(LFX && LFX.projectile(g, pj, ctx.time, DATA.skillVfx || {}))) AFX.projectile(g, { x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, now: ctx.time });
+            if (lfx) {
+                const look = stanceLook();
+                const feetY = Math.round(p.y + (p.r || 5));
+                if (look) LFX.stanceAura(g, Math.round(p.x), feetY, look, ctx.time, 'over');
+                // Changing wolf (T, the HUD cell, touch, a menu): the new wolf's colour floods out of you.
+                const id = look ? look.id : null;
+                if (lastStance !== null && id && id !== lastStance) lfx.spawn(LFX.stanceSwitch, { x: Math.round(p.x), y: feetY, P: LFX.PALETTES[look.palette], motes: look.motes }, ctx.time, 900);
+                lastStance = id || lastStance;
+                lfx.draw(g, ctx.time);
+            }
             for (const a of v.actors) if (a.mark) AFX.crowMark(g, a.mark.x, a.mark.y, { locked: a.mark.locked, now: ctx.time });   // Marked Prey
             drawGaze(g, ctx.time);   // the Kloster statue's halo and wings (ui/gaze-fx.js)
             afx.draw(g, ctx.time);

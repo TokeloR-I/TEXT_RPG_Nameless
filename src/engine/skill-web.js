@@ -103,7 +103,9 @@
             link(g.id, g.from); link(g.id, g.to);
         }
         const legendary = [];
+        const parentOf = new Map();   // a legendary node's first data link: the node it hangs from in the picture
         for (const [legId, leg] of Object.entries(cfg.legendaryWebs || {})) {
+            for (const x of leg.nodes || []) if ((x.links || []).length) parentOf.set(x.id, x.links[0]);
             const lore = (data.legendaryAndSecretClasses || {})[legId] || {};
             legendary.push(legId);
             add({ id: `heart.${legId}`, kind: 'heart', region: legId, legendary: true, label: lore.name || legId, requires: clone(leg.requires || {}), ranks: clone(leg.ranks || []), traits: clone(leg.heartTraits || []), gifts: [...(leg.gifts || [])], ...(leg.trial ? { sealedBy: clone(leg.trial) } : {}) });
@@ -111,7 +113,8 @@
             for (const x of leg.nodes || []) for (const to of x.links || []) link(x.id, to);
         }
         const webs = Object.keys(data.basePlayerClasses || {});
-        layout(nodes, [...webs, ...legendary]);
+        layout(nodes, webs);
+        legendaryLayout(nodes, legendary, parentOf);
         return { nodes, list: [...nodes.values()], webs, legendary, branches };
     }
 
@@ -149,6 +152,65 @@
             }
             for (const n of list) if (n.kind === 'gateway' && !n.pos) { const f = nodes.get(n.from); put(n, Math.min(1.08, Math.hypot(f.x, f.y) + 0.2), Math.atan2(f.y, f.x) + 22 * deg); }
         });
+    }
+
+    /**
+     * Positions for the legendary webs, which have no evolution branches: each node the heart leads to starts a path
+     * (a spoke at an even angle); every other node hangs from the node its first data link names (`parentOf`) and sits
+     * one ring further out on that path, siblings fanned beside each other. A node that `needs` capstones from several
+     * paths sits on the rim between them. A node's own `pos: [x, y]` wins. (Before this every legendary node was drawn
+     * on the same two spots, so a 20-node web looked like two skills.)
+     */
+    function legendaryLayout(nodes, legendary, parentOf) {
+        const deg = Math.PI / 180;
+        const put = (n, r, a) => { n.x = +(r * Math.cos(a)).toFixed(3); n.y = +(r * Math.sin(a)).toFixed(3); };
+        for (const legId of legendary) {
+            const heartId = `heart.${legId}`;
+            const heart = nodes.get(heartId);
+            if (!heart) continue;
+            heart.x = 0; heart.y = 0;
+            const list = [...nodes.values()].filter((n) => n.region === legId && n.kind !== 'heart');
+            const roots = list.filter((n) => (parentOf.get(n.id) || heartId) === heartId);
+            const angleOf = new Map(roots.map((n, i) => [n.id, (-90 + i * (360 / Math.max(1, roots.length))) * deg]));
+            // Walk each node up its parents to a root: its path, and how deep on it it sits.
+            const home = new Map(), depth = new Map();
+            const walk = (n, seen = new Set()) => {
+                if (home.has(n.id)) return;
+                const pid = parentOf.get(n.id);
+                if (!pid || pid === heartId || seen.has(n.id) || !nodes.get(pid) || nodes.get(pid).region !== legId) { home.set(n.id, n.id); depth.set(n.id, 1); return; }
+                seen.add(n.id);
+                const p = nodes.get(pid);
+                walk(p, seen);
+                home.set(n.id, home.get(p.id)); depth.set(n.id, depth.get(p.id) + 1);
+            };
+            for (const n of list) walk(n);
+            for (const n of list) if (!angleOf.has(home.get(n.id))) angleOf.set(home.get(n.id), (-90 + angleOf.size * 37) * deg);
+            const maxDepth = Math.max(1, ...list.map((n) => depth.get(n.id)));
+            const step = Math.min(0.19, 0.8 / maxDepth);
+            const ring = (d) => 0.18 + d * step;
+            // Nodes on the same path and ring: fanned either side of the spoke, narrower the further out they sit.
+            const groups = new Map();
+            for (const n of list) {
+                if (n.pos) { n.x = n.pos[0]; n.y = n.pos[1]; continue; }
+                const paths = [...new Set((n.needs || []).map((id) => nodes.get(id)).filter(Boolean).map((t) => home.get(t.id)))];
+                if (paths.length > 1) {   // a capstone of capstones: on the rim between the paths it needs
+                    let sx = 0, sy = 0;
+                    for (const id of paths) { sx += Math.cos(angleOf.get(id)); sy += Math.sin(angleOf.get(id)); }
+                    const a = Math.hypot(sx, sy) > 0.3 * paths.length ? Math.atan2(sy, sx) : 90 * deg;
+                    put(n, Math.min(1.02, ring(maxDepth) + step * 0.6), a);
+                    continue;
+                }
+                const key = `${home.get(n.id)}|${depth.get(n.id)}`;
+                (groups.get(key) || groups.set(key, []).get(key)).push(n);
+            }
+            for (const [key, g] of groups) {
+                const [rootId] = key.split('|');
+                const d = depth.get(g[0].id);
+                const spread = (g.length > 1 ? 44 : 0) / Math.sqrt(Math.max(1, d)) * deg;
+                const zig = (g.length === 1 && d > 1 ? (d % 2 ? 1 : -1) * 16 / Math.sqrt(d) : 0) * deg;   // a single node swings a little each ring: a web, not a line
+                g.forEach((n, i) => put(n, ring(d) + (n.kind === 'passive' ? step * 0.25 : 0), angleOf.get(rootId) + zig + (g.length > 1 ? (i - (g.length - 1) / 2) * spread : 0)));
+            }
+        }
     }
 
     /** Everything wrong with the web's data, as strings ([] when it is fine). Tested. */
@@ -361,6 +423,15 @@
             const problem = this.webLearnProblem(n.id);
             if (problem) { this.refuse(problem.code, problem.message); return; }
             this.webGain(n);
+            // A legendary heart learned in the web (Deathlord Eternal, Reality Breaker: no story effect opens them) still
+            // brings its gifts, the same as the `legend` story effect does.
+            if (n.legendary && (n.gifts || []).length) {
+                const web = this.skillWeb();
+                const gifts = n.gifts.map((id) => web.nodes.get(id)).filter((g) => g && !this.webOwns(g.id));
+                for (const g of gifts) this.webGain(g);
+                const bar = gifts.length && this.ensureSkillBar ? this.ensureSkillBar() : null;
+                if (bar) for (const g of gifts) if (g.skill && !bar.includes(g.skill) && bar.indexOf(null) !== -1) bar[bar.indexOf(null)] = g.skill;
+            }
             this.refreshSpecialization();
             const left = this.webPoints();
             this.say(`Skill Web points left: ${left}.`);

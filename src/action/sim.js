@@ -578,6 +578,7 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + Math.round((shape.activeMs || 0) * haste) + recovery;
             this.fx.push({ type: r.resolved ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: r.skill });
+            if (slot != null) this.skillFx('start', r.skill, shape);
             if (shape.shape === 'dash') this.beginDash(p.attack, blink);
         }
 
@@ -595,7 +596,12 @@
             if (!pre.ok) { this.fx.push({ type: 'refused', code: pre.error.code, text: pre.error.message }); return; }
             const shape = pre.shape;
             if (shape.teleport) { this.fx.push({ type: 'notice', text: `${name}: no enemy in reach to step behind.` }); return; }
-            if (shape.shape === 'summon' && !pre.summon) { this.fx.push({ type: 'notice', text: `${name} only works in a fight.` }); return; }   // Raise Ghoul, March
+            if (shape.shape === 'summon' && !pre.summon) {   // Raise Ghoul, March, shadow bodies: nothing rises, but the cast still shows
+                this.fx.push({ type: 'notice', text: `${name} only works in a fight.` });
+                this.fx.push({ type: 'cast', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: name });
+                this.skillFx('start', name, { ...shape, shape: 'self' });
+                return;
+            }
             if (pre.summon) {
                 const r = e.actionSummonFollower(name);
                 this.collect(r.events);
@@ -620,6 +626,7 @@
             p.state = 'attack';
             p.stateEnd = this.now + startup + (shape.activeMs || 0) + recovery;
             this.fx.push({ type: atOnce ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: name });
+            this.skillFx('start', name, shape);
             if (kind === 'dash') this.beginDash(p.attack, null);
         }
 
@@ -679,6 +686,18 @@
             }
         }
 
+        /**
+         * A skill's own look (ui/legend-fx.js reads data.skillVfx by name): 'start' when it is cast, 'fire' when its
+         * shape comes out (cx, cy: where it lands), 'impact' where a projectile stops. In a fight or out of one alike.
+         */
+        skillFx(phase, skill, shape, at = null) {
+            if (!skill) return;
+            const p = this.player;
+            const s = shape || {};
+            this.fx.push({ type: 'skill_fx', phase, skill, x: p.x, y: p.y, angle: p.angle, kind: s.shape || s.kind || 'arc',
+                cx: at ? at.x : p.x, cy: at ? at.y : p.y, radius: s.radius || 0, reach: s.reach || s.range || 0, width: s.width || 0, castMs: s.castMs || 0 });
+        }
+
         stepAttack() {
             const p = this.player;
             const at = p.attack;
@@ -696,17 +715,26 @@
             const p = this.player;
             const s = at.shape;
             const kind = s.shape || s.kind || 'arc';
+            if (!at.isBasic) {   // the skill's own look where it comes out
+                let spot = null;
+                if (kind === 'ground') {
+                    const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
+                    const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
+                    spot = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
+                }
+                this.skillFx('fire', at.skill, s, spot);
+            }
             if (kind === 'projectile') {
-                this.projectiles.push({ owner: 'player', castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
+                this.projectiles.push({ owner: 'player', skill: at.isBasic ? null : at.skill, castId: at.castId, cosmetic: !!at.cosmetic, x: p.x, y: p.y, angle: p.angle, speed: s.speed || 200, range: s.range || 120, travelled: 0, r: s.radius || 4, kind: s.projectile || 'arcane',
                     burst: s.burstRadius || 0, burstKind: s.burstKind || 'fire' });   // a bomb or flask bursts where it lands (Saboteur)
                 return;
             }
             if (at.cosmetic) {   // out of a fight: the shape shows, nothing is hit
-                if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
+                if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40, skill: at.skill });
                 if (kind === 'ground') {
                     const aim = at.aim || { x: p.x + Math.cos(p.angle) * 40, y: p.y + Math.sin(p.angle) * 40 };
                     const d = Math.min(dist(p, aim), s.range || 90), ang = angleTo(p, aim);
-                    this.fx.push({ type: 'aoe', x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, radius: s.radius || 30 });
+                    this.fx.push({ type: 'aoe', x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, radius: s.radius || 30, skill: at.skill });
                 }
                 return;
             }
@@ -722,13 +750,13 @@
                 const c = { x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d };
                 hits = this.liveActors().filter((a) => dist(c, a) <= (s.radius || 30) + a.r);
                 center = c;
-                this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: s.radius || 30 });
+                this.fx.push({ type: 'aoe', x: c.x, y: c.y, radius: s.radius || 30, skill: at.skill });
             } else {
                 const reach = s.reach || s.range || 20;
                 const half = ((s.arcDeg || 100) / 2) * DEG;
                 hits = this.liveActors().filter((a) => dist(p, a) <= reach + a.r && (dist(p, a) < a.r + p.r || angleDiff(p.angle, angleTo(p, a)) <= half) && this.lineOfSight(p, a));
             }
-            if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40 });
+            if (kind === 'circle') this.fx.push({ type: 'aoe', x: p.x, y: p.y, radius: s.radius || 40, skill: at.skill });
             hits.sort((a, b) => dist(p, a) - dist(p, b));
             this.resolve(at.castId, hits);
             // Hati's darkness (Black Maw, Devour the Moon): drag each enemy it touched toward you, never through you. Bosses hold.
@@ -1683,6 +1711,8 @@
         // =====================================================================
         // Projectiles, bodies, pickups, interact
         // =====================================================================
+        impactFx(pj) { if (pj.skill) this.fx.push({ type: 'skill_fx', phase: 'impact', skill: pj.skill, x: pj.x, y: pj.y, angle: pj.angle, cx: pj.x, cy: pj.y, kind: 'projectile', radius: pj.r }); }
+
         stepProjectiles() {
             const dt = STEP / 1000;
             const keep = [];
@@ -1691,7 +1721,7 @@
                 pj.x += Math.cos(pj.angle) * step; pj.y += Math.sin(pj.angle) * step; pj.travelled += step;
                 const wall = this.solidPxFor(pj.x, pj.y, pj.owner === 'player' ? (tx, ty) => this.engagedGateCell(tx, ty) : this.gateCellOf(pj.actor));
                 if (pj.owner === 'player' && pj.cosmetic) {   // cast out of a fight: flies to its range or a wall
-                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.fx.push(pj.burst ? { type: 'aoe', x: pj.x, y: pj.y, radius: pj.burst, damageType: pj.burstKind } : { type: 'fizzle', x: pj.x, y: pj.y }); this.impactFx(pj); continue; }
                 } else if (pj.owner === 'player') {
                     const hit = this.liveActors().find((a) => Math.hypot(a.x - pj.x, a.y - pj.y) <= a.r + pj.r);
                     if (pj.burst && (hit || wall || pj.travelled >= pj.range)) {   // bomb or flask: everyone in the blast, nearest first
@@ -1701,8 +1731,8 @@
                         this.resolve(pj.castId, hits);
                         continue;
                     }
-                    if (hit) { this.resolve(pj.castId, [hit]); continue; }
-                    if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); continue; }
+                    if (hit) { this.impactFx(pj); this.resolve(pj.castId, [hit]); continue; }
+                    if (wall || pj.travelled >= pj.range) { this.collect(this.engine.actionResolve(pj.castId, []).events); this.fx.push({ type: 'fizzle', x: pj.x, y: pj.y }); this.impactFx(pj); continue; }
                 } else {
                     const a = pj.actor;
                     if (a.dead || !a.engineId || !a.windup) continue;
@@ -1846,7 +1876,7 @@
                     hp: m.hp, maxHp: m.maxHp, statuses: m.statuses || [], stunned: !!m.stunned, taunting: !!m.taunting,
                     timeLeftMs: m.dead || !this.followerTimeLeft ? null : this.followerTimeLeft()   // out of a fight: time before it crumbles
                 })),
-                projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner })),
+                projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner, skill: pj.skill || null })),
                 mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
                 engaged: this.engaged
             };
