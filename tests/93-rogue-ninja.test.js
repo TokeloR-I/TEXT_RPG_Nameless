@@ -123,7 +123,7 @@ test('Shadow Clone: a timed body that fights and draws attacks, then melts away;
     assertHealthy(r.g);
 });
 
-test('Shadow Hounds: two hounds for 15 s (20 s with Long Shadows); out of a fight they refuse instead of following', () => {
+test('Shadow Hounds: two hounds for 15 s (20 s with Long Shadows); out of a fight they follow you and fade on their time', () => {
     const r = fight(rogue('assassin'));
     cast(r, 'Shadow Hounds', 10);
     const hounds = r.g.alive(r.g.combat.minions).filter((m) => m.summonType === 'shadow_hound');
@@ -131,12 +131,28 @@ test('Shadow Hounds: two hounds for 15 s (20 s with Long Shadows); out of a figh
     assert.ok(r.g.hasTrait('Long Shadows'));
     const life = r.g.findStatus(hounds[0], 'Shadow-bound');
     assert.ok(Math.abs(life.rtTotalMs - 20000) < 1, '15 s + 5 s');
-    // Out of a fight: not a follower summon (the sim shows "only works in a fight"), and the engine refuses it too.
+    // Out of a fight (Tokelo 2026-11-18, nothing combat-only): the hounds rise and follow you, on the calm clock.
     const calm = rogue('assassin', 250);
     const pre = calm.g.actionSkillPreview('Shadow Hounds');
-    assert.ok(pre.ok && pre.shape.shape === 'summon' && !pre.summon);
-    assert.ok(!calm.g.actionSummonFollower('Shadow Hounds').ok);
-    assert.ok(!(calm.g.world.followers || []).length);
+    assert.ok(pre.ok && pre.shape.shape === 'summon' && pre.summon);
+    calm.g.player.resource.current = calm.g.player.resource.max;
+    const res = calm.g.actionSummonFollower('Shadow Hounds');
+    assert.ok(res.ok, res.error && res.error.message);
+    assert.strictEqual(calm.g.world.followers.filter((m) => m.summonType === 'shadow_hound').length, 2);
+    calm.g.actionCalmTick(10000);
+    const left = calm.g.world.followers[0].calmEndsAt - calm.g.world.calm.now;
+    assert.ok(left > 0);
+    const e = calm.g.actionEngage('test_rats', ['rust_rat']);
+    assert.ok(e.ok);
+    const h = calm.g.alive(calm.g.combat.minions).filter((m) => m.summonType === 'shadow_hound');
+    assert.strictEqual(h.length, 2, 'they join the fight');
+    assert.ok(Math.abs(calm.g.findStatus(h[0], 'Shadow-bound').rtTotalMs - left) < 1, 'with the time they had left');
+    // Raised again out of a fight, they melt away when their time runs out.
+    const again = rogue('assassin', 251);
+    again.g.player.resource.current = again.g.player.resource.max;
+    assert.ok(again.g.actionSummonFollower('Shadow Hounds').ok);
+    again.g.actionCalmTick(25001);
+    assert.strictEqual(again.g.world.followers.length, 0);
 });
 
 test('Shade Legion: hounds up to the minion limit plus a Shadow Stag, 20 s each', () => {

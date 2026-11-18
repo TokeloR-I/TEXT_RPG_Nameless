@@ -6,13 +6,18 @@
  *
  *   - Contracts: a union is yours once its contract flag is set (`contract:lucifero`, sealed after its Dominion's arena).
  *     The first contract also sets `devil_union_contract`, which opens the web (CB2, src/story/chapter2.js).
- *   - One equipped union at a time, chosen out of a fight (`equip_union`), kept in the save (player.union.equipped).
+ *   - One equipped union at a time (`equip_union`, or `union` with a `union` id: choose and merge in one go), kept in
+ *     the save (player.union.equipped). You choose which contracted demon answers (Tokelo 2026-11-18: "doesn't even
+ *     allow the player to select a demon"); any time you are not merged, in a fight or out of one.
  *   - Two Qliphoth Resonance slots (`set_resonance`): Qliphoth aspects you already hold, each a small stat boost that
  *     applies only while a union is active. The same aspect can't sit in both slots. Kept in the save.
- *   - In a fight, `union` merges you with the equipped demon: for `durationSeconds` its `mods` apply, its signature
+ *   - `union` merges you with the equipped demon: for `durationSeconds` its `mods` apply, its signature
  *     skills take the first slots of your skill bar (your own bar comes back untouched when it ends), and the
  *     resonance boosts apply. The cooldown (`cooldownSeconds`) starts on activation. Turn fights use turns instead.
- *   - The union lives on the fight (combat.union): it ends with the fight, so a save never holds a half-merged player.
+ *   - In a fight the union lives on the fight (combat.union). Out of a fight (Tokelo 2026-11-18: "why cant I use devil
+ *     union out of combat?") it lives on the calm clock (world.calm.union, src/engine/action.js), so it needs the live
+ *     world (combatMode 'action'). A union and its cooldown carry from the calm clock into a fight and back out of it
+ *     with the time they have left, like pre-buffs (unionEnterFight / unionLeaveFight). Falling ends it.
  *   - Skills with `union: '<id>'` can only be used while merged with that demon (refusal NOT_IN_UNION).
  *   - Web nodes with `contract: '<flag>'` need that contract; nodes with `unionMods` add to that union's mods.
  *
@@ -63,13 +68,23 @@
             return p.union;
         }
 
-        /** Pure: the union you are merged with right now (in a fight), or null. */
+        /** Pure: the union you are merged with right now (in a fight, or out of one on the calm clock), or null. */
         activeUnion() {
-            const u = this.combat && this.combat.union;
-            if (!u || this.mode !== 'combat') return null;
             const w = this.unionWeb();
-            return w && w.rules.list[u.id] ? u.id : null;
+            if (!w) return null;
+            const u = this.mode === 'combat' ? this.combat && this.combat.union : this.calmUnion();
+            return u && w.rules.list[u.id] ? u.id : null;
         }
+
+        /** Pure: the union running out of a fight (world.calm.union while its time lasts), or null. */
+        calmUnion() {
+            const calm = this.world && this.world.calm;
+            const u = calm && calm.union;
+            return u && u.endsAt > calm.now ? u : null;
+        }
+
+        /** Out of a fight a union runs on the calm clock, which only the live world (combatMode 'action') advances. */
+        calmUnionWorks() { return this.combatMode === 'action' && !!this.world && this.mode === 'explore' && typeof this.actionCalm === 'function'; }
 
         /** Pure: a modifier the active union gives this combatant, e.g. 'damage' (the demon, its web nodes, resonance). */
         unionMod(c, key) {
@@ -120,9 +135,15 @@
             if (!w) return { code: 'NO_UNION', message: 'You have no contract to call on.' };
             const st = this.unionState();
             if (!st.equipped) return { code: 'NO_CONTRACT', message: 'You hold no contract yet.' };
-            if (this.mode !== 'combat' || !this.combat) return { code: 'NOT_IN_COMBAT', message: 'A union only answers in a fight.' };
+            const inFight = this.mode === 'combat' && !!this.combat;
+            if (!inFight && !this.calmUnionWorks()) return { code: 'WRONG_MODE', message: 'Out of a fight a union needs the live world.' };
             if (this.activeUnion()) return { code: 'ALREADY_IN_UNION', message: `You are already one with ${w.rules.list[this.activeUnion()].name}.` };
             if (this.player.statusEffects.some((s) => s.type === 'skip_turn')) return { code: 'STUNNED', message: "You're stunned and can't call the union." };
+            if (!inFight) {
+                const calm = this.actionCalm();
+                const ms = (calm.unionReadyAt || 0) - calm.now;
+                return ms > 0 ? { code: 'UNION_COOLDOWN', message: `The union answers again in ${(ms / 1000).toFixed(1)}s.`, readyInMs: ms } : null;
+            }
             const rt = this.combat.rt;
             if (rt && this.rtActive && this.rtActive()) {
                 if ((rt.unionReadyAt || 0) > rt.now) {
@@ -149,36 +170,85 @@
             };
         }
 
-        /** The rule: merge with the equipped demon. Never uses your turn. */
-        activateUnion() {
+        /** The rule: merge with the equipped demon (or first choose `id`, one you hold a contract with). Never uses your turn. */
+        activateUnion(id = null) {
             const refuse = this.mode === 'combat' ? this.refuseCombat.bind(this) : this.refuse.bind(this);
+            if (id) {
+                const problem = this.unionChooseProblem(id);
+                if (problem) { refuse(problem.code, problem.message); return; }
+            }
             const problem = this.unionActivateProblem();
             if (problem) { refuse(problem.code, problem.message); return; }
             const w = this.unionWeb();
-            const id = this.unionState().equipped;
-            const d = w.rules.list[id];
-            const rt = this.combat.rt;
+            if (id) this.unionState().equipped = this.unionKey(id);
+            const key = this.unionState().equipped;
+            const d = w.rules.list[key];
             const t = this.unionTiming();
-            if (rt && this.rtActive && this.rtActive()) {
-                this.combat.union = { id, endsAt: rt.now + Math.round(t.durationSeconds * 1000) };
-                rt.unionReadyAt = rt.now + Math.round(t.cooldownSeconds * 1000);
+            if (this.mode !== 'combat') {
+                const calm = this.actionCalm();
+                calm.union = { id: key, endsAt: calm.now + Math.round(t.durationSeconds * 1000) };
+                calm.unionReadyAt = calm.now + Math.round(t.cooldownSeconds * 1000);
             } else {
-                this.combat.union = { id, turns: true };
-                this.addTimer(this.player, 'union_active', t.durationTurns, { replace: true });
-                this.addTimer(this.player, 'union_cooldown', t.cooldownTurns, { replace: true });
+                const rt = this.combat.rt;
+                if (rt && this.rtActive && this.rtActive()) {
+                    this.combat.union = { id: key, endsAt: rt.now + Math.round(t.durationSeconds * 1000) };
+                    rt.unionReadyAt = rt.now + Math.round(t.cooldownSeconds * 1000);
+                } else {
+                    this.combat.union = { id: key, turns: true };
+                    this.addTimer(this.player, 'union_active', t.durationTurns, { replace: true });
+                    this.addTimer(this.player, 'union_cooldown', t.cooldownTurns, { replace: true });
+                }
             }
-            this.out.push({ type: 'union', union: id, active: true });
+            this.out.push({ type: 'union', union: key, active: true });
             this.say(d.say || `You and ${d.name} become one.`, { important: true, notice: 'skill' });
         }
 
-        /** The union runs out (its time, or the fight ends: the fight object goes with it). */
+        /** The union runs out (its time, or you fell). In a fight: the fight's union; out of one: the calm clock's. */
         endUnion() {
-            const u = this.combat && this.combat.union;
+            const calm = this.mode !== 'combat' && this.world && this.world.calm;
+            const u = calm ? calm.union : this.combat && this.combat.union;
             if (!u) return;
             const d = ((this.unionWeb() || { rules: { list: {} } }).rules.list[u.id]) || {};
-            this.combat.union = null;
+            if (calm) calm.union = null;
+            else this.combat.union = null;
             this.out.push({ type: 'union', union: u.id, active: false });
             this.say(d.endSay || `${d.name || 'The demon'} lets go of you. You are yourself again.`, { notice: 'skill' });
+        }
+
+        /** Out of a fight: end the union when the calm clock passes its time (actionCalmTick calls this). */
+        unionCalmTick() {
+            const calm = this.world && this.world.calm;
+            if (!calm || !calm.union || this.mode === 'combat' || calm.now < calm.union.endsAt) return false;
+            this.endUnion();
+            return true;
+        }
+
+        /** An action fight starts: a union you called out of it comes along with its time left, and so does the cooldown. */
+        unionEnterFight() {
+            const calm = this.world && this.world.calm;
+            const rt = this.combat && this.combat.rt;
+            if (!calm || !rt) return;
+            const u = calm.union;
+            if (u && u.endsAt > calm.now) this.combat.union = { id: u.id, endsAt: rt.now + (u.endsAt - calm.now) };
+            rt.unionReadyAt = rt.now + Math.max(0, (calm.unionReadyAt || 0) - calm.now);
+            calm.union = null;
+        }
+
+        /** An action fight ends (`c`, the fight that was): the union runs on out of it, and its cooldown keeps counting. */
+        unionLeaveFight(c, { fell = false } = {}) {
+            const rt = c && c.rt;
+            if (!rt || !this.world) return;
+            const calm = this.actionCalm();
+            calm.unionReadyAt = calm.now + Math.max(0, (rt.unionReadyAt || 0) - rt.now);
+            const u = c.union;
+            if (!u || u.turns) return;
+            if (fell || u.endsAt <= rt.now) {
+                const d = ((this.unionWeb() || { rules: { list: {} } }).rules.list[u.id]) || {};
+                this.out.push({ type: 'union', union: u.id, active: false });
+                if (fell) this.say(`${d.name || 'The demon'} lets go of you as you fall.`, { notice: 'skill' });
+                return;
+            }
+            calm.union = { id: u.id, endsAt: calm.now + (u.endsAt - rt.now) };
         }
 
         /** Called as fight time passes (tick) and each turn: end the union when its time is up. */
@@ -190,34 +260,47 @@
             if (rt && rt.now >= u.endsAt) this.endUnion();
         }
 
-        /** Out of a fight: choose the demon you will merge with (one you hold a contract with). */
-        equipUnion(input) {
+        /** Pure: why you can't choose this demon right now, or null. You can choose any time you aren't merged. */
+        unionChooseProblem(input) {
             const w = this.unionWeb();
-            if (!w) { this.refuse('NO_UNION', 'You have no contracts.'); return; }
-            if (this.mode === 'combat') { this.refuse('IN_COMBAT', "You can't change your contract in a fight."); return; }
+            if (!w) return { code: 'NO_UNION', message: 'You have no contracts.' };
             const id = this.unionKey(input);
             const d = w.rules.list[id];
-            if (!d) { this.refuse('UNKNOWN_UNION', `There is no demon '${input}'.`); return; }
-            if (!this.hasStoryFlag(d.contract)) { this.refuse('NO_CONTRACT', `You hold no contract with ${d.name}.`); return; }
+            if (!d) return { code: 'UNKNOWN_UNION', message: `There is no demon '${input}'.` };
+            if (!this.hasStoryFlag(d.contract)) return { code: 'NO_CONTRACT', message: `You hold no contract with ${d.name}.` };
+            const now = this.activeUnion();
+            if (now && now !== id) return { code: 'ALREADY_IN_UNION', message: `You are one with ${w.rules.list[now].name}; choose again when the union ends.` };
+            return null;
+        }
+
+        /** Choose the demon you will merge with (one you hold a contract with). In a fight or out of one. */
+        equipUnion(input) {
+            const refuse = this.mode === 'combat' ? this.refuseCombat.bind(this) : this.refuse.bind(this);
+            const problem = this.unionChooseProblem(input);
+            if (problem) { refuse(problem.code, problem.message); return; }
+            const w = this.unionWeb();
+            const id = this.unionKey(input);
+            const d = w.rules.list[id];
             this.unionState().equipped = id;
             this.say(`${d.name}, ${d.title}, will answer when you call the union.`, { notice: 'skill' });
         }
 
-        /** Out of a fight: put a held Qliphoth aspect in a resonance slot (0-based), or clear it with null. */
+        /** Put a held Qliphoth aspect in a resonance slot (0-based), or clear it with null. Any time you aren't merged. */
         setResonance(slot, input) {
             const w = this.unionWeb();
-            if (!w) { this.refuse('NO_UNION', 'You have no contracts.'); return; }
-            if (this.mode === 'combat') { this.refuse('IN_COMBAT', "You can't change your resonance in a fight."); return; }
+            const refuse = this.mode === 'combat' ? this.refuseCombat.bind(this) : this.refuse.bind(this);
+            if (!w) { refuse('NO_UNION', 'You have no contracts.'); return; }
+            if (this.activeUnion()) { refuse('ALREADY_IN_UNION', 'The resonance is set while you are merged; change it when the union ends.'); return; }
             const st = this.unionState();
             const n = st.resonance.length;
-            if (!Number.isInteger(slot) || slot < 0 || slot >= n) { this.refuse('INVALID_SLOT', `Resonance slots are 1 to ${n}.`); return; }
+            if (!Number.isInteger(slot) || slot < 0 || slot >= n) { refuse('INVALID_SLOT', `Resonance slots are 1 to ${n}.`); return; }
             if (input == null || input === '') { st.resonance[slot] = null; this.say(`Resonance slot ${slot + 1} cleared.`); return; }
             const id = String(input).trim().toLowerCase();
             const d = (w.rules.resonance || {})[id];
-            if (!d) { this.refuse('UNKNOWN_ASPECT', `There is no aspect '${input}' that resonates.`); return; }
-            if (!this.hasStoryFlag(d.flag)) { this.refuse('ASPECT_NOT_HELD', `You don't hold the ${d.name} aspect.`); return; }
+            if (!d) { refuse('UNKNOWN_ASPECT', `There is no aspect '${input}' that resonates.`); return; }
+            if (!this.hasStoryFlag(d.flag)) { refuse('ASPECT_NOT_HELD', `You don't hold the ${d.name} aspect.`); return; }
             const other = st.resonance.indexOf(id);
-            if (other !== -1 && other !== slot) { this.refuse('ALREADY_RESONATING', `${d.name} already resonates in slot ${other + 1}.`); return; }
+            if (other !== -1 && other !== slot) { refuse('ALREADY_RESONATING', `${d.name} already resonates in slot ${other + 1}.`); return; }
             st.resonance[slot] = id;
             this.say(`${d.name} resonates in slot ${slot + 1}: ${d.text || ''}`.trim(), { notice: 'skill' });
         }
@@ -240,10 +323,11 @@
             const active = this.activeUnion();
             const problem = this.unionActivateProblem();
             const rt = this.combat && this.combat.rt;
-            const u = this.combat && this.combat.union;
+            const u = this.mode === 'combat' ? this.combat && this.combat.union : null;
+            const cu = this.mode !== 'combat' ? this.calmUnion() : null;
             return {
                 web: w.id, equipped, active, durationMs: this.unionTiming().durationSeconds * 1000, cooldownMs: this.unionTiming().cooldownSeconds * 1000, favor: this.unionTiming().favor,
-                endsInMs: u && rt && !u.turns ? Math.max(0, u.endsAt - rt.now) : null,
+                endsInMs: u && rt && !u.turns ? Math.max(0, u.endsAt - rt.now) : cu ? Math.max(0, cu.endsAt - this.world.calm.now) : null,
                 enabled: !problem, ...(problem ? { reason: { code: problem.code, message: problem.message } } : {}),
                 ...(problem && problem.readyInMs != null ? { readyInMs: problem.readyInMs } : {}),
                 unions: Object.entries(w.rules.list).map(([id, d]) => ({ id, name: d.name, title: d.title || null, power: d.power || null, contract: owned.includes(id), skills: [...(d.skills || [])] })),
@@ -252,9 +336,9 @@
             };
         }
 
-        /** The `union` option in a fight (only while you hold a contract). */
+        /** The `union` option, in a fight or out of one (only while you hold a contract). */
         unionAvailability() {
-            if (!this.unionWeb() || !this.unionContracts().length || this.mode !== 'combat') return [];
+            if (!this.unionWeb() || !this.unionContracts().length || (this.mode !== 'combat' && !this.calmUnionWorks())) return [];
             const p = this.unionActivateProblem();
             if (p && p.code === 'ALREADY_IN_UNION') return [];
             return [{ type: 'union', enabled: !p, ...(p ? { reason: { code: p.code, message: p.message } } : {}) }];

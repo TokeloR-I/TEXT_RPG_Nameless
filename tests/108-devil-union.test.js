@@ -87,7 +87,7 @@ test('Devil Union: merge in a fight for 20 s with a 60 s cooldown; the demon\'s 
     assert.ok(g.act({ type: 'union' }).ok, 'ready again 60 s after it began');
 });
 
-test('Devil Union: the union\'s power and resonance apply only while merged; one contract equipped at a time, chosen out of a fight', () => {
+test('Devil Union: the union\'s power and resonance apply only while merged; one contract equipped at a time, chosen any time you are not merged', () => {
     const g = bind(bind(world('realtime')), 'slotos');
     assert.deepStrictEqual(g.getUnion().unions.filter((u) => u.contract).map((u) => u.id), ['lucifero', 'slotos']);
     assert.ok(g.act({ type: 'equip_union', union: 'Slotos' }).ok);
@@ -98,10 +98,13 @@ test('Devil Union: the union\'s power and resonance apply only while merged; one
     assert.strictEqual(g.act({ type: 'set_resonance', slot: 2, aspect: null }).error.code, 'INVALID_SLOT', 'two slots');
     const walk = g.playerMoveMult();
     fight(g);
-    assert.strictEqual(g.act({ type: 'equip_union', union: 'lucifero' }).error.code, 'IN_COMBAT');
+    assert.ok(g.act({ type: 'equip_union', union: 'lucifero' }).ok, 'you choose your demon in a fight too (Tokelo 2026-11-18)');
+    assert.ok(g.act({ type: 'equip_union', union: 'slotos' }).ok);
     assert.strictEqual(g.unionMod(g.player, 'defence'), 0);
     g.act({ type: 'union' });
     assert.strictEqual(g.activeUnion(), 'slotos');
+    assert.strictEqual(g.act({ type: 'equip_union', union: 'lucifero' }).error.code, 'ALREADY_IN_UNION', 'not while merged');
+    assert.strictEqual(g.act({ type: 'set_resonance', slot: 1, aspect: null }).error.code, 'ALREADY_IN_UNION');
     assert.ok(g.unionMod(g.player, 'defence') >= 0.25, 'Slotos: toughness');
     assert.ok(g.playerMoveMult() > walk, 'Nahemoth resonance: faster while merged');
     g.combat.union = null;
@@ -222,4 +225,110 @@ test("Demonkore revealed at home: James admits it, gives Demonkore's Favor once 
     g.act({ type: 'union' });
     for (let i = 0; i < 590; i++) g.tick(100);
     assert.ok(g.activeUnion(), 'still merged at 59 s with the Favor');
+});
+
+// Tokelo 2026-11-18: "the devil union doesn't even allow the player to select a demon ... why cant I use devil union out
+// of combat?" You choose the demon as you call it, and a union works out of a fight on the calm clock.
+test('Devil Union out of a fight: call it with the demon you choose; it runs on the calm clock, lends its skills, then the cooldown', () => {
+    const g = bind(bind(world('action')), 'plumede');
+    assert.ok(g.getAvailableActions().actions.some((a) => a.type === 'union' && a.enabled), 'offered out of a fight');
+    const r = g.act({ type: 'union', union: 'plumede' });
+    assert.ok(r.ok, r.error && r.error.message);
+    assert.strictEqual(g.mode, 'explore');
+    assert.strictEqual(g.activeUnion(), 'plumede');
+    assert.strictEqual(g.getUnion().equipped, 'plumede', 'the choice is kept');
+    assert.deepStrictEqual(g.ensureSkillBar().slice(0, 3), KITS.plumede);
+    assert.ok(r.events.some((e) => e.type === 'union' && e.active));
+    assert.ok(g.unionMod(g.player, 'speed') > 0, "Plumede's agility out of a fight");
+    // Its own skills work out of a fight too: Fleet Form is a real pre-buff.
+    g.player.resource.current = g.player.resource.max;
+    const ff = g.actionPrebuff('Fleet Form');
+    assert.ok(ff.ok, ff.error && ff.error.message);
+    assert.ok(g.player.statusEffects.some((s) => s.name === 'Fleet Form'));
+    g.actionCalmTick(19900);
+    assert.strictEqual(g.activeUnion(), 'plumede', 'still merged at 19.9 s');
+    const end = g.actionCalmTick(200);
+    assert.strictEqual(g.activeUnion(), null);
+    assert.ok(end.some((e) => e.type === 'union' && !e.active), 'the end is an event (the armor fades)');
+    const cd = g.act({ type: 'union' });
+    assert.strictEqual(cd.error.code, 'UNION_COOLDOWN');
+    g.actionCalmTick(40000);
+    assert.ok(g.act({ type: 'union', union: 'lucifero' }).ok, 'ready after 60 s, and a different demon');
+    assert.strictEqual(g.activeUnion(), 'lucifero');
+    assert.strictEqual(g.act({ type: 'union', union: 'plumede' }).error.code, 'ALREADY_IN_UNION');
+});
+
+test('Devil Union carries: called out of a fight it comes into the fight with its time left, and back out; a fall ends it', () => {
+    const g = bind(world('action'));
+    assert.ok(g.act({ type: 'union' }).ok);
+    g.actionCalmTick(5000);
+    assert.ok(g.actionEngage('du_rats', ['rust_rat']).ok);
+    assert.strictEqual(g.mode, 'combat');
+    assert.strictEqual(g.activeUnion(), 'lucifero', 'merged in the fight');
+    assert.strictEqual(g.getUnion().endsInMs, 15000, '15 s left');
+    assert.strictEqual(g.act({ type: 'union' }).error.code, 'ALREADY_IN_UNION');
+    for (let i = 0; i < 50; i++) g.tick(100);
+    assert.ok(g.actionDisengage('du_rats').ok);
+    assert.strictEqual(g.mode, 'explore');
+    assert.strictEqual(g.activeUnion(), 'lucifero', 'still merged out of the fight');
+    assert.strictEqual(g.getUnion().endsInMs, 10000);
+    g.actionCalmTick(10000);
+    assert.strictEqual(g.activeUnion(), null);
+    // The cooldown kept counting through the fight: 60 s from the call, 20 s gone.
+    assert.ok(Math.abs(g.getUnion().readyInMs - 40000) < 1, `cooldown carried: ${g.getUnion().readyInMs}`);
+    // A new fight doesn't reset the cooldown either.
+    assert.ok(g.actionEngage('du_rats2', ['rust_rat']).ok);
+    assert.strictEqual(g.act({ type: 'union' }).error.code, 'UNION_COOLDOWN');
+    for (let i = 0; i < 400; i++) g.tick(100);
+    assert.ok(g.act({ type: 'union' }).ok);
+    g.player.hp = 0;
+    g.actionRespawn();
+    assert.strictEqual(g.activeUnion(), null, 'falling ends it');
+    // The text game (turn fights) has no calm clock: out of a fight it says so.
+    const t = bind(world('turn'));
+    assert.strictEqual(t.act({ type: 'union' }).error.code, 'WRONG_MODE');
+});
+
+// Tokelo 2026-11-18: "the armor only has one side ... we dont have front back left right NW SW NE SE".
+test('Devil Union armor turns 8 ways: every facing has its own helm and plate grid, and pieces move between behind and in front', () => {
+    const FX = require('../ui/union-fx.js');
+    const facings = Object.keys(FX.YAW);
+    assert.strictEqual(facings.length, 8);
+    const sets = [FX.PLATE, ...Object.values(FX.HELMS)];
+    for (const set of sets) {
+        const seen = new Set();
+        for (const f of facings) {
+            const rows = FX.gridAt(set, FX.pose({ facing8: f }));
+            assert.strictEqual(rows.length, set.rows.length, `${f}: same height`);
+            assert.ok(rows.every((r) => r.length === rows[0].length), `${f}: a rectangle`);
+            seen.add(rows.join('/'));
+        }
+        assert.strictEqual(seen.size, 8, 'eight different looks');
+        const right = FX.gridAt(set, FX.pose({ facing8: 'right' })), left = FX.gridAt(set, FX.pose({ facing8: 'left' }));
+        assert.deepStrictEqual(left, right.map((r) => [...r].reverse().join('')), 'left mirrors right');
+    }
+    // A recording canvas: how much each layer draws.
+    const ctx = () => { const g = { n: 0, fillRect() { g.n++; }, beginPath() {}, ellipse() {}, fill() {}, save() {}, restore() {}, createRadialGradient: () => ({ addColorStop() {} }) }; return g; };
+    const layers = (id, f) => {
+        const b = ctx(), fr = ctx(), st = { id, k: 1, burst: 0 }, view = { facing8: f, statuses: [] };
+        FX.behind(b, 40, 64, st, view, 1000); FX.front(fr, 40, 64, st, view, 1000);
+        return { back: b.n, front: fr.n };
+    };
+    // Plumede's wings are on your back: behind you facing the camera, over you facing away.
+    const down = layers('plumede', 'down'), up = layers('plumede', 'up');
+    assert.ok(up.front > down.front + 100 && down.back > up.back + 100, `wings: ${JSON.stringify({ down, up })}`);
+    for (const id of Object.keys(FX.LOOKS)) for (const f of facings) { const l = layers(id, f); assert.ok(l.front > 0 && l.back > 0, `${id} ${f}`); }
+});
+
+test('Devil Union U cell: with more than one contract it asks which demon (Tokelo 2026-11-18), with one it just merges', () => {
+    const HUD = require('../ui/action-hud.js');
+    const one = bind(world('action'));
+    assert.strictEqual(HUD.unionCell(one).choose, false);
+    assert.ok(HUD.unionCell(one).enabled, 'usable out of a fight');
+    const two = bind(bind(world('action')), 'beelzebub');
+    assert.strictEqual(HUD.unionCell(two).choose, true);
+    assert.deepStrictEqual(HUD.unionCell(two).owned, ['lucifero', 'beelzebub']);
+    assert.ok(two.act({ type: 'union', union: 'beelzebub' }).ok);
+    assert.strictEqual(HUD.unionCell(two).choose, false, 'merged: nothing to choose');
+    assert.strictEqual(HUD.unionCell(two).id, 'beelzebub');
 });

@@ -146,7 +146,7 @@
             if (p.resource) p.resource.current = p.resource.max;
             const rt = this.combat && this.combat.rt;
             if (rt) { rt.cooldowns = {}; rt.gcdUntil = rt.now; rt.unionReadyAt = 0; }
-            if (this.world && this.world.calm) this.world.calm.cooldowns = {};
+            if (this.world && this.world.calm) { this.world.calm.cooldowns = {}; this.world.calm.unionReadyAt = 0; }
             if (this.combat && Array.isArray(this.combat.timers)) this.combat.timers = this.combat.timers.filter((t) => !(t.ownerId === p.id && t.kind === 'union_cooldown'));
             this.say(`[cheat] Full HP and ${p.resource ? p.resource.type : 'resource'}, cooldowns ready.`);
         }

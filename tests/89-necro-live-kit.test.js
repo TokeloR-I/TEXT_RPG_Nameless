@@ -168,7 +168,7 @@ test('Raise Ghoul in a live fight: it takes every hit meant for you, then runs a
     assertHealthy(r.g);
 });
 
-test('Raise Ghoul: it bursts early once it has stored its capacity; out of a fight it only shows a notice', () => {
+test('Raise Ghoul: it bursts early once it has stored its capacity; out of a fight it rises and guards you once the fight starts', () => {
     const g = newGame(4).do('necromancer', 'n', 'engage');
     for (const e of g.combat.enemies) e.hp = e.maxHp = 999;
     g.player.skills.push('Raise Ghoul'); g.player.resource.current = 10;
@@ -182,8 +182,16 @@ test('Raise Ghoul: it bursts early once it has stored its capacity; out of a fig
     const p = r.g.player;
     p.skills.push('Raise Ghoul'); p.skillBar = ['Raise Ghoul']; p.skillBarSeen = [...p.skills]; p.resource.current = 10;
     const out = frames(r.sim, 1, { slot: 0, aim: { x: 0, y: 0 } });
-    assert.ok(fxOf(out, 'notice').some((f) => /only works in a fight/.test(f.text)));
-    assert.strictEqual(p.resource.current, 10);
+    assert.ok(!fxOf(out, 'notice').length && !fxOf(out, 'refused').length, 'no "only in a fight" (Tokelo 2026-11-18)');
+    assert.ok(p.resource.current < 10, 'paid');
+    const f = r.g.world.followers.find((m) => m.summonType === 'ghoul');
+    assert.ok(f && f.pendingGhoul, 'the ghoul follows you');
+    assert.strictEqual(r.g.actionSummonFollower('Raise Ghoul').error.code, 'REQUIREMENT_FAILED', 'one ghoul at a time');
+    const e = r.g.actionEngage('grounds_weed_rats_again', ['rust_rat']);
+    assert.ok(e.ok, e.error && e.error.message);
+    const m = r.g.combat.minions.find((x) => x.id === f.id);
+    assert.ok(m && m.ghoul && m.ghoul.phase === 'shield', 'its shield starts with the fight');
+    assert.ok(r.g.statusOfType(p, 'ghoul_shield'), 'Ghoul Shield on you');
 });
 
 test('March of Endless Bones in a live fight: every skeleton and the bigger champion get bodies that fight', () => {

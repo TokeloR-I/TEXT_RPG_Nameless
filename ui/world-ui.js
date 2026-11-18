@@ -1045,6 +1045,7 @@
         { id: 'equipment', label: 'Equipment', sub: 'Change your gear and compare stats.' },
         { id: 'skillbar', label: 'Skill bar', sub: 'The six skills on keys 1-6 in a real-time fight.' },   // real-time fights only
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
+        { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'cheats', label: 'Cheats', sub: 'Dev cheats for testing powers. Not part of normal play.' },   // only in dev mode (see devMode below)
@@ -1057,7 +1058,8 @@
     function menuTabs() {
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
         const bar = engine.combatMode !== 'turn';
-        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode));
+        const union = !!(engine.getUnion && engine.getUnion());
+        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
         modal = 'pause'; syncActionHudVisibility();
@@ -1065,12 +1067,12 @@
         els.hud.hidden = true;
         mmTabs = menuTabs();
         const want = tabId ? mmTabs.findIndex((t) => t.id === tabId) : -1;
-        mm = { tab: want !== -1 ? want : Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null, cheat: null };
+        mm = { tab: want !== -1 ? want : Math.min(mm.tab || 0, mmTabs.length - 1), focus: 'tabs', slot: null, barSlot: null, note: note || '', fly: null, cheat: null, union: null };
         focusTabs();
         if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1112,6 +1114,7 @@
         if (id === 'journal') items = journalItems();
         if (id === 'skillbar') items = skillBarItems();
         if (id === 'web') items = skillWebItems();
+        if (id === 'union') items = unionItems();
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
@@ -1139,11 +1142,57 @@
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
+            : mm.union ? () => { const i = mm.union.row; mm.union = null; enterList('union', i); }
             : mm.cheat ? () => { const at = CHEAT_TOP.indexOf(mm.cheat.top || mm.cheat); mm.cheat = mm.cheat.top ? mm.cheat.top : null; enterList('cheats', mm.cheat ? 0 : Math.max(0, at)); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
     }
+    /** Devil Union (src/engine/union.js; Tokelo 2026-11-18: "doesn't even allow the player to select a demon"): every
+     *  demon, the ones you hold a contract with to choose and merge with now (in a fight or out of one), then the two
+     *  Qliphoth Resonance slots. U opens this page when you hold more than one contract, on the demon you used last. */
+    function unionItems() {
+        const v = engine.getUnion();
+        if (!v) return [];
+        if (mm.union && mm.union.slot != null) {
+            const slot = mm.union.slot;
+            const back = () => { const i = mm.union.row; mm.union = null; enterList('union', i); };
+            const items = v.aspects.map((a) => ({ label: `${v.resonance.includes(a.id) ? '✓ ' : ''}${a.name}`, sub: a.text, action: () => { mm.note = actLines({ type: 'set_resonance', slot, aspect: a.id }); back(); } }));
+            if (v.resonance[slot]) items.push({ label: `Clear slot ${slot + 1}`, sub: 'Leave this slot empty.', action: () => { mm.note = actLines({ type: 'set_resonance', slot, aspect: null }); back(); } });
+            return items;
+        }
+        const wait = v.reason && v.reason.code === 'UNION_COOLDOWN' ? v.reason.message : '';
+        const items = v.unions.map((u) => {
+            if (!u.contract) return { label: u.name, sub: 'No contract yet: bind them in their Dominion.', disabled: true };
+            const mark = v.active === u.id ? '◆ ' : u.id === v.equipped ? '› ' : '';
+            const sub = v.active ? (v.active === u.id ? `You are one with ${u.name}.` : 'Choose again when the union ends.')
+                : `${u.power ? `${u.power} · ` : ''}${u.skills.join(', ')}${wait ? ` · ${wait} Choosing keeps ${u.name} ready.` : ' · Merge now.'}`;
+            return { label: `${mark}${u.name}${u.title ? `, ${u.title}` : ''}`, sub, disabled: !!v.active, unionId: u.id, action: () => mergeWith(u.id) };
+        });
+        v.resonance.forEach((r, i) => {
+            const a = v.aspects.find((x) => x.id === r);
+            items.push({ label: `Resonance ${i + 1}: ${a ? a.name : '— empty —'}`, sub: v.active ? 'Set it when the union ends.' : v.aspects.length ? (a ? a.text : 'A Qliphoth aspect you hold adds a small boost while merged.') : 'You hold no Qliphoth aspect yet.',
+                disabled: !!v.active || !v.aspects.length, action: () => { mm.union = { slot: i, row: v.unions.length + i }; enterList('union', 0); } });
+        });
+        return items;
+    }
+    /** Choose a demon and merge with it now; on the cooldown it is only chosen, ready for when the union answers again. */
+    function mergeWith(id) {
+        const v = engine.getUnion();
+        if (v && !v.enabled && v.reason && v.reason.code === 'UNION_COOLDOWN') {
+            const r = engine.act({ type: 'equip_union', union: id });
+            mm.note = r.ok ? `${readable(r.events).map((l) => l.text).join(' ')} (${v.reason.message})` : r.error.message;
+            enterList('union', v.unions.findIndex((u) => u.id === id));
+            return;
+        }
+        const r = engine.act({ type: 'union', union: id });
+        if (!r.ok) { mm.note = r.error.message; enterList('union', menu.index); return; }
+        const line = (r.events || []).find((e) => e.type === 'text');
+        closePause();
+        toast(line ? line.text : 'You become one.');
+        updateHud();
+    }
+
     /** Skill bar (combat v2): the six slots, then for a chosen slot the learned skills that can go there.
      *  The engine keeps the bar and refuses anything it won't allow (set_skill_slot); a skill already on the bar swaps. */
     function skillBarInfo() {
@@ -1366,9 +1415,16 @@
                     <p class="mm-dim">The crow can take you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`;
         }
         if (tab === 'cheats') page = cheatsPage(inList, list);
+        if (tab === 'union') {
+            const v = engine.getUnion();
+            const owned = v ? v.unions.filter((u) => u.contract) : [];
+            page = !v ? '<p class="mm-dim">No contract.</p>' : mm.union && mm.union.slot != null ? `<h3>Resonance slot ${mm.union.slot + 1}</h3>${list}`
+                : `<h3>Demons</h3>${inList ? list : `<ul class="mm-plain">${v.unions.map((u) => `<li>${v.active === u.id ? '◆ ' : u.id === v.equipped ? '› ' : ''}${esc(u.name)}${u.title ? `<span class="mm-dim">, ${esc(u.title)}</span>` : ''} <span class="mm-dim">· ${u.contract ? esc(u.power || '') : 'no contract yet'}</span></li>`).join('')}</ul>`}
+                    <p class="mm-dim">${v.active ? `◆ You are one with ${esc((v.unions.find((u) => u.id === v.active) || {}).name || '')}${v.endsInMs != null ? ` for ${Math.ceil(v.endsInMs / 1000)} s more` : ''}.` : `Choose a demon to merge with now, in a fight or out of one: ${Math.round(v.durationMs / 1000)} s, then ${Math.round(v.cooldownMs / 1000)} s before the union answers again. ${owned.length > 1 ? '<kbd>U</kbd> opens this page.' : '<kbd>U</kbd> merges.'}`}</p>`;
+        }
         if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
         const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'journal', 'settings', 'crow', 'cheats'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
+            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'union', 'journal', 'settings', 'crow', 'cheats'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
         els.pause.className = 'panel mm win';
         els.pause.innerHTML = `
             <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
@@ -2178,14 +2234,20 @@
         updateHud();
     }
 
-    /** U: Devil Union. In a fight, merge with the equipped demon; out of one, equip the next contracted demon. */
+    /** U: Devil Union, in a fight or out of one (Tokelo 2026-11-18). With more than one contract it asks which demon
+     *  first (the Devil Union page, on the one you used last); with one it merges at once. */
     function unionKey() {
         if (screen !== 'explore' || modal) return;
         const cell = ENSO.actionHud && ENSO.actionHud.unionCell ? ENSO.actionHud.unionCell(engine) : null;
         if (!cell) return;
-        const inFight = engine.getState().mode === 'combat';
-        if (!inFight && !cell.next) { toast(`Union: ${cell.id}. Call it in a fight.`); return; }
-        const r = engine.act(inFight ? { type: 'union' } : { type: 'equip_union', union: cell.next });
+        if (cell.choose) {
+            openPause(null, 'union');
+            const v = engine.getUnion();
+            const at = v ? v.unions.findIndex((u) => u.id === v.equipped) : -1;
+            if (menu && at >= 0) { menu.index = at; renderMain(); }
+            return;
+        }
+        const r = engine.act({ type: 'union' });
         const line = (r.events || []).find((e) => e.type === 'text');
         toast(r.ok ? (line ? line.text : 'Done.') : (r.error ? r.error.message : 'Not now.'));
         updateHud();
@@ -2331,8 +2393,11 @@
         g.globalAlpha = 1;
     }
 
+
+    const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
         const P = sim.player;
+        if ((ev.type === 'cast' || ev.type === 'swing') && ev.skill) castAt.set(ev.skill, performance.now());
         switch (ev.type) {
             case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical' }, now); break;
             case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally }, now); break;
@@ -2698,6 +2763,8 @@
         if (view.statuses && ENSO.unionFx) {   // a skill cast in the last few seconds counts too (Lucifero's helm with Heavy Field)
             const rs = rtState();
             for (const [name, cd] of Object.entries((rs && rs.cooldowns) || {})) if (cd.totalMs - cd.remainingMs < ENSO.unionFx.CAST_SHOW_MS) view.statuses.push(name);
+            const t = performance.now();   // out of a fight a union skill has no fight cooldown: when you cast it counts
+            for (const [name, at] of castAt) if (t - at < ENSO.unionFx.CAST_SHOW_MS) view.statuses.push(name);
         }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);

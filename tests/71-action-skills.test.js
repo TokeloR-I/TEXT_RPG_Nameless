@@ -105,18 +105,29 @@ test('Shadowstep teleports you 16 px behind the enemy you aim at, facing its bac
     assert.ok(r.g.player.statusEffects.some((s) => s.name === 'Guaranteed Crit'));
 });
 
-test('Shadowstep with nobody in reach (or out of a fight): a notice, you stay put, nothing paid', () => {
-    for (const fight of [true, false]) {
-        const r = make('rogue', { skills: ['Shadowstep'] });
-        if (fight) { r.sim.engageGroup(r.sim.groups.grounds_weed_rats); for (const a of r.sim.actors) { a.x = 0; a.y = 0; } } else calm(r);
-        r.g.player.resource.current = 5;
-        const p = r.sim.player;
-        const x0 = p.x, y0 = p.y;
-        const out = frames(r.sim, 1, { slot: r.slot('Shadowstep') });
-        assert.ok(fxOf(out).some((f) => f.type === 'notice' && /Shadowstep/.test(f.text)));
-        assert.strictEqual(p.x, x0); assert.strictEqual(p.y, y0);
-        assert.strictEqual(r.g.player.resource.current, 5);
-    }
+test('Shadowstep with nobody in reach in a fight: a notice, you stay put, nothing paid', () => {
+    const r = make('rogue', { skills: ['Shadowstep'] });
+    r.sim.engageGroup(r.sim.groups.grounds_weed_rats); for (const a of r.sim.actors) { a.x = 0; a.y = 0; }
+    r.g.player.resource.current = 5;
+    const p = r.sim.player;
+    const x0 = p.x, y0 = p.y;
+    const out = frames(r.sim, 1, { slot: r.slot('Shadowstep') });
+    assert.ok(fxOf(out).some((f) => f.type === 'notice' && /Shadowstep/.test(f.text)));
+    assert.strictEqual(p.x, x0); assert.strictEqual(p.y, y0);
+    assert.strictEqual(r.g.player.resource.current, 5);
+});
+
+test('Out of a fight nothing is combat-only (Tokelo 2026-11-18): Shadowstep steps you ahead into the shadows, free', () => {
+    const r = make('rogue', { skills: ['Shadowstep'] });
+    calm(r);
+    r.g.player.resource.current = 5;
+    const p = r.sim.player;
+    const x0 = p.x, y0 = p.y;
+    const out = frames(r.sim, 1, { slot: r.slot('Shadowstep') });
+    assert.ok(!fxOf(out).some((f) => f.type === 'notice' || f.type === 'refused'), 'no refusal');
+    assert.ok(fxOf(out).some((f) => f.type === 'teleport'), 'a blink');
+    assert.ok(Math.hypot(p.x - x0, p.y - y0) > 12, 'you moved');
+    assert.strictEqual(r.g.player.resource.current, 5, 'free, as every cosmetic cast');
 });
 
 // ---- Pre-buffing (Tokelo, 2026-10-31): self buffs cast out of a fight are real, timed, and come into the next fight
@@ -158,15 +169,29 @@ test('Pre-buff: a buff still running when a fight starts comes into it with the 
     assert.strictEqual(st.type, 'dodge');
 });
 
-test('Pre-buff: a self skill that needs a fight (Overchannel) only plays its cast and says so; costs and statuses untouched', () => {
+test('Pre-buff: a self skill with nothing to work on out of a fight (Overchannel) still plays, with no refusal and no cost', () => {
     const r = make('mage', { skills: ['Overchannel'] });
     calm(r);
     r.g.player.resource.current = r.g.player.resource.max;   // full, so the out-of-fight refill can't hide a spend
     const res = r.g.player.resource.current;
     const out = frames(r.sim, 1, { slot: r.slot('Overchannel') });
-    assert.ok(fxOf(out).some((f) => f.type === 'notice' && /only works in a fight/.test(f.text)));
+    assert.ok(!fxOf(out).some((f) => f.type === 'notice' || f.type === 'refused'));
+    assert.strictEqual(r.sim.player.attack.skill, 'Overchannel', 'its cast plays');
     assert.strictEqual(r.g.player.resource.current, res);
     assert.strictEqual(r.g.player.statusEffects.length, 0);
+});
+
+test('Pre-buff: a self heal and cleanse (Mercy of the Fallen) works out of a fight now', () => {
+    const r = make('warrior', { skills: ['Mercy of the Fallen'] });
+    calm(r);
+    const p = r.g.player;
+    p.hp = Math.floor(p.maxHp / 2);
+    p.resource.current = p.resource.max;
+    p.statusEffects.push({ name: 'Bleed', type: 'dot', category: 'dot', value: 2, duration: 3, appliedBy: 'x' });
+    const before = p.hp;
+    frames(r.sim, 1, { slot: r.slot('Mercy of the Fallen') });
+    assert.ok(p.hp > before, 'healed');
+    assert.ok(!p.statusEffects.some((s) => s.name === 'Bleed'), 'cleansed');
 });
 
 test('Live Haste: a timed buff (no extra turn) that pre-buffs, and speeds every other cooldown but its own', () => {
