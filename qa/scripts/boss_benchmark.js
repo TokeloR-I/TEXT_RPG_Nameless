@@ -5,7 +5,7 @@
 // --react about 150 ms before it lands, and quick-heals below 40% HP while it has a heal. It fights the nearest member
 // of the group (adds first if they are closer), and wins when the boss falls. Standard for these bosses: 25-40% wins
 // per branch at the expected level with a stocked heal kit (--heals 6), i.e. most first attempts die.
-//   node qa/scripts/boss_benchmark.js [--boss bjarki|echo|peat|all] [--seeds 20] [--react 0.6] [--heals 6] [--level N] [--hp X] [--only warrior]
+//   node qa/scripts/boss_benchmark.js [--boss bjarki|echo|peat|lucifero|beelzebub|slotos|plumede|all] [--moves] [--seeds 20] [--react 0.6] [--heals 6] [--level N] [--hp X] [--only warrior]
 const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const { GameEngine } = require(path.join(ROOT, 'src/engine.js'));
@@ -29,8 +29,15 @@ const STEP = 1000 / 60;
 const BOSSES = {
     echo: { key: 'binding_echo', map: 'gullstrand_coast', encounter: 'wolfs_wake_trial', flags: ['fenrir_trial_called'], level: 5 },
     bjarki: { key: 'bjarki_grave_bound', map: 'bjarki_barrow', encounter: 'barrow_bjarki_bare', flags: ['barrow_anchors_1', 'barrow_anchors_2', 'barrow_anchors_3'], level: 6 },
-    peat: { key: 'peat_king', map: 'jarnmyr', encounter: 'jarnmyr_peat_king', flags: ['mire_bjorn_asked'], level: 6 }
+    peat: { key: 'peat_king', map: 'jarnmyr', encounter: 'jarnmyr_peat_king', flags: ['mire_bjorn_asked'], level: 6 },
+    // The Devil Union Dominions (CB2 and after): you come down James's stair after the three seals, about level 7.
+    lucifero: { key: 'lucifero', map: 'underworld_arena', encounter: 'underworld_arena_ruler', flags: ['underworld_wave_5'], level: 7 },
+    beelzebub: { key: 'beelzebub', map: 'dominion_beelzebub', encounter: 'beelzebub_ruler', flags: ['contract:lucifero', 'beelzebub_wave_5'], level: 7 },
+    slotos: { key: 'slotos', map: 'dominion_slotos', encounter: 'slotos_ruler', flags: ['contract:lucifero', 'slotos_wave_5'], level: 7 },
+    plumede: { key: 'plumede', map: 'dominion_plumede', encounter: 'plumede_ruler', flags: ['contract:lucifero', 'plumede_wave_5'], level: 7 }
 };
+const MOVES = args.includes('--moves');   // tally the boss's moves (started wind-ups) and what hit the player
+const tally = {};
 const SETUPS = [
     { cls: 'warrior', branch: 'vanguard', keep: 18 }, { cls: 'warrior', branch: 'berserker', keep: 18 },
     { cls: 'rogue', branch: 'duelist', keep: 14 }, { cls: 'rogue', branch: 'assassin', keep: 14 }, { cls: 'rogue', branch: 'saboteur', keep: 14 },
@@ -88,7 +95,12 @@ function fight(B, st, seed) {
             if (i % 10 === 0 && g.mode === 'combat') for (let k = 0; k < bar.length && cast == null; k++) { const slot = (slotTurn + k) % bar.length, name = bar[slot]; if (!name) continue; const av = g.skillAvailability(name, false); if (av && av.enabled) { cast = slot; slotTurn = slot + 1; } }
             if (cast != null) input.slot = cast; else input.attack = true;
         }
+        const prevState = b.state, hp0 = g.player.hp;
         const out = sim.update(STEP, input);
+        if (MOVES) {
+            if (b.state === 'windup' && prevState !== 'windup' && b.windup && b.windup.step === 0) { const n = b.windup.base.name; (tally[n] = tally[n] || { used: 0, hits: 0, dmg: 0 }).used++; }
+            if (g.player.hp < hp0 && b.windup) { const n = b.windup.base.name; const t2 = (tally[n] = tally[n] || { used: 0, hits: 0, dmg: 0 }); t2.hits++; t2.dmg += hp0 - g.player.hp; }
+        }
         if (out.engineEvents && out.engineEvents.some((e) => e.type === 'world.respawn')) return { won: false, s: i / 60, healsUsed, died: true };
         if (g.mode === 'game_over') return { won: false, s: i / 60, healsUsed, died: true };
     }
@@ -106,6 +118,7 @@ for (const [name, B] of Object.entries(BOSSES)) {
         const rs = []; for (let k = 0; k < SEEDS; k++) rs.push(fight(B, st, 5000 + k));
         const wins = rs.filter((x) => x.won);
         const ttk = wins.length ? `${mean(wins.map((x) => x.s)).toFixed(1)} s` : '-';
+        if (MOVES) { console.log('  moves:', Object.entries(tally).map(([n, t]) => `${n} ${t.used}x (${t.hits} hits, ${t.dmg} dmg)`).join('; ')); for (const k of Object.keys(tally)) delete tally[k]; }
         console.log(`| ${st.cls} / ${st.branch} | ${Math.round(100 * wins.length / rs.length)}% | ${ttk} | ${rs.filter((x) => x.died).length} | ${mean(rs.map((x) => x.healsUsed)).toFixed(1)} | ${rs.filter((x) => x.timeout).length} |`);
     }
 }

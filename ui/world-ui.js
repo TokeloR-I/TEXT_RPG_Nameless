@@ -2301,6 +2301,22 @@
     const CONDITION_TEXT = { Bleed: 'BLEED', Poison: 'POISON', Burn: 'BURN', Slow: 'SLOW' };
     const CONDITION_COLOUR = { Bleed: '#ff5a4a', Poison: '#8ee05a', Burn: '#ffa040', Slow: '#70b8ff' };
 
+    /** Gravity made visible (Lucifero): violet motes spiral in toward the boss; thick and fast while a pull winds up. */
+    function drawPull(g, a, time) {
+        const n = a.pull.strong ? 28 : 12, R = a.pull.radius, period = a.pull.strong ? 900 : 2600;
+        for (let i = 0; i < n; i++) {
+            const seed = (i * 7919) % 997 / 997;
+            const k = ((time / period) + seed) % 1;                 // 0 at the rim, 1 at his feet
+            const r = R * (1 - k) * (0.35 + 0.65 * ((i * 31) % 17) / 17);
+            const ang = seed * Math.PI * 2 + k * (a.pull.strong ? 2.4 : 1.2);
+            const x = Math.round(a.x + Math.cos(ang) * r), y = Math.round(a.y + Math.sin(ang) * r * 0.8);
+            g.globalAlpha = (a.pull.strong ? 0.85 : 0.45) * Math.min(1, k * 3);
+            g.fillStyle = i % 3 ? '#b070ff' : '#f0d8ff';
+            g.fillRect(x, y, a.pull.strong ? 2 : 1, a.pull.strong ? 2 : 1);
+        }
+        g.globalAlpha = 1;
+    }
+
     function actionFxEvent(ev, now) {
         const P = sim.player;
         switch (ev.type) {
@@ -2324,10 +2340,10 @@
             case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); break;
             case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
-            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice('The Warden changes his stance!', 'quest'); break;
+            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice(ev.text || 'The Warden changes his stance!', 'quest'); break;
             case 'resolve': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 20, damageType: 'holy', shake: 2 }, now); break;
             case 'resolve_end': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true', shake: 1 }, now); break;
-            case 'crow_mark': notice(ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!', 'quest'); break;
+            case 'crow_mark': notice(ev.text || (ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!'), 'quest'); break;
             case 'crow_dive': afx.spawn('hit', { x: ev.x, y: ev.y - 4, damageType: 'shadow', shake: 1 }, now); break;
             case 'illusion_pop': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'shadow' }, now); break;
             case 'crow_storm': afx.spawn('aoe', { x: P.x, y: P.y, radius: 6, damageType: 'shadow', shake: 3 }, now); break;
@@ -2450,6 +2466,7 @@
                 g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
             }
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
+            for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
             for (const m of sim.view().mines || []) drawMine(g, m, ctx.time);   // Explosive Caltrops
         });
