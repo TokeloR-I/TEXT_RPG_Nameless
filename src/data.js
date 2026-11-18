@@ -2014,8 +2014,11 @@
                                 { windupMs: 640, activeMs: 130, recoveryMs: 240, blockCost: 20 },
                                 { windupMs: 600, activeMs: 130, recoveryMs: 900, blockCost: 26, reverse: true }
                             ] },
-                        // A dark point opens and drags you toward him: rooted, pulled, then the blow.
-                        { name: 'Gravity Well', skill: 'Gravity Well', shape: 'projectile', reach: 160, width: 12, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6500, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 34 }, useAt: [44, 160] },
+                        // A dark point opens and drags you toward him: rooted, pulled, then the blow (Pressed Flat, every phase:
+                        // raise your guard or eat it; docs/design/DOMINION_BOSSES.md).
+                        { name: 'Gravity Well', skill: 'Gravity Well', shape: 'projectile', reach: 160, width: 12, projSpeed: 260, windupMs: 700, activeMs: 0, recoveryMs: 800, cooldownMs: 6500, blockCost: 18, parryable: false, onHit: { status: 'Rooted', ms: 900, pullPx: 34 }, useAt: [44, 160],
+                            followUp: 'Pressed Flat', followUpMs: 200, followUpAlways: true },
+                        { name: 'Pressed Flat', skill: 'Crushing Weight', shape: 'line', reach: 84, width: 18, lunge: 40, windupMs: 520, lockMs: 220, activeMs: 140, recoveryMs: 1000, blockCost: 30, parryable: true, followUpOnly: true, damageMult: 1.4 },
                         // Stars fall where you stand: three marked circles, a full second to step out.
                         { name: 'Falling Star', skill: 'Falling Star', shape: 'ground', count: 3, radius: 22, leadMs: 300, windupMs: 1000, activeMs: 250, recoveryMs: 900, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [36, 200] },
                         // The brand: the floor round him glows with his sign. Walk out of 62 px or dodge through (1.2 s).
@@ -2278,26 +2281,90 @@
                                   combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
                             ] }
                 },
-                // The First Dominion's ruler (CB2): the post-Warden standard (BOSS_DIFFICULTY.md). Candidate numbers for Gauge.
+                // ---- The Dominion rulers (Tokelo 2026-11-18: "the luficero boss is just a tank that has 2 moves really not
+                // difficult the dark souls part is a giant health bar and no move threatening the player in any way").
+                // docs/design/DOMINION_BOSSES.md. Each fights in three acts: its base kit (now cycling through all of it,
+                // `alternateSpecials`, instead of throwing the same two specials from range), a second phase that adds its
+                // power's signature moves, and the rage. Less health, more that kills you. Numbers for Gauge.
                 lucifero: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
-                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Descent', openWith: 'Gravity Well',
-                            notice: 'Lucifero lets go of his own weight, and the whole Dominion leans toward him!',
+                    hpMult: 2.4, damageMult: 2.3, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },   // the basalt floor in sim px (16 px tiles), lava corners inside it
+                    // Collapse of the Dominion: the floor caves in, a pattern at a time. The inner ring is safe far out, the outer
+                    // ring safe close in (where his fists are), the cross and the sides each leave a different quarter standing.
+                    arenaPatterns: [
+                        { name: 'Inner Fall', zones: [{ kind: 'ring', r: 0.05, count: 8, size: 0.03 }, { kind: 'ring', r: 0.11, count: 14, size: 0.03 }] },
+                        { name: 'Outer Fall', zones: [{ kind: 'ring', r: 0.2, count: 22, size: 0.03 }, { kind: 'ring', r: 0.28, count: 28, size: 0.03 }] },
+                        { name: 'Cross', zones: [{ kind: 'band', fy: 0.5, h: 0.2 }, { kind: 'column', fx: 0.5, w: 0.13 }] },
+                        { name: 'Sides', zones: [{ kind: 'column', fx: 0.12, w: 0.24 }, { kind: 'column', fx: 0.88, w: 0.24 }, { kind: 'band', fy: 0.08, h: 0.16 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: the floor leans toward him for the rest of the fight (walking away gets you nowhere fast),
+                        // and he starts to use it: Event Horizon drags you into a nova, Descent crosses the arena to you, two
+                        // stars fall where you stand and where you stepped.
+                        { fromHpPct: 0.7, openWith: 'Event Horizon', speed: 50, gravity: { pxPerS: 18, radius: 420 },
+                          notice: 'The floor of the Dominion tilts toward Lucifero. Everything slides to him now, you too.',
+                          add: [
+                              // The air bends in: 1.6 s of pull (64 px/s, close to a walk), then the nova. Sprint or dodge out of 54 px.
+                              { name: 'Event Horizon', skill: 'Gravity Well', shape: 'circle', radius: 54, windupMs: 1600, activeMs: 150, recoveryMs: 1300, cooldownMs: 11000, guardable: false, parryable: false, damageMult: 1.8, knockbackPx: 30, staggers: true, pull: { pxPerS: 64, radius: 260 }, useAt: [0, 240] },
+                              // He falls sideways across the arena as if the floor were a cliff.
+                              { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 900, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 7000, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [60, 320], damageMult: 1.2 },
+                              // Two stars, the second where you stepped to.
+                              { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 7000, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
+                                combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] },
+                              // Three blows that walk you down, the last one the whole weight of him (a circle: don't stand close).
+                              { name: 'Weight of the Fallen', skill: 'Crushing Weight', shape: 'arc', reach: 32, arcDeg: 150, cooldownMs: 6000, useAt: [0, 36],
+                                combo: [{ windupMs: 600, activeMs: 120, recoveryMs: 120, blockCost: 22 }, { windupMs: 500, activeMs: 120, recoveryMs: 120, blockCost: 22, reverse: true },
+                                        { shape: 'circle', radius: 46, windupMs: 700, activeMs: 150, recoveryMs: 1200, guardable: false, parryable: false, damageMult: 1.5 }] }
+                          ] }
+                    ],
+                    // Phase 3 is the rage: the floor caves in, a black sun follows you, the pull gets stronger and the
+                    // horizon wider; heal where he can see it and he falls on you.
+                    rage: { atHpPct: 0.35, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                            huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Descent', openWith: 'Collapse of the Dominion', gravity: { pxPerS: 26, radius: 420 },
+                            notice: 'Lucifero lets go of his own weight, and the whole Dominion begins to fall in toward him!',
+                            attackOverrides: { 'Event Horizon': { pull: { pxPerS: 76, radius: 300 }, radius: 62, cooldownMs: 9000, damageMult: 2.0 } },
                             add: [
-                                // He falls sideways across the arena as if the floor were a cliff.
-                                { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
-                                // Two stars, the second where you stepped to.
-                                { name: 'Starfall', skill: 'Falling Star', shape: 'ground', count: 2, radius: 26, leadMs: 450, cooldownMs: 6500, guardable: false, parryable: false, damageMult: 1.4, useAt: [0, 220],
-                                  combo: [{ windupMs: 900, activeMs: 250, recoveryMs: 200 }, { windupMs: 650, activeMs: 250, recoveryMs: 900 }] }
+                                { name: 'Descent', skill: 'Crushing Weight', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 850, lockMs: 350, activeMs: 300, recoveryMs: 1000, cooldownMs: 5500, blockCost: 34, knockbackPx: 24, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
+                                // The floor caves in: two patterns back to back (the second on a shorter tell), then a rest.
+                                { name: 'Collapse of the Dominion', skill: 'Falling Star', shape: 'arena', windupMs: 1700, activeMs: 250, recoveryMs: 1800, cooldownMs: 14000, quietMs: 3000, guardable: false, parryable: false, damageMult: 2.2,
+                                  chain: { min: 2, max: 2, windupMs: 1200, gapMs: 350 } },
+                                // A black sun hangs over you and follows, locks, falls.
+                                { name: 'Black Sun', skill: 'Falling Star', shape: 'mark', radius: 28, reachPx: 280, windupMs: 1700, lockMs: 600, activeMs: 220, recoveryMs: 900, cooldownMs: 8000, guardable: false, parryable: false, damageMult: 2.4,
+                                  markText: 'A black sun hangs over you! Move before it falls.' }
                             ] }
                 },
-                // The Second to Fourth Dominions' rulers: the post-Warden standard, each enraged in its own power.
+                // The Second to Fourth Dominions' rulers: the same three acts, each in its own power.
                 beelzebub: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    arenaPatterns: [
+                        { name: 'Shards', zones: [{ kind: 'band', fy: 0.25, h: 0.16 }, { kind: 'band', fy: 0.75, h: 0.16 }, { kind: 'column', fx: 0.3, w: 0.1 }, { kind: 'column', fx: 0.7, w: 0.1 }] },
+                        { name: 'Panes', zones: [{ kind: 'spot', fx: 0.2, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.5, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.8, fy: 0.3, r: 0.1 }, { kind: 'spot', fx: 0.35, fy: 0.72, r: 0.1 }, { kind: 'spot', fx: 0.65, fy: 0.72, r: 0.1 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: he stops walking. He steps out of a fold behind you, folds space round you, and shatters the floor.
+                        { fromHpPct: 0.7, openWith: 'Behind You',
+                          notice: 'Space folds round Beelzebub. Stop watching where he is, and watch where you are.',
+                          add: [
+                              // He is behind you, already swinging: 0.62 s to turn and guard, or dodge.
+                              { name: 'Behind You', skill: 'Severing Hand', shape: 'arc', reach: 30, arcDeg: 160, blink: { px: 26, at: 'behind' }, windupMs: 620, activeMs: 120, recoveryMs: 900, cooldownMs: 6000, blockCost: 24, damageMult: 1.3, useAt: [0, 300] },
+                              // A fold closes round you: it follows you, locks, and snaps shut.
+                              { name: 'Spatial Anchor', skill: 'Folded Space', shape: 'mark', radius: 26, reachPx: 280, windupMs: 1500, lockMs: 550, activeMs: 200, recoveryMs: 900, cooldownMs: 9000, guardable: false, parryable: false, damageMult: 2.0,
+                                markText: 'Space folds round you! Step out before it closes.' },
+                              { name: 'Shattered Distance', skill: 'Spatial Cut', shape: 'arena', windupMs: 1600, activeMs: 220, recoveryMs: 1600, cooldownMs: 13000, quietMs: 3000, guardable: false, parryable: false, damageMult: 2.0,
+                                chain: { min: 2, max: 2, windupMs: 1150, gapMs: 350 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 40], windupStepSpeed: 50, punishHeal: 'Fold Through', openWith: 'Spatial Cut',
-                            notice: 'Beelzebub stops walking. From now on he is simply wherever he wants to be!',
+                            notice: 'Beelzebub stops pretending to be in one place. He is simply wherever he wants to be!',
+                            attackOverrides: { 'Behind You': { cooldownMs: 4000 } },
                             add: [
                                 // He folds the whole arena and steps across it.
                                 { name: 'Fold Through', skill: 'Rift Exchange', shape: 'line', reach: 300, width: 22, lunge: 280, windupMs: 820, lockMs: 340, activeMs: 300, recoveryMs: 1000, cooldownMs: 6000, blockCost: 32, staggers: true, parryable: false, useAt: [50, 320], damageMult: 1.2 },
@@ -2307,10 +2374,31 @@
                             ] }
                 },
                 slotos: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.7, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
+                    hpMult: 2.3, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    // Aftershock: the floor heaves near him, then far from him. Step out, then step back in.
+                    arenaPatterns: [
+                        { name: 'Near', zones: [{ kind: 'ring', r: 0.05, count: 8, size: 0.045 }, { kind: 'ring', r: 0.1, count: 12, size: 0.045 }] },
+                        { name: 'Far', zones: [{ kind: 'ring', r: 0.17, count: 16, size: 0.045 }, { kind: 'ring', r: 0.24, count: 20, size: 0.045 }, { kind: 'ring', r: 0.31, count: 24, size: 0.04 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: he charges three times running, each one turned on you, and the foundry floor heaves.
+                        { fromHpPct: 0.7, openWith: 'Iron Rampage',
+                          notice: 'Slotos digs his tusks into the iron floor, and the whole foundry starts to shake.',
+                          add: [
+                              { name: 'Iron Rampage', skill: 'Stampede', shape: 'line', reach: 200, width: 24, lunge: 180, cooldownMs: 9000, blockCost: 32, knockbackPx: 26, staggers: true, parryable: false, damageMult: 1.1, useAt: [0, 260],
+                                combo: [{ windupMs: 900, lockMs: 300, activeMs: 260, recoveryMs: 250 }, { windupMs: 700, lockMs: 300, activeMs: 260, recoveryMs: 250 }, { windupMs: 700, lockMs: 300, activeMs: 260, recoveryMs: 1400 }] },
+                              { name: 'Aftershock', skill: 'Earthshaker', shape: 'arena', windupMs: 1500, activeMs: 220, recoveryMs: 1500, cooldownMs: 12000, quietMs: 3000, guardable: false, parryable: false, damageMult: 1.6,
+                                chain: { min: 2, max: 2, windupMs: 1100, gapMs: 300 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.7, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Unstoppable', openWith: 'Earthshaker',
                             notice: 'Slotos shakes the slag off his hide and lowers his head. Nothing in the Dominion is going to stop him now!',
+                            attackOverrides: { 'Iron Rampage': { cooldownMs: 7000 } },
                             add: [
                                 // Wall to wall, through anything.
                                 { name: 'Unstoppable', skill: 'Stampede', shape: 'line', reach: 320, width: 26, lunge: 300, windupMs: 880, lockMs: 360, activeMs: 320, recoveryMs: 1100, cooldownMs: 6000, blockCost: 36, knockbackPx: 28, staggers: true, parryable: false, useAt: [50, 330], damageMult: 1.2 },
@@ -2319,8 +2407,30 @@
                             ] }
                 },
                 plumede: {
-                    hpMult: 3.2, damageMult: 2.0,
-                    rage: { atHpPct: 0.6, speedMult: 1.4, windupMult: 0.9, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 380, attackGapMs: 350, damageMult: 1.4,
+                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
+                    scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
+                    arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
+                    // Gale Wall: the wind comes off the drop in sheets.
+                    arenaPatterns: [
+                        { name: 'Rows', zones: [{ kind: 'band', fy: 0.15, h: 0.18 }, { kind: 'band', fy: 0.5, h: 0.18 }, { kind: 'band', fy: 0.85, h: 0.18 }] },
+                        { name: 'Columns', zones: [{ kind: 'column', fx: 0.15, w: 0.13 }, { kind: 'column', fx: 0.4, w: 0.13 }, { kind: 'column', fx: 0.65, w: 0.13 }, { kind: 'column', fx: 0.9, w: 0.13 }] }
+                    ],
+                    phases: [
+                        { fromHpPct: 1.0 },
+                        // Phase 2: she takes to the wind: three dives running, an owl's eye on you, and the gale.
+                        { fromHpPct: 0.7, openWith: 'Talon Cascade',
+                          notice: 'Plumede takes to the wind. She will not land again unless she wants to.',
+                          add: [
+                              { name: 'Talon Cascade', skill: 'Blink Feint', shape: 'line', reach: 140, width: 14, lunge: 130, cooldownMs: 8000, blockCost: 20, staggers: true, parryable: false, damageMult: 1.0, useAt: [0, 220],
+                                combo: [{ windupMs: 620, lockMs: 220, activeMs: 160, recoveryMs: 150 }, { windupMs: 520, lockMs: 220, activeMs: 160, recoveryMs: 150 }, { windupMs: 520, lockMs: 220, activeMs: 160, recoveryMs: 1100 }] },
+                              { name: 'Owl\'s Eye', skill: 'Razor Plumes', shape: 'mark', radius: 24, reachPx: 300, windupMs: 1300, lockMs: 500, activeMs: 200, recoveryMs: 800, cooldownMs: 8000, guardable: false, parryable: false, damageMult: 1.8,
+                                markText: 'An owl\'s eye is on you! Move before she stoops.' },
+                              { name: 'Gale Wall', skill: 'Black Gale', shape: 'arena', windupMs: 1500, activeMs: 220, recoveryMs: 1500, cooldownMs: 12000, quietMs: 3000, guardable: false, parryable: false, damageMult: 1.9,
+                                chain: { min: 2, max: 2, windupMs: 1000, gapMs: 300 } }
+                          ] }
+                    ],
+                    rage: { atHpPct: 0.35, speedMult: 1.4, windupMult: 0.9, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 380, attackGapMs: 350, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 60, punishHeal: 'Stoop', openWith: 'Blink Feint',
                             notice: 'Plumede sheds her cloak of feathers, and what is under it is faster still!',
                             add: [
