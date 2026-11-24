@@ -27,9 +27,9 @@ const SETUPS = [
     { cls: 'warrior', branch: 'Vanguard', buffs: ['Guard'], keep: 18 },
     { cls: 'rogue', branch: 'Duelist', buffs: ['Evasion', 'Riposte'], keep: 14 },
     { cls: 'necromancer', branch: 'Bone Warden', buffs: ['Bone Wall'], summon: 'Raise Skeleton', keep: 80 },
-    { cls: 'mage', branch: 'Illusionist', buffs: ['mirrorImage'], keep: 90 }
+    { cls: 'mage', branch: 'Illusionist', buffs: ['Mirror Image'], keep: 90 }
 ].filter((s) => !ONLY || s.cls === ONLY);
-const STATUS_OF = { mirrorImage: 'Mirror Image' };
+const STATUS_OF = { 'Mirror Image': 'Mirror Image' };
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const freeNear = (s, x, y) => { for (let r = 0; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (!s.solidForAction(x + dx, y + dy) && !s.exitAt(x + dx, y + dy)) return [x + dx, y + dy]; throw new Error('no free cell'); };

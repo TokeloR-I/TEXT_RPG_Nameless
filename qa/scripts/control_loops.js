@@ -12,8 +12,8 @@ const { choose } = require('./smartbot.js');
 const SEEDS = parseInt(process.argv[2] || '100', 10);
 
 const CASES = [
-    { cls: 'mage', br: 'chronomancer', skill: 'slow', res: 'Time Charges', rates: [1, 2, 3], status: 'skip_turn' },
-    { cls: 'mage', br: 'illusionist', skill: 'confuse', res: 'Deception Tokens', rates: [0, 1, 2], status: 'skip_turn' },
+    { cls: 'mage', br: 'chronomancer', skill: 'Slow', res: 'Time Charges', rates: [1, 2, 3], status: 'skip_turn' },
+    { cls: 'mage', br: 'illusionist', skill: 'Confuse', res: 'Deception Tokens', rates: [0, 1, 2], status: 'skip_turn' },
     { cls: 'rogue', br: 'assassin', skill: 'Garrote', res: 'Stealth Tokens', rates: [0, 1, 2, 3], status: 'silence' },
 ];
 const BOSS = 'The Crow-Touched Warden';

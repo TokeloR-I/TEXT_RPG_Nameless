@@ -321,7 +321,7 @@ function ch1Run(cls, seed, mode) {
 // ------------------------------------------------------------------ stress mode: 10 min fight, unkillable sides, spam everything
 // node qa/scripts/rt_balance.js --stress   (DoT stack cap, tick floor, runaway loop, softlock guard, enemies that stop acting)
 if (args.includes('--stress')) {
-    const kits = { rogue: ['Hemorrhage'], necromancer: ['Contagion', 'Black Spit'], warrior: ['Shield Bash', 'Hemorrhage'], mage: ['slow', 'confuse'] };
+    const kits = { rogue: ['Hemorrhage'], necromancer: ['Contagion', 'Black Spit'], warrior: ['Shield Bash', 'Hemorrhage'], mage: ['Slow', 'Confuse'] };
     for (const cls of CLASSES) {
         const ctx = { cls, seed: 7, route: 'stress' };
         const g = engine(7, 'rt'); const m = instrument(g);

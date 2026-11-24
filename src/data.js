@@ -689,17 +689,17 @@
             'Lightning Arc': { description: 'Deal lightning damage, may chain.', cost: 1, resource: 'Mana', base_damage: [8, 13], effects: [{ type: 'chain_lightning', count: 2 }], target: 'enemy_single', damage_type: 'lightning' },
 
             // Illusionist Branch Skills
-            'mirrorImage': { description: 'Avoid next hit.', liveDescription: 'Images take hits for you: the next hit always misses. Lasts 15 s; stacks to 3.', cost: 1, resource: 'Deception Tokens', effects: [{ type: 'avoid_next_hit', duration: 1 }], target: 'self' },
-            'confuse': { description: '50% chance enemy skips turn.', liveDescription: '50% chance the enemy is stunned for 3 s.', cost: 2, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_chance', value: 0.5, duration: 1 }], target: 'enemy_single' },
-            'stealSkill': { description: 'Steal enemy’s last used skill for 2 turns.', liveDescription: 'Steal the enemy’s last used skill for 6 s.', cost: 3, resource: 'Deception Tokens', effects: [{ type: 'steal_skill', duration: 2 }], target: 'enemy_single' },
-            'multiTargetIllusions': { description: 'Up to 3 enemies skip turn.', liveDescription: 'Up to 3 enemies are stunned for 3 s.', cost: 4, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_aoe', count: 3, duration: 1 }], target: 'enemy_aoe' },
+            'Mirror Image': { description: 'Avoid next hit.', liveDescription: 'Images take hits for you: the next hit always misses. Lasts 15 s; stacks to 3.', cost: 1, resource: 'Deception Tokens', effects: [{ type: 'avoid_next_hit', duration: 1 }], target: 'self' },
+            'Confuse': { description: '50% chance enemy skips turn.', liveDescription: '50% chance the enemy is stunned for 3 s.', cost: 2, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_chance', value: 0.5, duration: 1 }], target: 'enemy_single' },
+            'Steal Skill': { description: 'Steal enemy’s last used skill for 2 turns.', liveDescription: 'Steal the enemy’s last used skill for 6 s.', cost: 3, resource: 'Deception Tokens', effects: [{ type: 'steal_skill', duration: 2 }], target: 'enemy_single' },
+            'Mass Illusion': { description: 'Up to 3 enemies skip turn.', liveDescription: 'Up to 3 enemies are stunned for 3 s.', cost: 4, resource: 'Deception Tokens', effects: [{ type: 'skip_turn_aoe', count: 3, duration: 1 }], target: 'enemy_aoe' },
 
             // Chronomancer Branch Skills
-            'haste': { description: 'Ally takes extra turn.', liveDescription: 'Haste for 8 s: skill cooldowns and basic attacks run 30% faster.', cost: 2, resource: 'Time Charges', cooldown: 20, effects: [{ type: 'extra_turn', liveSpeedup: 0.3 }], target: 'ally_single' },
-            'slow': { description: 'Enemy loses next turn.', liveDescription: 'Stun the enemy for 3 s.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
-            'revertHp': { description: 'Revert ally to HP they had 2 turns ago.', liveDescription: 'Revert to the HP you had 4 s ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
-            'freezeTime': { description: 'Enemies can’t act for 1 turn.', liveDescription: 'Enemies can’t act for 3 s.', cost: 5, resource: 'Time Charges', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'all_enemies' },
-            'rearrangeTurnOrder': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'Not available in live combat yet: live fights have no initiative order to rearrange (needs a live redesign).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
+            'Haste': { description: 'Ally takes extra turn.', liveDescription: 'Haste for 8 s: skill cooldowns and basic attacks run 30% faster.', cost: 2, resource: 'Time Charges', cooldown: 20, effects: [{ type: 'extra_turn', liveSpeedup: 0.3 }], target: 'ally_single' },
+            'Slow': { description: 'Enemy loses next turn.', liveDescription: 'Stun the enemy for 3 s.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
+            'Revert': { description: 'Revert ally to HP they had 2 turns ago.', liveDescription: 'Revert to the HP you had 4 s ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
+            'Freeze Time': { description: 'Enemies can’t act for 1 turn.', liveDescription: 'Enemies can’t act for 3 s.', cost: 5, resource: 'Time Charges', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'all_enemies' },
+            'Rearrange Turn Order': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'Not available in live combat yet: live fights have no initiative order to rearrange (needs a live redesign).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
 
 
             // Ascended Overdrives (Special Skills at max evolution)
@@ -847,6 +847,9 @@
             'f': 'Focus',
             'mb': 'Mana Burst',
             'oc': 'Overchannel',
+            // The Illusionist and Chronomancer skills' old code names (bug hunt 2026-11-24: they showed as "mirrorImage").
+            'mirrorimage': 'Mirror Image', 'stealskill': 'Steal Skill', 'multitargetillusions': 'Mass Illusion',
+            'reverthp': 'Revert', 'freezetime': 'Freeze Time', 'rearrangeturnorder': 'Rearrange Turn Order',
             // Add more aliases as needed
         };
 
@@ -1081,10 +1084,10 @@
                             { level: 3, stage: 'Illusionist', type: 'Deception Tokens' }
                         ],
                         stages: [
-                            { level: 3, name: 'Illusionist', trait: 'Mirror Image avoids next hit', traitEffect: 'Your Mirror Image spell guarantees evasion of the next incoming attack.', skill: 'mirrorImage', lore: "You weave veils of illusion, twisting perception and confounding your enemies. Reality is merely a suggestion." },
-                            { level: 5, name: 'Shadowmind', trait: 'Confuse has 50% chance enemy skips turn', traitEffect: 'Your Confuse spell has a chance to make enemies skip their turn entirely.', skill: 'confuse', lore: "You delve into the minds of your foes, planting seeds of doubt and fear. Their thoughts become your playground." },
-                            { level: 8, name: 'Spellthief', trait: 'Steal enemy’s last used skill for 2 turns', traitEffect: 'You can temporarily steal an enemy’s recently used skill, turning their power against them.', skill: 'stealSkill', lore: "You do not merely counter magic; you claim it. Their spells become your tools, their power your own." },
-                            { level: 11, name: 'Mindweaver', trait: 'Multi-target illusions, up to 3 enemies skip turn', traitEffect: 'Your illusions can affect multiple enemies, causing widespread disruption.', skill: 'multiTargetIllusions', upgrade: 'Multi-target illusions, up to 3 enemies skip turn.', lore: "Your mental dominion expands, weaving intricate illusions that ensnare the minds of many. Entire battlefields fall silent under your influence." },
+                            { level: 3, name: 'Illusionist', trait: 'Mirror Image avoids next hit', traitEffect: 'Your Mirror Image spell guarantees evasion of the next incoming attack.', skill: 'Mirror Image', lore: "You weave veils of illusion, twisting perception and confounding your enemies. Reality is merely a suggestion." },
+                            { level: 5, name: 'Shadowmind', trait: 'Confuse has 50% chance enemy skips turn', traitEffect: 'Your Confuse spell has a chance to make enemies skip their turn entirely.', skill: 'Confuse', lore: "You delve into the minds of your foes, planting seeds of doubt and fear. Their thoughts become your playground." },
+                            { level: 8, name: 'Spellthief', trait: 'Steal enemy’s last used skill for 2 turns', traitEffect: 'You can temporarily steal an enemy’s recently used skill, turning their power against them.', skill: 'Steal Skill', lore: "You do not merely counter magic; you claim it. Their spells become your tools, their power your own." },
+                            { level: 11, name: 'Mindweaver', trait: 'Multi-target illusions, up to 3 enemies skip turn', traitEffect: 'Your illusions can affect multiple enemies, causing widespread disruption.', skill: 'Mass Illusion', upgrade: 'Multi-target illusions, up to 3 enemies skip turn.', lore: "Your mental dominion expands, weaving intricate illusions that ensnare the minds of many. Entire battlefields fall silent under your influence." },
                             { level: 14, name: 'Arcane Hollow', trait: 'Permanently remove 1 skill from enemy on hit; needed for Reality Breaker Legendary.', traitEffect: 'Your attacks can permanently strip enemies of their abilities, crippling them for the entire encounter.', skill: 'Arcane Hollow', ascended: true, lore: "You are a void in the weave of magic, consuming spells and abilities with every touch. The very essence of magic unravels before you." }
                         ]
                     },
@@ -1096,11 +1099,11 @@
                             { level: 3, stage: 'Chronomancer', type: 'Time Charges' }
                         ],
                         stages: [
-                            { level: 3, name: 'Chronomancer', trait: 'Haste grants ally extra turn', traitEffect: 'Your Haste spell grants an ally an immediate extra turn, accelerating their actions.', skill: 'haste', lore: "You bend the fabric of time, accelerating allies and slowing foes. The battlefield moves to your rhythm." },
-                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'You can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed." },
-                            { level: 8, name: 'Riftseer', trait: 'Revert ally to HP they had 2 turns ago', traitEffect: 'You can rewind an ally’s health state, undoing recent damage or debuffs.', skill: 'revertHp', lore: "You gaze into the echoes of the past, pulling fragments of what was to mend what is. Time is a tool in your hands." },
-                            { level: 11, name: 'Epoch Guardian', trait: 'Freeze time for 1 turn (enemies can’t act)', traitEffect: 'You can momentarily halt the flow of time for your enemies, rendering them immobile.', skill: 'freezeTime', lore: "You stand as a bulwark against the ravages of time, able to halt its relentless march for your foes. The present is yours to command." },
-                            { level: 14, name: 'Eternal Architect', trait: 'Rearrange entire turn order for 3 turns.', traitEffect: 'You can completely reorder the combat sequence for a limited time, dictating who acts when.', skill: 'rearrangeTurnOrder', ascended: true, lore: "You are the master of causality, the architect of destiny. Time is but clay in your hands, to be molded as you see fit." }
+                            { level: 3, name: 'Chronomancer', trait: 'Haste grants ally extra turn', traitEffect: 'Your Haste spell grants an ally an immediate extra turn, accelerating their actions.', skill: 'Haste', lore: "You bend the fabric of time, accelerating allies and slowing foes. The battlefield moves to your rhythm." },
+                            { level: 5, name: 'Timebinder', trait: 'Slow makes enemy lose next turn', traitEffect: 'You can cause an enemy to completely lose their next turn, disrupting their actions.', skill: 'Slow', lore: "You knot the threads of fate, ensnaring enemies in temporal distortions. Their movements become sluggish, their actions delayed." },
+                            { level: 8, name: 'Riftseer', trait: 'Revert ally to HP they had 2 turns ago', traitEffect: 'You can rewind an ally’s health state, undoing recent damage or debuffs.', skill: 'Revert', lore: "You gaze into the echoes of the past, pulling fragments of what was to mend what is. Time is a tool in your hands." },
+                            { level: 11, name: 'Epoch Guardian', trait: 'Freeze time for 1 turn (enemies can’t act)', traitEffect: 'You can momentarily halt the flow of time for your enemies, rendering them immobile.', skill: 'Freeze Time', lore: "You stand as a bulwark against the ravages of time, able to halt its relentless march for your foes. The present is yours to command." },
+                            { level: 14, name: 'Eternal Architect', trait: 'Rearrange entire turn order for 3 turns.', traitEffect: 'You can completely reorder the combat sequence for a limited time, dictating who acts when.', skill: 'Rearrange Turn Order', ascended: true, lore: "You are the master of causality, the architect of destiny. Time is but clay in your hands, to be molded as you see fit." }
                         ]
                     }
                 }
@@ -1874,8 +1877,8 @@
                     'Fleet Form':        { shape: 'self', castMs: 100 },
                     'Blink Feint':       { shape: 'dash', dashPx: 48, dashMs: 100, reach: 22, arcDeg: 90, castMs: 80, maxTargets: 1 },
                     'Quick Flurry':      { shape: 'arc', reach: 24, arcDeg: 90, castMs: 220, maxTargets: 1 },
-                    'mirrorImage':       { shape: 'self', castMs: 200, decoyMs: 3000 },
-                    'haste':             { shape: 'self', castMs: 200 },
+                    'Mirror Image':       { shape: 'self', castMs: 200, decoyMs: 3000 },
+                    'Haste':             { shape: 'self', castMs: 200 },
                     'Whirlwind':         { shape: 'circle', radius: 30, castMs: 200 }
                 }
             },
@@ -3719,7 +3722,8 @@
         enemies.plumede.bossDrops = [{ item: 'Signet of the Fourth Dominion', storyKey: 'item:plumede_signet' }];
         for (const cls of Object.values(basePlayerClasses)) for (const id of cls.startingItems) {
             if (!Object.keys(itemDefinitions).some(name => name.toLowerCase() === id.toLowerCase()))
-                itemDefinitions[id] = { type: 'utility', bound: true, sellable: false, description: 'A personal keepsake or utility item.' };
+                itemDefinitions[id] = { type: 'utility', bound: true, sellable: false, description: 'A personal keepsake or utility item.',
+                    name: id.replace(/\b[a-z]/g, (c) => c.toUpperCase()) };   // the id stays lower case (the text game's rooms); the bag says "Old Key
         }
         const starterEquipment = { warrior: ['Rusty Sword', 'Wooden Shield'], rogue: ['Short Sword'], mage: ['Wooden Staff'], necromancer: ['Cracked Bone Staff'] };
 

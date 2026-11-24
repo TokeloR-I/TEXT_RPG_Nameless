@@ -75,7 +75,7 @@ test('Skill Web: choosing a path at level 3 evolves exactly as the old trees did
 
 test('Skill Web: the existing evolutions still come out the same for every class (Bone Warden, Plaguecaller, Soulbinder…)', () => {
     for (const [cls, path, title, skill] of [['necromancer', 'bone warden', 'Bone Warden', 'Bone Wall'], ['necromancer', 'plaguecaller', 'Plaguecaller', 'Contagion'],
-        ['rogue', 'assassin', 'Assassin', 'Shadow Hounds'], ['mage', 'chronomancer', 'Chronomancer', 'haste']]) {
+        ['rogue', 'assassin', 'Assassin', 'Shadow Hounds'], ['mage', 'chronomancer', 'Chronomancer', 'Haste']]) {
         const g = newGame().do(cls, 'add_xp 250', path);
         assert.strictEqual(g.progression.evolutionName, title, cls + path);
         assert.ok(g.player.skills.includes(skill), skill);

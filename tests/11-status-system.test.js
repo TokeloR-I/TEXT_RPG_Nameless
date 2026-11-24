@@ -88,7 +88,7 @@ test('round-based duration: speed order does not change the number of effective 
 });
 
 test('round-based duration: bonus turns (Haste) do not consume extra duration', () => {
-    const g = tanky('mage', 'haste');
+    const g = tanky('mage', 'Haste');
     g.applyStatus(g.player, g.player, { name: 'Evasion Debuff', type: 'status', duration: 2 });
     g.armStatuses(g.player);
     g.do('haste');

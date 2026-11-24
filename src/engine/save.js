@@ -31,7 +31,7 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const FORMAT = 'enso-save';
-    const FORMAT_VERSION = 3;
+    const FORMAT_VERSION = 4;
     // Which content release wrote a save. Bump it when a PR adds or removes story content (quests, NPCs, items,
     // maps), so a save carried back to an older copy of the game is recognised as newer, not "updated" (playtest
     // 2026-11-11). A save that names quests or items this build doesn't know is newer whatever the number says.
@@ -69,6 +69,28 @@
             };
             if (save.state) save.state = fix(save.state);
             save.formatVersion = 3;
+            return save;
+        },
+        // v3 -> v4: the Illusionist and Chronomancer skills had code names as their names ("mirrorImage", "freezeTime"),
+        // which the skill bar, the web and the fight log showed as they were (bug hunt, 2026-11-24). They got real names.
+        // Only skill lists and cooldown tables are renamed: 'haste', 'slow' and 'confuse' are also status types elsewhere.
+        3: (save) => {
+            const RENAMED = { mirrorImage: 'Mirror Image', confuse: 'Confuse', stealSkill: 'Steal Skill', multiTargetIllusions: 'Mass Illusion',
+                haste: 'Haste', slow: 'Slow', revertHp: 'Revert', freezeTime: 'Freeze Time', rearrangeTurnOrder: 'Rearrange Turn Order' };
+            const has = (k) => Object.prototype.hasOwnProperty.call(RENAMED, k);
+            const LISTS = new Set(['skills', 'skillBar', 'skillBarSeen']);
+            const walk = (x) => {
+                if (Array.isArray(x)) { x.forEach(walk); return; }
+                if (!isObj(x)) return;
+                for (const k of Object.keys(x)) {
+                    const v = x[k];
+                    if (LISTS.has(k) && Array.isArray(v)) x[k] = v.map((s) => (typeof s === 'string' && has(s) ? RENAMED[s] : s));
+                    else if (k === 'cooldowns' && isObj(v)) { const out = {}; for (const c of Object.keys(v)) out[has(c) ? RENAMED[c] : c] = v[c]; x[k] = out; }
+                    else walk(v);
+                }
+            };
+            if (save.state) walk(save.state);
+            save.formatVersion = 4;
             return save;
         }
     };

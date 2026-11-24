@@ -914,6 +914,7 @@
             const ms = ((this.rules.combat || {}).reset || {}).unreachableMs;
             if (!ms) return false;
             const live = this.actors.filter((x) => x.encounterId === g.encounterId && !x.dead && x.engineId && !x.illusionOf);
+            if (live.some((x) => x.prof && x.prof.boss)) return false;   // a boss fights on while you are on its map (see chase)
             return live.length > 0 && live.every((x) => x.lostSince != null && this.now - x.lostSince >= ms);
         }
 
@@ -1419,8 +1420,12 @@
         /** Chase the player: straight when the way is clear, else follow a grid path (refreshed every 250 ms). */
         chase(a, dt, p = this.player, mult = 1) {
             if (this.lineOfSight(a, p, true)) { a.path = null; a.lostSince = null; this.walkTo(a, p, dt, mult); return; }
-            if (!a.path || this.now >= a.repathAt) { a.path = this.findPath(a, p); a.repathAt = this.now + 250 + this.rng() * 100; }
-            if (!a.path || !a.path.length) { if (a.lostSince == null) a.lostSince = this.now; return; }   // can't reach: see groupLost
+            // A boss never gives up on you while you share its arena: where its body can't follow (a ranged player in a
+            // gap too narrow for it), it walks as close as it can get and fights from there (coordinator QA 2026-11-24:
+            // Bjarki left the fight when a mage stood in a one-tile alcove of his barrow).
+            const boss = !!(a.prof && a.prof.boss);
+            if (!a.path || this.now >= a.repathAt) { a.path = this.findPath(a, p, { closest: boss }); a.repathAt = this.now + 250 + this.rng() * 100; }
+            if (!a.path || !a.path.length) { if (!boss && a.lostSince == null) a.lostSince = this.now; return; }   // can't reach: see groupLost
             a.lostSince = null;
             const next = a.path[0];
             if (dist(a, next) < 3) { a.path.shift(); return; }
@@ -1428,7 +1433,7 @@
         }
 
         /** BFS over walkable cells (8-way, no corner cutting) of the whole map. Returns tile centres to walk, or null (no way there). */
-        findPath(a, target) {
+        findPath(a, target, { closest = false } = {}) {
             const T = this.T, W = this.w, H = this.h;
             const sx = Math.floor(a.x / T), sy = Math.floor(a.y / T), tx = Math.floor(target.x / T), ty = Math.floor(target.y / T);
             const gate = this.gateCellOf(a);
@@ -1444,9 +1449,11 @@
             prev[start] = start;
             const q = [start];
             let found = false;
+            let best = start, bestD = Infinity;   // `closest`: the reachable cell nearest the target, if none is next to it
             for (let qi = 0; qi < q.length; qi++) {   // the whole map (≤ ~8k cells): no path means truly unreachable
                 const c = q[qi];
                 if (near(c)) { found = c; break; }
+                if (closest) { const cx0 = c % W, cy0 = (c - cx0) / W, d0 = (cx0 - tx) * (cx0 - tx) + (cy0 - ty) * (cy0 - ty); if (d0 < bestD) { bestD = d0; best = c; } }
                 const cx = c % W, cy = (c - cx) / W;
                 for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
                     const nx = cx + dx, ny = cy + dy;
@@ -1458,8 +1465,9 @@
                     q.push(n);
                 }
             }
-            if (found === false) return null;
-            if (found === start) return [{ x: target.x, y: target.y }];   // already beside it: step straight in
+            if (found === false && closest && best !== start) found = best;
+            else if (found === false) return null;
+            else if (found === start) return [{ x: target.x, y: target.y }];   // already beside it: step straight in
             const path = [];
             for (let c = found; c !== start; c = prev[c]) path.push({ x: (c % W + 0.5) * T, y: (Math.floor(c / W) + 0.5) * T });
             return path.reverse();

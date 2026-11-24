@@ -195,17 +195,17 @@ test('Pre-buff: a self heal and cleanse (Mercy of the Fallen) works out of a fig
 });
 
 test('Live Haste: a timed buff (no extra turn) that pre-buffs, and speeds every other cooldown but its own', () => {
-    const r = make('mage', { skills: ['haste'] });
+    const r = make('mage', { skills: ['Haste'] });
     calm(r);
     r.g.player.resource.current = r.g.player.resource.max;
     const plain = r.g.rtCooldownMs('Arcane Bolt');
-    frames(r.sim, 1, { slot: r.slot('haste') });
+    frames(r.sim, 1, { slot: r.slot('Haste') });
     const st = r.g.player.statusEffects.find((x) => x.name === 'Haste');
     assert.ok(st, 'Haste is on you out of a fight');
     assert.strictEqual(st.rtTotalMs, r.g.data.realtimeRules.statuses.buffs.Haste.seconds * 1000);
-    const speed = r.g.data.skillDefinitions.haste.effects[0].liveSpeedup;
+    const speed = r.g.data.skillDefinitions.Haste.effects[0].liveSpeedup;
     assert.strictEqual(r.g.rtCooldownMs('Arcane Bolt'), Math.round(plain * (1 - speed)));
-    assert.strictEqual(r.g.rtCooldownMs('haste'), r.g.data.skillDefinitions.haste.cooldown * 1000, 'never its own');
+    assert.strictEqual(r.g.rtCooldownMs('Haste'), r.g.data.skillDefinitions.Haste.cooldown * 1000, 'never its own');
 });
 
 test('Buffs outlive the fight on the calm clock with the time they had left; a fall still clears them', () => {

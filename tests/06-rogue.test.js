@@ -15,7 +15,7 @@ test('Evasion: dodge the next attack (and it can fail)', () => {
 });
 
 test('Mirror Image: the next hit always misses', () => {
-    const g = tanky('mage', 'mirrorImage');
+    const g = tanky('mage', 'Mirror Image');
     g.rng = () => 0.999;
     g.do('mirrorimage');
     assert.match(g.text(), /was an illusion/);

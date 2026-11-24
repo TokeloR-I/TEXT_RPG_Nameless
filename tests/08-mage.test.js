@@ -15,7 +15,7 @@ test('Lightning Arc: chains to 2 more enemies', () => {
 });
 
 test('Confuse: 50% chance the enemy loses its turn', () => {
-    const g = tanky('mage', 'confuse');
+    const g = tanky('mage', 'Confuse');
     g.rng = () => 0.1;
     g.do('confuse');
     assert.match(g.text(), /confused and will lose its next turn/);
@@ -23,13 +23,13 @@ test('Confuse: 50% chance the enemy loses its turn', () => {
 });
 
 test('Multi-target illusions: up to 3 enemies skip', () => {
-    const g = hallway('mage', 'multiTargetIllusions');
+    const g = hallway('mage', 'Mass Illusion');
     g.do('multitargetillusions');
     assert.strictEqual((g.text().match(/is unable to act this turn/g) || []).length, 3);
 });
 
 test('Haste: act again in the same round', () => {
-    const g = tanky('mage', 'haste');
+    const g = tanky('mage', 'Haste');
     const round = g.combat.round;
     g.do('haste');
     assert.match(g.text(), /You act again!/);
@@ -38,7 +38,7 @@ test('Haste: act again in the same round', () => {
 });
 
 test('Revert HP: back to your HP from 2 turns ago', () => {
-    const g = tanky('mage', 'revertHp');
+    const g = tanky('mage', 'Revert');
     g.do('focus', 'focus');
     const hist = g.combat.hpHistory;
     const expected = hist[hist.length - 3];
@@ -48,7 +48,7 @@ test('Revert HP: back to your HP from 2 turns ago', () => {
 });
 
 test('Freeze Time: no enemy acts next turn', () => {
-    const g = hallway('mage', 'freezeTime');
+    const g = hallway('mage', 'Freeze Time');
     g.do('freezetime');
     assert.strictEqual((g.text().match(/is unable to act this turn/g) || []).length, 3);
 });

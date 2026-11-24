@@ -24,7 +24,7 @@ test('T-0: the per-turn bookkeeping lives in one place (no copies at the call si
 
 test('T-0: timers count the owner\'s opportunities: not the start turn, skipped turns only if they say so, never Haste bonus actions', () => {
     const g = fight();
-    g.player.skills.push('haste');
+    g.player.skills.push('Haste');
     g.player.resource.current = g.player.resource.max = 99;
     const counts = g.addTimer(g.player, 'test', 5, { countSkipped: true }).id;
     const ignores = g.addTimer(g.player, 'test', 5, { countSkipped: false }).id;
@@ -32,7 +32,7 @@ test('T-0: timers count the owner\'s opportunities: not the start turn, skipped 
     assert.deepStrictEqual([timer(g, counts).remaining, timer(g, ignores).remaining], [5, 5]);
     g.act({ type: 'attack', targetId: 'enemy_0' });                 // a normal turn
     assert.deepStrictEqual([timer(g, counts).remaining, timer(g, ignores).remaining], [4, 4]);
-    g.act({ type: 'skill', skillId: 'haste' });                     // bonus action follows...
+    g.act({ type: 'skill', skillId: 'Haste' });                     // bonus action follows...
     assert.deepStrictEqual([timer(g, counts).remaining, timer(g, ignores).remaining], [4, 4], 'Haste: still the same opportunity');
     g.act({ type: 'attack', targetId: 'enemy_0' });                 // ...the opportunity ends once
     assert.deepStrictEqual([timer(g, counts).remaining, timer(g, ignores).remaining], [3, 3]);

@@ -19,11 +19,11 @@ function fight({ seed = 1, mutate } = {}) {
     g.combat.enemies[1].name = 'Ghoul B';
     g.player.hp = g.player.maxHp = 9999;
     g.player.critChance = 0;
-    g.player.skills.push('rearrangeTurnOrder');
+    g.player.skills.push('Rearrange Turn Order');
     g.player.resource.current = 4;
     return g;
 }
-const cast = (g) => g.act({ type: 'skill', skillId: 'rearrangeTurnOrder' });
+const cast = (g) => g.act({ type: 'skill', skillId: 'Rearrange Turn Order' });
 const order = (g, ids) => g.act({ type: 'turn_order', order: ids });
 /** Who took a turn, in log order ('You' for the player). */
 const turns = (events) => events.filter((e) => e.type === 'text').map((e) => e.text)
@@ -87,7 +87,7 @@ test('D-09: a bad order is refused (INVALID_ORDER) at no cost and the round keep
 test('D-09: needs at least 1 Time Charge (refused before cost); availability and act() agree; a recast refreshes, never stacks', () => {
     const g = fight();
     g.player.resource.current = 0;
-    const opt = g.getAvailableActions().actions.find((o) => o.skillId === 'rearrangeTurnOrder');
+    const opt = g.getAvailableActions().actions.find((o) => o.skillId === 'Rearrange Turn Order');
     assert.strictEqual(opt.enabled, false);
     const r = cast(g);
     assert.strictEqual(r.error.code, 'REQUIREMENT_FAILED');
@@ -111,7 +111,7 @@ test('D-09: the boss still acts, deaths drop out, summons join the next round\'s
     b.currentRoom = 'wardens_roost';
     b.do('engage');
     b.player.hp = b.player.maxHp = 9999;
-    b.player.skills.push('rearrangeTurnOrder');
+    b.player.skills.push('Rearrange Turn Order');
     b.player.resource.current = 3;
     cast(b);
     const r = order(b, ['player', 'enemy_0']);
@@ -155,7 +155,7 @@ test('D-09: DoTs tick once per actual turn, skipped turns stay skipped once, Has
 test('D-09: typing and act() set the same order; the battle menu builds the same action', () => {
     const a = fight({ seed: 5 });
     const b = fight({ seed: 5 });
-    a.do('rearrangeTurnOrder', 'order 4 3 1 2');
+    a.do('Rearrange Turn Order', 'order 4 3 1 2');
     cast(b);
     const choose = b.getAvailableActions().actions.find((o) => o.mode === 'choose');
     assert.strictEqual(BM.targetMode(choose), 'multi');
@@ -180,7 +180,7 @@ test('D-09: typing and act() set the same order; the battle menu builds the same
     c.do('order');
     assert.strictEqual(c.getAvailableActions().awaiting, 'action');
 });
-function fightCast() { const g = fight(); g.do('rearrangeTurnOrder'); return g; }
+function fightCast() { const g = fight(); g.do('Rearrange Turn Order'); return g; }
 
 test('D-09: the waiting state survives snapshot/restore and rolls back with a failed command', () => {
     const g = fight();

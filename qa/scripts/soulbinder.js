@@ -256,7 +256,7 @@ check('14 (#54 K3)', 'Secondary damage gets no Expose bonus and does not consume
     return { ok: b === 5 && !!g.findStatus(E(g, 1), 'Marked for Death'), note: `B lost ${b} (no +20%/+50%); Marked for Death kept: ${!!g.findStatus(E(g, 1), 'Marked for Death')}` };
 });
 check('15 (#54)', 'A stunned enemy gets exactly one Feast tick on its skipped turn; Haste adds none', () => {
-    const g = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'], spd: 40 }); g.player.skills.push('Soul Feast', 'haste');
+    const g = sb({ enemies: ['shackled_ghoul', 'cellar_vermin'], spd: 40 }); g.player.skills.push('Soul Feast', 'Haste');
     link(g, [E(g, 0), E(g, 1)]); g.castSkill(g.player, g.playerSkill('Soul Feast'), []); g.flush();
     g.applyStatus(g.player, E(g, 0), { name: 'Stun', type: 'skip_turn', duration: 1 });
     const hp = E(g, 0).hp;
@@ -294,7 +294,7 @@ check('17', 'Caster clock counts a stunned (skipped) caster turn exactly once', 
 });
 check('18', 'Haste bonus actions do not consume the caster clock', () => {
     const plain = clockRun(null, (g) => g.do('guard', 0)).n;
-    const hasted = clockRun((g) => g.player.skills.push('haste'), (g, i) => g.do(i === 0 ? 'haste' : 'guard', 9)).n;
+    const hasted = clockRun((g) => g.player.skills.push('Haste'), (g, i) => g.do(i === 0 ? 'haste' : 'guard', 9)).n;
     return { ok: plain === 3 && hasted === 4, note: `plain: ${plain} inputs; with one Haste: ${hasted} (the bonus action adds an input but no opportunity; expect 3 / 4)` };
 });
 check('19', 'Using an item ends a normal turn and counts on the caster clock', () => {
