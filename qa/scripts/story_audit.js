@@ -23,6 +23,7 @@ function walk(v, where) {
     if (!v || typeof v !== 'object') return;
     if (typeof v.item === 'string' && (v.key || v.removeItem === undefined)) granted.set(v.item, where);
     if (typeof v.flag === 'string') setFlags.add(v.flag);
+    if (v.dice && typeof v.dice.win === 'string') setFlags.add(v.dice.win);   // a won roll sets its flag (Sven's dice, CB1)
     if (Array.isArray(v.flags) && v !== null) for (const f of v.flags) readFlags.set(f, where);
     if (Array.isArray(v.notFlags)) for (const f of v.notFlags) if (!readFlags.has(f)) readFlags.set(f, where);
     if (Array.isArray(v.items)) for (const it of v.items) if (typeof it === 'string') wantItems.set(it, where);

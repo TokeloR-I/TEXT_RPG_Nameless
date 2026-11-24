@@ -122,7 +122,7 @@ test('QA-1 #8–9: Guard covers every hit until your next turn starts — one vo
 
 test('QA-1 #10: Haste bonus actions do not tick Marked/Expose or end Guard', () => {
     // Expose: turn N apply; turn N+1 = bonus action + normal action -> only one window used
-    const g = cellar(40, 'Expose Weakness', 'haste');
+    const g = cellar(40, 'Expose Weakness', 'Haste');
     const t = g.combat.enemies[0];
     g.do('expose weakness 1');
     g.do('haste');
@@ -130,12 +130,12 @@ test('QA-1 #10: Haste bonus actions do not tick Marked/Expose or end Guard', () 
     g.do('evasion');
     assert.strictEqual(g.findStatus(t, 'Expose').duration, 1, 'only the normal turn counted');
     // Marked for Death applied ON a bonus action: the turn it was applied in still doesn't count
-    const h = cellar(40, 'Marked for Death', 'haste');
+    const h = cellar(40, 'Marked for Death', 'Haste');
     const u = h.combat.enemies[0];
     h.do('haste', 'marked for death 1');
     assert.ok(mfd(u), 'available on the next turn after a bonus-action application');
     // Guard active during a bonus action is not ended by it
-    const k = cellar(40, 'haste');
+    const k = cellar(40, 'Haste');
     k.applyStatus(k.player, k.player, { name: 'Guard', type: 'damage_reduction', value: 0.25, duration: 1 });
     k.do('haste');
     assert.ok(k.findStatus(k.player, 'Guard'), 'a bonus action does not end Guard');

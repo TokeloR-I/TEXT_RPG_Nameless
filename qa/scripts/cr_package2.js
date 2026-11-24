@@ -129,7 +129,7 @@ check('M10', 'Cleanse removes the control but keeps CR; explicit immunity blocks
 // ---------------------------------------------------------------- matrix 11, 12
 check('M11', 'Availability: CR resistance is a target note on an enabled target, never a refusal', () => {
     const g = fight(); setCr(g, E(g, 0), 85); setCr(g, E(g, 1), 0); g.player.resource.current = 9;
-    const a = g.getAvailableActions(); const sk = a.actions.find((x) => x.skillId === 'slow');
+    const a = g.getAvailableActions(); const sk = a.actions.find((x) => x.skillId === 'Slow');
     const t0 = sk && sk.targets.find((t) => t.id === E(g, 0).id), t1 = sk && sk.targets.find((t) => t.id === E(g, 1).id);
     const note = t0 && (t0.notes || []).map((n) => n.code).join(',');
     return { ok: !!sk && sk.enabled && t0.enabled && /CONTROL_RESISTED/.test(note || '') && !(t1.notes || []).length, note: `'slow' enabled ${sk && sk.enabled}; enemy at 85: enabled ${t0 && t0.enabled}, notes ${note || 'none'}; enemy at 0: notes ${(t1 && t1.notes || []).length}` };

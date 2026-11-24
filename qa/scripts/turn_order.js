@@ -32,7 +32,7 @@ const roundTurns = (g, r) => g.turns.filter((t) => t.startsWith(`${r}:`)).map((t
 const ids = (g) => g.getAvailableActions().actions.find((a) => a.mode === 'choose').defaultOrder;
 
 check('A1', 'Real L14 Eternal Architect learns rearrangeTurnOrder; 0 Time Charges is refused free; the cast spends ALL charges', () => {
-    const g = arch(); const has = g.player.skills.includes('rearrangeTurnOrder');
+    const g = arch(); const has = g.player.skills.includes('Rearrange Turn Order');
     const r0 = g.combat.round; g.do('rearrangeturnorder', 0); const refused = g.combat.round === r0 && aw(g) === 'action';
     const h = arch(); h.do('rearrangeturnorder', 4); const spent = h.player.resource.current;
     return { ok: has && refused && spent <= 1, note: `learned ${has}; 0 charges refused, turn kept: ${refused}; 4 charges → ${spent} after the cast (end-round regen may add 1)` };

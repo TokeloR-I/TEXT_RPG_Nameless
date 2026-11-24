@@ -52,9 +52,9 @@ function choose(g) {
     if (p.hp <= p.maxHp * 0.45) { const it = HEALS.find((h) => p.inventory.includes(h)); if (it) return `use ${it}`; }
     // summons first while the fight is long enough to pay off
     for (const s of ['Raise Ghoul', 'Raise Skeleton']) if (can(s) && g.alive(c.minions).length < g.minionCap() && enemyHp > 35) return s;
-    if (can('haste') && !c.extraTurn) return 'haste';
+    if (can('Haste') && !c.extraTurn) return 'Haste';
     if (STUNLOCK) {
-        for (const s of ['Shield Bash', "Reaper's Charge", 'Garrote', 'slow']) {
+        for (const s of ['Shield Bash', "Reaper's Charge", 'Garrote', 'Slow']) {
             if (!can(s)) continue;
             const tgt = living.find((e) => (e.specialFlags || []).includes('boss')) || biggest;
             if (!g.statusOfType(tgt, 'skip_turn') && !g.statusOfType(tgt, 'silence')) return `${s} ${idx(tgt)}`;

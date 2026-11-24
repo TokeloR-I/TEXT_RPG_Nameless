@@ -93,8 +93,8 @@ test('Every skill written in turns has a liveDescription in seconds, and timed f
 
 test('Haste in a timed fight is a buff, not an extra turn; turn mode still gives the extra turn', () => {
     const g = newton('mage');
-    g.player.skills.push('haste');
-    g.castSkill(g.player, g.data.skillDefinitions.haste, [g.player]);
+    g.player.skills.push('Haste');
+    g.castSkill(g.player, g.data.skillDefinitions.Haste, [g.player]);
     assert.ok(g.findStatus(g.player, 'Haste'));
     assert.strictEqual(g.combat.extraTurn, false);
     const base = g.rtIntervalMs(g.player);
