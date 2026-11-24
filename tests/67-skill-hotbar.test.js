@@ -8,7 +8,7 @@ test('skill hotbar hides and becomes inert for every modal, story transition and
     const source = fs.readFileSync(require.resolve('../ui/world-ui.js'), 'utf8');
     const body = source.match(/    function syncActionHudVisibility\(\) \{[\s\S]*?\n    \}/)[0];
     const attrs = {};
-    const context = { hud: { el: { setAttribute(k, v) { attrs[k] = v; } } }, screen: 'explore', modal: null, fade: null, flash: null, feathering: null };
+    const context = { hud: { el: { setAttribute(k, v) { attrs[k] = v; } } }, screen: 'explore', modal: null, fade: null, flash: null, feathering: null, els: { banner: { hidden: true } }, placeBanner() {} };
     vm.createContext(context);
     vm.runInContext(body, context);
     const check = (blocked) => {

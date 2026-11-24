@@ -413,6 +413,9 @@
     // ?combat=turn the legacy turn-based screen.
     const COMBAT_MODE = /[?&]combat=turn(?:&|$)/.test(location.search || '') ? 'turn' : /[?&]combat=realtime(?:&|$)/.test(location.search || '') ? 'realtime' : 'action';
     const ACTION = COMBAT_MODE === 'action' && !!(ENSO.actionSim && ENSO.actionFx);
+    // Skill-bar key labels: live action fights use 2-6 and R (1 or a click is the basic attack).
+    const slotKey = (i) => (ACTION && ENSO.actionHud && ENSO.actionHud.SLOT_KEYS[i]) || String(i + 1);
+    const BASIC_HINT = ACTION && ENSO.actionHud ? `<kbd>${ENSO.actionHud.BASIC_KEY}</kbd> or a click` : '<kbd>F</kbd>';
 
     /** ?seed=123 in the address replays a run; otherwise the engine picks a seed and the pause menu shows it. */
     function seedFromUrl() {
@@ -628,8 +631,26 @@
         els.banner.textContent = text;
         els.banner.hidden = false;
         els.banner.classList.remove('show'); void els.banner.offsetWidth; els.banner.classList.add('show');
+        placeBanner();
+        requestAnimationFrame(placeBanner);   // again once this frame's HUD (vitals, tracker) is painted
         clearTimeout(bannerTimer);
         bannerTimer = setTimeout(() => { els.banner.hidden = true; }, 2600);
+    }
+    /** On a narrow (portrait) stage the centred map name ran over the HP numbers and under the quest tracker (bug hunt
+     *  2026-11-24): when it would touch either, it drops just below them. A wide stage keeps it where world.css puts it. */
+    function placeBanner() {
+        els.banner.style.top = '';
+        const b = els.banner.getBoundingClientRect();
+        const stageTop = els.banner.offsetParent ? els.banner.offsetParent.getBoundingClientRect().top : 0;
+        let bottom = null;
+        // The vitals and the tracker: the action HUD's (the live world) or the older HUD's, whichever is showing.
+        const boxes = [...(els.hud.hidden ? [] : els.hud.querySelectorAll('.hud-me, .hud-obj')),
+            ...(hud && !hud.el.hidden ? hud.el.querySelectorAll('.ahud-vitals, .ahud-quest') : [])];
+        for (const el of boxes) {
+            const r = el.getBoundingClientRect();
+            if (r.width && r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top) bottom = Math.max(bottom || 0, r.bottom);
+        }
+        if (bottom != null) els.banner.style.top = `${Math.round(bottom - stageTop + 6)}px`;
     }
     let toastTimer = null;
     function toast(text) {
@@ -1043,7 +1064,7 @@
         { id: 'status', label: 'Status', sub: 'Your character, stats and gear.' },
         { id: 'items', label: 'Items', sub: 'Use what you carry.' },
         { id: 'equipment', label: 'Equipment', sub: 'Change your gear and compare stats.' },
-        { id: 'skillbar', label: 'Skill bar', sub: 'The six skills on keys 1-6 in a real-time fight.' },   // real-time fights only
+        { id: 'skillbar', label: 'Skill bar', sub: ACTION ? 'The six skills on keys 2-6 and R in a fight.' : 'The six skills on keys 1-6 in a real-time fight.' },   // real-time fights only
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
@@ -1206,15 +1227,15 @@
     function skillBarItems() {
         const { bar, bench, detail } = skillBarInfo();
         if (mm.barSlot == null) {
-            return bar.map((b) => ({ label: `${b.slot + 1} · ${b.skillId || '— empty —'}`, sub: b.skillId ? (detail[b.skillId] || 'On the bar.') : 'Choose a skill for this key.',
+            return bar.map((b) => ({ label: `${slotKey(b.slot)} · ${b.skillId || '— empty —'}`, sub: b.skillId ? (detail[b.skillId] || 'On the bar.') : 'Choose a skill for this key.',
                 action: () => { mm.barSlot = b.slot; enterList('skillbar', 0); } }));
         }
         const slot = mm.barSlot;
         const set = (skillId) => () => { mm.note = actLines({ type: 'set_skill_slot', slot, skillId }); mm.barSlot = null; enterList('skillbar', slot); };
         const here = (bar[slot] || {}).skillId;
         const items = bench.map((name) => ({ label: name, sub: detail[name] || 'Learned, not on the bar.', action: set(name) }));
-        for (const b of bar) if (b.skillId && b.slot !== slot) items.push({ label: `${b.skillId} (slot ${b.slot + 1})`, sub: `Swap: ${here ? `${here} goes to slot ${b.slot + 1}` : `slot ${b.slot + 1} is left empty`}.`, action: set(b.skillId) });
-        if (here) items.push({ label: `Clear slot ${slot + 1}`, sub: `Take ${here} off the bar.`, action: set(null) });
+        for (const b of bar) if (b.skillId && b.slot !== slot) items.push({ label: `${b.skillId} (key ${slotKey(b.slot)})`, sub: `Swap: ${here ? `${here} goes to key ${slotKey(b.slot)}` : `key ${slotKey(b.slot)} is left empty`}.`, action: set(b.skillId) });
+        if (here) items.push({ label: `Clear key ${slotKey(slot)}`, sub: `Take ${here} off the bar.`, action: set(null) });
         return items;
     }
     /** Skill Web (docs/design/SKILL_WEB.md): the webs you can open, then a web's skills; specialization and path.
@@ -1398,13 +1419,13 @@
         if (tab === 'web') page = skillWebPage(inList, list);
         if (tab === 'skillbar') {
             const { bar, bench } = skillBarInfo();
-            page = `<h3>${mm.barSlot != null ? `Slot ${mm.barSlot + 1}: choose a skill` : 'Keys 1-6'}</h3>${inList ? list : `<ul class="mm-plain">${bar.map((b) => `<li><kbd>${b.slot + 1}</kbd> ${b.skillId ? esc(b.skillId) : '<span class="mm-dim">— empty —</span>'}</li>`).join('')}</ul>`}
+            page = `<h3>${mm.barSlot != null ? `Key ${slotKey(mm.barSlot)}: choose a skill` : (slotKey(5) === '6' ? 'Keys 1–6' : `Keys ${slotKey(0)}–${slotKey(4)} and ${slotKey(5)}`)}</h3>${inList ? list : `<ul class="mm-plain">${bar.map((b) => `<li><kbd>${slotKey(b.slot)}</kbd> ${b.skillId ? esc(b.skillId) : '<span class="mm-dim">— empty —</span>'}</li>`).join('')}</ul>`}
                 <h3>Not on the bar</h3>${bench.length ? `<ul class="mm-plain mm-dim">${bench.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="mm-dim">Every skill you know is on the bar.</p>'}
-                <p class="mm-dim">Your basic attack needs no slot: <kbd>F</kbd> in a fight. The bar can't change during a fight.</p>`;
+                <p class="mm-dim">Your basic attack needs no slot: ${BASIC_HINT} in a fight. The bar can't change during a fight.</p>`;
         }
         if (tab === 'settings') {
             page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Run far enough and they give up.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}</ul>
+                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}</ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
         }
         if (tab === 'crow') {
@@ -2320,6 +2341,7 @@
         hud.el.hidden = blocked;
         hud.el.inert = blocked;
         hud.el.setAttribute('aria-hidden', String(blocked));
+        if (!els.banner.hidden) placeBanner();   // a map name shown during the fade-in: keep it clear of the HUD that comes back
     }
 
     function actionFrame(now) {
