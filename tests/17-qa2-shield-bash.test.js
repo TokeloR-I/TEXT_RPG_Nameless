@@ -79,6 +79,8 @@ test('QA-2 #6: spamming Shield Bash on the boss at full Oath never denies two tu
         g.currentRoom = 'wardens_roost';
         g.do('engage');
         g.player.hp = g.player.maxHp = 99999;
+        // The stun cadence is what's tested, not how fast he falls: keep him standing for all 30 bashes (balance pass 2026-11-24).
+        for (const e of g.combat.enemies) e.hp = e.maxHp = 99999;
         const n = g.log.length;
         for (let i = 0; i < 30 && g.mode === 'combat'; i++) {
             g.player.resource.current = g.player.resource.max;   // always well above the threshold

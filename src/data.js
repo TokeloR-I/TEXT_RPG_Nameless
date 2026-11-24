@@ -429,7 +429,7 @@
             },
             'slotos': {
                 name: 'Slotos, Ruler of the Third Dominion', properName: true,
-                hp: 760, maxHp: 760, xp: 320, atk: 18, def: 11, spd: 7,
+                hp: 760, maxHp: 760, xp: 320, atk: 18, def: 8, spd: 7,
                 critChance: 0.08, critMultiplier: 1.6,
                 specialFlags: ['boss', 'demon'],
                 skills: [
@@ -863,8 +863,8 @@
                 },
                 startingItems: ['rusty sword', 'wooden shield', 'old key'],
                 startingResource: { type: 'Momentum', initial: 1, max: 10 },
-                baseStats: { hp: 120, strength: 10, intelligence: 5, agility: 7, def: 5, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 8, baseDamageMax: 12 },
-                levelGrowth: { hp: 12, strength: 0.5, agility: 0.5, def: 1, resource: 1 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
+                baseStats: { hp: 120, strength: 14, intelligence: 5, agility: 7, def: 5, critChance: 0.05, critMultiplier: 1.5, baseDamageMin: 8, baseDamageMax: 12 },
+                levelGrowth: { hp: 14, strength: 1.5, agility: 0.5, def: 1, resource: 1 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01, balance pass 2026-11-24
                 startingSkills: ['Slash', 'Guard', 'Power Strike'],
                 startingTraits: [{ name: 'Battle-Ready', effect: 'Start each fight with 1 Momentum.' }]
             },
@@ -878,8 +878,8 @@
                 },
                 startingItems: ['wooden staff', 'spellbook', 'old key'],
                 startingResource: { type: 'Mana', initial: 6, max: 20, regen: 2 },
-                baseStats: { hp: 70, strength: 6, intelligence: 10, agility: 7, def: 2, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
-                levelGrowth: { hp: 6, intelligence: 2, agility: 0.5, def: 0.5, critChance: 0.01, resource: 3 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01
+                baseStats: { hp: 80, strength: 6, intelligence: 10, agility: 7, def: 2, critChance: 0.1, critMultiplier: 1.75, baseDamageMin: 6, baseDamageMax: 10 },
+                levelGrowth: { hp: 10, intelligence: 2, agility: 0.5, def: 1, critChance: 0.01, resource: 3 },   // per level; a rate under 1 lands as whole points (0.5 = every other level). Gauge 2026-11-01, balance pass 2026-11-24
                 startingSkills: ['Arcane Bolt', 'Focus', 'Mana Burst'],
                 startingTraits: []
             },
@@ -2389,7 +2389,7 @@
                     // Rage (Tokelo, 2026-11-17: "make the boss unforgiving ... in a rage", but still the easiest boss; BOSS_DIFFICULTY.md).
                     // Below half HP, for good: faster steps, shorter wind-ups and rests, harder blows, Gallows Spin and Gallows Drop,
                     // and if he sees you heal he charges. First-pass numbers for Gauge, tuned on qa/scripts/warden_benchmark.js.
-                    rage: { atHpPct: 0.7, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.75, minRecoveryMs: 450, attackGapMs: 500, damageMult: 1.7,
+                    rage: { atHpPct: 0.7, speedMult: 1.5, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.75, minRecoveryMs: 450, attackGapMs: 500, damageMult: 1.85,
                             add: ['gallows_spin', 'gallows_drop'], punishHeal: 'crow_charge', huntsPlayer: true, keepDistance: [0, 26], windupStepSpeed: 48,
                             cleanse: { categories: ['dot'] }, cleanseEveryMs: 15000, cleanseText: 'tears the rot out with his crows',
                             attackOverrides: { crow_charge: { cooldownMs: 4500, windupMs: 800 }, reaping_thrust: { lunge: 40 }, halberd_sweep: { damageMult: 1.6 }, reapers_dance: { damageMult: 1.5 }, gallows_spin: { damageMult: 1.7 } }, notice: 'The crows scream and the Warden flies into a rage!' },
@@ -2418,7 +2418,7 @@
                 // hard from the first blow (damageMult), has a gap-closer that crosses its arena and answers a heal, and rages
                 // for good below `rage.atHpPct`. Every tell stays readable (480 ms or more). First-pass numbers for Gauge.
                 bjarki_grave_bound: {
-                    hpMult: 3.4, damageMult: 1.8,
+                    hpMult: 3.4, damageMult: 2.25,   // balance pass 2026-11-24
                     rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 24], windupStepSpeed: 50, punishHeal: 'Hearth-Charge', openWith: 'Hearth-Charge',
                             notice: 'Bjarki roars his own name, and the barrow answers!',
@@ -2431,7 +2431,7 @@
                             ] }
                 },
                 binding_echo: {
-                    hpMult: 3.2, damageMult: 2.0,
+                    hpMult: 3.2, damageMult: 2.45,   // balance pass 2026-11-24
                     rage: { atHpPct: 0.6, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Wolf-Run', openWith: 'Gleipnir Recoils',
                             notice: 'The chain screams: both wolves pull at once!',
@@ -2449,7 +2449,7 @@
                 // `alternateSpecials`, instead of throwing the same two specials from range), a second phase that adds its
                 // power's signature moves, and the rage. Less health, more that kills you. Numbers for Gauge.
                 lucifero: {
-                    hpMult: 2.4, damageMult: 2.3, alternateSpecials: true,
+                    hpMult: 2.4, damageMult: 2.45, alternateSpecials: true,   // balance pass 2026-11-24
                     // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
                     scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
                     arena: { x0: 32, y0: 64, x1: 864, y1: 608 },   // the basalt floor in sim px (16 px tiles), lava corners inside it
@@ -2500,7 +2500,7 @@
                 },
                 // The Second to Fourth Dominions' rulers: the same three acts, each in its own power.
                 beelzebub: {
-                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    hpMult: 2.6, damageMult: 2.15, alternateSpecials: true,   // balance pass 2026-11-24
                     // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
                     scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
                     arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
@@ -2536,7 +2536,7 @@
                             ] }
                 },
                 slotos: {
-                    hpMult: 2.3, damageMult: 2.0, alternateSpecials: true,
+                    hpMult: 2.3, damageMult: 1.8, alternateSpecials: true,   // balance pass 2026-11-24
                     // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
                     scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
                     arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
@@ -2569,7 +2569,7 @@
                             ] }
                 },
                 plumede: {
-                    hpMult: 2.6, damageMult: 2.0, alternateSpecials: true,
+                    hpMult: 2.6, damageMult: 2.15, alternateSpecials: true,   // balance pass 2026-11-24
                     // Comes back no softer: past level 7 every level you have adds 5% HP, 10% attack and 4% defence.
                     scaleToLevel: { level: 7, hp: 0.05, atk: 0.1, def: 0.04 },
                     arena: { x0: 32, y0: 64, x1: 864, y1: 608 },
@@ -2603,7 +2603,7 @@
                             ] }
                 },
                 peat_king: {
-                    hpMult: 8, damageMult: 3.0,
+                    hpMult: 8, damageMult: 3.6,   // balance pass 2026-11-24
                     rage: { atHpPct: 0.75, speedMult: 1.6, windupMult: 0.85, minWindupMs: 480, recoveryMult: 0.7, minRecoveryMs: 400, attackGapMs: 400, damageMult: 1.4,
                             huntsPlayer: true, keepDistance: [0, 30], windupStepSpeed: 50, punishHeal: 'Mire Surge', openWith: 'The Bog Rises',
                             notice: 'The Man in the Peat stands up out of the bog, all of him!',

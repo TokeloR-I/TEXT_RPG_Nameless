@@ -18,11 +18,13 @@ Each class in `basePlayerClasses` has a `levelGrowth` table, applied once per le
 
 ## Numbers (per level)
 
+Updated 2026-11-24 ([BALANCE_PASS_2026-11-24.md](BALANCE_PASS_2026-11-24.md)): warrior HP 14 and STR 1.5 (base STR 14), mage HP 10 and DEF 1 (base HP 80).
+
 | class | HP | STR | INT | AGI | DEF | crit | max resource | identity |
 |---|---|---|---|---|---|---|---|---|
-| warrior | 12 | 0.5 | – | 0.5 | 1 | – | 1 Momentum | tank: grows HP and armour, damage comes from kit |
+| warrior | 14 | 1.5 | – | 0.5 | 1 | – | 1 Momentum | tank: grows HP and armour, damage comes from kit |
 | rogue | 8 | 0.5 | – | 2 | 1 | +2% | 2 Energy | precision: AGI (its damage stat) and crit |
-| mage | 6 | – | 2 | 0.5 | 0.5 | +1% | 3 Mana | glass cannon: INT and a deep mana pool |
+| mage | 10 | – | 2 | 0.5 | 1 | +1% | 3 Mana | glass cannon: INT and a deep mana pool |
 | necromancer | 8 | – | 2 | 0.5 | 1 | – | 2 Soul Energy | sturdy caster: INT, some armour |
 | old (all) | 10 | 1 | 1 | 1 | 1 | +1% | 2 | – |
 
