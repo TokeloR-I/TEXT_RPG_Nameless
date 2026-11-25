@@ -525,6 +525,7 @@
                 target.fallenOrder = ++this.combat.nextFallenOrder;
                 return;
             }
+            if (this.isPlayerSide(source) && this.codexKill) this.codexKill(target);   // the Bestiary counts every kill (src/engine/codex.js)
             // QA-6: credit each enemy once, even if it comes back after you flee (whether it should come
             // back is a pending design question; this only fixes the count).
             if (this.isPlayerSide(source) && !this.stats.credited.includes(target.entityKey)) {

@@ -48,6 +48,7 @@
 
         /** Fresh combatants for enemy keys. `firstId` numbers their ids (action fights add groups to a running fight). */
         buildEnemies(enemyKeys, scope, loot, firstId) {
+            if (this.codexSeen && !String(scope).startsWith('illusion:')) for (const key of enemyKeys) this.codexSeen(key);   // the Bestiary (src/engine/codex.js)
             return enemyKeys.map((key, i) => {
                 const e = clone(this.data.enemies[key]);
                 const overrides = (Array.isArray(loot) ? loot[i] : loot) || {};

@@ -408,6 +408,12 @@
         for (const sl of ch2.seals || []) maps[sl.map].interactables.push(sl.obj);   // CB2's seals in Chapter One and the well
     }
 
+    // Boss rematches (src/world/rematch-maps.js, loaded before this file in the browser): a ring of black feathers where
+    // each boss fell, and the fight the crow remembers there.
+    const rm = isNode ? require('./rematch-maps.js') : (ENSO.world && ENSO.world.rematchMaps);
+    const codex = isNode ? require('../story/codex.js') : (ENSO.story && ENSO.story.codex);
+    if (rm) rm.addRematches(maps, codex);
+
     (ENSO.world || (ENSO.world = {})).zone1 = zone1;
     if (isNode) module.exports = zone1;
 })(typeof window !== 'undefined' ? window : globalThis);

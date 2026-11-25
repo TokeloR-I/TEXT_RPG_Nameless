@@ -214,6 +214,23 @@ body.touch-landscape .tc-attack { background: radial-gradient(circle at 40% 35%,
 .banner.show { animation: banner 2.6s ease forwards; }
 @keyframes banner { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
 
+/* ---------- boss name card (research round two #9): the name, a rule above and below, its epithet ---------- */
+.boss-card {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.3em; pointer-events: none;
+    text-align: center; color: var(--c-ink); text-shadow: 0 2px 10px #000, 0 0 2px #000; opacity: 0; width: max-content; max-width: 80%;
+    background: radial-gradient(ellipse at center, rgba(7, 7, 10, 0.55), transparent 70%); padding: 0.6em 3em;
+}
+.boss-card .bc-name { font-size: max(16px, 2.9cqw); letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-gold); font-weight: bold; line-height: 1.15; }
+.boss-card .bc-epithet { font-size: max(10px, 1.4cqw); letter-spacing: 0.25em; text-transform: uppercase; color: var(--c-ink-dim); }
+.boss-card .bc-rule { display: block; width: 60%; height: 2px; background: linear-gradient(90deg, transparent, var(--c-frame-hi), transparent); }
+.boss-card.show { animation: boss-card-in 0.5s ease-out forwards; }
+.boss-card.out { animation: boss-card-out 0.5s ease-in forwards; }
+@keyframes boss-card-in { 0% { opacity: 0; letter-spacing: 0.4em; } 100% { opacity: 1; } }
+@keyframes boss-card-out { 0% { opacity: 1; } 100% { opacity: 0; } }
+.reduce-motion .boss-card.show { animation: none; opacity: 1; }
+.reduce-motion .boss-card.out { animation: none; opacity: 0; }
+
 /* ---------- dialog box ---------- */
 .dialog {
     position: absolute; left: 3cqw; right: 3cqw; bottom: 3cqw;

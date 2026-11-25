@@ -1122,6 +1122,8 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'bestiary', label: 'Bestiary', sub: 'Every creature you have fought, what it does and what hurts it. It fills as you fight.' },
+        { id: 'codex', label: 'Codex', sub: 'What you have learned about this world, written down as you learn it.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'cheats', label: 'Cheats', sub: 'Dev cheats for testing powers. Not part of normal play.' },   // only in dev mode (see devMode below)
         { id: 'settings', label: 'Settings', sub: 'Display, controls, save files and this run.' },
@@ -1134,7 +1136,8 @@
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
         const bar = engine.combatMode !== 'turn';
         const union = !!(engine.getUnion && engine.getUnion());
-        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
+        const book = !!(engine.story && engine.getBestiary && engine.getBestiary());
+        return MM_TABS_ALL.filter((t) => (!['bestiary', 'codex'].includes(t.id) || book) && (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
         sfx('open');
@@ -1191,6 +1194,8 @@
             if (row.item) items.push({ label: `Take off ${engine.itemName(row.item)}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
         if (id === 'journal') items = journalItems();
+        if (id === 'bestiary') items = bestiaryItems();
+        if (id === 'codex') items = codexItems();
         if (id === 'skillbar') items = skillBarItems();
         if (id === 'web') items = skillWebItems();
         if (id === 'union') items = unionItems();
@@ -1607,7 +1612,7 @@
             : `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>${extra}<p class="mm-dim cx-hint">Press Enter or tap a line.</p>`;
         return `<div class="cx-cols cx-split">${pane('', leftHtml)}${pane('', right, 'cx-detail')}</div>`;
     }
-    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
+    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', bestiary: 'Beasts', codex: 'Lore', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
     /** The header and tab strip, shared by every page and the Skill Web screen. */
     function shellTop(activeTab, tabsFocused) {
         const p = engine.getState().player;
@@ -1663,6 +1668,8 @@
         if (tab === 'items') page = itemsHtml(inList);
         if (tab === 'equipment') page = equipmentHtml(p, inList);
         if (tab === 'journal') page = journalHtml(inList) || '<p class="mm-dim">No journal in this game.</p>';
+        if (tab === 'bestiary') page = bestiaryHtml(inList);
+        if (tab === 'codex') page = codexHtml(inList);
         if (tab === 'web') page = skillWebPage(inList);
         if (tab === 'skillbar') page = skillbarHtml(inList);
         if (tab === 'settings') {
@@ -1759,6 +1766,64 @@
                 sub: !o.enabled && o.reason ? o.reason.message : o.tracked ? 'On screen. Enter hides it.' : 'Hidden. Enter shows it on screen.',
                 action: () => { const i = menu.index; mm.note = actLines({ type: 'track_quest', questId: o.questId, track: o.track }); enterList('journal', i); } };
         });
+    }
+    // ---------------------------------------------------------------------
+    // Bestiary and lore codex (research round two #8, docs/design/BESTIARY_CODEX_REMATCH.md). The engine says what you
+    // know (src/engine/codex.js getBestiary / getCodex); this only lays it out in the menu shell: the list on the left,
+    // the chosen entry on the right. A creature tells you more the more of them you beat.
+    // ---------------------------------------------------------------------
+    function bestiaryItems() {
+        const b = engine.getBestiary();
+        if (!b) return [];
+        return b.entries.map((e) => ({ label: e.seen ? `${e.rematch && e.rematch.trophy ? '★ ' : ''}${e.name}` : '???', entry: e,
+            sub: e.seen ? `${e.kind}${e.boss ? ' · boss' : ''} · ${e.kills ? `beaten ${e.kills}×` : e.boss && e.facts ? 'beaten' : 'met'}` : `${e.regionName} · not met yet`,
+            disabled: !e.seen, action: () => {} }));
+    }
+    function bestiaryDetail(e) {
+        if (!e) return '<p class="mm-dim">Choose a creature to see what you know.</p>';
+        if (!e.seen) return `<b class="cx-dname">???</b><span class="cx-dkind">${esc(e.regionName)}</span><p class="mm-dim">You have not met this one yet.</p>`;
+        const row = (k, v) => (v ? `<p><span class="mm-dim">${esc(k)}:</span> ${esc(v)}</p>` : '');
+        let h = `<b class="cx-dname">${esc(e.name)}</b><span class="cx-dkind">${esc(e.kind)}${e.boss ? ' · boss' : ''} · ${esc(e.regionName)}</span><p><i>${esc(e.lore)}</i></p>`;
+        h += row('Beaten', e.kills ? `${e.kills} time${e.kills > 1 ? 's' : ''}` : e.facts ? 'yes' : 'not yet');
+        if (e.facts) {
+            h += row('Leaves on you', e.conditions.length ? e.conditions.join(', ') : 'nothing that lingers');
+            h += row('Weak to', e.weakTo.join(', '));
+            h += row('Nature', e.traits.join(', '));
+            if (e.bossNotes && e.bossNotes.length) h += row('In a fight', e.bossNotes.join(' · '));
+            h += row('Worth', `${e.xp} XP`);
+        } else h += '<p class="mm-dim">Beat one to learn what it does to you and what hurts it.</p>';
+        if (e.dropsKnown) h += row('Drops', e.drops.join(', ') || 'nothing much');
+        else if (e.facts) h += '<p class="mm-dim">Beat a few more to learn what they drop.</p>';
+        if (e.rematch) {
+            const r = e.rematch;
+            h += `<h3>Rematch</h3>${r.ready ? `<p>Where it fell (${esc(r.where)}) a ring of black feathers lies. The crow remembers the fight and will show it to you again, as strong as you are now.</p>` : '<p class="mm-dim">Only the crow could remember this fight for you.</p>'}`;
+            h += r.trophy ? `<p class="j-obj">★ ${esc(r.trophy.name)}</p><p><i>${esc(r.trophy.text)}</i></p>${r.wins > 1 ? `<p class="mm-dim">Beaten again ${r.wins} times.</p>` : ''}` : '<p class="mm-dim">Win the rematch to keep its trophy.</p>';
+        }
+        return h;
+    }
+    function bestiaryHtml(inList) {
+        const b = engine.getBestiary();
+        if (!b) return '<p class="mm-dim">No bestiary in this game.</p>';
+        const items = inList ? menu.items : bestiaryItems();
+        const at = inList ? menu.index : Math.max(0, items.findIndex((x) => !x.disabled));
+        const head = `<p class="mm-dim">Met ${b.seen} of ${b.total} · trophies ${b.trophies} of ${b.trophyTotal}</p>`;
+        return `<div class="cx-cols cx-split cx-journal">${pane('Bestiary', `${head}${rowsHtml({ items, index: at }, null, inList)}`)}${pane('', bestiaryDetail((items[at] || {}).entry), 'cx-detail')}</div>`;
+    }
+    function codexItems() {
+        const c = engine.getCodex();
+        if (!c) return [];
+        return c.groups.flatMap((g) => g.entries.map((e) => ({ label: e.title, sub: g.title, entry: e, disabled: !e.open, action: () => {} })));
+    }
+    function codexHtml(inList) {
+        const c = engine.getCodex();
+        if (!c) return '<p class="mm-dim">No codex in this game.</p>';
+        const items = inList ? menu.items : codexItems();
+        const at = inList ? menu.index : Math.max(0, items.findIndex((x) => !x.disabled));
+        const e = (items[at] || {}).entry;
+        const right = !e ? '<p class="mm-dim">Nothing written down yet.</p>'
+            : e.open ? `<b class="cx-dname">${esc(e.title)}</b><span class="cx-dkind">${esc(items[at].sub)}</span><p>${esc(e.text)}</p>`
+            : `<b class="cx-dname">???</b><span class="cx-dkind">${esc(items[at].sub)}</span><p class="mm-dim">You have not learned this yet.</p>`;
+        return `<div class="cx-cols cx-split cx-journal">${pane('Codex', `<p class="mm-dim">Written down: ${c.open} of ${c.total}</p>${rowsHtml({ items, index: at }, null, inList)}`)}${pane('', right, 'cx-detail')}</div>`;
     }
     function closePause() { els.pause.hidden = true; els.pause.className = 'panel'; els.hud.hidden = false; modal = null; syncActionHudVisibility(); menu = null; muteHeldKeys(); }
 
@@ -2614,6 +2679,7 @@
         const live = screen === 'explore' && !modal && !fade && !flash && !feathering;
         if (sim.mapId !== session.mapId) sim.enterMap();
         if (now < freezeUntil) dt = 0;   // hit-stop: the world holds for a few frames on a solid blow (presses wait in the sim)
+        else if (now < slowUntil) dt *= FEEL.bossSlowRate;   // a boss's last blow plays out slowly
         if (live) {
             const out = sim.update(dt, actionInput());
             footsteps(dt);
@@ -2684,8 +2750,9 @@
     // Game feel (Thorne, 2026-11-25): a hit-stop is a few frames where the world holds still as a blow lands, so a hit
     // reads as solid. Crits, parries and kills hold longer; reduced motion keeps them short. Presentation only: the
     // sim simply gets no time for those frames, so its rules and the headless tests never see it.
-    const FEEL = { hitStopMs: 45, critStopMs: 90, parryStopMs: 110, killStopMs: 70, hurtStopMs: 60, maxStopMs: 120 };
+    const FEEL = { hitStopMs: 45, critStopMs: 90, parryStopMs: 110, killStopMs: 70, hurtStopMs: 60, maxStopMs: 120, bossSlowMs: 1100, bossSlowRate: 0.3 };
     let freezeUntil = 0;
+    let slowUntil = 0;   // a boss falls in slow motion (research round two #9)
     function hitStop(now, ms) {
         if (!ms) return;
         const k = REDUCED ? 0.5 : 1;
@@ -2698,6 +2765,38 @@
         if (!p || !p.moving || p.state === 'dodge') { stride = Math.min(stride, 200); return; }
         stride += dt * (p.sprinting ? 1.5 : 1);
         if (stride >= 300) { stride = 0; sfx('step'); }
+    }
+    // Boss presentation (research round two #9, docs/design/BESTIARY_CODEX_REMATCH.md): a name card, and the ways out of
+    // the room slam shut (the sim holds the seal; here they get iron bars and a boom).
+    let sealFx = null;   // { at, exits }
+    let bossCardTimer = null;
+    function bossIntro(ev, now) {
+        sealFx = ev.sealed && ev.sealed.length ? { at: now, exits: ev.sealed } : null;
+        if (sealFx) { sfx('gateSlam'); buzz(100); for (const e of ev.sealed) afx.spawn('aoe', { x: (e.x + 0.5) * sim.T, y: (e.y + 0.8) * sim.T, radius: 14, damageType: 'physical', shake: REDUCED ? 0 : 4 }, now); }
+        showBossCard(ev.name, ev.rematch ? 'As the crow remembers' : ev.epithet);
+    }
+    function showBossCard(name, epithet) {
+        let el = document.getElementById('boss-card');
+        if (!el) { el = document.createElement('div'); el.id = 'boss-card'; el.className = 'boss-card'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'assertive'); els.banner.parentNode.appendChild(el); }
+        el.innerHTML = `<span class="bc-rule" aria-hidden="true"></span><b class="bc-name">${esc(name || '')}</b>${epithet ? `<span class="bc-epithet">${esc(epithet)}</span>` : ''}<span class="bc-rule" aria-hidden="true"></span>`;
+        el.hidden = false;
+        el.classList.remove('show', 'out'); void el.offsetWidth; el.classList.add('show');
+        clearTimeout(bossCardTimer);
+        bossCardTimer = setTimeout(() => { el.classList.add('out'); setTimeout(() => { el.hidden = true; }, REDUCED ? 0 : 500); }, 2800);
+    }
+    /** Iron bars across each shut way out: they drop in fast, then stay until the fight ends. */
+    function drawSeals(g, time) {
+        const sealed = sim.view().sealed;
+        if (!sealed || !sealed.length) { sealFx = null; return; }
+        const T = sim.T, k = sealFx ? Math.min(1, (time - sealFx.at) / (REDUCED ? 1 : 180)) : 1;
+        for (const e of sealed) {
+            const x = e.x * T, y = e.y * T, h = Math.round(T * k);
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x, y + T - 3, T, 3);
+            for (let i = 0; i < 5; i++) { const bx = x + 3 + i * ((T - 8) / 4); g.fillStyle = '#2a2a30'; g.fillRect(Math.round(bx), y, 3, h); g.fillStyle = '#6a6a74'; g.fillRect(Math.round(bx), y, 1, h); }
+            if (k >= 1) for (const yy of [y + 6, y + T - 9]) { g.fillStyle = '#34343c'; g.fillRect(x + 1, yy, T - 2, 3); g.fillStyle = '#7a7a84'; g.fillRect(x + 1, yy, T - 2, 1); }
+            const glow = 0.25 + 0.2 * Math.sin(time / 260);
+            g.fillStyle = `rgba(200, 60, 40, ${glow.toFixed(3)})`; g.fillRect(x + T / 2 - 2, y + T / 2 - 2, 4, 4);   // the lock
+        }
     }
     const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
@@ -2712,7 +2811,12 @@
             case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
             case 'crumble': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'teleport': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.toX, y: ev.toY, radius: 10, damageType: 'shadow' }, now); break;
-            case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); sfx('kill'); hitStop(now, FEEL.killStopMs); break;
+            case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now);
+                if (BOSS_KEYS.has(ev.key)) { sfx('bossFall'); slowUntil = now + FEEL.bossSlowMs * (REDUCED ? 0.4 : 1); afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 30, damageType: 'holy', shake: REDUCED ? 0 : 3 }, now); buzz(120); }
+                else { sfx('kill'); hitStop(now, FEEL.killStopMs); }
+                break;
+            case 'boss_intro': bossIntro(ev, now); break;
+            case 'seal_open': sealFx = null; sfx('gateOpen'); if (ev.stale) toast('Nobody has landed a blow in a while. The way out opens.'); break;
             case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
             case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
             case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
@@ -2858,6 +2962,7 @@
             for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
             for (const m of sim.view().mines || []) drawMine(g, m, ctx.time);   // Explosive Caltrops
+            drawSeals(g, ctx.time);   // a boss fight's shut ways out
             const look = lfx ? stanceLook() : null;   // Fenrir's Heir: the wolf you stand with, on the ground under you
             if (look) LFX.stanceAura(g, Math.round(sim.player.x), Math.round(sim.player.y + (sim.player.r || 5)), look, ctx.time, 'ground');
         });
