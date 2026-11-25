@@ -2,6 +2,20 @@
 
 One entry per change to an existing screen: what was kept, what was replaced, and why.
 
+## 2026-11-25 · One menu shell for the Esc menu, Skill Web and stations
+
+**Kept**
+- Every rules path: pages still show the engine's answers and send `engine.act()` actions; the tab ids, the
+  keyboard flow (Enter in, Esc out) and the dev Cheats tab are unchanged.
+- The Skill Web screen's radial web and node card, and the hearth's drag-or-click pot.
+
+**Replaced**
+- *Side tab list → picture tab strip with a header and tappable footer* (Tokelo: "it looks all over the place").
+  The Esc menu, the web screen and stations now share one frame; see [MENU_REDESIGN.md](MENU_REDESIGN.md).
+- *Text lists → tiles and a gear figure.* Bag and Equipment show item pictures (`ui/menu-icons.js`) framed by rarity;
+  Equipment puts the slots around your character.
+- *Hearth and shop dialog boxes → the station layout.* Recipes left, pot centre, bag right; shops get Buy/Sell/Temper tabs and a detail pane.
+
 ## 2026-10-24 · Battle screen rebuilt on a shared UI kit (UI-1)
 
 **Kept**
