@@ -699,7 +699,7 @@
             'Slow': { description: 'Enemy loses next turn.', liveDescription: 'Stun the enemy for 3 s.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
             'Revert': { description: 'Revert ally to HP they had 2 turns ago.', liveDescription: 'Revert to the HP you had 4 s ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
             'Freeze Time': { description: 'Enemies can’t act for 1 turn.', liveDescription: 'Enemies can’t act for 3 s.', cost: 5, resource: 'Time Charges', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'all_enemies' },
-            'Rearrange Turn Order': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'Not available in live combat yet: live fights have no initiative order to rearrange (needs a live redesign).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
+            'Rearrange Turn Order': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'You set the order of things: for 9 s every enemy moves at half speed and winds up 60% slower, and you gain Haste. Spends all Time Charges (at least 1).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1, liveSlow: 0.5, liveWindupMult: 1.6, liveSpeedup: 0.5 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
 
 
             // Ascended Overdrives (Special Skills at max evolution)
@@ -1522,6 +1522,7 @@
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
             'Slow':             { category: 'debuff',  control: 'soft' },   // speed only, never skips a turn (Keel §2)
             'Leg Cramp':        { category: 'debuff',  control: 'soft' },   // Shane's shout: a Slow by another name (movement only)
+            'Out of Order':     { category: 'debuff',  control: 'soft' },   // Eternal Architect, live: slowed, slower wind-ups
             'Blind':            { category: 'debuff',  control: false },    // a hit-chance debuff, not control
             'Possessed':        { category: 'control', control: 'hard', refuseTiers: ['boss'], refuseAtCr: 75 }, // N-5: refused before cost for bosses and at 75+ CR
             // --- marks

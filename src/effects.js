@@ -427,13 +427,23 @@
         apply(ctx) { for (const t of living(ctx)) ctx.engine.possess(ctx.caster, t, ctx.effect); }
     });
     register('rearrange_turn_order', { // Eternal Architect (D-09): you set the turn order for N rounds (src/engine/turn-order.js)
+        // Live fights have no turn order, so the live version puts you first another way (research round two, 2026-11-25):
+        // every enemy is 'Out of Order' (slowed, wind-ups take longer; soft control, so Control Resistance applies)
+        // for `duration` turns, and you get Haste.
+        applies: { name: 'Out of Order', type: 'speed_down' },
         requires(ctx) {
-            if (ctx.engine.combatMode !== 'turn') return `${ctx.skill.name} has no live-combat version yet (live fights have no turn order).`;
             const min = ctx.effect.minResource || 0;
             const r = ctx.caster.resource;
             return r && r.current < min ? `${ctx.skill.name} needs at least ${min} ${r.type}.` : null;
         },
-        apply(ctx) { ctx.engine.openTurnOrderWindow(ctx.caster, ctx.effect.duration || 3); }
+        apply(ctx) {
+            if (ctx.engine.combatMode === 'turn') { ctx.engine.openTurnOrderWindow(ctx.caster, ctx.effect.duration || 3); return; }
+            const e = ctx.effect, foes = new Set(ctx.engine.combat.enemies);
+            const slowed = (ctx.targets || []).filter((t) => t && t.hp > 0 && foes.has(t)).filter((t) => ctx.engine.applyStatus(ctx.caster, t,
+                { name: 'Out of Order', type: 'speed_down', value: e.liveSlow || 0.5, windupMult: e.liveWindupMult || 1.6, duration: e.duration || 3 }));
+            ctx.engine.applyStatus(ctx.caster, ctx.caster, { name: 'Haste', type: 'haste', value: e.liveSpeedup || 0.5, duration: 1 });
+            ctx.engine.say(slowed.length ? `You set the order of things. ${slowed.map((t) => t.name).join(', ')} fall${slowed.length === 1 ? 's' : ''} behind; you go first.` : 'You set the order of things; you go first.', { important: true });
+        }
     });
     register('control_all_enemies', { // Death's Dominion (Deathlord Eternal): every enemy hit kneels and cannot act (hard control, CR applies)
         applies: { name: 'Dominated', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
