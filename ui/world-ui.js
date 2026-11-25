@@ -50,6 +50,9 @@
     const TOUCH = !!(els.pad && ENSO.touchControls && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
     const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })) }) : null;
     if (TOUCH) { els.pad.hidden = false; document.body.classList.add('touch'); }
+    // A game pad plays too (ui/gamepad.js): it sends the same keys, 'menu' keys whenever a cursor has the focus.
+    const PAD = ENSO.gamepad ? ENSO.gamepad.create({ fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })), mode: () => (screen === 'explore' && !modal ? 'play' : 'menu') }) : null;
+    let padSeen = false;
     const DISPLAY_KEY = 'enso.ui.display';
     let displayMode = (() => { try { const m = localStorage.getItem(DISPLAY_KEY); return ENSO.display.MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } })();
     function fitStage() {
@@ -88,6 +91,13 @@
         return `Motion: ${MOTION_LABELS[motionMode]}.`;
     }
     applyMotion();
+    // Sound (ui/audio.js, Echo): synthesised, no files. Browsers only allow it after the first key, click or tap.
+    const SFX = ENSO.audio ? ENSO.audio.create() : null;
+    const sfx = (name, o) => { if (SFX) SFX.play(name, o); };
+    if (SFX) for (const t of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(t, () => SFX.start(), { capture: true, passive: true });
+    const pct = (v) => (v > 0 ? `${Math.round(v * 100)}%` : 'Off');
+    /** Phones buzz on the blows that matter (vibration API; quietly absent on desktops and iOS). */
+    const buzz = (ms) => { if (TOUCH && !REDUCED && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* not allowed here */ } };
     /** Wren's render quality (ENSO.gfx, stored under 'enso.gfx'); 'high' unless set. */
     const gfxQuality = () => { try { return localStorage.getItem('enso.gfx') === 'low' ? 'low' : 'high'; } catch (e) { return 'high'; } };
     function cycleDisplay() {
@@ -144,7 +154,8 @@
     function bindMenuClicks(root, m) {
         root.querySelectorAll('.menu li').forEach((li) => li.addEventListener('click', () => {
             const i = +li.dataset.i;
-            if (m.items[i].disabled) return;
+            if (m.items[i].disabled) { sfx('refuse'); return; }
+            sfx('select');
             m.index = i; m.items[i].action();
         }));
     }
@@ -154,10 +165,11 @@
             // Greyed-out entries can be highlighted (their line says why they're unavailable); Enter ignores them.
             const n = m.items.length;
             m.index = (m.index + (dir === 'up' ? n - 1 : 1)) % n;
+            sfx('tick');
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) it.action(); return true; }
-        if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { m.back(); return true; }
+        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
+        if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { sfx('back'); m.back(); return true; }
         return false;
     }
 
@@ -669,6 +681,7 @@
     const NOTIFY_MS = { quest: 6000, level: 6000, objective: 5000 };
     function notify(text, kind = 'quest') {
         if (!els.notices || !text) return;
+        sfx(kind === 'level' ? 'levelUp' : kind === 'loot' ? 'pickup' : kind === 'xp' ? 'cleared' : 'quest');
         const el = document.createElement('div');
         el.className = `notice n-${kind}`;
         el.innerHTML = `<i aria-hidden="true">${NOTICE_ICON[kind] || '◆'}</i><span>${esc(text)}</span>`;
@@ -722,6 +735,8 @@
         const step = () => {
             if (!typing) return;
             const n = DP.revealed(text, performance.now() - typing.t0);
+            if (n > (typing.shown || 0) && /\S/.test(text[n - 1] || '')) sfx('blip', { pitch: 0.92 + (n % 5) * 0.04 });   // a soft voice blip as the letters come
+            typing.shown = n;
             el.textContent = text.slice(0, n);
             if (n >= text.length) { typing = null; return; }
             typing.timer = requestAnimationFrame(step);
@@ -1122,6 +1137,7 @@
         return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
+        sfx('open');
         modal = 'pause'; syncActionHudVisibility();
         muteHeldKeys();
         els.hud.hidden = true;
@@ -1181,6 +1197,12 @@
         if (id === 'settings') {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+            if (SFX) {
+                const a = SFX.settings;
+                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
+                items.push({ label: `Combat sounds: ${pct(a.sfx)}`, sub: 'Hits, dodges, parries, enemy wind-ups, level-ups and loot.', action: again(() => { mm.note = `Combat sounds: ${pct(SFX.cycle('sfx').sfx)}.`; sfx('hit'); }) });
+                items.push({ label: `Menu and voice sounds: ${pct(a.ui)}`, sub: 'Menu clicks and the soft blips while people talk.', action: again(() => { mm.note = `Menu and voice sounds: ${pct(SFX.cycle('ui').ui)}.`; sfx('select'); }) });
+            }
             if (ENSO.gfx && ENSO.gfx.setQuality) items.push({ label: `Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}`, sub: 'High: lighting, bloom and grading. Low: plain canvas for weak devices. Applies on next load.',
                 action: again(() => { const q = gfxQuality() === 'low' ? 'high' : 'low'; ENSO.gfx.setQuality(q); mm.note = `Graphics: ${q === 'low' ? 'Low' : 'High'}. Reload the page to apply.`; }) });
             items.push({ label: 'Export save file', sub: 'Download your save. Load it from the title screen of a newer version of the game, or on another computer.', action: again(() => { mm.note = exportSave(); }) });
@@ -1644,9 +1666,9 @@
         if (tab === 'web') page = skillWebPage(inList);
         if (tab === 'skillbar') page = skillbarHtml(inList);
         if (tab === 'settings') {
-            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
+            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>M</kbd> mute · <kbd>Esc</kbd> this menu</li><li>Controller: stick move · A attack · B dodge · X interact · Y heal · LB guard · RB lock on · LT sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
-            page = listPage(`<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p><p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
+            page = listPage(`<h3>Display, motion and sound</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
         }
         if (tab === 'crow') {
             const v = CV.crowView(engine.getAvailableActions());
@@ -2518,6 +2540,7 @@
     function quickHeal() {
         if (screen !== 'explore' || modal) return;
         const r = engine.act({ type: 'quick_heal' });
+        if (r.ok) sfx('heal');
         const line = (r.events || []).find((e) => e.type === 'text' && /\+\d+ HP/.test(e.text || ''));
         toast(r.ok ? (line ? line.text : 'Healed.') : (r.error ? r.error.message : 'Nothing to heal with.'));
         updateHud();
@@ -2586,17 +2609,19 @@
 
     function actionFrame(now) {
         if (!sim) return;
-        const dt = lastActionFrame ? Math.min(100, now - lastActionFrame) : 0;
+        let dt = lastActionFrame ? Math.min(100, now - lastActionFrame) : 0;
         lastActionFrame = now;
         const live = screen === 'explore' && !modal && !fade && !flash && !feathering;
         if (sim.mapId !== session.mapId) sim.enterMap();
+        if (now < freezeUntil) dt = 0;   // hit-stop: the world holds for a few frames on a solid blow (presses wait in the sim)
         if (live) {
             const out = sim.update(dt, actionInput());
+            footsteps(dt);
             for (const ev of out.fx) actionFxEvent(ev, now);
             for (const ev of out.engineEvents) {
                 if (ev.type === 'world.drop') notice(`${ev.drop.gold ? `${ev.drop.gold} Gold` : ''}${ev.drop.gold && ev.drop.items.length ? ' · ' : ''}${ev.drop.items.map((i) => i.name).join(', ')} dropped`, 'loot');
                 if (ev.type === 'loot') notice(`Picked up ${[ev.gold ? `${ev.gold} Gold` : '', ...(ev.items || []).map((i) => i.name || i)].filter(Boolean).join(', ')}`, 'loot');
-                if (ev.type === 'action.cleared') notice(`+${ev.xp} XP`, 'xp');
+                if (ev.type === 'action.cleared') notice(`+${ev.xp} XP`, 'xp');   // (its notice plays the fanfare)
                 if (ev.type === 'text' && ev.notice) notice(ev.text, DP.noticeKind(ev.notice));
                 else if (ev.type === 'text' && /evolve|journal/.test(ev.text) && ev.important) notice(ev.text, 'quest');
             }
@@ -2656,41 +2681,62 @@
     }
 
 
+    // Game feel (Thorne, 2026-11-25): a hit-stop is a few frames where the world holds still as a blow lands, so a hit
+    // reads as solid. Crits, parries and kills hold longer; reduced motion keeps them short. Presentation only: the
+    // sim simply gets no time for those frames, so its rules and the headless tests never see it.
+    const FEEL = { hitStopMs: 45, critStopMs: 90, parryStopMs: 110, killStopMs: 70, hurtStopMs: 60, maxStopMs: 120 };
+    let freezeUntil = 0;
+    function hitStop(now, ms) {
+        if (!ms) return;
+        const k = REDUCED ? 0.5 : 1;
+        freezeUntil = Math.min(now + FEEL.maxStopMs, Math.max(freezeUntil, now + ms * k));
+    }
+    // Footsteps: a quiet scuff every stride while you walk, quicker when you sprint.
+    let stride = 0;
+    function footsteps(dt) {
+        const p = sim && sim.player;
+        if (!p || !p.moving || p.state === 'dodge') { stride = Math.min(stride, 200); return; }
+        stride += dt * (p.sprinting ? 1.5 : 1);
+        if (stride >= 300) { stride = 0; sfx('step'); }
+    }
     const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
         const P = sim.player;
         if ((ev.type === 'cast' || ev.type === 'swing') && ev.skill) castAt.set(ev.skill, performance.now());
         switch (ev.type) {
-            case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical' }, now); break;
-            case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally }, now); break;
+            case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical', ...(ev.crit ? { crit: true, shake: 2 } : {}) }, now);
+                sfx(ev.crit ? 'crit' : 'hit', { pitch: ev.boss ? 0.8 : 1 }); hitStop(now, ev.crit ? FEEL.critStopMs : FEEL.hitStopMs); break;
+            case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally, ...(ev.crit ? { crit: true } : {}) }, now); break;
+            case 'windup': sfx(ev.boss ? 'bossWindup' : 'windup'); break;
+            case 'swing': sfx('swing', { pitch: ev.shape && ev.shape.stepPx ? 0.8 : 1 }); break;
             case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
             case 'crumble': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'teleport': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.toX, y: ev.toY, radius: 10, damageType: 'shadow' }, now); break;
-            case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
-            case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); break;
-            case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); break;
-            case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); break;
-            case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); break;
+            case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); sfx('kill'); hitStop(now, FEEL.killStopMs); break;
+            case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
+            case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
+            case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
+            case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); sfx('pickup'); break;
             case 'aoe': if (lfx && ev.skill && (DATA.skillVfx || {})[ev.skill]) break;   // a legendary skill draws its own (ui/legend-fx.js)
                 afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
             case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
-            case 'mines': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'physical' }, now); break;
-            case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); break;
+            case 'mines': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'physical' }, now); sfx('explode'); break;
+            case 'cast': afx.spawn('cast', { x: ev.x, y: ev.y - 8, cls: engine.player.className }, now); sfx('cast'); break;
             case 'skill_fx': if (lfx) lfx.event(ev, now); break;   // a legendary skill's own look (ui/legend-fx.js)
-            case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); break;
-            case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); break;
+            case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); sfx('hurt'); hitStop(now, FEEL.hurtStopMs); buzz(60); break;
+            case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); sfx('perfectDodge'); break;
             case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: CONDITION_COLOUR[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
-            case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); break;
-            case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); break;
+            case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); sfx('stagger'); break;
+            case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); sfx('engage'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
-            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); notice(ev.text || 'The Warden changes his stance!', 'quest'); break;
+            case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); sfx('phase'); buzz(80); notice(ev.text || 'The Warden changes his stance!', 'quest'); break;
             case 'resolve': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 20, damageType: 'holy', shake: 2 }, now); break;
             case 'resolve_end': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true', shake: 1 }, now); break;
             case 'crow_mark': notice(ev.text || (ev.target === 'player' ? 'A crow marks you! Move before it dives.' : 'A crow marks one of your summons!'), 'quest'); break;
             case 'crow_dive': afx.spawn('hit', { x: ev.x, y: ev.y - 4, damageType: 'shadow', shake: 1 }, now); break;
             case 'illusion_pop': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 10, damageType: 'shadow' }, now); break;
             case 'crow_storm': afx.spawn('aoe', { x: P.x, y: P.y, radius: 6, damageType: 'shadow', shake: 3 }, now); break;
-            case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) toast(ev.text); break;
+            case 'refused': if (!/cooldown|Recovering|mid-swing/i.test(ev.text || '')) { toast(ev.text); sfx('refuse'); } break;
             case 'notice': toast(ev.text); break;
             default: break;
         }
@@ -2949,6 +2995,7 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
+        if (SFX && (ev.key === 'm' || ev.key === 'M') && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (M).' : 'Sound on (M).'); return; }
         if (devMode && ev.key === '`' && !ev.repeat && !fade && !anim && !flash && !feathering) { openPause(null, 'cheats'); return; }   // dev cheats (devMode)
         if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
@@ -2975,7 +3022,69 @@
     // ---------------------------------------------------------------------
     // Frame loop
     // ---------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // Ambient barks (Hawk + Wick, 2026-11-25): walk past someone and now and then they say something aloud, in a
+    // small bubble over their head (lines: src/story/barks.js, each with an optional story condition the engine
+    // judges). Never a dialogue box, never blocks you. Presentation only: no state, no save.
+    // ---------------------------------------------------------------------
+    const BARKS = (ENSO.story && ENSO.story.barks) || {};
+    const BARK = { nearPx: 80, showMs: 3200, perLetterMs: 45, npcGapMs: 28000, gapMs: 3500, firstMs: 700, max: 2 };
+    const barkNpc = new Map();   // object id -> { next, last }
+    const barksOn = new Map();   // object id -> { o, text, until, el, fx, fy }
+    let barkNext = 0, barkLayer = null;
+    function barkLines(npcId) { return (BARKS[npcId] || []).filter((l) => l && l.say && (!l.if || engine.storyAllows(l.if))); }
+    function barkTick(now, objects) {
+        const quiet = screen !== 'explore' || !!modal || !!fade || !!flash || (engine && engine.mode === 'combat');
+        for (const [id, b] of barksOn) if (now >= b.until || quiet || b.mapId !== view.mapId) endBark(id, b);
+        if (quiet || now < barkNext || barksOn.size >= BARK.max) return;
+        const T = WORLD.maps[view.mapId].tileSize || 32;
+        let best = null;
+        for (const o of objects) {
+            if (o.kind !== 'npc' || !BARKS[o.npc] || barksOn.has(o.id)) continue;
+            const d = Math.hypot((o.x - view.x) * T, (o.y - view.y) * T);
+            if (d > BARK.nearPx) continue;
+            const st = barkNpc.get(o.id) || { next: now + BARK.firstMs, last: null };
+            if (!barkNpc.has(o.id)) barkNpc.set(o.id, st);
+            if (now < st.next) continue;
+            if (!best || d < best.d) best = { o, d, st };
+        }
+        if (!best) return;
+        const lines = barkLines(best.o.npc);
+        const pick = lines.filter((l) => l.say !== best.st.last);
+        const line = (pick.length ? pick : lines)[Math.floor(Math.random() * (pick.length || lines.length))];
+        best.st.next = now + BARK.npcGapMs * (0.8 + Math.random() * 0.5);
+        if (!line) return;
+        best.st.last = line.say;
+        barkNext = now + BARK.gapMs;
+        if (!barkLayer) { barkLayer = document.createElement('div'); barkLayer.className = 'barks'; barkLayer.setAttribute('aria-live', 'polite'); $('world-stage').appendChild(barkLayer); }
+        const el = document.createElement('div');
+        el.className = 'bark';
+        el.textContent = line.say;
+        el.hidden = true;   // placed by the render hook below this same frame
+        barkLayer.appendChild(el);
+        barksOn.set(best.o.id, { o: best.o, text: line.say, el, mapId: view.mapId, until: now + BARK.showMs + line.say.length * BARK.perLetterMs });
+        sfx('blip', { pitch: 0.8 });
+    }
+    function endBark(id, b) {
+        barksOn.delete(id);
+        b.el.classList.add('out');
+        setTimeout(() => b.el.remove(), REDUCED ? 0 : 350);
+    }
+    // Where a speaker's head is on screen: worked out in the renderer's own pixels, so it is right in HD-2D too.
+    renderer.addHook('foreground', (g, ctx) => {
+        if (!barksOn.size) return;
+        const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
+        const W = g.canvas.width, H = g.canvas.height;
+        for (const b of barksOn.values()) {
+            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 2 + ctx.oy;
+            b.el.style.left = `${(hx / W * 100).toFixed(2)}%`;
+            b.el.style.top = `${(Math.max(14, hy) / H * 100).toFixed(2)}%`;
+            b.el.hidden = false;
+        }
+    });
+
     function frame(now) {
+        if (PAD) { const on = PAD.poll(); if (on && !padSeen) toast('Controller connected: A attack, B dodge, X interact, hold RT for skills.'); padSeen = on; }
         if (screen === 'title') {
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
             const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
@@ -3031,6 +3140,7 @@
             for (const [name, at] of castAt) if (t - at < ENSO.unionFx.CAST_SHOW_MS) view.statuses.push(name);
         }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
+        barkTick(now, objects);
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }

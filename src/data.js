@@ -1650,6 +1650,7 @@
         const actionRules = {
             player: {
                 speed: 72, sprintMult: 1.5, radius: 5, attackMoveMult: 0.35, hurtMs: 220, staggerMs: 400, inputBufferMs: 150,
+                aimAssist: { coneDeg: 70, rangePx: 64 },   // an unaimed attack turns to the nearest engaged enemy within ±35° (Thorne, 2026-11-25)
                 cancel: {
                     dodgeCancels: ['attackStartup', 'attackRecovery', 'skillCast', 'skillRecovery', 'guard', 'item'],
                     guardCancels: ['attackRecovery', 'skillRecovery'],

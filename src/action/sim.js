@@ -309,7 +309,7 @@
                 if (a.dead || !a.engineId) continue;
                 const en = byId[a.engineId];
                 if (en) {
-                    if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp }); }
+                    if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp, ...(a.critPending ? { crit: true } : {}) }); a.critPending = false; }
                     Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
                     const b = this.bossOf(a);
                     if (b && b.phases && !a.illusionOf) {   // boss phases by HP: a new phase opens with its signature move
@@ -423,8 +423,12 @@
 
             // dodge (cancels a cast that hasn't come out)
             const dodgeR = { ...(R.dodge || {}), ...(((R.classes || {})[this.engine.player.className] || {}).dodge || {}) };
+            const dodgeBufMs = (R.player || {}).inputBufferMs || 0;
+            if (!inp.dodge && p.dodgeBuffered != null && this.now <= p.dodgeBuffered && p.state !== 'dodge' && this.now >= p.dodgeReadyAt) inp.dodge = true;
+            if (inp.dodge && (p.state === 'dodge' || this.now < p.dodgeReadyAt) && dodgeBufMs) { p.dodgeBuffered = this.now + dodgeBufMs; inp.dodge = false; }
             if (inp.dodge) {
                 inp.dodge = false;
+                p.dodgeBuffered = null;
                 if (!stunned && !(this.now < (p.rootUntil || 0)) && p.state !== 'dodge' && this.now >= p.dodgeReadyAt && p.stamina >= (dodgeR.stamina || 25)) {
                     if (p.attack && p.attack.castId && !p.attack.fired) this.engine.actionCancel(p.attack.castId);
                     const m = inp.move;
@@ -452,8 +456,13 @@
             }
             p.guarding = wantGuard;
 
-            // attacks and skills
-            if ((inp.attack || inp.slot != null) && canAct && !p.guarding) this.startAttack(inp.slot);
+            // attacks and skills. A press that comes while you are still busy (mid-swing, mid-dodge, hurt) is kept for
+            // `player.inputBufferMs` and fires the moment you can act, so a quick second press is never swallowed.
+            const bufMs = (R.player || {}).inputBufferMs || 0;
+            if ((inp.attack || inp.slot != null) && !(canAct && !p.guarding) && bufMs) p.buffered = { slot: inp.slot, until: this.now + bufMs };
+            if (!inp.attack && inp.slot == null && p.buffered && canAct && !p.guarding && this.now <= p.buffered.until) { inp.slot = p.buffered.slot; inp.attack = inp.slot == null; }
+            if ((inp.attack || inp.slot != null) && canAct && !p.guarding) { p.buffered = null; this.startAttack(inp.slot); }
+            if (p.buffered && this.now > p.buffered.until) p.buffered = null;
             inp.attack = false;
             inp.slot = null;
 
@@ -461,6 +470,13 @@
             if (p.state === 'dodge' && this.now >= p.stateEnd) { p.state = 'idle'; p.dodge = null; }
             if (p.state === 'attack') this.stepAttack();
             if (p.state === 'hurt' && this.now >= p.stateEnd) p.state = 'idle';
+            // a buffered press comes out on the very step the swing (or dodge, or flinch) ends
+            if (p.buffered && !stunned && (p.state === 'idle' || p.state === 'move') && !p.guarding && this.now <= p.buffered.until) {
+                const b = p.buffered; p.buffered = null;
+                if (inp.aim) p.angle = angleTo(p, inp.aim);   // aimed where you are aiming now, not where the last swing went
+                else if (inp.move.x || inp.move.y) p.angle = Math.atan2(inp.move.y, inp.move.x);
+                this.startAttack(b.slot);
+            }
 
             // movement
             let vx = 0, vy = 0;
@@ -550,10 +566,14 @@
                 if (!opener || !this.engageAimed(opener)) this.engageNearest();
             }
             if (!this.engaged && slot != null) { this.startCalmSkill(slot); return; }
+            if (this.engaged && !this.input.aim) this.assistAim(weapon);
             if (!this.engaged) {   // a swing at nothing: it looks right and costs nothing
-                p.attack = { shape: { ...weapon, shape: weapon.kind }, castId: null, start: this.now, fired: true, cosmetic: true, isBasic: slot == null };
+                const combo = this.comboStep(weapon);
+                const w = combo ? { ...weapon, ...combo.step } : weapon;
+                p.attack = { shape: { ...w, shape: w.kind }, castId: null, start: this.now, fired: true, cosmetic: true, isBasic: slot == null, comboStep: combo ? combo.index : null };
                 p.state = 'attack';
-                p.stateEnd = this.now + (weapon.startupMs || 120) + (weapon.activeMs || 0) + (weapon.recoveryMs || 200);
+                p.stateEnd = this.now + (w.startupMs || 120) + (w.activeMs || 0) + (w.recoveryMs || 200);
+                if (combo) p.comboEnd = p.stateEnd;
                 this.fx.push({ type: 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape: p.attack.shape });
                 return;
             }
@@ -567,19 +587,58 @@
             const r = slot != null ? e.actionCast(null, { slot }) : e.actionCast('attack');
             this.collect(r.events);
             if (!r.ok) { this.fx.push({ type: 'refused', code: r.error.code, text: r.error.message }); return; }
-            const shape = r.shape || {};
+            const combo = slot == null ? this.comboStep(weapon) : null;
+            const shape = combo ? { ...(r.shape || {}), ...combo.step, shape: combo.step.kind || (r.shape || {}).shape } : (r.shape || {});
             if (shape.shape === 'summon') this.pendingSummon = { at: this.summonSpot(shape), riseMs: shape.castMs || 0, profile: shape.minion || null };
             if (r.resolved) this.layMines(r.skill, shape);   // Explosive Caltrops: the charges land where you aim
             // Haste (Swift Ghost, Time Mage): the weapon's swing runs faster too, not just skill cooldowns
             const haste = slot == null && e.rtHasteMult ? e.rtHasteMult(e.player) : 1;
             const startup = Math.round((shape.startupMs != null ? shape.startupMs : (shape.castMs || 150)) * haste);
             const recovery = Math.round((shape.recoveryMs != null ? shape.recoveryMs : 200) * haste);
-            p.attack = { shape, castId: r.castId, skill: r.skill, start: this.now, fireAt: this.now + startup, fired: r.resolved, isBasic: slot == null, aim: this.input.aim ? { ...this.input.aim } : null };
+            p.attack = { shape, castId: r.castId, skill: r.skill, start: this.now, fireAt: this.now + startup, fired: r.resolved, isBasic: slot == null, aim: this.input.aim ? { ...this.input.aim } : null, comboStep: combo ? combo.index : null };
             p.state = 'attack';
             p.stateEnd = this.now + startup + Math.round((shape.activeMs || 0) * haste) + recovery;
+            if (combo) p.comboEnd = p.stateEnd;
             this.fx.push({ type: r.resolved ? 'cast' : 'swing', x: p.x, y: p.y, angle: p.angle, cls: e.player.className, shape, skill: r.skill });
             if (slot != null) this.skillFx('start', r.skill, shape);
             if (shape.shape === 'dash') this.beginDash(p.attack, blink);
+        }
+
+        /**
+         * Aim assist (Thorne, 2026-11-25): an attack or skill pressed with no aim (keys, touch, gamepad) turns toward the
+         * nearest engaged enemy inside `player.aimAssist.coneDeg` of where you face and within reach (a thrown weapon's
+         * own range), so a swing that is nearly on target lands instead of whiffing past. A Tab lock or the mouse wins.
+         */
+        assistAim(weapon) {
+            const p = this.player;
+            const as = (this.rules.player || {}).aimAssist;
+            if (!as) return;
+            const range = weapon && weapon.kind === 'projectile' ? Math.max(as.rangePx || 0, weapon.range || 0) : (as.rangePx || 0);
+            const half = ((as.coneDeg || 0) / 2) * DEG;
+            let best = null, bestD = Infinity;
+            for (const a of this.liveActors()) {
+                const d = dist(p, a) - a.r;
+                if (d > range || d >= bestD) continue;
+                if (angleDiff(p.angle, angleTo(p, a)) > half || !this.lineOfSight(p, a)) continue;
+                best = a; bestD = d;
+            }
+            if (best) { p.angle = angleTo(p, best); p.facing = facingOf(p.angle); p.facing8 = facing8Of(p.angle); }
+        }
+
+        /**
+         * The weapon's combo string (actionRules.classes[cls].weapon.combo, Thorne/Gauge): a basic attack pressed within
+         * `comboResetMs` of the last one ending moves to the next step (the warrior's third cut is a heavier, longer
+         * finisher; the rogue's third is a thrust); a pause starts the string again. Shape and timing only: the engine
+         * deals the basic attack's damage on every step. Null for a weapon with no combo.
+         */
+        comboStep(weapon) {
+            const p = this.player;
+            const list = weapon && weapon.combo;
+            if (!list || !list.length) return null;
+            const chained = p.comboEnd != null && this.now - p.comboEnd <= (weapon.comboResetMs || 600) && p.comboIndex != null;
+            const index = chained ? (p.comboIndex + 1) % list.length : 0;
+            p.comboIndex = index;
+            return { index, step: list[index] };
         }
 
         /**
@@ -723,6 +782,7 @@
         fire(at) {
             const p = this.player;
             const s = at.shape;
+            if (at.isBasic && s.stepPx) this.moveBody(p, Math.cos(p.angle) * s.stepPx, Math.sin(p.angle) * s.stepPx, null, (this.rules.player || {}).cornerSlidePx ?? 6);   // the finisher steps in
             const kind = s.shape || s.kind || 'arc';
             if (!at.isBasic) {   // the skill's own look where it comes out
                 let spot = null;
@@ -775,8 +835,11 @@
         resolve(castId, hits) {
             const r = this.engine.actionResolve(castId, hits.map((a) => a.engineId));
             this.collect(r.events);
+            const crits = new Set((r.events || []).filter((ev) => ev.crit).map((ev) => ev.targetId));
             for (const a of hits) if ((r.hit || []).includes(a.engineId)) {
-                this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(this.player, a) });
+                const crit = crits.has(a.engineId);
+                if (crit) a.critPending = true;   // the damage number that follows is a crit's
+                this.fx.push({ type: 'hit', x: a.x, y: a.y - 6, angle: angleTo(this.player, a), ...(crit ? { crit: true } : {}), ...(a.prof.boss ? { boss: true } : {}) });
                 this.bossHit(a);
                 if (!a.prof.boss && a.state !== 'windup' && a.state !== 'active') this.knock(a, angleTo(this.player, a), 4);
             }
@@ -1043,6 +1106,7 @@
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
+            this.fx.push({ type: 'windup', x: a.x, y: a.y, ms: windup, ...(a.prof.boss ? { boss: true } : {}) });   // a sound cue to dodge by (ui/audio.js)
             const foe = st.shape === 'mark' || st.markRider ? this.markTarget(a) : this.foeOf(a);
             a.angle = angleTo(a, foe);
             if (step === 0 && atk.cooldownMs) a.atkReady[atk.name] = this.now + atk.cooldownMs;

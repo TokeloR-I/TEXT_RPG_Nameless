@@ -204,6 +204,7 @@
         say(text, opts = {}) {
             const ev = { type: 'text', text: String(text), important: !!opts.important, html: !!opts.html };
             if (opts.notice) ev.notice = String(opts.notice);
+            if (opts.crit) { ev.crit = true; ev.targetId = opts.targetId; }   // a critical hit (action fights show and sound it)
             this.out.push(ev);
         }
         clear() { this.out.push({ type: 'clear' }); }

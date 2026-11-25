@@ -162,7 +162,7 @@
                         this.rollDamage(caster, target, skill, hit);
                         for (const x of active) if (x.handler.afterCalc) x.handler.afterCalc({ ...ctx, effect: x.effect }, hit);
                         const hpNote = target.isPlayer && !this.statusOfType(target, 'ghoul_shield') ? ` ${target.name} HP: ${Math.max(0, target.hp - hit.damage)}/${target.maxHp}` : '';
-                        this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer });
+                        this.say(`${caster.name} uses ${skill.name} on ${target.name} for ${hit.damage} damage!${hit.isCrit ? ' (CRITICAL HIT!)' : ''}${hpNote}`, { important: !!caster.isPlayer, crit: hit.isCrit && !!caster.isPlayer, targetId: target.id });
                         const actual = this.damage(target, hit.damage, caster, { alreadyScaled: true });
                         if (caster.isMinion && this.hasTrait('+3 max minions; all summons gain AOE attacks') && actual > 0) {
                             for (const other of this.alive(this.combat.enemies).filter(enemy => enemy !== target)) {
