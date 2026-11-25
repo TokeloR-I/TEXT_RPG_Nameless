@@ -836,9 +836,9 @@
         const goods = page === 'sell' ? avail.shop.selling : page === 'temper' ? tempering : avail.shop.goods;
         const title = { buy: 'Buy', sell: 'Sell', temper: 'Temper' }[page];
         const row = (good) => page === 'temper'
-            ? { label: `${good.name}${good.equipped ? ' (in hand)' : ''} · to +${good.rank}${good.cost ? ` · ${good.cost.gold} Gold` : ''}`,
+            ? { label: `${good.name}${good.equipped ? ' (in hand)' : ''} · to +${good.rank}`,
                 sub: good.enabled ? Object.entries((good.cost && good.cost.materials) || {}).map(([m, n]) => `${n} ${m}`).join(', ') : good.reason.message }
-            : { label: `${good.name || good.item} · ${good.price} Gold`,
+            : { label: `${good.name || good.item}`,
                 sub: `${page === 'sell' ? '' : `${good.remaining} left · `}Owned ${good.owned}${good.enabled ? '' : ` · ${good.reason.message}`}` };
         const done = (good, result) => {
             if (!result.ok) return result.error.message;
@@ -859,18 +859,54 @@
         draw();
         function draw() {
             const good = goods[menu.index];
+            const it = menu.items[menu.index];
             stopTyping();
             els.dialog.hidden = false;
-            els.dialog.className = 'dialog';
-            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} · ${title} <span class="dialog-role">${avail.shop.gold} Gold</span></div>
-                ${menuHtml(menu, 'shop-goods')}
-                <div class="shop-detail">${esc(good ? good.description : menu.items[menu.index].label)}</div>
-                <div class="shop-message" role="status">${esc(message)}</div>
-                <div class="dialog-keys">↑ ↓ choose · Enter ${page === 'temper' ? 'temper' : page === 'sell' ? 'sell one' : 'buy one'} · Esc back</div>`;
+            els.dialog.className = 'dialog station cx shop';
+            const verb = page === 'temper' ? 'Temper' : page === 'sell' ? 'Sell one' : 'Buy one';
+            const detail = good
+                ? `<div class="cx-detail-top"><span class="cx-bigic ${stationRarity(good.item)}">${stationIcon(good.item)}</span><div><b class="cx-dname">${esc(good.name || good.item)}</b><span class="cx-dkind">${page === 'temper' ? `Temper to +${good.rank}` : esc(stationKind(good.item))}</span></div></div>
+                    <p>${esc(good.description || '')}</p>
+                    ${page === 'temper' ? `<p class="st-price">${good.cost ? `${good.cost.gold} Gold` : ''}</p><div class="st-need">${Object.entries((good.cost && good.cost.materials) || {}).map(([m, n]) => `<span>${stationIcon(m)}${n} ${esc(m)}</span>`).join('')}</div>`
+                        : `<p class="st-price">${good.price} Gold${page === 'sell' ? ' each' : ''}</p><p class="mm-dim">${page === 'sell' ? '' : `${good.remaining} left · `}You own ${good.owned}</p>`}
+                    ${good.enabled ? '' : `<p class="mm-dim">${esc(good.reason.message)}</p>`}
+                    <button type="button" class="cx-btn st-do"${good.enabled ? '' : ' disabled'}>${verb}</button>`
+                : `<b class="cx-dname">${esc(it ? it.label : '')}</b>`;
+            els.dialog.innerHTML = `<header class="cx-head"><div class="cx-who"><b>${esc(avail.dialogue.name)}</b><span>${title}</span></div><div class="cx-chips"><span class="cx-chip gold">${avail.shop.gold} Gold</span></div><button type="button" class="cx-x" aria-label="Back to conversation" title="Back (Esc)">✕</button></header>
+                <nav class="st-tabs">${pages.map((pg) => `<button type="button" data-page="${pg}" class="${pg === page ? 'on' : ''}">${{ buy: 'Buy', sell: 'Sell', temper: 'Temper' }[pg]}</button>`).join('')}</nav>
+                <div class="st-body">
+                  <section class="cx-pane">${stationRows(menu, (x, i) => (i < goods.length ? stationIcon(goods[i].item) : ''), 'shop-goods', (x, i) => (i < goods.length ? (page === 'temper' ? (goods[i].cost ? `${goods[i].cost.gold} G` : '') : `${goods[i].price} G`) : ''))}</section>
+                  <section class="cx-pane cx-detail">${detail}<div class="shop-message" role="status">${esc(message)}</div></section>
+                </div>
+                <div class="dialog-keys">↑ ↓ choose · Enter ${page === 'temper' ? 'temper' : page === 'sell' ? 'sell one' : 'buy one'} · Q / R ${pages.length > 1 ? 'Buy, Sell' + (tempering.length ? ', Temper' : '') : ''} · Esc back</div>`;
             bindMenuClicks(els.dialog, menu);
+            const all = (sel) => (els.dialog.querySelectorAll ? [...els.dialog.querySelectorAll(sel)] : []);
+            all('.st-tabs button').forEach((b) => b.addEventListener('click', () => renderShop(avail, '', 0, b.dataset.page)));
+            all('.cx-x').forEach((b) => b.addEventListener('click', back));
+            all('.st-do').forEach((b) => b.addEventListener('click', () => { const x = menu.items[menu.index]; if (x && !x.disabled) x.action(); }));
             const selectedRow = els.dialog.querySelector('.selected');
-            if (selectedRow) selectedRow.scrollIntoView({ block: 'nearest' });
+            if (selectedRow && selectedRow.scrollIntoView) selectedRow.scrollIntoView({ block: 'nearest' });
         }
+        menu.cycle = (step) => renderShop(avail, '', 0, pages[(pages.indexOf(page) + step + pages.length) % pages.length]);
+    }
+    // Station helpers (menu redesign): the same pictures and rows the Esc menu uses, for shops, forges and hearths.
+    // `typeof ENSO` keeps them safe where the menu icons aren't loaded (the merchant test runs this code alone).
+    function stationIcons() { return typeof ENSO !== 'undefined' && ENSO.menuIcons ? ENSO.menuIcons : null; }
+    function stationDef(item) { return (engine.itemDef ? engine.itemDef(item) : engine.itemDefinitions && engine.itemDefinitions()[item]) || {}; }
+    function stationIcon(item) { const MIc = stationIcons(); return MIc && item ? `<span class="cx-ic">${MIc.item(item, stationDef(item))}</span>` : ''; }
+    function stationRarity(item) { const MIc = stationIcons(); return MIc && item ? `r-${MIc.rarity(stationDef(item))}` : ''; }
+    function stationKind(item) {
+        const d = stationDef(item);
+        const MIc = stationIcons();
+        const k = MIc ? MIc.itemKind(item, d) : '';
+        const names = { sword: 'Weapon', staff: 'Staff', wand: 'Wand', spear: 'Spear', scythe: 'Scythe', shield: 'Offhand', head: 'Head armor', bodyArmor: 'Body armor', hands: 'Hand armor', feet: 'Foot armor', accessory: 'Accessory', heal: 'Healing', meal: 'Meal', drink: 'Drink', tonic: 'Tonic' };
+        return `${d.rarity ? `${d.rarity} · ` : ''}${names[k] || (d.type === 'material' ? 'Material' : 'Goods')}`;
+    }
+    /** A station list: picture, name, sub line, and a right-hand value (a price, a yield). */
+    function stationRows(m, iconFn, cls, valueFn) {
+        return `<ul class="menu mm-list cx-rows ${cls}" role="listbox">${m.items.map((it, i) => `
+            <li role="option" data-i="${i}" aria-selected="${i === m.index}" class="${i === m.index ? 'selected' : ''} ${it.disabled ? 'disabled' : ''}">
+                ${iconFn(it, i) || '<span class="cx-ic"></span>'}<span class="cx-rowtext"><span class="m-label">${esc(it.label)}</span>${it.subHtml || (it.sub ? `<span class="m-sub">${esc(it.sub)}</span>` : '')}</span>${valueFn && valueFn(it, i) ? `<span class="st-val">${esc(valueFn(it, i))}</span>` : ''}</li>`).join('')}</ul>`;
     }
 
     // ---------------------------------------------------------------------
@@ -947,37 +983,40 @@
             const sel = menu.items[menu.index] && menu.items[menu.index].recipe;
             const slots = Array.from({ length: POT_SLOTS }, (_, i) => kitchen.pot[i]);
             els.dialog.hidden = false;
-            els.dialog.className = 'dialog kitchen';
-            els.dialog.innerHTML = `<div class="dialog-title">${esc(avail.dialogue.name)} <span class="dialog-role">Cooking</span></div>
-                <div class="kitchen-grid">
-                  <section class="kitchen-pantry" aria-label="Your ingredients">
-                    <div class="kitchen-head">Your bag</div>
+            els.dialog.className = 'dialog station cx kitchen';
+            const out = m || sel;
+            els.dialog.innerHTML = `<header class="cx-head"><div class="cx-who"><b>${esc(avail.dialogue.name)}</b><span>Cooking</span></div><div class="cx-chips"><span class="cx-chip">${k.recipes.filter((r) => r.enabled).length} of ${k.recipes.length} ready to cook</span></div><button type="button" class="cx-x" aria-label="Leave the hearth" title="Leave (Esc)">✕</button></header>
+                <div class="st-body kitchen-grid">
+                  <section class="cx-pane kitchen-book" aria-label="Recipes">
+                    <h3 class="kitchen-head">Recipes</h3>
+                    ${stationRows(menu, (it) => (it.recipe ? stationIcon(it.recipe.output) : ''), 'kitchen-recipes', (it) => (it.recipe && it.recipe.enabled ? 'ready' : ''))}
+                  </section>
+                  <section class="cx-pane kitchen-pot" aria-label="The pot">
+                    <h3 class="kitchen-head">The pot</h3>
+                    <div class="kitchen-slots pot-slots">${slots.map((x, i) => x
+                        ? `<button type="button" class="k-slot k-pot filled" data-slot="${i}" data-item="${esc(x.item)}" title="Take one out">${stationIcon(x.item)}<span class="k-name">${esc(x.item)}</span><span class="k-qty">×${x.qty}</span></button>`
+                        : `<div class="k-slot k-pot empty" data-slot="${i}" aria-label="Empty slot"></div>`).join('')}</div>
+                    <div class="kitchen-result${m ? (m.enabled ? ' ready' : ' blocked') : ''}">${out
+                        ? `<div class="cx-detail-top"><span class="cx-bigic">${stationIcon(out.output)}</span><div><b class="cx-dname">${esc(out.output)}${out.yield > 1 ? ` ×${out.yield}` : ''}</b><span class="cx-dkind">${m ? (m.enabled ? 'Ready to cook' : 'Missing something') : 'Recipe'}</span></div></div>${out.description ? `<span class="k-desc">${esc(out.description)}</span>` : ''}
+                           <div class="st-need">${out.ingredients.map((x) => `<span class="${x.have >= x.qty ? 'ok' : 'short'}">${stationIcon(x.item)}${x.have}/${x.qty} ${esc(x.item)}</span>`).join('')}</div>`
+                        : kitchen.pot.length ? 'That makes nothing yet.' : 'Drag ingredients here, or pick a recipe.'}</div>
+                    <div class="kitchen-actions">
+                      <button type="button" class="cx-btn k-btn k-cook"${m && m.enabled ? '' : ' disabled'}>Cook</button>
+                      <button type="button" class="cx-btn k-btn k-clear"${kitchen.pot.length ? '' : ' disabled'}>Empty pot</button>
+                    </div>
+                  </section>
+                  <section class="cx-pane kitchen-pantry" aria-label="Your ingredients">
+                    <h3 class="kitchen-head">Your bag</h3>
                     <div class="kitchen-slots">${k.pantry.length ? k.pantry.map((p) => {
                         const left = p.owned - potCount(p.item);
                         return `<button type="button" class="k-slot k-item${left <= 0 ? ' used' : ''}" draggable="true" data-item="${esc(p.item)}" title="${esc(p.item)}${p.description ? ` · ${esc(p.description)}` : ''}">
-                            <span class="k-name">${esc(p.item)}</span><span class="k-qty">×${left}</span></button>`;
+                            ${stationIcon(p.item)}<span class="k-name">${esc(p.item)}</span><span class="k-qty">×${left}</span></button>`;
                     }).join('') : '<div class="kitchen-empty">Nothing you carry cooks here. Buy or grow some ingredients.</div>'}</div>
-                  </section>
-                  <section class="kitchen-pot" aria-label="The pot">
-                    <div class="kitchen-head">The pot</div>
-                    <div class="kitchen-slots pot-slots">${slots.map((x, i) => x
-                        ? `<button type="button" class="k-slot k-pot filled" data-slot="${i}" data-item="${esc(x.item)}" title="Take one out"><span class="k-name">${esc(x.item)}</span><span class="k-qty">×${x.qty}</span></button>`
-                        : `<div class="k-slot k-pot empty" data-slot="${i}" aria-label="Empty slot"></div>`).join('')}</div>
-                    <div class="kitchen-result${m ? (m.enabled ? ' ready' : ' blocked') : ''}">${m
-                        ? `→ <b>${esc(m.output)}${m.yield > 1 ? ` ×${m.yield}` : ''}</b>${m.description ? `<span class="k-desc">${esc(m.description)}</span>` : ''}`
-                        : kitchen.pot.length ? 'That makes nothing yet.' : 'Drag ingredients here, or pick a recipe.'}</div>
-                    <div class="kitchen-actions">
-                      <button type="button" class="k-btn k-cook"${m && m.enabled ? '' : ' disabled'}>Cook</button>
-                      <button type="button" class="k-btn k-clear"${kitchen.pot.length ? '' : ' disabled'}>Empty pot</button>
-                    </div>
-                  </section>
-                  <section class="kitchen-book" aria-label="Recipes">
-                    <div class="kitchen-head">Recipes</div>
-                    ${menuHtml(menu, 'kitchen-recipes')}
                   </section>
                 </div>
                 <div class="shop-message" role="status">${esc(kitchen.message || (sel && !sel.enabled && sel.reason ? sel.reason.message : ''))}</div>
-                <div class="dialog-keys">Drag or click ingredients into the pot · ↑ ↓ recipe · Enter fill pot, Enter again cook · Esc leave</div>`;
+                <div class="dialog-keys">↑ ↓ recipe · Enter fill the pot, Enter again cook · tap or drag ingredients into the pot · Esc leave</div>`;
+            const xBtn = els.dialog.querySelector('.cx-x'); if (xBtn) xBtn.addEventListener('click', leave);
             bindMenuClicks(els.dialog, menu);
             const again = () => { kitchen.message = ''; renderKitchen(engine.getAvailableActions()); };
             els.dialog.querySelectorAll('.k-item').forEach((b) => {
@@ -1109,26 +1148,29 @@
         let items = null;
         const again = (fn) => () => { const i = menu.index; fn(); enterList(id, i); };
         if (id === 'items') {
-            const v = MM.itemsView(engine.getAvailableActions(), engine.getState().player.inventory, engine.itemDefinitions());
-            items = v.usable.map((u) => ({ label: `${u.item}${u.count > 1 ? ` ×${u.count}` : ''}`, sub: u.enabled ? u.description : (u.reason ? u.reason.message : ''), disabled: !u.enabled,
-                action: (engine.itemDefinitions()[u.item] || {}).use === 'camp'
-                    // Hakon's camp kit (C2S2): making camp opens its hearth, so the menu gives way to the cooking pot.
-                    ? () => { const r = engine.act({ type: 'use_item', item: u.item }); updateHud();
-                        if (engine.getAvailableActions().awaiting === 'dialogue') { closePause(); openTalk(r.events); }
-                        else { mm.note = readable(r.events).map((l) => l.text).join(' '); enterList(id, menu.index); } }
-                    : again(() => { mm.note = actLines({ type: 'use_item', item: u.item }); }) }));
-        }
-        if (id === 'items') {
+            // The bag (menu redesign): every tile is an entry, in bagEntries() order, so the grid and the keys agree.
+            items = bagEntries().map((e) => {
+                const def = itemDefOf(e.item);
+                if (e.kind === 'carry') return { label: engine.itemName(e.item), sub: e.description, item: e.item,
+                    action: def.slot ? () => { mm.tab = Math.max(0, mmTabs.findIndex((t) => t.id === 'equipment')); mm.slot = MM.SLOTS.find((x) => x.slot === def.slot) ? def.slot : null; enterList('equipment', 0); } : () => {} };
+                return { label: engine.itemName(e.item), sub: e.enabled ? e.description : (e.reason ? e.reason.message : ''), disabled: !e.enabled, item: e.item,
+                    action: def.use === 'camp'
+                        // Hakon's camp kit (C2S2): making camp opens its hearth, so the menu gives way to the cooking pot.
+                        ? () => { const r = engine.act({ type: 'use_item', item: e.item }); updateHud();
+                            if (engine.getAvailableActions().awaiting === 'dialogue') { closePause(); openTalk(r.events); }
+                            else { mm.note = readable(r.events).map((l) => l.text).join(' '); enterList(id, menu.index); } }
+                        : again(() => { mm.note = actLines({ type: 'use_item', item: e.item }); }) };
+            });
             const claim = engine.getAvailableActions().actions.find(a => a.type === 'claim_loot');
-            if (claim) items.push({ label: 'Collect pending loot', disabled: !claim.enabled, sub: claim.reason?.message, action: again(() => { mm.note = actLines({ type: 'claim_loot' }); }) });
+            if (claim) items.push({ label: 'Collect pending loot', claim: true, disabled: !claim.enabled, sub: claim.reason?.message, action: again(() => { mm.note = actLines({ type: 'claim_loot' }); }) });
         }
         if (id === 'equipment' && !mm.slot) {
             items = MM.slotsView(engine.getEquipment()).map((r) => ({ label: `${r.label}: ${r.item ? engine.itemName(r.item) : '—'}`, sub: r.candidates.length ? `${r.candidates.length} to choose from` : r.item ? 'Nothing else fits here' : 'Nothing that fits',
-                disabled: !r.candidates.length && !r.item, action: () => { mm.slot = r.slot; enterList('equipment', 0); } }));
+                disabled: !r.candidates.length && !r.item, slot: r.slot, action: () => { mm.slot = r.slot; enterList('equipment', 0); } }));
         }
         if (id === 'equipment' && mm.slot) {
             const row = MM.slotsView(engine.getEquipment()).find((r) => r.slot === mm.slot);
-            items = row.candidates.map((c) => ({ label: c.name || c.item, sub: c.enabled ? `${c.diffText}${c.description ? ` · ${c.description}` : ''}` : c.reason.message, disabled: !c.enabled, diff: c.diff,
+            items = row.candidates.map((c) => ({ label: c.name || c.item, item: c.item, sub: c.enabled ? `${c.diffText}${c.description ? ` · ${c.description}` : ''}` : c.reason.message, disabled: !c.enabled, diff: c.diff,
                 action: () => { mm.note = actLines({ type: 'equip', item: c.item }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } }));
             if (row.item) items.push({ label: `Take off ${engine.itemName(row.item)}`, sub: 'Back into your bag.', action: () => { mm.note = actLines({ type: 'unequip', slot: row.slot }); mm.slot = null; enterList('equipment', MM.SLOTS.findIndex((x) => x.slot === row.slot)); } });
         }
@@ -1233,8 +1275,8 @@
         const slot = mm.barSlot;
         const set = (skillId) => () => { mm.note = actLines({ type: 'set_skill_slot', slot, skillId }); mm.barSlot = null; enterList('skillbar', slot); };
         const here = (bar[slot] || {}).skillId;
-        const items = bench.map((name) => ({ label: name, sub: detail[name] || 'Learned, not on the bar.', action: set(name) }));
-        for (const b of bar) if (b.skillId && b.slot !== slot) items.push({ label: `${b.skillId} (key ${slotKey(b.slot)})`, sub: `Swap: ${here ? `${here} goes to key ${slotKey(b.slot)}` : `key ${slotKey(b.slot)} is left empty`}.`, action: set(b.skillId) });
+        const items = bench.map((name) => ({ label: name, skill: name, sub: detail[name] || 'Learned, not on the bar.', action: set(name) }));
+        for (const b of bar) if (b.skillId && b.slot !== slot) items.push({ label: `${b.skillId} (key ${slotKey(b.slot)})`, skill: b.skillId, sub: `Swap: ${here ? `${here} goes to key ${slotKey(b.slot)}` : `key ${slotKey(b.slot)} is left empty`}.`, action: set(b.skillId) });
         if (here) items.push({ label: `Clear key ${slotKey(slot)}`, sub: `Take ${here} off the bar.`, action: set(null) });
         return items;
     }
@@ -1260,7 +1302,7 @@
             items.push({ label: 'Walk freely', sub: 'No path: you spend every point yourself.', action: () => { mm.note = actLines({ type: 'set_web_guide', branchId: null }); mm.web = null; stay(0); } });
             return items;
         }
-        const items = SW.webs(view).map((w) => ({ label: `${w.kind === 'legendary' ? '★ ' : ''}${w.name} web${w.learnable ? ` (${w.learnable} to learn)` : ''}`, sub: w.why, webId: w.webId,
+        const items = SW.webs(view).map((w) => ({ label: `${w.kind === 'legendary' ? '★ ' : ''}${w.name} web${w.learnable ? ` (${w.learnable} to learn)` : ''}`, sub: w.why, webId: w.webId, web: w,
             action: () => openWebScreen(w.webId) }));
         if (view.specializations.length) items.push({ label: `Walk as: ${view.specialization ? view.specialization.name : 'none'}`, sub: 'Choose which of your specializations you walk as.', action: () => { mm.web = { sub: 'spec' }; stay(0); } });
         items.push({ label: `Path: ${view.guide ? (DATA.evolutionPaths[engine.getState().player.className].branches[view.guide] || { name: view.guide }).name : 'walking freely'}`, sub: 'A path learns its skills for you as you level.', action: () => { mm.web = { sub: 'guide' }; stay(0); } });
@@ -1310,6 +1352,7 @@
             if (next) { mm.webScreen.sel = next; mm.webScreen.note = ''; renderWebScreen(); }
             return;
         }
+        if (ev.key === 'Tab') { ev.preventDefault(); switchTab(mm.tab + (ev.shiftKey ? -1 : 1), true); return; }
         if (ev.key === '[' || ev.key === 'q' || ev.key === 'Q' || ev.key === 'PageUp') { switchWeb(-1); return; }
         if (ev.key === ']' || ev.key === 'r' || ev.key === 'R' || ev.key === 'PageDown') { switchWeb(1); return; }
         if (isAct(ev)) { webAct(); return; }
@@ -1325,13 +1368,13 @@
         const card = SW.nodeCard(view, ws.sel, (n) => engine.describeSkill(n));
         const cls = (DATA.basePlayerClasses[p.className] || {}).name || p.className;
         const stat = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
-        els.pause.className = 'panel swx-screen win';
-        els.pause.innerHTML = `
-            <header class="swx-head">
+        els.pause.className = 'panel mm cx swx-screen win';
+        els.pause.innerHTML = `${shellTop(mm.tab, false)}
+            <div class="swx-head">
                 <span class="swx-points"><b>${view.points}</b> point${view.points === 1 ? '' : 's'} to spend<small>${view.earned} earned</small></span>
                 <span class="swx-title">${all.length > 1 ? '<button class="swx-arrow" data-step="-1" aria-label="Previous web">‹</button>' : ''}<h2>${esc(w ? `${w.name} web` : 'Skill Web')}</h2>${all.length > 1 ? '<button class="swx-arrow" data-step="1" aria-label="Next web">›</button>' : ''}</span>
                 <span class="swx-webs">${all.map((x) => `<i class="${x.webId === ws.webId ? 'on' : ''}" title="${esc(x.name)}"></i>`).join('')}</span>
-            </header>
+            </div>
             <div class="swx-body">
                 <div class="swx-stage">${SW.screenSvg(sc, ws.sel, { title: w ? `${w.name} web` : '' })}</div>
                 <aside class="swx-side">
@@ -1343,27 +1386,42 @@
                     ${ws.note ? `<p class="note">${esc(ws.note)}</p>` : ''}
                 </aside>
             </div>
-            <footer class="mm-foot"><p class="keys"><kbd>←↑↓→</kbd> move <kbd>Enter</kbd> learn / unlearn${all.length > 1 ? ' <kbd>Q</kbd> <kbd>R</kbd> other webs' : ''} <kbd>Esc</kbd> back</p></footer>`;
+            <footer class="mm-foot cx-foot"><div class="keys cx-fkeys"><button type="button" class="cx-fkey" data-fkey="ok"><kbd>Enter</kbd><span>${card && card.action ? esc(card.actionText) : 'learn / unlearn'}</span></button><button type="button" class="cx-fkey" data-fkey="back"><kbd>Esc</kbd><span>back</span></button><span class="cx-fhint"><kbd>←↑↓→</kbd> move${all.length > 1 ? ' <kbd>Q</kbd> <kbd>R</kbd> other webs' : ''} <kbd>Tab</kbd> tabs</span></div></footer>`;
         els.pause.hidden = false;
+        bindShell(els.pause);
+        const okBtn = els.pause.querySelector('[data-fkey="ok"]'); if (okBtn) okBtn.addEventListener('click', webAct);
         els.pause.querySelectorAll('.swx-node').forEach((g) => g.addEventListener('click', () => {
             if (mm.webScreen.sel === g.dataset.node) webAct(); else { mm.webScreen.sel = g.dataset.node; mm.webScreen.note = ''; renderWebScreen(); }
         }));
         els.pause.querySelectorAll('.swx-arrow').forEach((b) => b.addEventListener('click', () => switchWeb(+b.dataset.step)));
         const doBtn = els.pause.querySelector('.swx-do'); if (doBtn) doBtn.addEventListener('click', webAct);
     }
-    function skillWebPage(inList, list) {
+    /** The Skill Web tab: a card per web you can open (its picture, what is left to learn), then your walk and
+     *  path; the highlighted web large on the right. Enter on a card opens the full web screen. */
+    function skillWebPage(inList) {
         const view = engine.getSkillWeb();
         if (!view) return '<p class="mm-dim">The Skill Web is closed to you.</p>';
         const hl = inList && menu.items[menu.index];
         const webId = (mm.web && mm.web.webId) || (hl && hl.webId) || engine.getState().player.className;
         const w = SW.webs(view).find((x) => x.webId === webId);
         const sealed = SW.sealedLegends(view);
-        return `<p>${esc(SW.summary(view))}</p>
-            <div class="mm-cols sw-cols"><div>${inList ? list : '<p class="mm-dim">Press <kbd>Enter</kbd> to open your webs.</p>'}</div>
-            <figure class="sw-figure"><figcaption>${esc(w ? `${w.name} web` : webId)}</figcaption>${SW.svg(view, webId, hl && hl.nodeId)}
-            <p class="sw-legend mm-dim">◆ skill · ● passive · ▲ gateway · bright = known · ringed = can learn</p></figure></div>
-            ${sealed.length && !mm.web ? `<p class="mm-dim">Legends sleeping: ${sealed.map((x) => `${esc(x.name)} (needs ${esc(x.needs.join(', '))})`).join(' · ')}</p>` : ''}
-            <p class="mm-dim">Your stats keep growing as your starting class, whatever you learn.</p>`;
+        let left;
+        if (inList && mm.web) left = rowsHtml(menu, null, true);
+        else {
+            const items = inList ? menu.items : skillWebItems();
+            left = `<ul class="${inList ? 'menu ' : ''}cx-cards" role="listbox">${items.map((it, i) => {
+                const sel = inList && i === menu.index ? 'selected' : '';
+                if (!it.webId) return `<li role="option" data-i="${i}" data-enter="${i}" class="cx-cardrow ${sel}"><span class="cx-rowtext"><span class="m-label">${esc(it.label)}</span><span class="m-sub">${esc(it.sub || '')}</span></span></li>`;
+                const x = it.web || {};
+                return `<li role="option" data-i="${i}" data-enter="${i}" class="cx-card ${x.kind === 'legendary' ? 'legend' : ''} ${sel}"><span class="cx-cardfig">${SW.svg(view, it.webId)}</span>
+                    <span class="cx-rowtext"><span class="m-label">${x.kind === 'legendary' ? '★ ' : ''}${esc(x.name || it.label)}</span><span class="m-sub">${esc(it.sub || '')}</span></span>${x.learnable ? `<span class="cx-badge" title="${x.learnable} to learn">${x.learnable}</span>` : ''}</li>`;
+            }).join('')}</ul>`;
+        }
+        const right = hl && !hl.webId ? `<b class="cx-dname">${esc(hl.label)}</b><p>${esc(hl.sub || '')}</p>`
+            : `<figure class="sw-figure"><figcaption>${esc(w ? `${w.name} web` : webId)}</figcaption>${SW.svg(view, webId, hl && hl.nodeId)}
+                <p class="sw-legend mm-dim">◆ skill · ● passive · ▲ gateway · bright = known · ringed = can learn</p></figure>
+                ${hl && hl.webId ? '<button type="button" class="cx-btn cx-do">Open this web</button>' : ''}`;
+        return `<p class="cx-summary">${esc(SW.summary(view))}</p><div class="cx-cols cx-split cx-webs">${pane('Your webs', left)}${pane('', `${right}${sealed.length && !mm.web ? `<p class="mm-dim">Legends sleeping: ${sealed.map((x) => `${esc(x.name)} (needs ${esc(x.needs.join(', '))})`).join(' · ')}</p>` : ''}<p class="mm-dim">Your stats keep growing as your starting class, whatever you learn.</p>`, 'cx-detail')}</div>`;
     }
     /** Run an engine action from the menu and return what it said, for the note line. */
     function actLines(action) {
@@ -1371,120 +1429,302 @@
         updateHud();
         return lines.join(' ');
     }
+    // ---- The menu shell (menu redesign 2026-11-25, docs/ui/MENU_REDESIGN.md) ----
+    // One frame for every page: a header (who you are, HP, gold, points, close), a tab strip with pictures, the page
+    // as panes (list or grid on the left, what is chosen on the right), and a footer of tappable key hints.
+    // The pages only arrange the engine's answers; every action still goes through engine.act().
+    const MI = ENSO.menuIcons;
+    const itemDefOf = (name) => (engine.itemDef ? engine.itemDef(name) : engine.itemDefinitions()[name]) || {};
+    const itemIcon = (name) => (MI ? MI.item(name, itemDefOf(name)) : '');
+    const skillIcon = (name) => (window.EnsoSkillIcons && name ? window.EnsoSkillIcons.svg(name, DATA.skillDefinitions[name]) : '');
+    const RARITY_NAME = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', holy: 'Holy' };
+    const KIND_NAME = { sword: 'Weapon', staff: 'Staff', wand: 'Wand', spear: 'Spear', scythe: 'Scythe', shield: 'Offhand', head: 'Head armor', bodyArmor: 'Body armor', hands: 'Hand armor', feet: 'Foot armor',
+        accessory: 'Accessory', heal: 'Healing', meal: 'Meal', drink: 'Drink', tonic: 'Tonic', gold: 'Coin', camp: 'Tool', quest: 'Keepsake', key: 'Key', book: 'Book' };
+    /** What kind of thing an item is, in words (the second line of its detail). */
+    function itemKindText(name) {
+        const def = itemDefOf(name);
+        const kind = MI ? MI.itemKind(name, def) : '';
+        return `${def.rarity ? `${RARITY_NAME[MI.rarity(def)]} · ` : ''}${KIND_NAME[kind] || (def.type === 'material' ? 'Material' : 'Item')}`;
+    }
+    const rarityClass = (name) => (MI ? `r-${MI.rarity(itemDefOf(name))}` : '');
+    /** A pane: a framed box with a small caps header. */
+    const pane = (title, body, cls = '') => `<div class="cx-pane ${cls}">${title ? `<h3>${title}</h3>` : ''}${body}</div>`;
+    /** The detail pane: a big picture, the name, a kind line, text lines, and an optional action button. */
+    function detailHtml(d) {
+        if (!d) return '<p class="mm-dim">Choose something to see it here.</p>';
+        return `<div class="cx-detail-top">${d.icon ? `<span class="cx-bigic ${d.cls || ''}">${d.icon}</span>` : ''}<div><b class="cx-dname">${esc(d.title)}</b>${d.kind ? `<span class="cx-dkind">${esc(d.kind)}</span>` : ''}</div></div>
+            ${(d.lines || []).filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join('')}${d.html || ''}
+            ${d.action ? `<button type="button" class="cx-btn cx-do"${d.disabled ? ' disabled' : ''}>${esc(d.action)}</button>` : ''}`;
+    }
+    /** A list with pictures: one row per menu item (label, sub line). Works as the keyboard menu when `m` is live. */
+    function rowsHtml(m, iconFn, live) {
+        return `<ul class="${live ? 'menu ' : ''}mm-list cx-rows" role="listbox">${m.items.map((it, i) => `
+            <li role="option" data-i="${i}" data-enter="${i}" aria-selected="${live && i === m.index}" class="${live && i === m.index ? 'selected' : ''} ${it.disabled ? 'disabled' : ''}">
+                ${iconFn && iconFn(it) ? `<span class="cx-ic">${iconFn(it)}</span>` : ''}<span class="cx-rowtext"><span class="m-label">${esc(it.label)}</span>${it.sub && it.showSub !== false ? `<span class="m-sub">${esc(it.sub)}</span>` : ''}</span></li>`).join('')}</ul>`;
+    }
+    /** A grid of square tiles (bag, skills): picture, count, short name. */
+    function tilesHtml(entries, live, selIndex, cls = '') {
+        return `<ul class="${live ? 'menu ' : ''}cx-grid ${cls}" role="listbox">${entries.map((e, i) => `
+            <li role="option" data-i="${i}" data-enter="${i}" title="${esc(e.title || e.label)}" aria-label="${esc(e.title || e.label)}" aria-selected="${live && i === selIndex}"
+                class="cx-tile ${e.cls || ''} ${live && i === selIndex ? 'selected' : ''} ${e.disabled ? 'disabled' : ''}">
+                <span class="cx-ic">${e.icon || ''}</span>${e.count > 1 ? `<span class="cx-qty">${e.count}</span>` : ''}${e.badge ? `<span class="cx-badge">${esc(e.badge)}</span>` : ''}<span class="m-label">${esc(e.label)}</span></li>`).join('')}</ul>`;
+    }
+
+    /** Everything in the bag, in menu order: things you can use, then what you carry, then pending loot. */
+    function bagEntries() {
+        const p = engine.getState().player;
+        const v = MM.itemsView(engine.getAvailableActions(), p.inventory, engine.itemDefinitions());
+        const out = v.usable.map((u) => ({ kind: 'use', item: u.item, count: u.count, enabled: u.enabled, reason: u.reason, description: u.description }));
+        for (const c of v.carrying) out.push({ kind: 'carry', item: c.item, count: c.count, description: itemDefOf(c.item).description || '' });
+        return out;
+    }
+    function bagDetail(e) {
+        if (!e) return null;
+        const def = itemDefOf(e.item);
+        const gear = !!def.slot;
+        return { icon: itemIcon(e.item), cls: rarityClass(e.item), title: `${engine.itemName(e.item)}${e.count > 1 ? ` ×${e.count}` : ''}`, kind: itemKindText(e.item),
+            lines: [def.description || e.description, def.effectText, e.kind === 'use' && !e.enabled && e.reason ? `Not now: ${e.reason.message}` : '',
+                gear ? 'Wearing it opens its slot in Equipment.' : e.kind === 'carry' && def.type === 'material' ? 'Used in cooking, crafting or the forge.' : ''],
+            action: e.kind === 'use' ? 'Use' : gear ? 'Wear it' : null, disabled: e.kind === 'use' && !e.enabled };
+    }
     function statusHtml(p, s) {
         const map = WORLD.maps[session.mapId];
         const cls = (DATA.basePlayerClasses[p.className] || {}).name || p.className;
         const eq = MM.slotsView(engine.getEquipment());
-        return `<div class="mm-status">
-                <canvas class="mm-sprite" width="32" height="36" aria-hidden="true"></canvas>
-                <div class="mm-who"><div class="u-name">${esc(p.name)}</div>
-                    <div class="mm-dim">${esc(cls)}${s.progression.branch ? ` · ${esc(s.progression.evolutionName)}` : ''} · Lv ${p.level}</div>
-                    <div class="mm-dim">${esc(map.name)} · ${esc(WORLD.zones[map.zoneId].name)}</div></div>
-            </div>
-            <div class="mm-bars">
+        const web = engine.getSkillWeb ? engine.getSkillWeb() : null;
+        const who = `<canvas class="mm-sprite cx-figure-big" width="32" height="36" aria-hidden="true"></canvas>
+            <div class="mm-who"><div class="u-name">${esc(p.name)}</div><div class="mm-dim">Lv ${p.level} ${esc(cls)}${s.progression.branch ? ` · ${esc(s.progression.evolutionName)}` : ''}</div>
+            <div class="mm-dim">${esc(map.name)}</div><div class="mm-dim">${esc(WORLD.zones[map.zoneId].name)}</div></div>`;
+        const bars = `<div class="mm-bars">
                 <div class="stat"><span class="k">HP</span>${bar(p.hp, p.maxHp, 'hp')}<span class="v">${p.hp}<small>/${p.maxHp}</small></span></div>
                 <div class="stat"><span class="k">${esc(p.resource.type)}</span>${bar(p.resource.current, p.resource.max, 'res')}<span class="v">${p.resource.current}<small>/${p.resource.max}</small></span></div>
-                <div class="stat"><span class="k">XP</span>${bar(p.xp, p.xpToNext, 'xp')}<span class="v">${p.xp}<small>/${p.xpToNext}</small></span></div>
-            </div>
-            ${statsHtml(p, null)}
-            <ul class="mm-gear">${eq.map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</li>`).join('')}<li><span class="mm-dim">Gold</span> ${p.gold || 0}</li></ul>`;
+                <div class="stat"><span class="k">XP</span>${bar(p.xp, p.xpToNext, 'xp')}<span class="v">${p.xp}<small>/${p.xpToNext}</small></span></div></div>`;
+        const worn = `<ul class="cx-worn">${eq.map((r) => `<li class="${r.item ? rarityClass(r.item) : 'empty'}" data-gear="${r.slot}"><span class="cx-ic">${r.item ? itemIcon(r.item) : MI.slot(r.slot)}</span><span><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</span></li>`).join('')}</ul>
+            <p class="cx-purse"><span class="cx-ic">${MI.svg('coin')}</span>${p.gold || 0} Gold${web ? ` · ${web.points} Skill Web point${web.points === 1 ? '' : 's'}` : ''}</p>`;
+        return `<div class="cx-cols cx-hero">${pane('', `<div class="mm-status">${who}</div>${bars}`, 'cx-who-pane')}${pane('Attributes', statsHtml(p, null))}${pane('Worn', worn)}</div>`;
     }
     /** The stat block; with a candidate's diff it becomes the comparison (▲ better, ▼ worse, never colour alone). */
     function statsHtml(p, diff) {
         return `<dl class="mm-stats">${MM.statPreview(p, diff).map((r) => `<div class="${r.delta > 0 ? 'up' : r.delta < 0 ? 'down' : ''}"><dt>${r.label}</dt><dd>${esc(r.valueText)}${r.delta ? ` <span class="arrow">${r.delta > 0 ? '▲' : '▼'}</span> ${esc(r.afterText)}` : ''}</dd></div>`).join('')}</dl>`;
     }
-    function renderMain() {
-        const s = engine.getState(), p = s.player;
-        const tab = mmTabs[mm.tab].id;
-        const inList = mm.focus === 'list';
-        const tabsHtml = `<ul class="menu mm-tabs" role="tablist" aria-label="Menu">${mmTabs.map((t, i) => {
-            const cls = !inList && i === menu.index ? 'selected' : i === mm.tab ? 'active' : '';
-            return `<li role="tab" data-tab="${i}" data-id="${t.id}" aria-selected="${i === mm.tab}" class="${cls}"><span class="m-label">${esc(t.label)}</span></li>`;
-        }).join('')}</ul>`;
-        const list = inList ? commandHtml(menu).replace('b-commands', 'mm-list') : '';
-        let page = '';
-        if (tab === 'status') page = statusHtml(p, s);
-        if (tab === 'items') {
-            const v = MM.itemsView(engine.getAvailableActions(), p.inventory, engine.itemDefinitions());
-            page = `<h3>Use</h3>${inList ? list : v.usable.length ? `<ul class="mm-plain">${v.usable.map((u) => `<li>${esc(u.item)}${u.count > 1 ? ` ×${u.count}` : ''}</li>`).join('')}</ul>` : '<p class="mm-dim">Nothing to use.</p>'}
-                ${v.carrying.length ? `<h3>Carrying</h3><ul class="mm-plain mm-dim">${v.carrying.map((c) => `<li>${esc(engine.itemName(c.item))}${c.count > 1 ? ` ×${c.count}` : ''}</li>`).join('')}</ul>` : ''}`;
-        }
-        if (tab === 'equipment') {
-            const hl = inList && menu.items[menu.index];
-            const slotLabel = mm.slot ? MM.SLOTS.find((x) => x.slot === mm.slot).label : null;
-            page = `<div class="mm-cols"><div><h3>${slotLabel ? esc(slotLabel) : 'Gear'}</h3>${inList ? list : `<ul class="mm-plain">${MM.slotsView(engine.getEquipment()).map((r) => `<li><span class="mm-dim">${esc(r.label)}</span> ${esc(r.item ? engine.itemName(r.item) : '—')}</li>`).join('')}</ul>`}</div>
-                <div><h3>${hl && hl.diff ? 'If you wear it' : 'Stats'}</h3>${statsHtml(p, hl && hl.diff)}</div></div>`;
-        }
-        if (tab === 'journal') page = journalHtml(inList, list) || '<p class="mm-dim">No journal in this game.</p>';
-        if (tab === 'web') page = skillWebPage(inList, list);
-        if (tab === 'skillbar') {
-            const { bar, bench } = skillBarInfo();
-            page = `<h3>${mm.barSlot != null ? `Key ${slotKey(mm.barSlot)}: choose a skill` : (slotKey(5) === '6' ? 'Keys 1–6' : `Keys ${slotKey(0)}–${slotKey(4)} and ${slotKey(5)}`)}</h3>${inList ? list : `<ul class="mm-plain">${bar.map((b) => `<li><kbd>${slotKey(b.slot)}</kbd> ${b.skillId ? esc(b.skillId) : '<span class="mm-dim">— empty —</span>'}</li>`).join('')}</ul>`}
-                <h3>Not on the bar</h3>${bench.length ? `<ul class="mm-plain mm-dim">${bench.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="mm-dim">Every skill you know is on the bar.</p>'}
-                <p class="mm-dim">Your basic attack needs no slot: ${BASIC_HINT} in a fight. The bar can't change during a fight.</p>`;
-        }
-        if (tab === 'settings') {
-            page = `<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])} <span class="mm-dim">· ${esc(ENSO.display.HELP[displayMode])}</span></p><p>Motion: ${esc(MOTION_LABELS[motionMode])} <span class="mm-dim">· ${esc(MOTION_HELP[motionMode])}</span></p>`}
-                <h3>Controls</h3><ul class="mm-plain">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}</ul>
-                <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
-        }
-        if (tab === 'crow') {
-            const v = CV.crowView(engine.getAvailableActions());
-            page = mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
-                : inList ? `${list}<p class="mm-dim">Black Flight takes you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`
-                : `${v.talk ? `<p>Talk to the crow <span class="mm-dim">· ${esc(v.talk.enabled ? 'ask about this place, your quest or where you have been' : v.talk.reason)}</span></p>` : ''}<h3>Black Flight</h3>${v.flights.length ? `<ul class="mm-plain">${v.flights.map((f) => `<li>${f.here ? '◆ ' : ''}${esc(f.name)} <span class="mm-dim">· ${esc(f.why)}</span></li>`).join('')}</ul>` : '<p class="mm-dim">No perches yet.</p>'}
-                    <p class="mm-dim">The crow can take you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`;
-        }
-        if (tab === 'cheats') page = cheatsPage(inList, list);
-        if (tab === 'union') {
-            const v = engine.getUnion();
-            const owned = v ? v.unions.filter((u) => u.contract) : [];
-            page = !v ? '<p class="mm-dim">No contract.</p>' : mm.union && mm.union.slot != null ? `<h3>Resonance slot ${mm.union.slot + 1}</h3>${list}`
-                : `<h3>Demons</h3>${inList ? list : `<ul class="mm-plain">${v.unions.map((u) => `<li>${v.active === u.id ? '◆ ' : u.id === v.equipped ? '› ' : ''}${esc(u.name)}${u.title ? `<span class="mm-dim">, ${esc(u.title)}</span>` : ''} <span class="mm-dim">· ${u.contract ? esc(u.power || '') : 'no contract yet'}</span></li>`).join('')}</ul>`}
-                    <p class="mm-dim">${v.active ? `◆ You are one with ${esc((v.unions.find((u) => u.id === v.active) || {}).name || '')}${v.endsInMs != null ? ` for ${Math.ceil(v.endsInMs / 1000)} s more` : ''}.` : `Choose a demon to merge with now, in a fight or out of one: ${Math.round(v.durationMs / 1000)} s, then ${Math.round(v.cooldownMs / 1000)} s before the union answers again. ${owned.length > 1 ? '<kbd>U</kbd> opens this page.' : '<kbd>U</kbd> merges.'}`}</p>`;
-        }
-        if (tab === 'save' || tab === 'quit') page = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p><p>Press <kbd>Enter</kbd> to ${tab === 'save' ? 'save' : 'quit'}.</p>`;
-        const keys = inList ? '<kbd>↑↓</kbd> choose <kbd>Enter</kbd> confirm <kbd>Esc</kbd> back'
-            : `<kbd>↑↓</kbd> tabs ${['items', 'equipment', 'skillbar', 'web', 'union', 'journal', 'settings', 'crow', 'cheats'].includes(tab) || tab === 'save' || tab === 'quit' ? '<kbd>Enter</kbd> open ' : ''}<kbd>Esc</kbd> close`;
-        els.pause.className = 'panel mm win';
-        els.pause.innerHTML = `
-            <nav class="mm-nav"><h2>Menu</h2>${tabsHtml}</nav>
-            <section class="mm-page" aria-live="polite"><h2>${esc(mmTabs[mm.tab].label)}</h2>${page}</section>
-            <footer class="mm-foot">${mm.note ? `<p class="note">${esc(mm.note)}</p>` : inList ? '' : `<p class="b-help">${esc(mmTabs[mm.tab].sub)}</p>`}<p class="keys">${keys}</p></footer>`;
-        els.pause.hidden = false;
-        els.pause.querySelectorAll('.mm-tabs li').forEach((li) => li.addEventListener('click', () => { mm.tab = +li.dataset.tab; focusTabs(); runTab(mmTabs[mm.tab].id); }));
-        if (inList) bindMenuClicks(els.pause.querySelector('.mm-page'), menu);
-        const sel = els.pause.querySelector('.mm-list li.selected'); if (sel) sel.scrollIntoView({ block: 'nearest' });
-        const sprite = els.pause.querySelector('canvas.mm-sprite');
-        if (sprite) {
-            const g = sprite.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sprite.width, sprite.height);
-            ENSO.sprites.drawCharacter(g, 16, ENSO.sprites.characterFor(view.className).frame.h > 64 ? 39 : 34, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
-        }
+    /** The gear figure: your character in the middle, a tile for each slot around it. Live while you choose a slot. */
+    function dollHtml(rows, live) {
+        const tiles = rows.map((r, i) => {
+            const sel = live ? i === menu.index : mm.slot === r.slot;
+            return `<li role="option" data-i="${i}" data-slot="${r.slot}" aria-label="${esc(`${r.label}: ${r.item ? engine.itemName(r.item) : 'empty'}`)}" title="${esc(`${r.label}: ${r.item ? engine.itemName(r.item) : 'empty'}`)}"
+                class="cx-tile cx-slot ${r.item ? rarityClass(r.item) : 'empty'} ${sel ? 'selected' : ''} ${r.candidates.length ? 'has-more' : ''}">
+                <span class="cx-ic">${r.item ? itemIcon(r.item) : MI.slot(r.slot)}</span>${r.candidates.length ? `<span class="cx-badge" title="${r.candidates.length} to choose from">${r.candidates.length}</span>` : ''}<span class="m-label">${esc(r.label)}</span></li>`;
+        }).join('');
+        return `<div class="cx-dollwrap"><canvas class="mm-sprite cx-dollfig" width="32" height="36" aria-hidden="true"></canvas><ul class="${live ? 'menu ' : ''}cx-doll" role="listbox" aria-label="Gear slots">${tiles}</ul></div>`;
     }
-    /** ← leaves a list, → opens the highlighted tab (keyboard and pad). */
-    function mainMenuSideways(dir) {
-        if (dir === 'left' && mm.focus === 'list') { menu.back(); return true; }
-        if (dir === 'right' && mm.focus === 'tabs') { const t = mmTabs[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
-        return false;
+    function equipmentHtml(p, inList) {
+        const rows = MM.slotsView(engine.getEquipment());
+        const pickingSlot = !!mm.slot;
+        const hl = inList && menu.items[menu.index];
+        const slotRow = rows.find((r) => r.slot === (mm.slot || (hl && hl.slot) || (rows[0] && rows[0].slot))) || rows[0];
+        let middle;
+        if (pickingSlot) middle = pane(`${esc(slotRow.label)}: choose`, rowsHtml(menu, (it) => (it.item ? itemIcon(it.item) : MI.svg('items')), true));
+        else {
+            const r = slotRow;
+            middle = pane(esc(r ? r.label : 'Gear'), r && r.item ? detailHtml({ icon: itemIcon(r.item), cls: rarityClass(r.item), title: engine.itemName(r.item), kind: itemKindText(r.item), lines: [itemDefOf(r.item).description, r.candidates.length ? `${r.candidates.length} in your bag fit${r.candidates.length === 1 ? 's' : ''} here.` : 'Nothing in your bag fits here.'] })
+                : `<p class="mm-dim">${r ? `Nothing worn on your ${esc(r.label.toLowerCase())}.` : ''}</p><p>${r && r.candidates.length ? `${r.candidates.length} in your bag fit${r.candidates.length === 1 ? 's' : ''} here.` : 'Nothing in your bag fits here yet. Smiths sell armor sets, and fights drop gear.'}</p>`)
+                .replace(/<\/div>$/, `<p class="mm-dim cx-hint">${inList ? 'Enter or tap a slot to change it.' : 'Tap a slot, or press Enter, to change your gear.'}</p></div>`);
+        }
+        return `<div class="cx-cols cx-gear">${pane('Worn', dollHtml(rows, inList && !pickingSlot))}${middle}${pane(hl && hl.diff ? 'If you wear it' : 'Stats', statsHtml(p, hl && hl.diff))}</div>`;
     }
-    /** The engine's journal: active quests with their current objective (◆ = on screen), then what's done.
-     *  In its list, Enter shows or hides a quest on the tracker (the engine's track_quest; it refuses a fifth). */
-    function journalHtml(inList, list) {
+    function itemsHtml(inList) {
+        const entries = bagEntries();
+        const tiles = entries.map((e) => ({ label: engine.itemName(e.item), title: `${engine.itemName(e.item)}${e.count > 1 ? ` ×${e.count}` : ''}`, icon: itemIcon(e.item), count: e.count,
+            cls: `${rarityClass(e.item)}${e.kind === 'use' ? ' usable' : ''}`, disabled: e.kind === 'use' && !e.enabled }));
+        const claim = inList && menu.items[menu.index] && menu.items[menu.index].claim;
+        const pick = inList ? entries[menu.index] : null;
+        const grid = entries.length ? tilesHtml(tiles, inList, menu ? menu.index : -1) : '<p class="mm-dim">Your bag is empty.</p>';
+        const claimRow = inList && menu.items.some((it) => it.claim) ? rowsHtml({ items: menu.items.filter((it) => it.claim), index: -1 }, () => MI.svg('bundle'), false).replace('data-i="0"', `data-i="${menu.items.findIndex((it) => it.claim)}"`) : '';
+        const right = claim ? detailHtml({ icon: MI.svg('bundle'), title: 'Pending loot', lines: [menu.items[menu.index].sub || 'Take what you left behind.'], action: 'Collect' })
+            : pick ? detailHtml(bagDetail(pick)) : `<p class="mm-dim">${entries.length} kind${entries.length === 1 ? '' : 's'} of thing${entries.length === 1 ? '' : 's'} in your bag. Tiles marked ✦ can be used.</p><p class="mm-dim cx-hint">Tap a tile, or press Enter, to look closer.</p>`;
+        return `<div class="cx-cols cx-split cx-bag">${pane(`Bag · ${entries.reduce((n, e) => n + e.count, 0)} things`, grid + claimRow)}${pane('', right, 'cx-detail')}</div>`;
+    }
+    function skillbarHtml(inList) {
+        const { bar, bench, detail } = skillBarInfo();
+        const choosing = mm.barSlot != null;
+        const keyEntries = bar.map((b) => ({ label: b.skillId || 'empty', title: `${slotKey(b.slot)}: ${b.skillId || 'empty'}`, icon: skillIcon(b.skillId), badge: slotKey(b.slot), cls: b.skillId ? '' : 'empty' }));
+        const keysLive = inList && !choosing;
+        const keys = tilesHtml(keyEntries, keysLive, keysLive ? menu.index : choosing ? mm.barSlot : -1, 'cx-keys');
+        const hl = inList && menu.items[menu.index];
+        const name = choosing ? (hl && hl.skill) : keysLive ? (bar[menu.index] || {}).skillId : null;
+        const info = name ? engine.describeSkill(name) : null;
+        const left = choosing
+            ? `${keys.replace('cx-grid cx-keys', 'cx-grid cx-keys static')}<h3>Key ${esc(slotKey(mm.barSlot))}: choose a skill</h3>${rowsHtml(menu, (it) => skillIcon(it.skill), true)}`
+            : `${keys}<h3>Learned, not on the bar</h3>${bench.length ? tilesHtml(bench.map((n) => ({ label: n, icon: skillIcon(n) })), false, -1, 'cx-bench') : '<p class="mm-dim">Every skill you know is on the bar.</p>'}`;
+        const right = info ? detailHtml({ icon: skillIcon(name), title: name, kind: [info.detail, info.cost ? `${info.cost} ${engine.getState().player.resource.type}` : 'Free'].filter(Boolean).join(' · '), lines: [info.description || detail[name]] })
+            : `<p class="mm-dim">Your basic attack needs no slot: ${BASIC_HINT} in a fight. The bar can't change during a fight.</p><p class="mm-dim cx-hint">Tap a key, or press Enter, to put a skill on it.</p>`;
+        return `<div class="cx-cols cx-split">${pane(slotKey(5) === '6' ? 'Keys 1–6' : `Keys ${slotKey(0)}–${slotKey(4)} and ${slotKey(5)}`, left)}${pane('', right, 'cx-detail')}</div>`;
+    }
+    /** The quest log: quests on the left (◆ on screen), the chosen quest on the right. */
+    function journalHtml(inList) {
         const j = engine.story ? engine.getJournal() : null;
         if (!j) return '';
         const active = j.quests.filter((q) => q.state !== 'complete');
         const done = j.quests.filter((q) => q.state === 'complete');
-        const kind = (q) => (q.kind === 'main' ? '' : q.kind === 'job' ? ' <span class="j-kind">job</span>' : ' <span class="j-kind">side</span>');
+        const kindTag = (q) => (q.kind === 'main' ? 'Main' : q.kind === 'job' ? 'Job' : 'Side');
         const max = (ENSO.engineModules && ENSO.engineModules.story && ENSO.engineModules.story.TRACK_MAX) || 4;
         const shown = active.filter((q) => q.tracked).length;
-        const hl = inList && menu.items[menu.index] && j.quests.find((q) => q.id === menu.items[menu.index].questId);
-        const body = inList
-            ? `${list}${hl ? `<p class="j-quest"><b>${esc(hl.title)}</b>${kind(hl)}<br>${hl.objective ? `◆ ${esc(hl.objective.text)}` : ''}${hl.summary ? `<br><i>${esc(hl.summary)}</i>` : ''}</p>` : ''}`
-            : active.map((q) => `<p class="j-quest${q.tracked ? ' tracked' : ''}"><b>${q.tracked ? '◆ ' : ''}${esc(q.title)}</b>${kind(q)}<br>${q.objective ? `◆ ${esc(q.objective.text)}` : `<i>${esc(q.summary)}</i>`}</p>`).join('') || '<p>Nothing to do right now.</p>';
-        const hint = active.some((q) => q.state === 'active') ? `<p class="mm-dim">On screen: ${shown} of ${max}. ${inList ? '<kbd>Enter</kbd> shows or hides a quest.' : 'Press <kbd>Enter</kbd> to choose which quests show on screen.'}</p>` : '';
-        return `<section class="journal"><h3>Journal · ${esc(j.chapter)}</h3>${hint}
-            ${body}
-            ${done.length ? `<p class="j-done">Done: ${done.map((q) => esc(q.title)).join(' · ')}</p>` : ''}</section>`;
+        const rows = inList ? menu.items : active.map((q) => ({ label: `${q.tracked ? '◆' : '◇'} ${q.title}`, questId: q.id }));
+        const list = rows.length ? rowsHtml({ items: rows.map((r) => ({ ...r, label: r.label, sub: kindTag(j.quests.find((q) => q.id === r.questId) || {}) })), index: inList ? menu.index : -1 }, null, inList) : '<p>Nothing to do right now.</p>';
+        const q = (inList ? j.quests.find((x) => x.id === (menu.items[menu.index] || {}).questId) : active.find((x) => x.tracked) || active[0]) || null;
+        const right = q ? `<b class="cx-dname">${esc(q.title)}</b><span class="cx-dkind">${kindTag(q)} quest${q.tracked ? ' · on screen' : ''}</span>
+                ${q.objective ? `<p class="j-obj">◆ ${esc(q.objective.text)}</p>` : ''}${q.summary ? `<p><i>${esc(q.summary)}</i></p>` : ''}
+                ${inList && menu.items[menu.index] && !menu.items[menu.index].disabled ? `<button type="button" class="cx-btn cx-do">${q.tracked ? 'Hide from screen' : 'Show on screen'}</button>` : ''}` : '<p class="mm-dim">No quest chosen.</p>';
+        const hint = active.some((x) => x.state === 'active') ? `<p class="mm-dim">On screen: ${shown} of ${max}.</p>` : '';
+        return `<div class="cx-cols cx-split cx-journal">${pane(`Quests · ${esc(j.chapter)}`, `${hint}${list}${done.length ? `<details class="j-done"><summary>Done (${done.length})</summary>${done.map((x) => esc(x.title)).join(' · ')}</details>` : ''}`)}${pane('', right, 'cx-detail')}</div>`;
+    }
+    /** Pages that stay plain lists (settings, crow, union, cheats): the list on the left, the chosen line on the right. */
+    function listPage(leftHtml, inList, extra = '') {
+        const hl = inList && menu.items[menu.index];
+        const right = hl ? `<b class="cx-dname">${esc(hl.label)}</b>${hl.sub ? `<p>${esc(hl.sub)}</p>` : ''}${hl.disabled ? '<p class="mm-dim">Not available right now.</p>' : ''}${extra}`
+            : `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>${extra}<p class="mm-dim cx-hint">Press Enter or tap a line.</p>`;
+        return `<div class="cx-cols cx-split">${pane('', leftHtml)}${pane('', right, 'cx-detail')}</div>`;
+    }
+    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
+    /** The header and tab strip, shared by every page and the Skill Web screen. */
+    function shellTop(activeTab, tabsFocused) {
+        const p = engine.getState().player;
+        const web = engine.getSkillWeb ? engine.getSkillWeb() : null;
+        const cls = (DATA.basePlayerClasses[p.className] || {}).name || p.className;
+        const badge = { web: web && web.points ? web.points : '' };
+        const tabs = `<ul class="menu mm-tabs cx-tabs" role="tablist" aria-label="Menu">${mmTabs.map((t, i) => {
+            const c = tabsFocused && menu && i === menu.index ? 'selected' : i === activeTab ? 'active' : '';
+            return `<li role="tab" data-tab="${i}" data-id="${t.id}" aria-selected="${i === activeTab}" title="${esc(t.label)}" class="${c}"><span class="cx-ic">${MI.tab(t.id)}</span><span class="m-label"><span class="cx-long">${esc(t.label)}</span><span class="cx-short">${esc(TAB_SHORT[t.id] || t.label)}</span></span>${badge[t.id] ? `<span class="cx-badge">${badge[t.id]}</span>` : ''}</li>`;
+        }).join('')}</ul>`;
+        return `<header class="cx-head">
+                <div class="cx-who"><b>${esc(p.name)}</b><span>Lv ${p.level} ${esc(cls)}</span></div>
+                <div class="cx-chips"><span class="cx-chip hp">HP ${p.hp}/${p.maxHp}</span><span class="cx-chip gold">${p.gold || 0} Gold</span>${web && web.points ? `<span class="cx-chip pts">${web.points} point${web.points === 1 ? '' : 's'}</span>` : ''}</div>
+                <button type="button" class="cx-x" aria-label="Close menu" title="Close (Esc)">✕</button>
+            </header>
+            <nav class="cx-nav">${tabs}</nav>`;
+    }
+    /** Tabs, close and the footer buttons work by tap or click as well as by key. */
+    function bindShell(root) {
+        root.querySelectorAll('.mm-tabs li').forEach((li) => li.addEventListener('click', () => switchTab(+li.dataset.tab, 'click')));
+        const x = root.querySelector('.cx-x'); if (x) x.addEventListener('click', closePause);
+        root.querySelectorAll('[data-fkey]').forEach((b) => b.addEventListener('click', () => {
+            const k = b.dataset.fkey;
+            if (k === 'back') { if (mm.webScreen) closeWebScreen(); else if (menu && menu.back) menu.back(); else closePause(); }
+            if (k === 'ok' && menu && !mm.webScreen) { const it = menu.items[menu.index]; if (it && !it.disabled) it.action(); }
+            if (k === 'prev' || k === 'next') switchTab(mm.tab + (k === 'prev' ? -1 : 1), mm.focus === 'list');
+        }));
+    }
+    /** Go to another tab; `open` goes straight into its list (Q / R, a tapped tab), else it only shows it. */
+    function switchTab(i, open) {
+        const n = mmTabs.length;
+        if (mm.webScreen) { mm.webScreen = null; }
+        mm.tab = ((i % n) + n) % n; mm.note = '';
+        focusTabs();
+        const t = mmTabs[mm.tab];
+        if (open === 'click' || (open && !['save', 'quit'].includes(t.id))) runTab(t.id);
+    }
+    function footHtml(inList) {
+        const tab = mmTabs[mm.tab].id;
+        const btn = (k, keys, text) => `<button type="button" class="cx-fkey" data-fkey="${k}">${keys}<span>${text}</span></button>`;
+        const keys = inList
+            ? `${btn('ok', '<kbd>Enter</kbd>', 'choose')}${btn('back', '<kbd>Esc</kbd>', 'back')}<span class="cx-fhint"><kbd>←↑↓→</kbd> move</span>`
+            : `${['save', 'quit'].includes(tab) ? btn('ok', '<kbd>Enter</kbd>', tab === 'save' ? 'save' : 'quit') : btn('ok', '<kbd>Enter</kbd>', 'open')}${btn('back', '<kbd>Esc</kbd>', 'close')}<span class="cx-fhint"><kbd>←→</kbd> tabs</span>`;
+        return `<footer class="mm-foot cx-foot">${mm.note ? `<p class="note">${esc(mm.note)}</p>` : ''}<div class="keys cx-fkeys">${btn('prev', '<kbd>Q</kbd>', '‹ tab')}${btn('next', '<kbd>R</kbd>', 'tab ›')}${keys}</div></footer>`;
+    }
+    function renderMain() {
+        const s = engine.getState(), p = s.player;
+        const tab = mmTabs[mm.tab].id;
+        const inList = mm.focus === 'list';
+        const list = inList ? rowsHtml(menu, null, true) : '';
+        let page = '';
+        if (tab === 'status') page = statusHtml(p, s);
+        if (tab === 'items') page = itemsHtml(inList);
+        if (tab === 'equipment') page = equipmentHtml(p, inList);
+        if (tab === 'journal') page = journalHtml(inList) || '<p class="mm-dim">No journal in this game.</p>';
+        if (tab === 'web') page = skillWebPage(inList);
+        if (tab === 'skillbar') page = skillbarHtml(inList);
+        if (tab === 'settings') {
+            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>Esc</kbd> this menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
+                <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
+            page = listPage(`<h3>Display and motion</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p><p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
+        }
+        if (tab === 'crow') {
+            const v = CV.crowView(engine.getAvailableActions());
+            page = listPage(mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
+                : inList ? `${list}<p class="mm-dim">Black Flight takes you anywhere you have rested at a marked safe place. ◆ is where you are.</p>`
+                : `${v.talk ? `<p>Talk to the crow <span class="mm-dim">· ${esc(v.talk.enabled ? 'ask about this place, your quest or where you have been' : v.talk.reason)}</span></p>` : ''}<h3>Black Flight</h3>${v.flights.length ? `<ul class="mm-plain">${v.flights.map((f) => `<li>${f.here ? '◆ ' : ''}${esc(f.name)} <span class="mm-dim">· ${esc(f.why)}</span></li>`).join('')}</ul>` : '<p class="mm-dim">No perches yet.</p>'}`, inList);
+        }
+        if (tab === 'cheats') page = listPage(cheatsPage(inList, list), inList);
+        if (tab === 'union') {
+            const v = engine.getUnion();
+            const owned = v ? v.unions.filter((u) => u.contract) : [];
+            page = listPage(!v ? '<p class="mm-dim">No contract.</p>' : mm.union && mm.union.slot != null ? `<h3>Resonance slot ${mm.union.slot + 1}</h3>${list}`
+                : `<h3>Demons</h3>${inList ? list : `<ul class="mm-plain">${v.unions.map((u) => `<li>${v.active === u.id ? '◆ ' : u.id === v.equipped ? '› ' : ''}${esc(u.name)}${u.title ? `<span class="mm-dim">, ${esc(u.title)}</span>` : ''} <span class="mm-dim">· ${u.contract ? esc(u.power || '') : 'no contract yet'}</span></li>`).join('')}</ul>`}`, inList,
+                v ? `<p class="mm-dim">${v.active ? `◆ You are one with ${esc((v.unions.find((u) => u.id === v.active) || {}).name || '')}${v.endsInMs != null ? ` for ${Math.ceil(v.endsInMs / 1000)} s more` : ''}.` : `Choose a demon to merge with now, in a fight or out of one: ${Math.round(v.durationMs / 1000)} s, then ${Math.round(v.cooldownMs / 1000)} s before the union answers again. ${owned.length > 1 ? '<kbd>U</kbd> opens this page.' : '<kbd>U</kbd> merges.'}`}</p>` : '');
+        }
+        if (tab === 'save' || tab === 'quit') page = `<div class="cx-cols cx-single">${pane('', `<span class="cx-bigic">${MI.tab(tab)}</span><p>${esc(mmTabs[mm.tab].sub)}</p><button type="button" class="cx-btn cx-do">${tab === 'save' ? 'Save game' : 'Quit to title'}</button>`, 'cx-detail cx-center')}</div>`;
+        els.pause.className = 'panel mm cx win';
+        els.pause.innerHTML = `${shellTop(mm.tab, !inList)}
+            <section class="mm-page cx-page cx-${tab}" aria-live="polite"><h2 class="sr-only">${esc(mmTabs[mm.tab].label)}</h2>${page}</section>
+            ${footHtml(inList)}`;
+        els.pause.hidden = false;
+        bindShell(els.pause);
+        const pageEl = els.pause.querySelector('.mm-page');
+        if (inList && tab === 'items') {
+            // The bag: a tap only picks a tile and shows it; the Use button (or Enter) uses it, so looking never spends anything.
+            pageEl.querySelectorAll('.menu li[data-i]').forEach((li) => li.addEventListener('click', () => {
+                const i = +li.dataset.i, it = menu.items[i];
+                menu.index = i;
+                if (it.claim && !it.disabled) it.action(); else renderMain();
+            }));
+        } else if (inList) bindMenuClicks(pageEl, menu);
+        else pageEl.querySelectorAll('[data-enter]').forEach((el) => el.addEventListener('click', () => { enterList(tab, +el.dataset.enter); }));
+        if (!inList) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = null; enterList('equipment', +li.dataset.i); }));
+        if (inList && tab === 'equipment' && mm.slot) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = li.dataset.slot; enterList('equipment', 0); }));
+        if (inList && tab === 'skillbar' && mm.barSlot != null) pageEl.querySelectorAll('.cx-keys li').forEach((li) => li.addEventListener('click', () => { mm.barSlot = +li.dataset.i; enterList('skillbar', 0); }));
+        const doBtn = pageEl.querySelector('.cx-do');
+        if (doBtn) doBtn.addEventListener('click', () => {
+            if (tab === 'save' || tab === 'quit') { runTab(tab); return; }
+            const it = menu && menu.items[menu.index]; if (inList && it && !it.disabled) it.action();
+        });
+        const sel = pageEl.querySelector('.menu li.selected'); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+        const tabSel = els.pause.querySelector('.mm-tabs li.selected, .mm-tabs li.active'); if (tabSel && tabSel.scrollIntoView) tabSel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        drawMenuSprites(els.pause);
+    }
+    function drawMenuSprites(root) {
+        root.querySelectorAll('canvas.mm-sprite').forEach((sprite) => {
+            const g = sprite.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sprite.width, sprite.height);
+            ENSO.sprites.drawCharacter(g, 16, ENSO.sprites.characterFor(view.className).frame.h > 64 ? 39 : 34, { appearance: view.appearance, cosmetics: view.cosmetics || {}, className: view.className, facing: 'down', anim: 'idle', scale: 1 }, 0);
+        });
+    }
+    /** Arrow keys in the menu. Tabs: ←→ change tab, ↓ opens it. Lists and grids: move to the nearest entry that
+     *  way on screen (so grids and the gear figure work like a pad), ← with nothing there goes back out. */
+    function mainMenuNav(ev, dir) {
+        if (mm.focus === 'tabs') {
+            if (dir === 'left' || dir === 'right') { menu.index = (menu.index + (dir === 'left' ? mmTabs.length - 1 : 1)) % mmTabs.length; menu.render(); return true; }
+            if (dir === 'down') { const t = mmTabs[menu.index]; if (!['save', 'quit'].includes(t.id)) runTab(t.id); return true; }
+            if (dir === 'up') return true;
+            return false;
+        }
+        const live = [...els.pause.querySelectorAll('.mm-page .menu li[data-i]')];
+        const cur = live.find((li) => +li.dataset.i === menu.index);
+        if (cur && cur.getBoundingClientRect) {
+            const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+            let best = null, bestScore = Infinity;
+            for (const li of live) {
+                if (li === cur) continue;
+                const b = li.getBoundingClientRect(), dx = b.left + b.width / 2 - ax, dy = b.top + b.height / 2 - ay;
+                const along = { left: -dx, right: dx, up: -dy, down: dy }[dir];
+                const across = dir === 'left' || dir === 'right' ? Math.abs(dy) : Math.abs(dx);
+                if (along < 4) continue;
+                const score = along + across * 2.5;
+                if (score < bestScore) { bestScore = score; best = li; }
+            }
+            if (best) { menu.index = +best.dataset.i; menu.render(); return true; }
+        }
+        if (dir === 'left') { menu.back(); return true; }
+        if (dir === 'up' || dir === 'down') return false;   // the end of a list: wrap around as before
+        return true;
     }
     /** One row per active quest: ◆ tracked (on screen), ◇ not. The engine's track_quest options say what's allowed. */
     function journalItems() {
@@ -2690,10 +2930,12 @@
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
             if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
-            if (modal === 'pause' && menu && (dir === 'left' || dir === 'right') && !ev.repeat && mainMenuSideways(dir)) return;
+            if (modal === 'pause' && menu && /^(q|Q|r|R|Tab)$/.test(ev.key) && !ev.repeat) { ev.preventDefault(); switchTab(mm.tab + (ev.key === 'q' || ev.key === 'Q' || (ev.key === 'Tab' && ev.shiftKey) ? -1 : 1), mm.focus === 'list'); return; }
+            if (modal === 'pause' && menu && dir && mainMenuNav(ev, dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
             if (modal === 'talk' && talk && talk.reading) { talkKey(ev); return; }
             if (modal === 'talk' && typing && isAct(ev) && !ev.repeat) { finishTyping(); return; }
+            if (modal === 'talk' && menu && menu.cycle && /^(q|Q|r|R|Tab)$/.test(ev.key) && !ev.repeat) { ev.preventDefault(); menu.cycle(ev.key === 'q' || ev.key === 'Q' || (ev.key === 'Tab' && ev.shiftKey) ? -1 : 1); return; }
             if (menu) menuKey(menu, ev, dir);
             return;
         }
