@@ -829,7 +829,7 @@
 
         /** In an action fight, on each pulse: the pool's passive trickle (combatPerSec). */
         actionCombatRegen(ms) {
-            if (!this.player || this.player.isHollowKing) return 0;
+            if (!this.player) return 0;
             const pool = this.actionResourcePool(this.player.resource.type);
             if (!pool || !this.combat || !this.combat.action) return 0;
             const g = this.actionRegen(this.combat.action, pool.combatPerSec, ms);
@@ -842,7 +842,7 @@
          * The sim calls it every step it isn't fighting; quiet (the HUD shows the bar fill). Returns the events.
          */
         actionCalmRegen(ms) {
-            if (this.mode !== 'explore' || !this.world || !this.player || this.player.isHollowKing) return [];
+            if (this.mode !== 'explore' || !this.world || !this.player) return [];
             const pool = this.actionResourcePool(this.player.resource.type);
             if (!pool) return [];
             const g = this.actionRegen(this.world, pool.calmPerSec, ms, pool.calmTo);
