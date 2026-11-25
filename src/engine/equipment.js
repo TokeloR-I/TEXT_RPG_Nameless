@@ -29,7 +29,7 @@
             const set = d.set && (this.data.armorSets || {})[d.set];
             const setText = set ? `${set.name} set (${Object.entries(set.bonuses).map(([n, mods]) => `${n} pieces: ${fmt(mods)}`).join('; ')})` : '';
             return [d.rarity, d.itemLevel ? `item level ${d.itemLevel}` : '', d.tempered ? `tempered +${d.tempered}` : '', fmt(d.statModifiers),
-                (d.affixes || []).map(a => this.data.equipmentAffixes[a].name).join(', '),
+                (d.affixes || []).map(a => this.data.equipmentAffixes[a]).filter(Boolean).map(a => a.text ? `${a.name}: ${a.text}` : a.name).join(', '),
                 setText, d.effectText, d.sellable ? `Sell: ${d.sellPrice} Gold` : 'Cannot sell', d.description].filter(Boolean).join(' · ');
         }
         rarityForLevel(rarity, level) {
@@ -80,7 +80,8 @@
             return { ...JSON.parse(JSON.stringify(base)), itemBaseId, itemLevel, requiredLevel: itemLevel, baseStatBonus, rank: rarity,
                 rarity, affixes, statModifiers, shopPrice, sellPrice: Math.max(1, Math.floor(shopPrice / 2)),
                 sellable: !base.bound, instanceId, seed: this.seed, unique: false,
-                name: `${rarity[0].toUpperCase() + rarity.slice(1)} ${itemBaseId}` };
+                // An affix that changes how a skill plays names the item ("Rare Kindling Ashwood Staff"), so it reads in a drop.
+                name: `${rarity[0].toUpperCase() + rarity.slice(1)} ${affixes.map(id => this.data.equipmentAffixes[id]).filter(a => a.proc).map(a => `${a.name} `).slice(0, 1).join('')}${itemBaseId}` };
         }
         equipmentModifiers(loadout = this.player.equipment) {
             const sum = {};

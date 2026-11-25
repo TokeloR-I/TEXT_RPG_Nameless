@@ -106,7 +106,7 @@
                     enemies: ['wolfbanner_raider', 'wolfbanner_raider', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
                     text: 'Three men in madder-red wool are tipping the biers out onto the road and going through what falls. One of them holds a spear the way a man holds something he throws. They are not robbing the dead. They are looking for something.' },
                 // The gate: Ulfrun holds the only gap in the crags (one tile wide), so the pass can't be walked.
-                { id: 'frostspine_ulfrun', gate: true, x: 18, y: 11, name: 'Ulfrun Grey-Mantle',
+                { id: 'frostspine_ulfrun', gate: true, respawn: false, x: 18, y: 11, name: 'Ulfrun Grey-Mantle',
                     enemies: ['wolfbanner_ringleader', 'wolfbanner_skirmisher'], trigger: 'contact', sprite: 'constables',
                     text: 'A broad woman with a wolf pelt over her mail stands in the gap where the road goes through the rock, a two-hand axe resting on her shoulder. "The pass is closed, southerner. Go home and tell them the North is counting its dead again."' },
                 // C2-S12 Wolf-Coats on the Road (2026-11-16): wolf-skinned men turned out of the Wolf-Banner after the Thing,
@@ -1651,7 +1651,7 @@
                     text: 'You climb out of the heat. The air at the top is cold and smells of grass, and the well is where you left it.' }
             ],
             encounters: [
-                { id: 'arena_wave_1', x: 9, y: 7, name: 'Hell Imps', enemies: ['hell_imp', 'hell_imp', 'hell_imp'], trigger: 'contact', sprite: 'goblins',
+                { id: 'arena_wave_1', respawn: false, x: 9, y: 7, name: 'Hell Imps', enemies: ['hell_imp', 'hell_imp', 'hell_imp'], trigger: 'contact', sprite: 'goblins',
                     text: 'Three imps the size of children crouch on the hot floor, flicking cinders at each other. They stop when they see you, and grin.' },
                 { id: 'arena_wave_2', x: 18, y: 7, name: 'Ash Hounds', enemies: ['ash_hound', 'ash_hound', 'hell_imp'], trigger: 'contact', sprite: 'wolf', when: { flags: ['underworld_wave_1'] },
                     text: 'Two hounds climb out of the lava with their pelts smoking, an imp riding the shoulders of one.' },
@@ -1815,7 +1815,7 @@
             ],
             encounters: [
                 ...d.waves.map(([name, enemies, sprite, text], i) => ({ id: `${d.id}_wave_${i + 1}`, x: WAVE_AT[i][0], y: WAVE_AT[i][1], name, enemies, trigger: 'contact', sprite, text,
-                    ...(i ? { when: { flags: [`${d.id}_wave_${i}`] } } : {}) })),
+                    ...(i ? { when: { flags: [`${d.id}_wave_${i}`] } } : { respawn: false }) })),
                 { id: `${d.id}_ruler`, x: 13, y: 9, name: d.ruler.name, enemies: [d.id], trigger: 'contact', sprite: 'warden', when: { flags: [`${d.id}_wave_5`] }, text: d.ruler.text }
             ],
             interactables: [

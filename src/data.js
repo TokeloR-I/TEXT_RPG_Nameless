@@ -2948,11 +2948,32 @@
             baseMinionCap: 3,          // Black Pharaoh adds +3
             defaultEnemyXp: 15,
             critChanceCap: 0.5,        // level-up crit growth stops here
-            // Hunting grounds (Tokelo 2026-11-04: a way to reach level 4 to 5 before the Crow Warden). A night in the
-            // homestead bed brings these beaten encounters back for their XP again. Loot claims and quest credit stay once-only.
-            restRespawns: ['grounds_weed_rats', 'road_wolf'],
+            // A world that refills (Tokelo 2026-11-25, research round two pick 2; first hunting grounds 2026-11-04). A night
+            // in the homestead bed or a rest by a hearth brings every beaten group listed here back, like a bonfire. The list
+            // is every ordinary group: no `when` (story timing), no boss, no `respawn: false` (tests/116-wilds.test.js keeps it
+            // in step with the maps). A group that comes back drops fresh loot (a new claim per life, src/engine/wilds.js);
+            // quest credit and story triggers stay once-only.
+            restRespawns: ['grounds_weed_rats', 'road_wolf', 'tollway_ragpickers', 'tollway_root_chewers', 'orchard_east_lookouts',
+                'orchard_west_lookouts', 'orchard_cultists', 'featherwatch_rearguard', 'featherwatch_crows', 'frostspine_caravan_raiders',
+                'barrow_passage_dead', 'barrow_west_dead', 'barrow_east_dead', 'uplands_wolves'],
             // Fallback growth for a class without its own `levelGrowth` (the old flat increase).
             defaultLevelGrowth: { hp: 10, strength: 1, intelligence: 1, agility: 1, def: 1, critChance: 0.01, resource: 2 }
+        };
+
+        // Elites (Tokelo 2026-11-25, research round two pick 2; Diablo champions). When a group comes back after a rest it
+        // may bring an elite: its leader (the member with the most HP) gets one visible modifier, a coloured name, more HP
+        // and XP, and elite loot. Candidate numbers for Gauge. The modifier is rolled at the rest, so the map shows it.
+        const eliteRules = {
+            chance: 0.3,          // per returning group
+            hpMult: 1.6,
+            xpMult: 2,
+            modifiers: {
+                frenzied: { name: 'Frenzied', color: '#ff6a3d', text: 'Moves faster and hits harder.', damageMult: 1.25, speedMult: 1.3 },
+                shielded: { name: 'Shielded', color: '#6fb6ff', text: 'Takes a third less damage.', damageTakenMult: 0.67 },
+                venomous: { name: 'Venomous', color: '#7ddc4a', text: 'Its blows poison you.',
+                    inflict: { type: 'inflict', status: 'Poison', chance: 0.6, value: 2, seconds: 5, duration: 3, stackCap: 3 } },
+                thorned: { name: 'Thorned', color: '#d9a1ff', text: 'Every blow you land on it cuts you back (20%).', thorns: 0.2 }
+            }
         };
 
         // Item swaps per class when picking things up (was referenced but never defined).
@@ -3486,7 +3507,51 @@
                 "modifiers": {
                     "def": 1
                 }
-            }
+            },
+            // Loot worth chasing (Tokelo 2026-11-25, research round two pick 2; Grim Dawn, Diablo, Hades boons). Seven more
+            // stat affixes, then eleven that change how your skills play: a `proc` runs through src/engine/affixes.js after a
+            // hit or a cast, whatever the class (each proc is plain data, tested in tests/116-wilds.test.js). Candidate numbers
+            // for Gauge. Every proc also works out of a fight wherever a skill can hit something.
+            hale: { name: 'Hale', family: 'hale', types: ['armor', 'shield', 'arcane-accessory'], modifiers: { maxHp: 8 } },
+            mighty: { name: 'Mighty', family: 'mighty', types: ['one-hand', 'shield', 'armor'], modifiers: { strength: 1 } },
+            nimble: { name: 'Nimble', family: 'nimble', types: ['one-hand', 'armor'], modifiers: { agility: 1 } },
+            sage: { name: 'Sage', family: 'sage', types: ['staff', 'wand'], modifiers: { intelligence: 2 } },
+            honed: { name: 'Honed', family: 'honed', types: ['wand', 'arcane-accessory'], modifiers: { critChance: 0.03 } },
+            warded: { name: 'Warded', family: 'warded', types: ['armor', 'arcane-accessory'], modifiers: { def: 1, maxHp: 3 } },
+            steady: { name: 'Steady', family: 'steady', types: ['shield'], modifiers: { def: 1, strength: 1 } },
+            kindling: { name: 'Kindling', family: 'kindling', types: ['staff', 'wand'], modifiers: {},
+                text: 'Your spells can set what they hit Burning (35%).',
+                proc: { on: 'spell_hit', chance: 0.35, inflict: { status: 'Burn', value: 2, seconds: 4, duration: 2, stackCap: 3 } } },
+            serrated: { name: 'Serrated', family: 'serrated', types: ['one-hand'], modifiers: {},
+                text: 'Your basic attacks can make foes Bleed (30%).',
+                proc: { on: 'basic_hit', chance: 0.3, inflict: { status: 'Bleed', value: 2, seconds: 4, duration: 2, stackCap: 3 } } },
+            venom_etched: { name: 'Venom-Etched', family: 'venom_etched', types: ['one-hand', 'wand'], modifiers: {},
+                text: 'Your critical hits Poison.',
+                proc: { on: 'crit', inflict: { status: 'Poison', value: 2, seconds: 5, duration: 3, stackCap: 3 } } },
+            rimebound: { name: 'Rimebound', family: 'rimebound', types: ['staff', 'wand', 'arcane-accessory'], modifiers: {},
+                text: 'Skills that cost resource can Slow what they hit (50%, -25% speed).',
+                proc: { on: 'skill_hit', chance: 0.5, inflict: { status: 'Slow', value: 0.25, seconds: 2, duration: 1 } } },
+            forked: { name: 'Forked', family: 'forked', types: ['staff', 'wand'], modifiers: {},
+                text: 'Single-target spells arc on to a second foe for 40% of the damage.',
+                proc: { on: 'spell_hit', fork: 0.4 } },
+            leeching: { name: 'Leeching', family: 'leeching', types: ['one-hand', 'arcane-accessory'], modifiers: {},
+                text: 'Your basic attacks heal you 2 HP for each foe they hit.',
+                proc: { on: 'basic_hit', heal: 2 } },
+            echoing: { name: 'Echoing', family: 'echoing', types: ['armor', 'arcane-accessory'], modifiers: {},
+                text: "15% chance a skill's cooldown resets at once.",
+                proc: { on: 'cast', chance: 0.15, resetCooldown: true } },
+            frugal: { name: 'Frugal', family: 'frugal', types: ['armor', 'arcane-accessory'], modifiers: {},
+                text: '20% chance a skill costs nothing.',
+                proc: { on: 'cast', chance: 0.2, refund: true } },
+            headsmans: { name: "Headsman's", family: 'headsmans', types: ['one-hand', 'staff'], modifiers: {},
+                text: '+25% damage to foes below 30% HP.',
+                proc: { on: 'damage', belowHpPct: 0.3, mult: 1.25 } },
+            opportunists: { name: "Opportunist's", family: 'opportunists', types: ['one-hand', 'wand'], modifiers: {},
+                text: '+20% damage to foes that are bleeding, poisoned or burning.',
+                proc: { on: 'damage', vsDot: true, mult: 1.2 } },
+            tricksters: { name: "Trickster's", family: 'tricksters', types: ['armor'], modifiers: {},
+                text: 'Dodging leaves a decoy behind for 1.5 s that nearby foes go for.',
+                proc: { on: 'dodge', decoyMs: 1500, radius: 110 } }
         };
         const equipmentRarities = {
             "common": {
@@ -3957,7 +4022,7 @@
                 juniper:      { item: 'Juniper Berries', yield: 1, regrowSeconds: 120 }
             },
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
-            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
+            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules, eliteRules,
             statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules, foodRules
         };
 

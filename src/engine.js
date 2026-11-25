@@ -346,7 +346,7 @@
 
     // Behaviour modules (src/engine/*.js). In the browser they are loaded by
     // <script> tags before this file; in Node they are required here.
-    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance', 'union', 'cheats'];
+    const MODULES = ['exploration', 'combat', 'combat-input', 'skills', 'progression', 'skill-web', 'world', 'actions', 'timers', 'control', 'turn-order', 'story', 'save', 'equipment', 'loot', 'realtime', 'action', 'kitchen', 'gaze', 'stance', 'union', 'wilds', 'affixes', 'cheats'];
     for (const name of MODULES) {
         const Module = isNode ? require(`./engine/${name}.js`) : (ENSO.engineModules || {})[name];
         mixin(GameEngine, Module, name);

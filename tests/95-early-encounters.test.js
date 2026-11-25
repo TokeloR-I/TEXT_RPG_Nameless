@@ -50,19 +50,20 @@ test('Homestead rats: every way from the house to the road passes them', () => {
     assert.ok(walkEngages('grounds', 'from_house', [[14, 9], [20, 9], [25, 11], [25, 13], [20, 16], [20, 18], [20, 20]]), 'through the east gap');
 });
 
-test('Hunting grounds: a night in the homestead bed brings back the rats and the wolf pack, nothing else', () => {
+test('Hunting grounds: a night in the homestead bed brings back the rats, the wolf pack and every ordinary group, nothing else', () => {
     const g = new GameEngine({ seed: 7 });
     g.start();
     g.act({ type: 'choose_class', classId: 'rogue' });
     g.act({ type: 'enter_world' });
     g.player.homestead = { built: { homestead_gate: true }, plots: {} };
-    g.world.defeated.push('grounds_weed_rats', 'road_wolf', 'tollway_ragpickers');
+    g.world.defeated.push('grounds_weed_rats', 'road_wolf', 'tollway_strongbox_looters', 'featherwatch_ghoul');
     const s = new WorldSession(ZONE1, { engine: g, map: 'house', spawn: 'from_grounds' });
     inspect(s, 'house_bed');
     const sleep = (g.getAvailableActions().actions || []).find((a) => a.type === 'dialogue_choice' && /Sleep until morning/.test(a.text));
     assert.ok(sleep, 'the bed offers sleep');
     g.act({ type: 'dialogue_choice', choiceId: sleep.choiceId });
     for (const id of data.gameRules.restRespawns) assert.ok(!g.isDefeated(id), `${id} is back`);
-    assert.ok(g.isDefeated('tollway_ragpickers'), 'a story gate stays beaten');
-    assert.deepStrictEqual([...data.gameRules.restRespawns].sort(), ['grounds_weed_rats', 'road_wolf']);
+    assert.ok(g.isDefeated('tollway_strongbox_looters'), 'a story fight stays beaten');
+    assert.ok(g.isDefeated('featherwatch_ghoul'), 'a named one-off (respawn: false) stays beaten');
+    for (const id of ['grounds_weed_rats', 'road_wolf']) assert.ok(data.gameRules.restRespawns.includes(id), `${id} is still a hunting ground`);
 });

@@ -53,14 +53,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 2
+        "magicDamage": 1
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 1,
       "requiredLevel": 1,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 8,
@@ -72,7 +72,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:1:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -129,14 +129,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 3
+        "magicDamage": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 3,
       "requiredLevel": 3,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 13,
@@ -148,7 +148,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:3:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -205,14 +205,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 3
+        "magicDamage": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 4,
       "requiredLevel": 4,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 15,
@@ -224,7 +224,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:4:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -244,16 +244,16 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 3,
-        "intelligence": 1
+        "magicDamage": 2,
+        "intelligence": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 4,
       "requiredLevel": 4,
       "rarity": "rare",
       "affixes": [
-        "arcanist",
-        "focused"
+        "headsmans",
+        "sage"
       ],
       "sellable": true,
       "sellPrice": 25,
@@ -265,7 +265,7 @@
       "rank": "rare",
       "instanceId": "snapshot:4:rare",
       "seed": 170,
-      "name": "Rare Wooden Staff"
+      "name": "Rare Headsman's Wooden Staff"
     }
   },
   {
@@ -322,14 +322,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 4
+        "magicDamage": 3
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 7,
       "requiredLevel": 7,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 22,
@@ -341,7 +341,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:7:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -361,16 +361,16 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 5,
-        "intelligence": 1
+        "magicDamage": 4,
+        "intelligence": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 7,
       "requiredLevel": 7,
       "rarity": "rare",
       "affixes": [
-        "arcanist",
-        "focused"
+        "headsmans",
+        "sage"
       ],
       "sellable": true,
       "sellPrice": 36,
@@ -382,7 +382,7 @@
       "rank": "rare",
       "instanceId": "snapshot:7:rare",
       "seed": 170,
-      "name": "Rare Wooden Staff"
+      "name": "Rare Headsman's Wooden Staff"
     }
   },
   {
@@ -402,8 +402,8 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 5,
-        "intelligence": 1,
+        "magicDamage": 4,
+        "intelligence": 2,
         "critChance": 0.02
       },
       "itemBaseId": "Wooden Staff",
@@ -411,8 +411,8 @@
       "requiredLevel": 7,
       "rarity": "epic",
       "affixes": [
-        "arcanist",
-        "focused",
+        "headsmans",
+        "sage",
         "keen"
       ],
       "sellable": true,
@@ -425,7 +425,7 @@
       "rank": "epic",
       "instanceId": "snapshot:7:epic",
       "seed": 170,
-      "name": "Epic Wooden Staff"
+      "name": "Epic Headsman's Wooden Staff"
     }
   },
   {
@@ -482,14 +482,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 5
+        "magicDamage": 4
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 10,
       "requiredLevel": 10,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 28,
@@ -501,7 +501,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:10:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -521,16 +521,16 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 6,
-        "intelligence": 1
+        "magicDamage": 5,
+        "intelligence": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 10,
       "requiredLevel": 10,
       "rarity": "rare",
       "affixes": [
-        "arcanist",
-        "focused"
+        "headsmans",
+        "sage"
       ],
       "sellable": true,
       "sellPrice": 47,
@@ -542,7 +542,7 @@
       "rank": "rare",
       "instanceId": "snapshot:10:rare",
       "seed": 170,
-      "name": "Rare Wooden Staff"
+      "name": "Rare Headsman's Wooden Staff"
     }
   },
   {
@@ -562,8 +562,8 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 7,
-        "intelligence": 1,
+        "magicDamage": 6,
+        "intelligence": 2,
         "critChance": 0.02
       },
       "itemBaseId": "Wooden Staff",
@@ -571,8 +571,8 @@
       "requiredLevel": 10,
       "rarity": "epic",
       "affixes": [
-        "arcanist",
-        "focused",
+        "headsmans",
+        "sage",
         "keen"
       ],
       "sellable": true,
@@ -585,7 +585,7 @@
       "rank": "epic",
       "instanceId": "snapshot:10:epic",
       "seed": 170,
-      "name": "Epic Wooden Staff"
+      "name": "Epic Headsman's Wooden Staff"
     }
   },
   {
@@ -642,14 +642,14 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 9
+        "magicDamage": 8
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 20,
       "requiredLevel": 20,
       "rarity": "uncommon",
       "affixes": [
-        "arcanist"
+        "headsmans"
       ],
       "sellable": true,
       "sellPrice": 50,
@@ -661,7 +661,7 @@
       "rank": "uncommon",
       "instanceId": "snapshot:20:uncommon",
       "seed": 170,
-      "name": "Uncommon Wooden Staff"
+      "name": "Uncommon Headsman's Wooden Staff"
     }
   },
   {
@@ -681,16 +681,16 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 10,
-        "intelligence": 1
+        "magicDamage": 9,
+        "intelligence": 2
       },
       "itemBaseId": "Wooden Staff",
       "itemLevel": 20,
       "requiredLevel": 20,
       "rarity": "rare",
       "affixes": [
-        "arcanist",
-        "focused"
+        "headsmans",
+        "sage"
       ],
       "sellable": true,
       "sellPrice": 84,
@@ -702,7 +702,7 @@
       "rank": "rare",
       "instanceId": "snapshot:20:rare",
       "seed": 170,
-      "name": "Rare Wooden Staff"
+      "name": "Rare Headsman's Wooden Staff"
     }
   },
   {
@@ -722,8 +722,8 @@
         "mage"
       ],
       "statModifiers": {
-        "magicDamage": 12,
-        "intelligence": 1,
+        "magicDamage": 11,
+        "intelligence": 2,
         "critChance": 0.02
       },
       "itemBaseId": "Wooden Staff",
@@ -731,8 +731,8 @@
       "requiredLevel": 20,
       "rarity": "epic",
       "affixes": [
-        "arcanist",
-        "focused",
+        "headsmans",
+        "sage",
         "keen"
       ],
       "sellable": true,
@@ -745,7 +745,7 @@
       "rank": "epic",
       "instanceId": "snapshot:20:epic",
       "seed": 170,
-      "name": "Epic Wooden Staff"
+      "name": "Epic Headsman's Wooden Staff"
     }
   }
 ]
