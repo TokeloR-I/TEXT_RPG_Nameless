@@ -384,6 +384,37 @@
             this.enterNode(npcId, entry.node);
         }
 
+        /**
+         * What floats over this person in the world (pure; Hawk, 2026-11-25): '!' when talking to them now would offer
+         * a quest you haven't started (their opening node, then any choice you could pick, a few steps deep), '?' when
+         * an active quest's current objective is to talk to them, else null. Reads the same conditions talk uses.
+         */
+        npcMarker(npcId) {
+            const npc = this.npcDef(npcId), s = this.story;
+            if (!npc || !s || !this.storyAllows(npc.when)) return null;
+            for (const id of Object.keys(s.quests)) {
+                const o = this.currentObjective(id);
+                if (o && o.on && o.on.type === 'talk' && o.on.id === npcId) return '?';
+            }
+            const entry = (npc.talk || []).find((t) => this.storyAllows(t.if));
+            if (!entry) return null;
+            const offers = (effects) => (effects || []).some((e) => e && e.start && ['unseen', 'available'].includes((s.quests[e.start] || { state: 'unseen' }).state));
+            const seen = new Set(), queue = [[entry.node, 0]];
+            while (queue.length) {
+                const [id, depth] = queue.shift();
+                const node = npc.nodes[id];
+                if (!node || seen.has(id)) continue;
+                seen.add(id);
+                if (offers(node.effects)) return '!';
+                for (const c of node.choices || []) {
+                    if (!this.storyAllows(c.if)) continue;
+                    if (offers(c.effects)) return '!';
+                    if (c.to && depth < 5) queue.push([c.to, depth + 1]);
+                }
+            }
+            return null;
+        }
+
         /** Dialogue choices on offer now (pure). Every node has a way out. */
         dialogueChoices() {
             const d = this.story && this.story.dialogue;
