@@ -1515,6 +1515,7 @@
             // --- turn denial / control
             'Stun':             { category: 'control', control: 'hard' },
             'Frozen in time':   { category: 'control', control: 'hard' },
+            'Erased':           { category: 'control', control: 'hard' },   // Oblivion's Call (Hollow King): out of the world, cannot act
             'Dominated':        { category: 'control', control: 'hard' },   // Death's Dominion (Deathlord Eternal): kneels, cannot act   // Freeze Time: hard per affected target
             'Confused':         { category: 'control', control: 'hard' },   // only applied when the roll skips the turn
             'Entranced':        { category: 'control', control: 'hard' },
@@ -1718,7 +1719,10 @@
                     'Soul Energy': { combatPerSec: 0.25, calmPerSec: 1 },          // +1 every 4 s in a fight; 0 -> 10 in 10 s out of one
                     'Mana':        { combatPerSec: 0,    calmPerSec: 2 },          // already regens 1/s in a fight; 0 -> 20 in 10 s
                     'Energy':      { combatPerSec: 0,    calmPerSec: 1.5 },        // already regens 1.5/s in a fight; 0 -> 15 in 10 s
-                    'Momentum':    { combatPerSec: 0.25, calmPerSec: 0.5, calmTo: 2 }   // had no income at all; walk in with one Power Strike
+                    'Momentum':    { combatPerSec: 0.25, calmPerSec: 0.5, calmTo: 2 },  // had no income at all; walk in with one Power Strike
+                    // The Hollow King (Tokelo, 2026-11-25: "still uses the old turn-based mana"): carried in like the rest,
+                    // a Soul Energy-sized trickle on top of Void Rend's +3 (+10 crit) per hit; 0 -> 10 in 10 s out of a fight
+                    'Hollow Will': { combatPerSec: 0.25, calmPerSec: 1 }
                 }
             },
             skillShapes: {

@@ -76,7 +76,7 @@ it every step.
 
 Tokelo (2026-10-31): a necromancer who spent Soul Energy on Raise Skeleton was left too low to cast anything, and every
 fight reset the pool to its start value anyway. Action fights now recover the class pools listed in
-`actionRules.resources.pools` (Soul Energy, Mana, Energy, Momentum); the turn-based and v2 modes are unchanged.
+`actionRules.resources.pools` (Soul Energy, Mana, Energy, Momentum, Hollow Will); the turn-based and v2 modes are unchanged.
 
 - **In a fight** (`actionCombatRegen`, on each pulse): a passive trickle (`combatPerSec`) on top of each class's own
   income (Mana and Energy regen, Soul Energy for dealing damage and kills). Fractions carry over between pulses.
@@ -92,6 +92,7 @@ fight reset the pool to its start value anyway. Action fights now recover the cl
 | Mana (max 20) | unchanged (regen 2 per pulse = 1/s) | +2/s, to 20 | Mana never bound in a fight; the refill is about walking in full. |
 | Energy (max 15) | unchanged (regen 3 per pulse = 1.5/s) | +1.5/s, to 15 | As Mana. |
 | Momentum (max 10) | +0.25/s (+1 every 4 s) | +0.5/s, to 2 only | The warrior's starting kit had no way to earn Momentum, so Power Strike (2) never came up. The refill stops at 2: one Power Strike to open with, while the rest is still built in the fight. |
+| Hollow Will (max 10) | +0.25/s (+1 every 4 s) | +1/s, to 10 | The Hollow King used to start every fight at 0 and never refill (the turn-based rule). Now he walks in with what he had, Void Rend still earns +3 (+10 on a crit) per hit, and Unmake (5) is ready again after about 5 s of calm. |
 
 ## World drops
 

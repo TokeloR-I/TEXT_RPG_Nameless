@@ -346,7 +346,7 @@ Note that ✅ means the *effects* work. A few skill-text conditions aren't enfor
 | Void Rend | 0 Hollow Will | A basic strike that generates 3 Hollow Will (or 10 on a critical hit). | ✅ works |
 | Unmake | 5 Hollow Will | Remove a target from the fight permanently. | ✅ works |
 | Echo of Nothing | 3 Hollow Will | Skip the enemy’s next 2 turns. | ✅ works |
-| Oblivion’s Call | all Hollow Will | Erase the entire enemy team for 1 turn; they cannot act or be targeted. | ❌ not implemented (erase_enemies) |
+| Oblivion’s Call | all Hollow Will | Erase the entire enemy team for 1 turn; they cannot act or be targeted. | ⚠️ partial: hard control on every enemy (Control Resistance applies; 3 s live); they can still be targeted |
 
 **Skill text not enforced even where marked ✅:**
 Backstab's +5 vs [Flanked] (no flanking exists) · Sever Spine "once per boss fight" (no limit) ·

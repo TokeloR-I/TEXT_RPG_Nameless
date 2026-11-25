@@ -450,6 +450,15 @@
         }
     });
 
+    register('erase_enemies', { // Oblivion's Call (Hollow King overdrive): the whole enemy team is erased from time for a while
+        partial: 'they cannot act, but can still be targeted',
+        applies: { name: 'Erased', type: 'skip_turn' }, // control status (Control Resistance hints in getAvailableActions)
+        apply(ctx) {
+            const gone = living(ctx).filter((t) => skip(ctx, t, ctx.effect.duration || 1, 'Erased'));
+            ctx.engine.say(gone.length ? `The Hollow King calls oblivion. ${gone.map((t) => t.name).join(', ')} flicker${gone.length === 1 ? 's' : ''} out of the world.` : 'Nothing here answers oblivion.', { important: true });
+        }
+    });
+
     register('execute_bonus', { // Assassinate (ninja rework): +value × damage against a target under `threshold` HP. Never a kill outright.
         afterCalc(ctx, hit) {
             const t = hit.target;

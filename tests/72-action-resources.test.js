@@ -87,3 +87,66 @@ test('The calm refill does nothing in a fight, and the old modes are untouched',
     rt.startCombat([anEnemy(rt)], 'x');
     assert.strictEqual(rt.player.resource.current, 1, 'v2 real-time still resets to startOfFight');
 });
+
+// Tokelo (2026-11-25): "the Hollow King still uses the old turn-based way mana is consumed". Hollow Will started every
+// action fight at 0, never trickled and never refilled out of a fight; it now follows the same pool rules as the classes.
+function hollowKing(mode = 'action') {
+    const g = engine('warrior', mode);
+    g.becomeHollowKing();
+    g.player.hp = g.player.maxHp = 9999;
+    g.flush();
+    return g;
+}
+
+test('Hollow King: Hollow Will refills out of a fight (0 -> 10 in 10 s) and is carried into the next one', () => {
+    const g = hollowKing();
+    assert.strictEqual(g.player.resource.type, 'Hollow Will');
+    assert.strictEqual(g.player.resource.current, 0);
+    for (let i = 0; i < 5; i++) g.actionCalmRegen(1000);
+    assert.strictEqual(g.player.resource.current, 5, 'Unmake (5) is ready after 5 s of calm');
+    for (let i = 0; i < 10; i++) g.actionCalmRegen(1000);
+    assert.strictEqual(g.player.resource.current, 10, 'full, never past max');
+    g.player.resource.current = 7;
+    assert.ok(g.actionEngage('t', [anEnemy(g)]).ok);
+    assert.strictEqual(g.player.resource.current, 7, 'no reset to 0 when the fight starts');
+});
+
+test('Hollow King: Hollow Will trickles in a fight on top of Void Rend, and Unmake spends it on the live path', () => {
+    const g = hollowKing();
+    g.player.resource.current = 0;
+    assert.ok(g.actionEngage('t', [anEnemy(g), anEnemy(g), anEnemy(g)]).ok);
+    for (let i = 0; i < 8; i++) g.tick(1000);
+    assert.strictEqual(g.player.resource.current, 2, '8 s of a fight: +2');
+    const c = g.actionCast('attack');
+    assert.ok(c.ok && c.skill === 'Void Rend', JSON.stringify(c));
+    g.actionResolve(c.castId, ['enemy_0']);
+    assert.ok(g.player.resource.current >= 5, `Void Rend still pays +3 (+10 crit): ${g.player.resource.current}`);
+    for (let i = 0; i < 2; i++) g.tick(1000);
+    const before = g.player.resource.current;
+    const u = g.actionCast('Unmake');
+    assert.ok(u.ok, JSON.stringify(u.error));
+    assert.ok(g.actionResolve(u.castId, ['enemy_1']).ok);
+    assert.strictEqual(g.player.resource.current, before - 5);
+    assert.ok(g.combat.enemies.find((e) => e.id === 'enemy_1').erased);
+});
+
+test("Hollow King: Oblivion's Call works in a live fight (every enemy erased from time, 3 s), once per fight", () => {
+    const g = hollowKing();
+    g.player.resource.current = 10;
+    assert.ok(g.actionEngage('t', [anEnemy(g), anEnemy(g)]).ok);
+    const opt = g.skillAvailability('Oblivion’s Call', false);
+    assert.ok(opt.enabled, JSON.stringify(opt.reason));
+    const c = g.actionCast('Oblivion’s Call');
+    assert.ok(c.ok, JSON.stringify(c.error));
+    if (c.castId) assert.ok(g.actionResolve(c.castId, ['enemy_0', 'enemy_1']).ok);
+    assert.strictEqual(g.player.resource.current, 0, "costs all the Hollow Will you have");
+    for (const e of g.alive(g.combat.enemies)) assert.ok(e.statusEffects.some((s) => s.name === 'Erased' && s.type === 'skip_turn'), e.name);
+    assert.strictEqual(g.skillAvailability('Oblivion’s Call', false).enabled, false, 'once per fight');
+});
+
+test('Hollow King: the turn-based mode keeps the old reset to 0', () => {
+    const g = hollowKing('turn');
+    g.player.resource.current = 7;
+    g.startCombat([anEnemy(g)], 'x');
+    assert.strictEqual(g.player.resource.current, 0);
+});
