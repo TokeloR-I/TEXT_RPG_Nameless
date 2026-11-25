@@ -462,9 +462,20 @@
     const darker = (hex, k = 0.72) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
     /** HD-2D villagers: the same layered, proportioned sprite pipeline as the player (ui/sprites.js), recoloured
      *  per villager, with their hat, helm, hood or tool on top. Falls back to the simple figure without sprites. */
+    // Living villagers (Hawk, 2026-11-25): someone you walk up to turns to look at you, and turns back to what they were
+    // doing once you leave. draw() sets where the player stands each frame; presentation only.
+    let lookAt = null;
+    const LOOK_PX = 64;
+    function facingToward(cx, cy, fallback = 'down') {
+        if (!lookAt) return fallback;
+        const dx = lookAt.x - cx, dy = lookAt.y - cy;
+        if (Math.hypot(dx, dy) > LOOK_PX) return fallback;
+        return Math.abs(dx) > Math.abs(dy) * 1.2 ? (dx > 0 ? 'right' : 'left') : (dy < 0 ? 'up' : 'down');
+    }
     function person(g, px, py, t, o) {
         if (!ENSO.sprites || !ENSO.sprites.drawCharacter) return personFlat(g, px, py, t, o);
         const cx = px + 16, base = py + 30;
+        const facing = facingToward(cx, base - 10, o.facing || 'down');
         const seed = Math.floor(hash(Math.round(px), Math.round(py), 3) * 1000);
         g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(cx, base - 1, 8, 3, 0, 0, Math.PI * 2); g.fill();
         const EN = ENSO.spriteManifest && ENSO.spriteManifest.enso;
@@ -476,7 +487,7 @@
             const palette = { cloth: o.cloak, ...(o.hair && { hair: o.hair }), ...(o.skin && { skin: o.skin }), ...(o.belt && { accent: o.belt }),
                 ...(hat && { hat: o.hood || o.hat || '#4a4038' }), ...(o.helm && { metal: o.helm }), ...(o.scarf && { accent: o.scarf }) };
             const cosmetics = { hairStyle: o.hairStyle != null ? o.hairStyle : seed % EN.options.hairStyles.length, hairColor: seed % 6, outfit, hat, weapon: -1, shield: 0 };
-            ENSO.sprites.drawCharacter(g, cx, base, { appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics, palette, character: EN, facing: 'down', anim: 'idle' }, t);
+            ENSO.sprites.drawCharacter(g, cx, base, { appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics, palette, character: EN, facing, anim: 'idle' }, t);
             return personProps(g, cx, base - 30, { ...o, hat: null, hood: null, helm: null, scarf: null });
         }
         const palette = { c: o.cloak, C: darker(o.cloak) };
@@ -485,7 +496,7 @@
         if (o.skin) Object.assign(palette, { s: o.skin, S: darker(o.skin, 0.85) });
         ENSO.sprites.drawCharacter(g, cx, base, {
             appearance: o.appearance != null ? o.appearance : seed % 4, cosmetics: { hairStyle: o.hairStyle != null ? o.hairStyle : seed % 12, hairColor: seed % 4, outfit: 0 },
-            facing: 'down', anim: 'idle', palette
+            facing, anim: 'idle', palette
         }, t + seed * 37);
         personProps(g, cx, base - 30, o);
     }
@@ -1125,6 +1136,7 @@
             if (scene) SCENE.animate(g, src, time);
             else for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ANIMATED.has(nameAt(src, x, y)) && !artCells(src, x, y, UNDER).length) paintTile(g, src, x, y, time);
             T = cellOf(map);
+            lookAt = view.x != null && !view.battle ? { x: view.x * T + T / 2, y: view.y * T + T / 2 } : null;   // villagers turn to the player
             run('ground', { map, time, ox, oy, view });
             // People, enemies, objects and the player, back to front so whoever stands lower overlaps.
             for (const d of drawOrder(objects, view, view.actors)) {

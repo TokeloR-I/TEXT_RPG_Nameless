@@ -134,6 +134,17 @@ Skill buttons use compact original pictograms (32–52 CSS pixels), with names a
 The action HUD hides and becomes inert during dialogue, shops, menus and story transitions, then returns on close.
 The arrow keys still walk. Touch pad: unchanged walk buttons plus attack and dodge.
 
+Game feel (2026-11-25, `docs/design/GAME_EXPERIENCE_RESEARCH_2026-11-25.md`):
+- **Input buffer**: an attack, skill or dodge pressed while you are busy is kept for `player.inputBufferMs` and comes
+  out on the step you can act, aimed where you aim then.
+- **Combo strings**: a basic attack within `weapon.comboResetMs` of the last walks `weapon.combo` (shape and timing
+  per step, `stepPx` steps in on the finisher); damage is the engine's basic attack on every step.
+- **Aim assist**: an unaimed press in a fight turns to the nearest engaged enemy within `player.aimAssist`.
+- **Cues**: the sim emits `windup` (enemy attack starts, `boss` flag) and `hit`/`damage` carry `crit` (the engine's
+  hit line has `crit: true, targetId`). The front end plays sound (`ui/audio.js`), a short hit-stop (it gives the sim no
+  time for those frames; never in the sim itself) and phone vibration.
+- **Gamepad** (`ui/gamepad.js`): sends the same keys as the keyboard; the mapping is in the file header.
+
 ## Delivery team (direction §12: phases A–E are a planning aid, not gates)
 
 The Claude Gaming Studio delivers, led by Wren (development), Pixie (UI/UX) and Tally (QA). The studio's specialist
