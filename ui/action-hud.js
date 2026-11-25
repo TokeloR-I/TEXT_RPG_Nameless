@@ -33,6 +33,9 @@
     /** Key hint per engine skill-bar slot (index = engine slot). */
     const SLOT_KEYS = ['2', '3', '4', '5', '6', 'R'];
     const BASIC_KEY = '1';
+    /** The name shown for one of the game's keys: yours when you rebound it (Settings, ui/access.js). */
+    let keyLabel = (k) => k;
+    function setKeyLabel(fn) { keyLabel = typeof fn === 'function' ? fn : (k) => k; }
     const CATEGORY_GLYPH = { buff: '▲', debuff: '▼', dot: '✸', control: '◆', mark: '◎', cooldown: '⧗', other: '•' };
     // Conditions an enemy can put on you (Bleed, Poison, Burn, Slow): their own glyph and colour (world.css .cond-*), so
     // a wolf's bleed reads differently from a bog light's poison at a glance.
@@ -157,7 +160,7 @@
         if (!o) return null;
         const count = o.item ? (p.inventory || []).filter((i) => i === o.item).length : 0;
         return { enabled: !!o.enabled, item: o.item || null, count,
-            title: o.enabled ? `${HEAL_KEY} · Quick heal: ${o.item}${count > 1 ? ` (${count})` : ''}` : `${HEAL_KEY} · Quick heal: ${(o.reason && o.reason.message) || 'not now'}` };
+            title: o.enabled ? `${keyLabel(HEAL_KEY)} · Quick heal: ${o.item}${count > 1 ? ` (${count})` : ''}` : `${keyLabel(HEAL_KEY)} · Quick heal: ${(o.reason && o.reason.message) || 'not now'}` };
     }
 
     /** The stance cell (T): Fenrir's Heir's wolves (engine.getStance(), src/engine/stance.js). Hidden without a stance web.
@@ -214,7 +217,8 @@
         const res = p.resource || { type: '', current: 0, max: 0 };
         const gcd = inCombat && rt ? timer(rt.gcd) : null;
 
-        const slots = SLOT_KEYS.map((key, slot) => {
+        const slots = SLOT_KEYS.map((gameKey, slot) => {
+            const key = keyLabel(gameKey);
             const entry = bar.find((b) => b && b.slot === slot) || { slot, skillId: null };
             if (!entry.skillId) return { slot, key, skillId: null, empty: true, state: 'empty', abbr: '', glyph: '', cost: null, enabled: false, reason: null, cd: null, gcd: null, title: `${key} · empty slot (set it in the menu)` };
             const id = entry.skillId;
@@ -247,12 +251,12 @@
         const basicReason = atk && !atk.enabled ? (atk.reason || null) : null;
         const swing = inCombat && rt ? timer(rt.basic) : null;
         const basic = {
-            key: BASIC_KEY, skillId: basicName, definition: iconDefinition(basicName), abbr: abbrev(basicName), glyph: '⚔', swing,
+            key: keyLabel(BASIC_KEY), skillId: basicName, definition: iconDefinition(basicName), abbr: abbrev(basicName), glyph: '⚔', swing,
             // A caster's free attack is a bolt from the staff or wand (2026-11-09), so its key shows that, not a sword.
             ...(basicName === 'Basic Attack' && ['mage', 'necromancer'].includes(p.className) ? { icon: 'Staff Bolt' } : {}),
             enabled: !basicReason, reason: basicReason,
             state: basicReason ? (swing ? 'cooldown' : 'disabled') : 'ready',
-            title: `LMB / ${BASIC_KEY} · ${basicName} · free${basicReason ? ` — ${basicReason.message}` : ''}`
+            title: `LMB / ${keyLabel(BASIC_KEY)} · ${basicName} · free${basicReason ? ` — ${basicReason.message}` : ''}`
         };
 
         // When every usable control is refused for the same non-timer reason (stunned, silenced, …), say it once.
@@ -414,12 +418,12 @@
         h('span', 'ahud-sep', barEl);
         const dodge = h('div', 'ahud-slot dodge is-ready', barEl);
         dodge.setAttribute('title', 'Space · Dodge');
-        h('span', 'glyph', dodge, '»'); const dodgeSh = h('span', 'shutter', dodge); h('span', 'key', dodge, 'SPC');
+        h('span', 'glyph', dodge, '»'); const dodgeSh = h('span', 'shutter', dodge); const dodgeKey = h('span', 'key', dodge, 'SPC');
         let dodgeTotal = 0;
         // Quick heal (Tokelo, 2026-11-04): H or a click uses the best healing item you carry.
         const healEl = h('div', 'ahud-slot dodge heal', barEl);
         healEl.setAttribute('role', 'button');
-        h('span', 'glyph', healEl, '✚'); const healN = h('span', 'secs', healEl); h('span', 'key', healEl, HEAL_KEY);
+        h('span', 'glyph', healEl, '✚'); const healN = h('span', 'secs', healEl); const healKey = h('span', 'key', healEl, HEAL_KEY);
         const healFns = [];
         healEl.addEventListener('pointerdown', (e) => { stop(e); healFns.forEach((f) => f()); });
         // Fenrir's Heir: T or a click changes wolf (Sköll -> Hati -> Fenrir).
@@ -450,7 +454,7 @@
         }
 
         function paintSlot(el, s, isBasic) {
-            text(el.key, isBasic ? '1' : s.key);
+            text(el.key, s.key);
             // The provider owns safe, decorative markup; skill names only enter text/attributes.
             const icons = global.EnsoSkillIcons;
             const changedId = put(el.icon, 'skillId', s.empty ? null : s.skillId);
@@ -522,6 +526,9 @@
         function update(m, now = 0) {
             if (!m) return;
             cls(box, 'in-combat', m.inCombat);
+            const dk = keyLabel(' ');
+            text(dodgeKey, dk === ' ' ? 'SPC' : dk === 'Space' ? 'SPC' : dk); text(healKey, keyLabel(HEAL_KEY));
+            attr(dodge, 'title', `${dk === ' ' ? 'Space' : dk} · Dodge`);
             // vitals
             const identity = m.player.portrait || {};
             const nextPortrait = JSON.stringify(identity);
@@ -629,7 +636,7 @@
         };
     }
 
-    const api = { create, viewModel, slotForKey, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, stanceCell, unionCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, STANCE_KEY, UNION_KEY, NOTICE_MS };
+    const api = { create, viewModel, slotForKey, setKeyLabel, secondsText, abbrev, statusChips, foodIcon, FOOD_SVG, healCell, stanceCell, unionCell, SLOT_KEYS, BASIC_KEY, HEAL_KEY, STANCE_KEY, UNION_KEY, NOTICE_MS };
     ENSO.actionHud = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

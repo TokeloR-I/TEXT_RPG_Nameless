@@ -97,11 +97,15 @@
         bleed: '#e03838', bleeding: '#e03838', mark: '#d070ff', marked: '#d070ff', expose: '#ff70a0', exposed: '#ff70a0',
         weaken: '#a08870', weakened: '#a08870', silence: '#8ab0c8', silenced: '#8ab0c8', fear: '#9a70c0', guard: '#c8d8f0', root: '#8a6a3a', rooted: '#8a6a3a'
     };
+    // Settings → Colour-blind safe (ui/access.js): the palette below is swapped for Okabe-Ito colours, and wind-ups
+    // get stripes, so neither depends on telling red from green.
+    let safeStatus = null;
     const statusColour = (s) => {
         if (s && typeof s === 'object') return s.colour || s.color || statusColour(s.name || s.id || s.kind);
         const k = String(s || '').toLowerCase().replace(/[^a-z]/g, '');
-        if (STATUS_COLOUR[k]) return STATUS_COLOUR[k];
-        for (const [n, c] of Object.entries(STATUS_COLOUR)) if (k.includes(n)) return c;
+        const pal = safeStatus ? { ...STATUS_COLOUR, ...safeStatus } : STATUS_COLOUR;
+        if (pal[k]) return pal[k];
+        for (const [n, c] of Object.entries(pal)) if (k.includes(n)) return c;
         return '#c8c0b0';
     };
 
@@ -394,6 +398,15 @@
         normal: { area: '#5a1810', fill: '#c83a1c', fillHi: '#ff7a3a', edge: '#ff9a50', flash: '#fff0b0' },
         boss: { area: '#2a0a26', fill: '#8a1238', fillHi: '#c0285a', edge: '#d050c0', flash: '#ffc8f0' }
     };
+    // Colour-blind safe wind-ups: bright yellow / sky blue against near-black, with diagonal stripes (boss: the other
+    // diagonal) and a white edge, so the footprint reads by brightness and pattern, not by hue.
+    const TELE_SAFE = {
+        normal: { area: '#141008', fill: '#f0e442', fillHi: '#ffffff', edge: '#ffffff', flash: '#f0e442', stripe: 1 },
+        boss: { area: '#08101c', fill: '#56b4e9', fillHi: '#ffffff', edge: '#ffffff', flash: '#56b4e9', stripe: -1 }
+    };
+    let safeTele = false;
+    /** Colour-blind safe telegraphs and status colours on or off (ui/access.js colourSafe). */
+    function setColourSafe(on, statusPalette) { safeTele = !!on; safeStatus = on ? (statusPalette || null) : null; }
     /**
      * telegraph(g, shape, progress, now, { boss }?) — shape { kind: 'arc'|'cone', x, y, angle, arc, reach }
      * | { kind: 'circle', x, y, radius } | { kind: 'line', x, y, angle, length, width }. `shape.boss` works too.
@@ -403,7 +416,8 @@
     function telegraph(g, shape, progress, now = 0, opts = {}) {
         if (!shape) return;
         const p = clamp01(progress);
-        const pal = (opts.boss || shape.boss) ? TELE.boss : TELE.normal;
+        const set = safeTele ? TELE_SAFE : TELE;
+        const pal = (opts.boss || shape.boss) ? set.boss : set.normal;
         const late = p >= 0.85, blink = late && (Math.floor(now / 60) % 2 === 0);
         const areaA = 0.22 + 0.1 * Math.sin(now / 120), fillA = late ? 0.6 : 0.42;
         const [x0, y0, x1, y1] = shapeBounds(shape);
@@ -412,6 +426,11 @@
             if (d < 0) return null;
             const edge = shapeDepth(shape, x + 1.5, y + 0.5) < 0 || shapeDepth(shape, x - 0.5, y + 0.5) < 0 || shapeDepth(shape, x + 0.5, y + 1.5) < 0 || shapeDepth(shape, x + 0.5, y - 0.5) < 0;
             if (edge) return blink ? pal.flash : pal.edge;
+            if (pal.stripe) {   // colour-safe: stripes that thicken as the blow comes, the same pattern on any ground
+                const band = (((x + pal.stripe * y) % 4) + 4) % 4;
+                if (d <= p) { if (Math.abs(d - p) < 0.06 && p < 1) return pal.fillHi; return band < (blink ? 3 : 2) ? (blink ? pal.fillHi : pal.fill) : pal.area; }
+                return band === 0 ? pal.fill : dither(x, y, 0.35) ? pal.area : null;
+            }
             if (d <= p) {
                 if (Math.abs(d - p) < 0.06 && p < 1) return pal.fillHi;          // the bright front of the fill
                 return dither(x, y, blink ? 0.85 : fillA) ? (blink ? pal.fillHi : pal.fill) : null;
@@ -854,7 +873,7 @@
     }
 
     const api = {
-        createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS, crowMark, resolveAura,
+        createFx, telegraph, setColourSafe, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS, crowMark, resolveAura,
         pixelText, textWidth, // helpers
         TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth,
         BODIES: SHADOW_BODIES   // ui/legend-fx.js adds the legendary summons (spirit wolves, thralls, mirror selves)
