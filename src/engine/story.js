@@ -71,6 +71,8 @@
             if (cond.className && !(this.player && [].concat(cond.className).includes(this.player.className))) return false;
             for (const f of cond.flags || []) if (!s.flags.includes(f)) return false;
             for (const f of cond.notFlags || []) if (s.flags.includes(f)) return false;
+            // seen: ['inspect:x', 'enter:map']: those story events have happened (an anchor looked at before it existed)
+            for (const k of cond.seen || []) if (!(s.seen || []).includes(k)) return false;
             for (const it of cond.items || []) if (!this.player || !this.player.inventory.includes(it)) return false;
             // has: { item: count }: carrying at least that many (a recipe's ingredients)
             for (const [it, n] of Object.entries(cond.has || {})) if (!this.player || this.player.inventory.filter((x) => x === it).length < n) return false;
@@ -784,6 +786,21 @@
             if (!opt.enabled) { this.refuse(opt.reason.code, opt.reason.message); return; }
             this.say(`Black feathers close around you. When they scatter, you are at ${an.name}.`, { important: true });
             this.out.push({ type: 'world.travel', anchorId, map: an.map, spawn: an.spawn });
+        }
+
+        /** The world map's travel record (pure; ui/world-map-view.js): the map you're on, every map you have entered
+         *  (the story's own 'enter:<map>' events, so saves from before the map already have it), and each anchor with
+         *  whether it is attuned. Flying is still offered and refused only through getAvailableActions(). */
+        getTravelState() {
+            if (!this.story) return null;
+            const anchors = (this.storyContent() || {}).anchors || {};
+            const visited = this.story.seen.filter((k) => k.startsWith('enter:')).map((k) => k.slice(6));
+            if (this.story.at && !visited.includes(this.story.at)) visited.push(this.story.at);
+            return {
+                at: this.story.at || null, visited, aspect: this.hasAspect(),
+                anchors: Object.entries(anchors).map(([anchorId, an]) => ({ anchorId, name: an.name, region: an.region || null, map: an.map,
+                    attune: an.attune || null, attuned: this.hasStoryFlag(`anchor:${anchorId}`) }))
+            };
         }
 
         /** The crow's own talk option (pure): only once the aspect is owned. */

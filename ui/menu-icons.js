@@ -24,6 +24,7 @@
         web: p('M7 1h2v14H7zM1 7h14v2H1z', C.dark) + p('M3 3l1-1 9 9 0 0-1 1z M12 2l1 1-9 9-1-1z', C.dark) + p('M6 6h4v4H6z', C.gold) + p('M1 7h2v2H1zM13 7h2v2h-2zM7 1h2v2H7zM7 13h2v2H7z', C.bone) + p('M2 2h2v2H2zM12 12h2v2h-2zM12 2h2v2h-2zM2 12h2v2H2z', C.violet),
         union: p('M2 1h1v2h1v2h1v1h6V5h1V3h1V1h1v4h-1v2h-1v6l-2 2H6l-2-2V7H3V5H2z', C.blood) + p('M6 8h1v1H6zM9 8h1v1H9z', C.amber) + p('M6 11h4v1H6z', C.ink),
         journal: p('M3 1h9v1h1v13H3z', C.leather) + p('M5 3h6v10H5z', C.cream) + p('M6 5h4v1H6zM6 7h4v1H6zM6 9h3v1H6z', C.wood) + p('M3 1h2v14H3z', C.blood),
+        map: p('M1 3l4-2 6 2 4-2v12l-4 2-6-2-4 2z', C.cream) + p('M5 1h1v12H5zM10 3h1v12h-1z', C.wood) + p('M3 9h1v1H3zM4 8h2v1H4zM7 6h2v1H7zM9 5h1v1H9z', C.blood) + p('M11 4h2v2h-2z', C.blood) + p('M12 10h1v1h-1z', C.ink),
         crow: p('M4 5h5v1h2v1h3v1h-3v1h1v1H9v1H7v2H6v-2H4V9H2V8h2z', C.ink) + p('M5 6h3v2H5z', '#3a2f4a') + p('M5 6h1v1H5z', C.gold) + p('M3 6h1v1H3z', C.gold),
         cheats: p('M3 3h10v10H3z', C.bone) + p('M5 5h2v2H5zM9 9h2v2H9zM9 5h2v2H9zM5 9h2v2H5zM7 7h2v2H7z', C.ink),
         settings: p('M7 1h2v2h2l1-1 2 2-1 1v2h2v2h-2v2l1 1-2 2-1-1H9v2H7v-2H5l-1 1-2-2 1-1V9H1V7h2V5L2 4l2-2 1 1h2z', C.steel) + p('M6 6h4v4H6z', C.ink),

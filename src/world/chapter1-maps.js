@@ -334,7 +334,8 @@
                 { x: 10, y: 18, radius: 1.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 19, y: 18, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 5, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.2)' }
             ],
-            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_church: { x: 15, y: 8, facing: 'down' } },
+            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_church: { x: 15, y: 8, facing: 'down' },
+                flight_fountain: { x: 15, y: 13, facing: 'up' } },   // Black Flight arrival, below the garth fountain
             exits: [
                 { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' },
                 // The abbey church's great door, under the rose window (Tokelo, 2026-11-04: the interior reference is the
@@ -697,7 +698,8 @@
             ],
             spawns: {
                 from_orchard: { x: 9, y: 20, facing: 'up' },
-                from_sanctuary: { x: 12, y: 1, facing: 'down' }
+                from_sanctuary: { x: 12, y: 1, facing: 'down' },
+                flight_perch: { x: 3, y: 12, facing: 'left' }      // Black Flight arrival, beside the crow perch
             },
             exits: [
                 { id: 'featherwatch_south', x: 9, y: 21, trigger: 'step', toMap: 'orchard', toSpawn: 'from_featherwatch' },
