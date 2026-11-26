@@ -843,7 +843,9 @@
             // Replaces the base house's bed and chest (same ids, same tiles): a safe home once the gate is mended.
             house: [
                 { id: 'house_bed', kind: 'station', station: 'home_bed', x: 17, y: 9, name: 'Made bed', verb: 'Use' },
-                { id: 'house_chest', kind: 'station', station: 'home_chest', x: 2, y: 9, name: 'Travelling chest', verb: 'Open' }
+                { id: 'house_chest', kind: 'station', station: 'home_chest', x: 2, y: 9, name: 'Travelling chest', verb: 'Open' },
+                // The mirror (Tokelo, 2026-11-25): change your look after creation (ui/world-ui.js openWardrobe).
+                { id: 'house_mirror', kind: 'inspect', x: 15, y: 8, name: 'Standing mirror', sprite: 'mirror', verb: 'Look in', wardrobe: true, text: 'A tall mirror in an oak frame, the glass still good.' }
             ],
             grounds: [
                 { id: 'grounds_foundation', kind: 'inspect', x: 11, y: 12, name: 'Old foundation stone',
