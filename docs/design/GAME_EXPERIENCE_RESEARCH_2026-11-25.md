@@ -23,9 +23,9 @@ flashing telegraphs, enemy combo strings, the 8-way touch stick, the 10-step cha
 | 6 | **No gamepad.** | high | M | Done (ui/gamepad.js) |
 | 7 | **Unaimed attacks whiff**, worst on touch: keyboard and touch attacks go exactly where you face. | high on mobile | S | Done: aim assist within ±35° (`actionRules.player.aimAssist`) |
 | 8 | Haptics on phones for being hit, parries and boss phases. | med | S | Done |
-| 9 | Camera smoothing and look-ahead toward where you face or your lock target. | med | S | Next |
-| 10 | Change your look after creation (a mirror or wardrobe at the homestead reusing the creator steps). | med | S | Next |
-| 11 | "Has something for you" markers (`!`) over NPCs with a quest or objective waiting. | med | S | Next |
+| 9 | Camera smoothing and look-ahead toward where you face or your lock target. | med | S | Done (second batch): the camera eases after you and leans 1.6 tiles ahead while you move, a third of the way to a lock-on target |
+| 10 | Change your look after creation (a mirror or wardrobe at the homestead reusing the creator steps). | med | S | Done (second batch): a standing mirror in the homestead house reopens the appearance editor |
+| 11 | "Has something for you" markers (`!`) over NPCs with a quest or objective waiting. | med | S | Done (second batch): `!` = talking now offers a quest you haven't started, `?` = an active quest sends you to them (`engine.npcMarker`, pure) |
 | 12 | Cancel matrix in `actionRules.player.cancel` (guard cancels recovery, skill fizzle refund) is still unread. | med | M | Next |
 | 13 | Key rebinding (accessibility). | med | M | Later (Hollis) |
 | 14 | Idle routines (smith hammers, baker kneads) and NPC reactions to nearby fights. | med | M | Later |

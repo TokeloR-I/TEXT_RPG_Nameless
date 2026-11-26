@@ -168,7 +168,7 @@
             sfx('tick');
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
+        if (isAct(ev) && !ev.repeat) { if (creator && creator.wardrobe) { closeWardrobe(true); return true; } if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { sfx('back'); m.back(); return true; }
         return false;
     }
@@ -232,6 +232,7 @@
             const input = els.title.querySelector('#hero-name');
             if (input) creator.name = input.value;
         }
+        if (creator.wardrobe) { closeWardrobe(true); return; }
         if (creator.step === LAST_STEP) {
             startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             return;
@@ -240,6 +241,7 @@
         if (next) creatorStep(next);
     }
     function creatorBack() {
+        if (creator.wardrobe) { closeWardrobe(false); return; }
         const previous = CREATOR_FLOW[CREATOR_FLOW.indexOf(creator.step) - 1];
         if (previous) creatorStep(previous);
     }
@@ -327,9 +329,9 @@
         els.title.innerHTML = `
             <div class="vessel-screen">
                 <header class="vessel-header"><div class="vessel-brand">ENSO'S LAST STAND</div>
-                    <div class="vessel-step">${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
-                    <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
-                    <p>Every forgotten soul once had a face.</p></header>
+                    <div class="vessel-step">${creator.wardrobe ? 'THE MIRROR' : isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
+                    <h1>${creator.wardrobe ? 'Look Yourself Over' : isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
+                    <p>${creator.wardrobe ? 'Change anything you like. Your calling stays your own.' : 'Every forgotten soul once had a face.'}</p></header>
                 <div class="vessel-columns">
                     
                     <section class="vessel-preview" aria-label="Live player sprite preview">
@@ -361,16 +363,17 @@
                     </section>
                 </div>
                 <footer class="vessel-footer">
-                    <button type="button" data-creator-back>← Back</button>
-                    <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
-                    <button type="button" data-creator-next>${creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
+                    <button type="button" data-creator-back>${creator.wardrobe ? '✕ Cancel' : '← Back'}</button>
+                    <span>${creator.wardrobe ? 'Enter keeps the new look · Esc puts the old one back' : isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
+                    <button type="button" data-creator-next>${creator.wardrobe ? 'Done ✓' : creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
                 </footer>
             </div>`;
         if (isClass) bindMenuClicks(els.title, menu);
         els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
         els.title.querySelector('[data-creator-next]').addEventListener('click', () => {
             // The appearance panel is a unified editor, so Continue confirms all cosmetics.
-            if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+            if (creator.wardrobe) closeWardrobe(true);
+            else if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             else creatorNext();
         });
         els.title.querySelectorAll('[data-facing]').forEach(button => button.addEventListener('click', () => {
@@ -2559,8 +2562,9 @@
     function camera() {
         const map = WORLD.maps[view.mapId], T = map.tileSize || 32;
         const mw = map.tiles[0].length * T, mh = map.tiles.length * T, W = canvas.width, H = canvas.height;
-        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
-        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
+        const fx = view.camX != null ? view.camX : view.x, fy = view.camY != null ? view.camY : view.y;
+        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, fx * T + T / 2 - W / 2));
+        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, fy * T + T / 2 - H / 2));
         return { ox: -Math.round(camX), oy: -Math.round(camY), T };
     }
     if (ACTION) {
@@ -2944,6 +2948,8 @@
         if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else showStory(null, r.events, r.title, afterStory, '…'); return; }
         if (r.type === 'message') {
             seen.add(r.id);
+            const obj = (session.map.interactables || []).find((o) => o.id === r.id);
+            if (obj && obj.wardrobe) { openWardrobe(); return; }
             showStory(r.text, r.events, r.title, afterStory);
             return;
         }
@@ -2971,7 +2977,7 @@
         if (dir || isAct(ev) || ev.key === 'Escape') ev.preventDefault();
         if (stale.has(ev.key)) return;
         down.add(ev.key);
-        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
+        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk' || modal === 'creator') {
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
@@ -3075,15 +3081,95 @@
         if (!barksOn.size) return;
         const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
         const W = g.canvas.width, H = g.canvas.height;
-        for (const b of barksOn.values()) {
-            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 2 + ctx.oy;
+        for (const [id, b] of barksOn) {
+            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 10 - (npcMarks.has(id) ? 14 : 0) + ctx.oy;   // above a "!" or "?
             b.el.style.left = `${(hx / W * 100).toFixed(2)}%`;
             b.el.style.top = `${(Math.max(14, hy) / H * 100).toFixed(2)}%`;
             b.el.hidden = false;
         }
     });
 
+    // ---------------------------------------------------------------------
+    // Camera (Thorne, 2026-11-25): it eases after you instead of being nailed to you, and leans a little ahead of
+    // where you face (toward your lock-on target in a fight), so you see more of what is coming. A map change, a
+    // teleport or reduced motion snaps it. Presentation only: the renderer and aim read view.camX / camY.
+    // ---------------------------------------------------------------------
+    const CAM = { followMs: 110, leadTiles: 1.6, lockShare: 0.35, snapTiles: 6 };
+    const FACE_VEC = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], 'up-left': [-0.7071, -0.7071], 'up-right': [0.7071, -0.7071], 'down-left': [-0.7071, 0.7071], 'down-right': [0.7071, 0.7071] };
+    let camAt = 0, camMap = null, lead = { x: 0, y: 0 };
+    function cameraFollow(now) {
+        const dt = camAt ? Math.min(100, now - camAt) : 0;
+        camAt = now;
+        const map = WORLD.maps[view.mapId], T = (map && map.tileSize) || 32, k = 32 / T;   // tile units of this map
+        let tx = 0, ty = 0;
+        const lock = sim && lockId ? sim.actors.find((a) => a.sid === lockId && !a.dead) : null;
+        if (lock) { tx = (lock.x / T - 0.5 - view.x) * CAM.lockShare; ty = ((lock.y - T / 2 + 2) / T - view.y) * CAM.lockShare; }
+        else if (view.moving) { const f = FACE_VEC[view.facing8] || FACE_VEC[view.facing] || [0, 0]; tx = f[0] * CAM.leadTiles * k; ty = f[1] * CAM.leadTiles * k * 0.7; }
+        const ease = 1 - Math.exp(-dt / 400);                     // the lead itself drifts in slowly, so turning never jerks the view
+        lead.x += (tx - lead.x) * ease; lead.y += (ty - lead.y) * ease;
+        const goalX = view.x + lead.x, goalY = view.y + lead.y;
+        const far = view.camX == null || Math.hypot(goalX - view.camX, goalY - view.camY) > CAM.snapTiles * k;
+        if (REDUCED || far || camMap !== view.mapId || screen !== 'explore' || fade) { view.camX = REDUCED ? view.x : goalX; view.camY = REDUCED ? view.y : goalY; if (REDUCED || camMap !== view.mapId) lead = { x: 0, y: 0 }; camMap = view.mapId; return; }
+        const f = 1 - Math.exp(-dt / CAM.followMs);
+        view.camX += (goalX - view.camX) * f; view.camY += (goalY - view.camY) * f;
+    }
+
+    // ---------------------------------------------------------------------
+    // "!" and "?" over people (Hawk, 2026-11-25): ! = talking to them now offers a quest you haven't started,
+    // ? = an active quest wants you to talk to them (engine.npcMarker, pure). Checked twice a second, not every frame.
+    // ---------------------------------------------------------------------
+    const npcMarks = new Map();
+    let marksAt = 0, marksMap = null;
+    function refreshMarks(now, objects) {
+        if (now - marksAt < 500 && marksMap === view.mapId) return;
+        marksAt = now; marksMap = view.mapId;
+        npcMarks.clear();
+        if (!engine || !engine.npcMarker) return;
+        for (const o of objects) if (o.kind === 'npc') { const m = engine.npcMarker(o.npc); if (m) npcMarks.set(o.id, { o, mark: m }); }
+    }
+    renderer.addHook('foreground', (g, ctx) => {
+        if (screen !== 'explore' || !npcMarks.size) return;
+        const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
+        for (const { o, mark } of npcMarks.values()) {
+            const cx = Math.floor(o.x / k) * PT + 16, top = Math.floor(o.y / k) * PT - 22 + Math.round(REDUCED ? 0 : Math.sin(ctx.time / 260 + o.x) * 1.5);
+            const glyph = mark === '!' ? ['.##.', '.##.', '.##.', '.##.', '....', '.##.'] : ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'];
+            const w = glyph[0].length, x0 = cx - Math.floor(w / 2);
+            g.fillStyle = 'rgba(10,8,14,0.85)';   // a dark outline all round, so it reads on any roof, tree or head behind it
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') g.fillRect(x0 + x - 1, top + y - 1, 3, 3); }));
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') { g.fillStyle = y === 0 ? '#fff6c8' : mark === '!' ? '#f0c040' : '#9fe8cf'; g.fillRect(x0 + x, top + y, 1, 1); } }));
+        }
+    });
+
+    // ---------------------------------------------------------------------
+    // The mirror (Tokelo, 2026-11-25): change your look after creation. A map object with `wardrobe: true` opens the
+    // creator's appearance editor over the game; Done keeps the new look (saved with the game), Cancel puts it back.
+    // ---------------------------------------------------------------------
+    function openWardrobe() {
+        const c = view.cosmetics || defaultCosmetics();
+        creator = { step: 'hairStyle', wardrobe: true, name: engine.player.name, cls: engine.player.className, look: engine.player.appearance || 0, facing: 'down', ...defaultCosmetics(), ...c };
+        modal = 'creator'; syncActionHudVisibility();
+        muteHeldKeys();
+        els.hud.hidden = true;
+        els.title.hidden = false;
+        sfx('open');
+        creatorStep('hairStyle');
+    }
+    function closeWardrobe(keep) {
+        if (keep) {
+            view.cosmetics = { ...cosmeticsFromCreator(), held: view.cosmetics && view.cosmetics.held };
+            if (creator.look !== (engine.player.appearance || 0)) engine.act({ type: 'set_identity', appearance: creator.look });
+            view.appearance = creator.look;
+            toast('You look yourself over. Good.');
+        }
+        creator = null; menu = null;
+        els.title.hidden = true; els.hud.hidden = false;
+        modal = null; syncActionHudVisibility();
+        muteHeldKeys();
+        updateHud();
+    }
+
     function frame(now) {
+        if (modal === 'creator' && creator && creator.wardrobe && menu && CHOICES[creator.step] && creator[creator.step] !== menu.index) { creator[creator.step] = menu.index; renderTitle(); }   // arrows in the mirror
         if (PAD) { const on = PAD.poll(); if (on && !padSeen) toast('Controller connected: A attack, B dodge, X interact, hold RT for skills.'); padSeen = on; }
         if (screen === 'title') {
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
@@ -3141,6 +3227,8 @@
         }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         barkTick(now, objects);
+        refreshMarks(now, objects);
+        cameraFollow(now);
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         requestAnimationFrame(frame);
     }
