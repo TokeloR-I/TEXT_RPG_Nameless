@@ -48,7 +48,7 @@
 
         /** Fresh combatants for enemy keys. `firstId` numbers their ids (action fights add groups to a running fight). */
         buildEnemies(enemyKeys, scope, loot, firstId) {
-            return enemyKeys.map((key, i) => {
+            const enemies = enemyKeys.map((key, i) => {
                 const e = clone(this.data.enemies[key]);
                 const overrides = (Array.isArray(loot) ? loot[i] : loot) || {};
                 for (const field of ['lootLevel', 'lootProfile', 'lootRank', 'lootTable', 'bossDrops', 'materialDrops'])
@@ -56,6 +56,8 @@
                 Object.assign(e, { id: `enemy_${firstId + i}`, key, entityKey: `${scope}#${i}`, lootClaimId: `${scope}#${i}`, lootEligible: true, isPlayer: false, isMinion: false, statusEffects: [], lastSkillUsed: null });
                 return e;
             });
+            this.applyElite(enemies, scope);   // a group back after a rest may bring an elite (src/engine/wilds.js)
+            return enemies;
         }
 
         /** "a Rust Rat", "an Acolyte", but "The Crow-Touched Warden" / "James Newton" (QA-7). */

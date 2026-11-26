@@ -110,6 +110,9 @@
             final *= 1 + this.foodMod(attacker, 'damage');   // meals and beer (src/engine/kitchen.js)
             final *= 1 + this.stanceMod(attacker, 'damage');   // stance bond (src/engine/stance.js)
             final *= 1 + this.unionMod(attacker, 'damage');   // Devil Union (src/engine/union.js)
+            if (this.gearDamageMult) final *= this.gearDamageMult(attacker, target);   // Headsman's, Opportunist's (src/engine/affixes.js)
+            if (attacker.eliteDamageMult) final *= attacker.eliteDamageMult;   // a Frenzied elite (src/engine/wilds.js)
+            if (target.damageTakenMult) final *= target.damageTakenMult;       // a Shielded elite
             hit.damage = Math.max(0, Math.floor(final));
             // QA-1: consume only on positive final damage (after armor and defenses).
             // A zero-damage hit keeps the mark; misses, dodges and absorbs never get here.
@@ -175,6 +178,7 @@
                             // Rogue ninja: Crimson Edge (crits bleed), Shrapnel (explosions bleed)
                             if ((hit.isCrit && this.hasTrait('Crimson Edge')) || (skill.explosive && this.hasTrait('Shrapnel'))) this.applyDot(caster, target, { name: 'Bleed', value: 2, duration: 2, stackCap: 3 });
                         }
+                        if (caster.isPlayer && actual > 0) { this.gearOnHit(caster, target, skill, hit, actual); this.eliteThorns(caster, target, actual); }   // affixes.js, wilds.js
                         for (const x of active) if (x.handler.onHit) x.handler.onHit({ ...ctx, effect: x.effect }, hit);
                         if (target.hp > 0) this.counterAttack(target, caster);
                     }

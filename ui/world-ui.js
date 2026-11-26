@@ -990,6 +990,9 @@
                 recipe: r,
                 action: () => { if (match && match.id === r.id && r.enabled) kitchenCook(r); else { potFill(r); renderKitchen(engine.getAvailableActions()); } }
             })),
+            // A rest by the fire: the same rest as the homestead bed, and the beaten wild comes back (src/engine/wilds.js).
+            ...((avail.actions || []).some((a) => a.type === 'rest_by_fire' && a.enabled) ? [{ label: 'Rest by the fire', sub: 'Heal fully. Beaten enemies out there come back, some of them elites.',
+                action: () => { const r = engine.act({ type: 'rest_by_fire' }); kitchen.message = kitchenEvents(r.events) || (r.ok ? 'You rest by the fire.' : r.error.message); updateHud(); renderKitchen(engine.getAvailableActions()); } }] : []),
             { label: 'Leave the hearth', action: leave }
         ], { back: leave, render: draw });
         const keep = kitchen.picked ? menu.items.findIndex((it) => it.recipe && it.recipe.id === kitchen.picked) : -1;
@@ -2703,6 +2706,8 @@
         stride += dt * (p.sprinting ? 1.5 : 1);
         if (stride >= 300) { stride = 0; sfx('step'); }
     }
+    const lootPops = new Map();   // "x,y" of a drop that just came out of an enemy -> its hop (sim fx 'loot_pop')
+    const LOOT_POP_MS = 420;
     const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
         const P = sim.player;
@@ -2721,6 +2726,8 @@
             case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
             case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); sfx('pickup'); break;
+            case 'loot_pop': lootPops.set(`${ev.x},${ev.y}`, { at: now, fromX: ev.fromX, fromY: ev.fromY }); setTimeout(() => lootPops.delete(`${ev.x},${ev.y}`), LOOT_POP_MS + 50); break;
+            case 'decoy': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: 0, distance: 0, facing: P.facing }, now); break;
             case 'aoe': if (lfx && ev.skill && (DATA.skillVfx || {})[ev.skill]) break;   // a legendary skill draws its own (ui/legend-fx.js)
                 afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
             case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
@@ -2782,6 +2789,7 @@
                 if (angel) ENSO.gazeFx.playerHalo(g, Math.round(a.x), Math.round(a.y + (a.r || 5)) - 10, time);
                 const barY = visible ? visible.y - 4 : a.y - 18;
                 if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(barY), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
+                if (a.elite && a.state !== 'dead') AFX.eliteTag(g, Math.round(a.x), Math.round(barY) - 7, a.elite.name, a.elite.color);   // a visible modifier (src/engine/wilds.js)
                 if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);
             }
         })).concat((v.minions || []).map((m) => ({   // your summons: the same body art pipeline, an ally bar, rising out of the ground
@@ -2852,12 +2860,15 @@
         // Under the bodies: wind-up telegraphs and loot on the ground.
         renderer.addHook('ground', (g, ctx) => {
             if (!sim || screen === 'title') return;
+            // Loot pops out of the fallen and lands glinting in its rarity's colour (ui/action-fx.js lootDrop).
             for (const d of engine.getWorldDrops ? engine.getWorldDrops(session.mapId) : []) {
-                const bob = Math.round(Math.sin(ctx.time / 300 + d.x) * 1);
-                g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(Math.round(d.x) - 4, Math.round(d.y) + 2, 8, 2);
-                g.fillStyle = d.items.length ? '#c9a2ff' : '#e8c860'; g.fillRect(Math.round(d.x) - 3, Math.round(d.y) - 4 + bob, 6, 5);
-                g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
+                const pop = lootPops.get(`${d.x},${d.y}`);
+                const hop = pop ? { k: (ctx.time - pop.at) / LOOT_POP_MS, fromX: pop.fromX, fromY: pop.fromY } : null;
+                AFX.lootDrop(g, { ...d, rarity: engine.dropRarity ? engine.dropRarity(d) : null }, ctx.time, hop);
             }
+            const dv = sim.view().decoy;   // Trickster's: the copy you left behind
+            if (dv) AFX.decoy(g, dv.x, dv.y, dv.leftMs, ctx.time);
+            for (const a of sim.view().actors) if (a.elite && a.state !== 'dead') AFX.eliteAura(g, a.x, a.y + (a.r || 5), a.r || 5, a.elite.color, ctx.time);
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
             for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve

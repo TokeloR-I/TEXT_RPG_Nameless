@@ -853,8 +853,72 @@
         g.restore();
     }
 
+    // ---------------------------------------------------------------------
+    // A world that refills (2026-11-25): elites and the loot that pops out of the fallen
+    // ---------------------------------------------------------------------
+    /** An elite's mark at its feet: a pulsing ring in its modifier's colour, with motes rising off it. */
+    function eliteAura(g, x, y, r, colour, time) {
+        const k = 0.5 + 0.5 * Math.sin(time / 260);
+        g.save();
+        g.globalAlpha = 0.35 + 0.3 * k;
+        g.strokeStyle = colour; g.lineWidth = 1;
+        g.beginPath(); g.ellipse(R(x), R(y), r + 3 + k * 2, (r + 3 + k * 2) * 0.45, 0, 0, Math.PI * 2); g.stroke();
+        g.globalAlpha = 0.18; g.fillStyle = colour;
+        g.beginPath(); g.ellipse(R(x), R(y), r + 2, (r + 2) * 0.45, 0, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 0.8;
+        for (let i = 0; i < 3; i++) {
+            const t = ((time / 900) + i / 3) % 1;
+            g.fillRect(R(x + Math.sin(i * 2.1 + time / 500) * (r + 1)), R(y - t * 14), 1, 1);
+        }
+        g.restore();
+    }
+
+    /** The elite's name over its bar, in its modifier's colour ("FRENZIED"). */
+    function eliteTag(g, x, y, name, colour) { pixelText(g, name, x, y, colour, 1); }
+
+    const RARITY_COLOUR = { common: '#d8d4c8', uncommon: '#6ee06a', rare: '#5aa8ff', epic: '#c86aff', legendary: '#ffa830' };
+    /**
+     * Loot on the ground: a pouch (gold), a bundle (goods) or a glinting piece of gear in its rarity's colour; rare and
+     * better throw a light beam so you see them from across the map. `hop` (0..1) is the pop out of the enemy: the drop
+     * flies from (fromX, fromY) in a short arc to where it lands. Returns nothing; pure drawing.
+     */
+    function lootDrop(g, d, time, hop = null) {
+        let x = d.x, y = d.y;
+        if (hop && hop.k < 1) {
+            const k = clamp01(hop.k);
+            x = hop.fromX + (d.x - hop.fromX) * k;
+            y = hop.fromY + (d.y - hop.fromY) * k - Math.sin(k * Math.PI) * 14;
+        }
+        const col = d.rarity ? RARITY_COLOUR[d.rarity] || '#c9a2ff' : d.items && d.items.length ? '#e8d6a0' : '#e8c860';
+        const bob = hop && hop.k < 1 ? 0 : R(Math.sin(time / 300 + d.x) * 1);
+        const X = R(x), Y = R(y);
+        if (d.rarity && ['rare', 'epic', 'legendary'].includes(d.rarity) && !(hop && hop.k < 1)) {   // a beam of light over good gear
+            g.save();
+            const grad = g.createLinearGradient(X, Y - 28, X, Y);
+            grad.addColorStop(0, 'rgba(255,255,255,0)'); grad.addColorStop(1, col);
+            g.globalAlpha = 0.25 + 0.15 * Math.sin(time / 200); g.fillStyle = grad; g.fillRect(X - 1, Y - 28, 3, 28);
+            g.restore();
+        }
+        g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(R(d.x) - 4, R(d.y) + 2, 8, 2);
+        g.fillStyle = '#140a0c'; g.fillRect(X - 4, Y - 5 + bob, 8, 7);
+        g.fillStyle = col; g.fillRect(X - 3, Y - 4 + bob, 6, 5);
+        g.fillStyle = '#fff6d0'; g.fillRect(X - 1, Y - 3 + bob, 2, 1);
+        if (d.rarity && Math.floor(time / 180 + d.x) % 5 === 0) { g.fillStyle = '#ffffff'; g.fillRect(X + 2, Y - 6 + bob, 1, 1); g.fillRect(X + 3, Y - 7 + bob, 1, 1); }   // a glint
+    }
+
+    /** Trickster's decoy: a faded copy of a body where you dodged from, fading out. */
+    function decoy(g, x, y, leftMs, time) {
+        g.save();
+        g.globalAlpha = Math.min(0.55, leftMs / 800) * (0.8 + 0.2 * Math.sin(time / 90));
+        g.fillStyle = '#9ab8ff';
+        g.fillRect(R(x) - 3, R(y) - 12, 6, 10); g.fillRect(R(x) - 2, R(y) - 16, 4, 4);
+        g.globalAlpha *= 0.5; g.fillRect(R(x) - 4, R(y) - 1, 8, 2);
+        g.restore();
+    }
+
     const api = {
         createFx, telegraph, swing, projectile, targetRing, aimReticle, rangeCircle, enemyBar, drawEnemy, crumble, CRUMBLE_MS, crowMark, resolveAura,
+        eliteAura, eliteTag, lootDrop, decoy, RARITY_COLOUR,
         pixelText, textWidth, // helpers
         TYPES: Object.keys(LIFE), LIFE, DAMAGE, CLASS_SWING, PROJECTILES: Object.keys(PROJ), statusColour, shapeDepth,
         BODIES: SHADOW_BODIES   // ui/legend-fx.js adds the legendary summons (spirit wolves, thralls, mirror selves)

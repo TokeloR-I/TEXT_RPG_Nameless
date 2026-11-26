@@ -553,6 +553,7 @@
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'temper' && a.shopId === s.dialogue.shopId) { this.temperWeapon(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'cook') { this.cookAtStation(String(a.recipeId || '')); return true; }   // the cooking menu (kitchen)
+                if (a.type === 'rest_by_fire') { this.restByFire(); return true; }   // a hearth: rest, and the wild comes back (wilds.js)
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
                 this.showDialogueChoices();
@@ -645,6 +646,7 @@
             actions.push(...goods, ...selling, ...tempering);
             const kitchen = this.kitchenView();
             if (kitchen) actions.push(...kitchen.recipes.map((r) => ({ type: 'cook', recipeId: r.id, enabled: r.enabled, ...(r.reason ? { reason: r.reason } : {}) })));
+            if (kitchen && !this.restByFireBlock()) actions.push({ type: 'rest_by_fire', enabled: true });
             return {
                 shop: shop ? { shopId, gold: this.player.gold, goods, selling, tempering } : null,
                 kitchen,
