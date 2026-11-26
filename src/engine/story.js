@@ -96,6 +96,9 @@
             if (Number.isSafeInteger(cond.contractsBelow) && contracts >= cond.contractsBelow) return false;
             // gold: n: carrying at least n Gold (a debt you can settle from your own purse, C2-S04)
             if (Number.isSafeInteger(cond.gold) && (!this.player || !(this.player.gold >= cond.gold))) return false;
+            // level: n / levelBelow: n: the player is at least (below) that level (the Tourney of Crowns takes level 5 and up)
+            if (Number.isSafeInteger(cond.level) && (!this.player || !(this.player.level >= cond.level))) return false;
+            if (Number.isSafeInteger(cond.levelBelow) && (!this.player || !(this.player.level < cond.levelBelow))) return false;
             return true;
         }
         /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock

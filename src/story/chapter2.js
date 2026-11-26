@@ -1265,6 +1265,7 @@
                 { if: { quests: { C206: 'active' }, flags: ['torvald_confronted'], notFlags: ['bargain_made'] }, node: 'camp_wait' },
                 { if: { flags: ['bargain_negotiated'] }, node: 'after_negotiated' },
                 { if: { flags: ['bargain_exposed'] }, node: 'after_exposed' },
+                { if: { flags: ['oath_betrayed'] }, node: 'after_betrayed' },
                 { if: { flags: ['bargain_feigned'] }, node: 'after_feigned' },
                 { if: { flags: ['ulfrun_beaten'], notFlags: ['torvald_met'] }, node: 'meet_ulfrun' },
                 { if: { notFlags: ['torvald_met'] }, node: 'meet' },
@@ -1362,6 +1363,24 @@
                 },
                 after_feigned: {
                     lines: [['npc', 'Not here. When you have the tablet, come up to the camp.']],
+                    // The Dark Knight's betrayal (research round two, Tokelo 2026-11-26): the oath you swore him over his cup
+                    // was false, and you can tell him so. Optional, never undone. DRAFT lines for Wick.
+                    choices: [{ text: 'There is no tablet, Torvald. I lied to you.', to: 'oath_broken' }, ...TORVALD]
+                },
+                oath_broken: {
+                    lines: [
+                        [null, 'You tell him. There is no tablet, and there was never going to be one.'],
+                        ['npc', "You drank from my cup and swore on it. In the North we have a word for a man who does that, and it isn't southerner."],
+                        ['npc', "Nithing, oath-breaker: every crew between here and the pass will know it by the next moon."],
+                        [null, 'Something in you goes cold and settles, like a blade put back in a sheath that was never its own.']
+                    ],
+                    effects: [{ flag: 'oath_betrayed' },
+                        { say: 'You broke an oath you swore over a cup. The North will remember it.', important: true },
+                        { when: { className: 'warrior' }, say: "(The Vanguard's Dark Knight stage no longer waits on a betrayal. It opens in your Skill Web at level 11.)", important: true }],
+                    choices: [{ text: 'Leave the tent.', end: true }]
+                },
+                after_betrayed: {
+                    lines: [['npc', "I don't drink with nithings. Say what you came to say and get out of my sight."]],
                     choices: TORVALD
                 },
                 boards: {
