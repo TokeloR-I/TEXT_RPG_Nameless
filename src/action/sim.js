@@ -326,7 +326,7 @@
                 const en = byId[a.engineId];
                 if (en) {
                     if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp, ...(a.critPending ? { crit: true } : {}) }); a.critPending = false; }
-                    Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
+                    Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, windupMult: en.windupMult || 1, name: en.name, statuses: en.statuses });
                     if (en.elite) a.elite = { id: en.elite.id, name: en.elite.name, color: en.elite.color };
                     const b = this.bossOf(a);
                     if (b && b.phases && !a.illusionOf) {   // boss phases by HP: a new phase opens with its signature move
@@ -393,7 +393,7 @@
                 // you killed before it gave up stand up too. Left dead here, they'd be invisible engine enemies the
                 // group can never clear without, and the chest they guard stays shut (Tokelo's toll register, playtest 2026-11-11).
                 if (a.dead) Object.assign(a, { dead: false, deadAt: 0, x: a.homeX, y: a.homeY, hurtUntil: 0 });
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, raged: false, rageUsed: false, nextCleanseAt: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, windupMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, raged: false, rageUsed: false, nextCleanseAt: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -1122,6 +1122,7 @@
             if (a.resolve && this.now < a.resolve.until) windup = Math.round(windup * (a.resolve.cfg.windupMult || 1));   // Guardian's Resolve: deliberate blows
             const rg = this.ragedCfg(a);
             if (rg && rg.windupMult) windup = Math.max(rg.minWindupMs || 450, Math.round(windup * rg.windupMult));   // rage: quicker, never unreadable
+            if (a.windupMult > 1) windup = Math.round(windup * a.windupMult);   // Out of Order (Eternal Architect): you go first
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;

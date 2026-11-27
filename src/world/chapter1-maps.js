@@ -269,6 +269,16 @@
                 { id: 'festival_thief', x: 22, y: 4, name: 'Broken Oath Thief', enemies: ['cult_acolyte', 'cult_zealot'], trigger: 'contact', sprite: 'cultists',
                     when: { quests: { 'C1-N03': 'active' }, flags: ['festival_pursue'] },
                     text: 'The thief has reached the north stair and found the orchard gate chained shut above it. A zealot turns to cover him, flail already swinging.' },
+                // The Tourney of Crowns (S03): three bouts in the lists by the stalls, each one after the last.
+                { id: 'tourney_bout_1', x: 25, y: 10, name: 'Lists: two squires', enemies: ['tourney_squire', 'tourney_squire'], trigger: 'contact', sprite: 'constables',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_entered'] },
+                    text: 'Two squires in borrowed tabards bang blunted swords on their shields. The crowd behind the rope starts to shout odds.' },
+                { id: 'tourney_bout_2', x: 27, y: 11, name: 'Lists: a hedge knight', enemies: ['tourney_knight'], trigger: 'contact', sprite: 'constables',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_bout_1'] },
+                    text: 'A hedge knight with a dented helm and a borrowed horse he has decided not to ride salutes you with his sword.' },
+                { id: 'tourney_bout_3', x: 27, y: 9, name: 'Sir Odo of the Two Crowns', enemies: ['tourney_champion'], trigger: 'contact', sprite: 'warden',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_bout_2'] },
+                    text: 'Sir Odo of the Two Crowns walks into the lists like he owns them, which for two years he did. He lowers his visor, and the square goes quiet.' },
                 // Singing at the Mill (SF4): Old Hob and his drinking partner, under the falls, once you've heard them.
                 { id: 'mill_shade', x: 6, y: 4, name: 'Singing Shades', enemies: ['drunken_shade', 'drunken_shade'], trigger: 'contact', sprite: 'shade',
                     when: { quests: { SF4: 'active' }, flags: ['sf4_heard'] },
