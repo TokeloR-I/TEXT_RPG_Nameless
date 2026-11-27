@@ -44,7 +44,7 @@
         { id: 'lock', label: 'Lock on', key: 'Tab' },
         { id: 'stance', label: 'Change stance', key: 't' },
         { id: 'union', label: 'Devil Union', key: 'u' },
-        { id: 'mute', label: 'Mute sound', key: 'm' }
+        { id: 'map', label: 'World map (Shift + it mutes)', key: 'm' }
     ];
     /** Keys that stay fixed: they run menus and back out of anything. Arrows always move as well. */
     const RESERVED = new Set(['Escape', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Meta', 'OS', 'ContextMenu', 'Dead', 'Unidentified', 'Process']);

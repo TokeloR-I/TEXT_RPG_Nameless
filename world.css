@@ -1477,3 +1477,31 @@ body.touch .tip-btns button { padding: 0.45em 1em; }
 body.touch-landscape .tip { top: auto; bottom: 9cqw; max-width: 40cqw; }
 @keyframes tip-in { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translateX(-50%); } }
 .reduce-motion .tip { animation: none; }
+
+/* ---- World map (menu Map tab, 2026-11-25; ui/world-map-view.js, docs/ui/WORLD_MAP.md) ----
+   A schematic map per region in the menu's left pane: roads, areas, a ring where you are, feathers for
+   Black Flight anchors (lit once attuned), flags for tracked quests, dim question marks for unexplored roads. */
+.cx-map .wm-pane { display: flex; flex-direction: column; }
+.wm-svg { display: block; width: 100%; flex: 1 1 auto; min-height: 12em; max-height: 100%;
+    background: radial-gradient(ellipse at 50% 45%, rgba(216, 198, 144, 0.09), transparent 70%); }
+.wm-road { stroke: var(--c-frame); stroke-width: 4; stroke-linecap: round; opacity: 0.85; }
+.wm-road.wm-faint { stroke-dasharray: 2 6; opacity: 0.55; }
+.wm-gate line { stroke: var(--c-frame); stroke-width: 2; stroke-dasharray: 4 4; }
+.wm-gate text { fill: var(--c-ink-dim); font-size: 17px; font-style: italic; }
+.wm-area .wm-dot { fill: var(--c-pane-edge); stroke: var(--c-frame-hi); stroke-width: 2; }
+.wm-area.fog .wm-dot { fill: transparent; stroke: var(--c-ink-mute); stroke-dasharray: 2 2; }
+.wm-area .wm-q { fill: var(--c-ink-mute); font-size: 13px; }
+.wm-area.known { cursor: pointer; }
+.wm-area .wm-name { fill: var(--c-ink); font-size: 21px; paint-order: stroke; stroke: rgba(0, 0, 0, 0.8); stroke-width: 4px; }
+.wm-area.here .wm-dot { fill: var(--c-accent); }
+.wm-area .wm-ring { fill: none; stroke: var(--c-accent); stroke-width: 2; animation: wm-pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.wm-area.sel .wm-dot { stroke: var(--c-gold); stroke-width: 3; }
+.wm-area.sel .wm-name { fill: var(--c-gold); }
+.wm-anchor { fill: var(--c-ink-mute); stroke: var(--c-ink-mute); stroke-width: 1.5; }
+.wm-anchor.on { fill: var(--c-gold); stroke: var(--c-gold); }
+.wm-flag path:first-child { stroke: var(--c-ink-dim); stroke-width: 2; }
+.wm-flag path:last-child { fill: var(--c-gold); }
+.wm-key { margin: 0.3em 0 0 !important; font-size: 0.78em; }
+@keyframes wm-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .wm-area .wm-ring { animation: none; } }
+.reduce-motion .wm-area .wm-ring { animation: none; }

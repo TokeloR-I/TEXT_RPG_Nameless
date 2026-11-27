@@ -201,7 +201,7 @@
             sfx('tick');
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
+        if (isAct(ev) && !ev.repeat) { if (creator && creator.wardrobe) { closeWardrobe(true); return true; } if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { sfx('back'); m.back(); return true; }
         return false;
     }
@@ -265,6 +265,7 @@
             const input = els.title.querySelector('#hero-name');
             if (input) creator.name = input.value;
         }
+        if (creator.wardrobe) { closeWardrobe(true); return; }
         if (creator.step === LAST_STEP) {
             startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             return;
@@ -273,6 +274,7 @@
         if (next) creatorStep(next);
     }
     function creatorBack() {
+        if (creator.wardrobe) { closeWardrobe(false); return; }
         const previous = CREATOR_FLOW[CREATOR_FLOW.indexOf(creator.step) - 1];
         if (previous) creatorStep(previous);
     }
@@ -360,9 +362,9 @@
         els.title.innerHTML = `
             <div class="vessel-screen">
                 <header class="vessel-header"><div class="vessel-brand">ENSO'S LAST STAND</div>
-                    <div class="vessel-step">${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
-                    <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
-                    <p>Every forgotten soul once had a face.</p></header>
+                    <div class="vessel-step">${creator.wardrobe ? 'THE MIRROR' : isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
+                    <h1>${creator.wardrobe ? 'Look Yourself Over' : isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
+                    <p>${creator.wardrobe ? 'Change anything you like. Your calling stays your own.' : 'Every forgotten soul once had a face.'}</p></header>
                 <div class="vessel-columns">
                     
                     <section class="vessel-preview" aria-label="Live player sprite preview">
@@ -394,16 +396,17 @@
                     </section>
                 </div>
                 <footer class="vessel-footer">
-                    <button type="button" data-creator-back>← Back</button>
-                    <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
-                    <button type="button" data-creator-next>${creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
+                    <button type="button" data-creator-back>${creator.wardrobe ? '✕ Cancel' : '← Back'}</button>
+                    <span>${creator.wardrobe ? 'Enter keeps the new look · Esc puts the old one back' : isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
+                    <button type="button" data-creator-next>${creator.wardrobe ? 'Done ✓' : creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
                 </footer>
             </div>`;
         if (isClass) bindMenuClicks(els.title, menu);
         els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
         els.title.querySelector('[data-creator-next]').addEventListener('click', () => {
             // The appearance panel is a unified editor, so Continue confirms all cosmetics.
-            if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+            if (creator.wardrobe) closeWardrobe(true);
+            else if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             else creatorNext();
         });
         els.title.querySelectorAll('[data-facing]').forEach(button => button.addEventListener('click', () => {
@@ -1022,6 +1025,9 @@
                 recipe: r,
                 action: () => { if (match && match.id === r.id && r.enabled) kitchenCook(r); else { potFill(r); renderKitchen(engine.getAvailableActions()); } }
             })),
+            // A rest by the fire: the same rest as the homestead bed, and the beaten wild comes back (src/engine/wilds.js).
+            ...((avail.actions || []).some((a) => a.type === 'rest_by_fire' && a.enabled) ? [{ label: 'Rest by the fire', sub: 'Heal fully. Beaten enemies out there come back, some of them elites.',
+                action: () => { const r = engine.act({ type: 'rest_by_fire' }); kitchen.message = kitchenEvents(r.events) || (r.ok ? 'You rest by the fire.' : r.error.message); updateHud(); renderKitchen(engine.getAvailableActions()); } }] : []),
             { label: 'Leave the hearth', action: leave }
         ], { back: leave, render: draw });
         const keep = kitchen.picked ? menu.items.findIndex((it) => it.recipe && it.recipe.id === kitchen.picked) : -1;
@@ -1157,6 +1163,7 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'map', label: 'Map', sub: 'Where you have been, where you are, your tracked quests and Black Flight. M opens it.' },   // world map (2026-11-25)
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'cheats', label: 'Cheats', sub: 'Dev cheats for testing powers. Not part of normal play.' },   // only in dev mode (see devMode below)
         { id: 'settings', label: 'Settings', sub: 'Display, controls, save files and this run.' },
@@ -1169,7 +1176,8 @@
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
         const bar = engine.combatMode !== 'turn';
         const union = !!(engine.getUnion && engine.getUnion());
-        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
+        const map = !!(engine.getTravelState && engine.getTravelState() && WMV.view(WORLD, engine.getTravelState()).region);
+        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'map' || map) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
         sfx('open');
@@ -1183,7 +1191,7 @@
         if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null; mm.binds = null; mm.capture = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.mapFly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null; mm.binds = null; mm.capture = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1236,7 +1244,7 @@
                 ...accessItems(again)];
             if (SFX) {
                 const a = SFX.settings;
-                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
+                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; Shift+M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
                 items.push({ label: `Combat sounds: ${pct(a.sfx)}`, sub: 'Hits, dodges, parries, enemy wind-ups, level-ups and loot.', action: again(() => { mm.note = `Combat sounds: ${pct(SFX.cycle('sfx').sfx)}.`; sfx('hit'); }) });
                 items.push({ label: `Menu and voice sounds: ${pct(a.ui)}`, sub: 'Menu clicks and the soft blips while people talk.', action: again(() => { mm.note = `Menu and voice sounds: ${pct(SFX.cycle('ui').ui)}.`; sfx('select'); }) });
             }
@@ -1247,6 +1255,7 @@
             if (devMode) items.push({ label: 'Dev cheats: On', sub: 'Hide the Cheats tab again. What cheats already changed stays.', action: () => { setDevMode(false); mm.note = 'Dev cheats hidden. Tap the version 5 times to bring them back.'; refreshTabs('settings'); } });
         }
         if (id === 'cheats') items = cheatItems();
+        if (id === 'map') items = mapItems();
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
             items = [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and return there.', action: () => blackFlight(f) },
@@ -1265,6 +1274,7 @@
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
+            : mm.mapFly ? () => { const a = mm.mapFly.area; mm.mapFly = null; enterList('map', mapIndexOf(a)); }
             : mm.union ? () => { const i = mm.union.row; mm.union = null; enterList('union', i); }
             : mm.cheat ? () => { const at = CHEAT_TOP.indexOf(mm.cheat.top || mm.cheat); mm.cheat = mm.cheat.top ? mm.cheat.top : null; enterList('cheats', mm.cheat ? 0 : Math.max(0, at)); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
@@ -1339,6 +1349,67 @@
         sfx('select');
         enterList('settings', c.row);
         return true;
+    }
+    // ---- The world map (research round two, pick 3; docs/ui/WORLD_MAP.md) ----
+    // The places you have entered, region by region, drawn by ui/world-map-view.js from the engine's travel record.
+    // The list on the right is those places (and the other regions); Enter on a place with an attuned anchor asks
+    // to fly there, exactly as the Crow tab does. The engine still decides every flight (black_flight).
+    const WMV = ENSO.worldMapView;
+    function mapModel() {
+        const tracked = (engine.getState().story || {}).tracked || [];
+        // The world owns where you stand (session.mapId); the engine's record says where you have been.
+        const t = engine.getTravelState();
+        const v = WMV.view(WORLD, t && session ? { ...t, at: session.mapId } : t, engine.getAvailableActions(), tracked, mm.mapRegion);
+        if (v.region) mm.mapRegion = v.region.id;
+        return v;
+    }
+    function mapIndexOf(areaId) { return Math.max(0, WMV.places(mapModel()).findIndex((a) => a.id === areaId)); }
+    function openMap() {
+        if (!(engine.getTravelState && engine.getTravelState())) return;
+        mm.mapRegion = null; mm.mapFly = null;
+        openPause(null, 'map');
+        if (modal !== 'pause' || !mmTabs[mm.tab] || mmTabs[mm.tab].id !== 'map') return;
+        const here = mapModel().here;
+        if (here) enterList('map', mapIndexOf(here));
+    }
+    function mapItems() {
+        const v = mapModel();
+        if (mm.mapFly) {
+            const f = mm.mapFly;
+            const back = () => { mm.mapFly = null; enterList('map', mapIndexOf(f.area)); };
+            return [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and arrive there.', action: () => { mm.mapFly = null; blackFlight(f); } },
+                { label: 'Stay', sub: 'Back to the map.', action: back }];
+        }
+        const items = WMV.places(v).map((a) => {
+            const fly = a.anchors.find((n) => n.enabled);
+            const bits = [a.here ? 'You are here' : '', a.quests.length ? `Quest: ${a.quests.map((q) => q.title).join(', ')}` : '',
+                fly ? 'Black Flight' : a.here ? '' : (a.anchors.find((n) => n.attuned) || {}).why || ''].filter(Boolean);
+            return { label: `${a.here ? '◆ ' : ''}${a.name}`, sub: bits.join(' · '), area: a.id,
+                action: fly ? () => { mm.mapFly = { anchorId: fly.anchorId, name: fly.name, region: v.region.name, area: a.id }; enterList('map', 0); } : () => {} };
+        });
+        for (const r of v.regions) if (r.id !== v.region.id) items.push({ label: `${r.name} ›`, sub: r.here ? 'The region you are in.' : 'Show this region.', region: r.id,
+            action: () => { mm.mapRegion = r.id; mm.mapFly = null; enterList('map', 0); } });
+        return items;
+    }
+    function mapPage(inList) {
+        const v = mapModel();
+        if (!v.region) return '<p class="mm-dim">You have not been anywhere yet.</p>';
+        const hl = inList && menu.items[menu.index];
+        const sel = mm.mapFly ? mm.mapFly.area : hl && hl.area ? hl.area : v.here;
+        const a = v.region.areas.find((x) => x.id === sel && x.known);
+        const list = inList ? rowsHtml(menu, null, true) : rowsHtml({ items: mapItems(), index: -1 }, null, false);
+        let detail;
+        if (mm.mapFly) detail = `<p>${esc(CV.confirmText(mm.mapFly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`;
+        else if (hl && hl.region) detail = `<b class="cx-dname">${esc(hl.label.replace(/ ›$/, ''))}</b><p>${esc(hl.sub)}</p>`;
+        else if (a) {
+            const anchorLines = a.anchors.map((n) => `<li>${n.attuned ? '✦' : '◇'} ${esc(n.name)} <span class="mm-dim">· ${esc(n.attuned ? (n.enabled ? 'fly here' : n.why) : n.hint)}</span></li>`).join('');
+            detail = `<b class="cx-dname">${esc(a.name)}</b><span class="cx-dkind">${esc(v.region.name)}${a.here ? ' · you are here' : ''}</span>
+                ${a.quests.map((q) => `<p class="j-obj">◆ ${esc(q.title)}: ${esc(q.text)}</p>`).join('')}
+                ${anchorLines ? `<h3>Black Flight</h3><ul class="mm-plain">${anchorLines}</ul>` : ''}
+                ${inList && hl && hl.area === a.id && a.anchors.some((n) => n.enabled) ? `<button type="button" class="cx-btn cx-do">Fly here</button>` : ''}`;
+        } else detail = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>`;
+        const right = mm.mapFly ? detail : `${detail}<h3>Places</h3>${list}`;
+        return `<div class="cx-cols cx-split cx-map">${pane(esc(v.region.name), `${WMV.svg(v.region, sel)}<p class="wm-key mm-dim">◆ ring: you · ✦ feather: Black Flight anchor · flag: tracked quest · ? unexplored</p>`, 'wm-pane')}${pane('', right, 'cx-detail')}</div>`;
     }
     /** Devil Union (src/engine/union.js; Tokelo 2026-11-18: "doesn't even allow the player to select a demon"): every
      *  demon, the ones you hold a contract with to choose and merge with now (in a fight or out of one), then the two
@@ -1714,7 +1785,7 @@
         return `<li>${n('up')}${n('left')}${n('down')}${n('right')} or arrows move and face (8 ways) · click aims · keyboard attacks face forward · ${n('sprint')} sprint${hold('sprint')}</li>`
             + `<li>Click or ${n('attack')} attack · ${['skill1', 'skill2', 'skill3', 'skill4', 'skill5', 'skill6'].map(n).join(' ')} skills</li>`
             + `<li>${n('dodge')} dodge · right-click or ${n('guard')} guard${hold('guard')} (raise it just before a hit to parry)</li>`
-            + `<li>${n('lock')} lock on · ${n('interact')} inspect, talk, pick up · ${n('heal')} quick heal · ${n('mute')} mute · <kbd>Esc</kbd> this menu</li>`
+            + `<li>${n('lock')} lock on · ${n('interact')} inspect, talk, pick up · ${n('heal')} quick heal · ${n('map')} map · <kbd>Shift</kbd>+${n('map')} mute · <kbd>Esc</kbd> this menu</li>`
             + `<li>Controller: stick move · ${b('attack')} attack · ${b('dodge')} dodge · ${b('interact')} interact · ${b('heal')} heal · ${b('guard')} guard · ${b('lock')} lock on · ${b('sprint')} sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li>`
             + '<li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>';
     }
@@ -1725,7 +1796,7 @@
             : `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>${extra}<p class="mm-dim cx-hint">Press Enter or tap a line.</p>`;
         return `<div class="cx-cols cx-split">${pane('', leftHtml)}${pane('', right, 'cx-detail')}</div>`;
     }
-    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
+    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', map: 'Map', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
     /** The header and tab strip, shared by every page and the Skill Web screen. */
     function shellTop(activeTab, tabsFocused) {
         const p = engine.getState().player;
@@ -1789,6 +1860,7 @@
             const head = mm.binds === 'keys' ? 'Keyboard keys' : mm.binds === 'pad' ? 'Controller buttons' : 'Display, accessibility and sound';
             page = listPage(`<h3>${head}</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p><p>Text size: ${esc(AX.TEXT_LABELS[access.text])} · Colour-blind safe: ${onOff(access.colourSafe)} · Shake: ${esc(AX.SHAKE_LABELS[AX.shakeMode(access, REDUCED)])}</p><p>Guard: ${access.guard === 'toggle' ? 'Toggle' : 'Hold'} · Sprint: ${access.sprint === 'toggle' ? 'Toggle' : 'Hold'} · Tips: ${onOff(access.tips)}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, mm.binds ? '' : controls);
         }
+        if (tab === 'map') page = mapPage(inList);
         if (tab === 'crow') {
             const v = CV.crowView(engine.getAvailableActions());
             page = listPage(mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
@@ -1823,6 +1895,10 @@
         if (!inList) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = null; enterList('equipment', +li.dataset.i); }));
         if (inList && tab === 'equipment' && mm.slot) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = li.dataset.slot; enterList('equipment', 0); }));
         if (inList && tab === 'skillbar' && mm.barSlot != null) pageEl.querySelectorAll('.cx-keys li').forEach((li) => li.addEventListener('click', () => { mm.barSlot = +li.dataset.i; enterList('skillbar', 0); }));
+        if (tab === 'map') pageEl.querySelectorAll('.wm-area.known').forEach((g) => g.addEventListener('click', () => {
+            const i = mapIndexOf(g.dataset.area);
+            if (inList && !mm.mapFly && menu.index === i) { const it = menu.items[i]; if (it && !it.disabled) it.action(); } else { mm.mapFly = null; enterList('map', i); }
+        }));
         const doBtn = pageEl.querySelector('.cx-do');
         if (doBtn) doBtn.addEventListener('click', () => {
             if (tab === 'save' || tab === 'quit') { runTab(tab); return; }
@@ -2681,8 +2757,9 @@
     function camera() {
         const map = WORLD.maps[view.mapId], T = map.tileSize || 32;
         const mw = map.tiles[0].length * T, mh = map.tiles.length * T, W = canvas.width, H = canvas.height;
-        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
-        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
+        const fx = view.camX != null ? view.camX : view.x, fy = view.camY != null ? view.camY : view.y;
+        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, fx * T + T / 2 - W / 2));
+        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, fy * T + T / 2 - H / 2));
         return { ox: -Math.round(camX), oy: -Math.round(camY), T };
     }
     if (ACTION) {
@@ -2826,6 +2903,8 @@
         stride += dt * (p.sprinting ? 1.5 : 1);
         if (stride >= 300) { stride = 0; sfx('step'); }
     }
+    const lootPops = new Map();   // "x,y" of a drop that just came out of an enemy -> its hop (sim fx 'loot_pop')
+    const LOOT_POP_MS = 420;
     const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
         const P = sim.player;
@@ -2844,6 +2923,8 @@
             case 'parry': tip('parry'); afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
             case 'guard': tip('guard'); afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); sfx('pickup'); break;
+            case 'loot_pop': lootPops.set(`${ev.x},${ev.y}`, { at: now, fromX: ev.fromX, fromY: ev.fromY }); setTimeout(() => lootPops.delete(`${ev.x},${ev.y}`), LOOT_POP_MS + 50); break;
+            case 'decoy': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: 0, distance: 0, facing: P.facing }, now); break;
             case 'aoe': if (lfx && ev.skill && (DATA.skillVfx || {})[ev.skill]) break;   // a legendary skill draws its own (ui/legend-fx.js)
                 afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
             case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
@@ -2905,6 +2986,7 @@
                 if (angel) ENSO.gazeFx.playerHalo(g, Math.round(a.x), Math.round(a.y + (a.r || 5)) - 10, time);
                 const barY = visible ? visible.y - 4 : a.y - 18;
                 if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(barY), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
+                if (a.elite && a.state !== 'dead') AFX.eliteTag(g, Math.round(a.x), Math.round(barY) - 7, a.elite.name, a.elite.color);   // a visible modifier (src/engine/wilds.js)
                 if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);
             }
         })).concat((v.minions || []).map((m) => ({   // your summons: the same body art pipeline, an ally bar, rising out of the ground
@@ -2975,12 +3057,15 @@
         // Under the bodies: wind-up telegraphs and loot on the ground.
         renderer.addHook('ground', (g, ctx) => {
             if (!sim || screen === 'title') return;
+            // Loot pops out of the fallen and lands glinting in its rarity's colour (ui/action-fx.js lootDrop).
             for (const d of engine.getWorldDrops ? engine.getWorldDrops(session.mapId) : []) {
-                const bob = Math.round(Math.sin(ctx.time / 300 + d.x) * 1);
-                g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(Math.round(d.x) - 4, Math.round(d.y) + 2, 8, 2);
-                g.fillStyle = d.items.length ? '#c9a2ff' : '#e8c860'; g.fillRect(Math.round(d.x) - 3, Math.round(d.y) - 4 + bob, 6, 5);
-                g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
+                const pop = lootPops.get(`${d.x},${d.y}`);
+                const hop = pop ? { k: (ctx.time - pop.at) / LOOT_POP_MS, fromX: pop.fromX, fromY: pop.fromY } : null;
+                AFX.lootDrop(g, { ...d, rarity: engine.dropRarity ? engine.dropRarity(d) : null }, ctx.time, hop);
             }
+            const dv = sim.view().decoy;   // Trickster's: the copy you left behind
+            if (dv) AFX.decoy(g, dv.x, dv.y, dv.leftMs, ctx.time);
+            for (const a of sim.view().actors) if (a.elite && a.state !== 'dead') AFX.eliteAura(g, a.x, a.y + (a.r || 5), a.r || 5, a.elite.color, ctx.time);
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
             for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
@@ -3071,6 +3156,8 @@
         if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else showStory(null, r.events, r.title, afterStory, '…'); return; }
         if (r.type === 'message') {
             seen.add(r.id);
+            const obj = (session.map.interactables || []).find((o) => o.id === r.id);
+            if (obj && obj.wardrobe) { openWardrobe(); return; }
             showStory(r.text, r.events, r.title, afterStory);
             return;
         }
@@ -3132,11 +3219,12 @@
         if (dir || isAct(ev) || ev.key === 'Escape') ev.preventDefault();
         if (stale.has(ev.key)) return;
         down.add(ev.key);
-        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
+        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk' || modal === 'creator') {
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
             if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
+            if (modal === 'pause' && (ev.key === 'm' || ev.key === 'M') && !ev.shiftKey && !ev.repeat && mmTabs[mm.tab] && mmTabs[mm.tab].id === 'map') { closePause(); return; }   // M closes the map it opened
             if (modal === 'pause' && menu && /^(q|Q|r|R|Tab)$/.test(ev.key) && !ev.repeat) { ev.preventDefault(); switchTab(mm.tab + (ev.key === 'q' || ev.key === 'Q' || (ev.key === 'Tab' && ev.shiftKey) ? -1 : 1), mm.focus === 'list'); return; }
             if (modal === 'pause' && menu && dir && mainMenuNav(ev, dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
@@ -3156,7 +3244,9 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
-        if (SFX && (ev.key === 'm' || ev.key === 'M') && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (M).' : 'Sound on (M).'); return; }
+        // M: the world map (2026-11-25). Shift+M mutes (it was M before the map; Settings has the sound too).
+        if (SFX && (ev.key === 'm' || ev.key === 'M') && ev.shiftKey && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (Shift+M).' : 'Sound on (Shift+M).'); return; }
+        if ((ev.key === 'm' || ev.key === 'M') && !ev.repeat && !fade && !anim && !flash && !feathering) { openMap(); return; }
         if (devMode && ev.key === '`' && !ev.repeat && !fade && !anim && !flash && !feathering) { openPause(null, 'cheats'); return; }   // dev cheats (devMode)
         if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
@@ -3236,8 +3326,8 @@
         if (!barksOn.size) return;
         const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
         const W = g.canvas.width, H = g.canvas.height;
-        for (const b of barksOn.values()) {
-            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 2 + ctx.oy;
+        for (const [id, b] of barksOn) {
+            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 10 - (npcMarks.has(id) ? 14 : 0) + ctx.oy;   // above a "!" or "?
             b.el.style.left = `${(hx / W * 100).toFixed(2)}%`;
             b.el.style.top = `${(Math.max(14, hy) / H * 100).toFixed(2)}%`;
             b.el.hidden = false;
@@ -3315,7 +3405,87 @@
         if (b === ENSO.gamepad.BUTTONS.START) finishCapture(null, true);
         else finishCapture(b, false);
     }
+    // ---------------------------------------------------------------------
+    // Camera (Thorne, 2026-11-25): it eases after you instead of being nailed to you, and leans a little ahead of
+    // where you face (toward your lock-on target in a fight), so you see more of what is coming. A map change, a
+    // teleport or reduced motion snaps it. Presentation only: the renderer and aim read view.camX / camY.
+    // ---------------------------------------------------------------------
+    const CAM = { followMs: 110, leadTiles: 1.6, lockShare: 0.35, snapTiles: 6 };
+    const FACE_VEC = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], 'up-left': [-0.7071, -0.7071], 'up-right': [0.7071, -0.7071], 'down-left': [-0.7071, 0.7071], 'down-right': [0.7071, 0.7071] };
+    let camAt = 0, camMap = null, lead = { x: 0, y: 0 };
+    function cameraFollow(now) {
+        const dt = camAt ? Math.min(100, now - camAt) : 0;
+        camAt = now;
+        const map = WORLD.maps[view.mapId], T = (map && map.tileSize) || 32, k = 32 / T;   // tile units of this map
+        let tx = 0, ty = 0;
+        const lock = sim && lockId ? sim.actors.find((a) => a.sid === lockId && !a.dead) : null;
+        if (lock) { tx = (lock.x / T - 0.5 - view.x) * CAM.lockShare; ty = ((lock.y - T / 2 + 2) / T - view.y) * CAM.lockShare; }
+        else if (view.moving) { const f = FACE_VEC[view.facing8] || FACE_VEC[view.facing] || [0, 0]; tx = f[0] * CAM.leadTiles * k; ty = f[1] * CAM.leadTiles * k * 0.7; }
+        const ease = 1 - Math.exp(-dt / 400);                     // the lead itself drifts in slowly, so turning never jerks the view
+        lead.x += (tx - lead.x) * ease; lead.y += (ty - lead.y) * ease;
+        const goalX = view.x + lead.x, goalY = view.y + lead.y;
+        const far = view.camX == null || Math.hypot(goalX - view.camX, goalY - view.camY) > CAM.snapTiles * k;
+        if (REDUCED || far || camMap !== view.mapId || screen !== 'explore' || fade) { view.camX = REDUCED ? view.x : goalX; view.camY = REDUCED ? view.y : goalY; if (REDUCED || camMap !== view.mapId) lead = { x: 0, y: 0 }; camMap = view.mapId; return; }
+        const f = 1 - Math.exp(-dt / CAM.followMs);
+        view.camX += (goalX - view.camX) * f; view.camY += (goalY - view.camY) * f;
+    }
+
+    // ---------------------------------------------------------------------
+    // "!" and "?" over people (Hawk, 2026-11-25): ! = talking to them now offers a quest you haven't started,
+    // ? = an active quest wants you to talk to them (engine.npcMarker, pure). Checked twice a second, not every frame.
+    // ---------------------------------------------------------------------
+    const npcMarks = new Map();
+    let marksAt = 0, marksMap = null;
+    function refreshMarks(now, objects) {
+        if (now - marksAt < 500 && marksMap === view.mapId) return;
+        marksAt = now; marksMap = view.mapId;
+        npcMarks.clear();
+        if (!engine || !engine.npcMarker) return;
+        for (const o of objects) if (o.kind === 'npc') { const m = engine.npcMarker(o.npc); if (m) npcMarks.set(o.id, { o, mark: m }); }
+    }
+    renderer.addHook('foreground', (g, ctx) => {
+        if (screen !== 'explore' || !npcMarks.size) return;
+        const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
+        for (const { o, mark } of npcMarks.values()) {
+            const cx = Math.floor(o.x / k) * PT + 16, top = Math.floor(o.y / k) * PT - 22 + Math.round(REDUCED ? 0 : Math.sin(ctx.time / 260 + o.x) * 1.5);
+            const glyph = mark === '!' ? ['.##.', '.##.', '.##.', '.##.', '....', '.##.'] : ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'];
+            const w = glyph[0].length, x0 = cx - Math.floor(w / 2);
+            g.fillStyle = 'rgba(10,8,14,0.85)';   // a dark outline all round, so it reads on any roof, tree or head behind it
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') g.fillRect(x0 + x - 1, top + y - 1, 3, 3); }));
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') { g.fillStyle = y === 0 ? '#fff6c8' : mark === '!' ? '#f0c040' : '#9fe8cf'; g.fillRect(x0 + x, top + y, 1, 1); } }));
+        }
+    });
+
+    // ---------------------------------------------------------------------
+    // The mirror (Tokelo, 2026-11-25): change your look after creation. A map object with `wardrobe: true` opens the
+    // creator's appearance editor over the game; Done keeps the new look (saved with the game), Cancel puts it back.
+    // ---------------------------------------------------------------------
+    function openWardrobe() {
+        const c = view.cosmetics || defaultCosmetics();
+        creator = { step: 'hairStyle', wardrobe: true, name: engine.player.name, cls: engine.player.className, look: engine.player.appearance || 0, facing: 'down', ...defaultCosmetics(), ...c };
+        modal = 'creator'; syncActionHudVisibility();
+        muteHeldKeys();
+        els.hud.hidden = true;
+        els.title.hidden = false;
+        sfx('open');
+        creatorStep('hairStyle');
+    }
+    function closeWardrobe(keep) {
+        if (keep) {
+            view.cosmetics = { ...cosmeticsFromCreator(), held: view.cosmetics && view.cosmetics.held };
+            if (creator.look !== (engine.player.appearance || 0)) engine.act({ type: 'set_identity', appearance: creator.look });
+            view.appearance = creator.look;
+            toast('You look yourself over. Good.');
+        }
+        creator = null; menu = null;
+        els.title.hidden = true; els.hud.hidden = false;
+        modal = null; syncActionHudVisibility();
+        muteHeldKeys();
+        updateHud();
+    }
+
     function frame(now) {
+        if (modal === 'creator' && creator && creator.wardrobe && menu && CHOICES[creator.step] && creator[creator.step] !== menu.index) { creator[creator.step] = menu.index; renderTitle(); }   // arrows in the mirror
         if (PAD && mm.capture && mm.capture.kind === 'pad' && modal === 'pause') padCapture();   // rebinding: the next button pressed
         else if (PAD) { const on = PAD.poll(); if (on && !padSeen) { const k = AX.labels(access, 'pad'); toast(`Controller connected: ${k.attack} attack, ${k.dodge} dodge, ${k.interact} interact, hold RT for skills.`); } padSeen = on; }
         if (screen === 'title') {
@@ -3374,6 +3544,8 @@
         }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         barkTick(now, objects);
+        refreshMarks(now, objects);
+        cameraFollow(now);
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
         shakeView(now);
         tutorFrame(now);

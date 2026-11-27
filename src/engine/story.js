@@ -71,6 +71,8 @@
             if (cond.className && !(this.player && [].concat(cond.className).includes(this.player.className))) return false;
             for (const f of cond.flags || []) if (!s.flags.includes(f)) return false;
             for (const f of cond.notFlags || []) if (s.flags.includes(f)) return false;
+            // seen: ['inspect:x', 'enter:map']: those story events have happened (an anchor looked at before it existed)
+            for (const k of cond.seen || []) if (!(s.seen || []).includes(k)) return false;
             for (const it of cond.items || []) if (!this.player || !this.player.inventory.includes(it)) return false;
             // has: { item: count }: carrying at least that many (a recipe's ingredients)
             for (const [it, n] of Object.entries(cond.has || {})) if (!this.player || this.player.inventory.filter((x) => x === it).length < n) return false;
@@ -96,6 +98,9 @@
             if (Number.isSafeInteger(cond.contractsBelow) && contracts >= cond.contractsBelow) return false;
             // gold: n: carrying at least n Gold (a debt you can settle from your own purse, C2-S04)
             if (Number.isSafeInteger(cond.gold) && (!this.player || !(this.player.gold >= cond.gold))) return false;
+            // level: n / levelBelow: n: the player is at least (below) that level (the Tourney of Crowns takes level 5 and up)
+            if (Number.isSafeInteger(cond.level) && (!this.player || !(this.player.level >= cond.level))) return false;
+            if (Number.isSafeInteger(cond.levelBelow) && (!this.player || !(this.player.level < cond.levelBelow))) return false;
             return true;
         }
         /** 'empty' | 'growing' | 'tended' | 'ready' for a homestead plot (pure). 'tended': a crop growing on the clock
@@ -384,6 +389,37 @@
             this.enterNode(npcId, entry.node);
         }
 
+        /**
+         * What floats over this person in the world (pure; Hawk, 2026-11-25): '!' when talking to them now would offer
+         * a quest you haven't started (their opening node, then any choice you could pick, a few steps deep), '?' when
+         * an active quest's current objective is to talk to them, else null. Reads the same conditions talk uses.
+         */
+        npcMarker(npcId) {
+            const npc = this.npcDef(npcId), s = this.story;
+            if (!npc || !s || !this.storyAllows(npc.when)) return null;
+            for (const id of Object.keys(s.quests)) {
+                const o = this.currentObjective(id);
+                if (o && o.on && o.on.type === 'talk' && o.on.id === npcId) return '?';
+            }
+            const entry = (npc.talk || []).find((t) => this.storyAllows(t.if));
+            if (!entry) return null;
+            const offers = (effects) => (effects || []).some((e) => e && e.start && ['unseen', 'available'].includes((s.quests[e.start] || { state: 'unseen' }).state));
+            const seen = new Set(), queue = [[entry.node, 0]];
+            while (queue.length) {
+                const [id, depth] = queue.shift();
+                const node = npc.nodes[id];
+                if (!node || seen.has(id)) continue;
+                seen.add(id);
+                if (offers(node.effects)) return '!';
+                for (const c of node.choices || []) {
+                    if (!this.storyAllows(c.if)) continue;
+                    if (offers(c.effects)) return '!';
+                    if (c.to && depth < 5) queue.push([c.to, depth + 1]);
+                }
+            }
+            return null;
+        }
+
         /** Dialogue choices on offer now (pure). Every node has a way out. */
         dialogueChoices() {
             const d = this.story && this.story.dialogue;
@@ -522,6 +558,7 @@
                 if (a.type === 'buy' && a.shopId === s.dialogue.shopId) { this.buyItem(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'temper' && a.shopId === s.dialogue.shopId) { this.temperWeapon(a.shopId, String(a.item || '')); return true; }
                 if (a.type === 'cook') { this.cookAtStation(String(a.recipeId || '')); return true; }   // the cooking menu (kitchen)
+                if (a.type === 'rest_by_fire') { this.restByFire(); return true; }   // a hearth: rest, and the wild comes back (wilds.js)
                 if (a.type === 'describe') return false;
                 this.refuse('WRONG_MODE', 'Finish the conversation first.');
                 this.showDialogueChoices();
@@ -614,6 +651,7 @@
             actions.push(...goods, ...selling, ...tempering);
             const kitchen = this.kitchenView();
             if (kitchen) actions.push(...kitchen.recipes.map((r) => ({ type: 'cook', recipeId: r.id, enabled: r.enabled, ...(r.reason ? { reason: r.reason } : {}) })));
+            if (kitchen && !this.restByFireBlock()) actions.push({ type: 'rest_by_fire', enabled: true });
             return {
                 shop: shop ? { shopId, gold: this.player.gold, goods, selling, tempering } : null,
                 kitchen,
@@ -784,6 +822,21 @@
             if (!opt.enabled) { this.refuse(opt.reason.code, opt.reason.message); return; }
             this.say(`Black feathers close around you. When they scatter, you are at ${an.name}.`, { important: true });
             this.out.push({ type: 'world.travel', anchorId, map: an.map, spawn: an.spawn });
+        }
+
+        /** The world map's travel record (pure; ui/world-map-view.js): the map you're on, every map you have entered
+         *  (the story's own 'enter:<map>' events, so saves from before the map already have it), and each anchor with
+         *  whether it is attuned. Flying is still offered and refused only through getAvailableActions(). */
+        getTravelState() {
+            if (!this.story) return null;
+            const anchors = (this.storyContent() || {}).anchors || {};
+            const visited = this.story.seen.filter((k) => k.startsWith('enter:')).map((k) => k.slice(6));
+            if (this.story.at && !visited.includes(this.story.at)) visited.push(this.story.at);
+            return {
+                at: this.story.at || null, visited, aspect: this.hasAspect(),
+                anchors: Object.entries(anchors).map(([anchorId, an]) => ({ anchorId, name: an.name, region: an.region || null, map: an.map,
+                    attune: an.attune || null, attuned: this.hasStoryFlag(`anchor:${anchorId}`) }))
+            };
         }
 
         /** The crow's own talk option (pure): only once the aspect is owned. */

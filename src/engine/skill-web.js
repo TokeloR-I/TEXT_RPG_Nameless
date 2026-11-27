@@ -46,7 +46,7 @@
         const costOf = (kind) => { const c = (rules.cost || {})[kind]; return c == null ? 1 : c; };
         const add = (n) => {
             if (nodes.has(n.id)) throw new Error(`Skill Web: duplicate node id '${n.id}'`);
-            const node = { branch: null, stage: null, minLevel: 1, requiresEvent: null, base: false, ...n, links: [] };
+            const node = { branch: null, stage: null, minLevel: 1, requiresEvent: null, eventFlag: null, base: false, ...n, links: [] };
             if (node.cost == null) node.cost = costOf(node.kind);
             nodes.set(node.id, node);
             return node;
@@ -74,7 +74,7 @@
                 const seen = new Set();
                 br.stages.forEach((st, i) => {
                     const ids = [];
-                    const gate = { region: classId, branch: branchId, stage: i, minLevel: st.level || 1, requiresEvent: st.unlockTrigger || null };
+                    const gate = { region: classId, branch: branchId, stage: i, minLevel: st.level || 1, requiresEvent: st.unlockTrigger || null, eventFlag: st.unlockFlag || null };
                     if (st.skill && !seen.has(st.skill)) {
                         seen.add(st.skill);
                         const n = add({ id: `${branchId}.${i + 1}.skill`, kind: 'active', label: st.skill, skill: st.skill, ...gate });
@@ -299,6 +299,9 @@
         /** A taught node (`taught`: a story flag) of your own class web, once that flag is set: free and never unlearned (Shane's LEG CRAMP!). */
         webTaughtHere(node) { return !!(node && node.taught && this.player && node.region === this.player.className && this.hasStoryFlag && this.hasStoryFlag(node.taught)); }
 
+        /** An event-gated node (`requiresEvent`) opens once its story event happened (`eventFlag`, a story flag), or by the dev cheat. */
+        webEventDone(node) { return !!this.flags.eventsUnlocked || !!(node.eventFlag && this.hasStoryFlag && this.hasStoryFlag(node.eventFlag)); }
+
         /** A story teaches you a skill (`{ teach: skill }`): own its taught node in your class web, free. Returns the node or null. */
         webTeach(skill) {
             if (this.webUnavailable()) return null;
@@ -383,7 +386,7 @@
             if (n.contract && !(this.hasStoryFlag && this.hasStoryFlag(n.contract)) && !this.flags.eventsUnlocked) return { code: 'CONTRACT_LOCKED', message: `${n.label} needs a contract you don't hold yet.` };   // Devil Union branches (union.js)
             if (n.taught && !this.webTaughtHere(n)) return { code: 'NOT_TAUGHT', message: `${n.label} can't be bought with points; someone has to teach it to you.` };   // Shane's LEG CRAMP! (S02)
             if (this.player.level < n.minLevel) return { code: 'LEVEL_TOO_LOW', message: `Reach level ${n.minLevel} to learn ${n.label}.` };
-            if (n.requiresEvent && !this.flags.eventsUnlocked) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
+            if (n.requiresEvent && !this.webEventDone(n)) return { code: 'EVENT_LOCKED', message: `${n.label} awaits — requires: ${n.requiresEvent}.` };
             const pts = this.webPoints();
             if (pts < n.cost) return { code: 'NO_WEB_POINTS', message: `${n.label} needs ${n.cost} Skill Web point${n.cost === 1 ? '' : 's'}; you have ${Math.max(0, pts)}.` };
             return null;

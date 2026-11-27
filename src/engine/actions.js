@@ -309,8 +309,10 @@
             c.playerActedThisRound = true;
             if (realtime) {   // combat v2: no turn to end; the skill goes on cooldown and the clock runs on
                 this.rtEndPlayerAction(skillName, isBasic);
+                this.gearAfterCast(skillName, cost, isBasic);   // Frugal, Echoing (src/engine/affixes.js)
                 return;
             }
+            this.gearAfterCast(skillName, cost, isBasic);
             if (this.mode === 'combat' && c.extraTurn && !this.checkBattleEnd()) {
                 c.extraTurn = false;
                 c.awaitingPlayer = true;
@@ -590,7 +592,7 @@
                 if (this.world) return;
                 if (this.mode !== 'explore' || !this.player) { this.refuse('WRONG_MODE', 'Choose a class and finish the current action first.'); return; }
                 this.equipStarters();
-                this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null };
+                this.world = { collected: [], defeated: [], encounter: null, lastEncounter: null, lastResult: null, respawns: {}, elites: {} };
                 this.storyBegin();                 // the chapter runs in the world (src/engine/story.js)
                 return;
             }
@@ -620,7 +622,7 @@
             this.world.encounter = a.encounterId;
             this.world.lastEncounter = null;
             this.world.lastResult = null;
-            this.startCombat(a.enemies, `world:${a.encounterId}`, a.loot);
+            this.startCombat(a.enemies, this.encounterScope(a.encounterId), a.loot);
         }
     }
 
