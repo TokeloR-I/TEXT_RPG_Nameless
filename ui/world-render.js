@@ -926,6 +926,24 @@
             circle(g, px + 18, py + 6, 2.6, '#0a0a0e'); rect(g, px + 20, py + 5, 2, 1, '#0a0a0e');      // a gray crow keeps watch
             rect(g, px + 16, py + 6, 2, 1, '#5a5a62');
         },
+        // Boss rematches (docs/design/BESTIARY_CODEX_REMATCH.md): where a boss fell, a ring of black feathers. The crow
+        // remembers the fight here; a faint grey shimmer turns round the ring.
+        feather_ring(g, px, py, T, t) {
+            const cx = px + 16, cy = py + 20, k = 0.5 + 0.5 * Math.sin((t || 0) / 700);
+            g.fillStyle = `rgba(190, 195, 230, ${(0.22 + 0.14 * k).toFixed(3)})`; g.beginPath(); g.ellipse(cx, cy, 14, 7, 0, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = `rgba(220, 225, 255, ${(0.35 + 0.25 * k).toFixed(3)})`; g.lineWidth = 1; g.beginPath(); g.ellipse(cx, cy, 11, 5, 0, 0, Math.PI * 2); g.stroke();
+            g.lineCap = 'round';
+            for (let i = 0; i < 9; i++) {
+                const a = (i / 9) * Math.PI * 2, x = cx + Math.cos(a) * 11, y = cy + Math.sin(a) * 5;
+                const tx = x + Math.cos(a + 1.9) * 5, ty = y + Math.sin(a + 1.9) * 2.5 - 1;
+                g.strokeStyle = '#08080c'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(x, y); g.lineTo(tx, ty); g.stroke();
+                g.strokeStyle = '#3a2f4a'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(tx, ty); g.stroke();   // the sheen
+            }
+            g.lineCap = 'butt';
+            const s = ((t || 0) / 900) % (Math.PI * 2);
+            rect(g, Math.round(cx + Math.cos(s) * 11), Math.round(cy + Math.sin(s) * 5) - 1, 1, 1, '#c8c8dc');   // the shimmer
+            rect(g, Math.round(cx + Math.cos(s + Math.PI) * 11), Math.round(cy + Math.sin(s + Math.PI) * 5) - 1, 1, 1, '#8a8aa0');
+        },
         feathers(g, px, py, T) {
             g.strokeStyle = '#08080a'; g.lineWidth = 2; g.lineCap = 'round';
             for (const [x, y, dx, dy] of [[9, 20, 7, -5], [16, 22, 6, 2], [12, 13, 8, 3], [20, 15, -5, 6]]) {

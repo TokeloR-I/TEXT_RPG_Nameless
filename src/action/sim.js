@@ -94,6 +94,7 @@
             };
             this.projectiles = [];
             this.mines = [];
+            this.sealed = null;
             this.decoy = null;        // Trickster's affix: a decoy a dodge leaves behind (src/engine/affixes.js)
             this.dropReadyAt = {};    // a fresh drop pops out first, then can be picked up
             this.groups = {};
@@ -255,6 +256,7 @@
             this.separate();
             this.checkDrops();
             if (this.input.interact) { this.input.interact = false; this.interact(); }
+            if (this.sealed) this.sealedExits();   // opens (seal_open) the step the boss falls or the fight ends
             if (++this.steps % 15 === 0) this.syncEncounters();
         }
 
@@ -282,10 +284,15 @@
             const visible = this.session.visibleObjects().filter((o) => o.kind === 'encounter');
             let solids = false;
             for (const enc of visible) {
-                const old = this.groups[enc.id];
-                // A rest by a fire on this very map brought a beaten group back (src/engine/wilds.js): stand it up again.
-                if (old && old.cleared && this.lifeOf(enc.id) > old.life && !this.engine.isDefeated(enc.id)) { delete this.groups[enc.id]; this.actors = this.actors.filter((a) => a.encounterId !== enc.id); }
-                if (!this.groups[enc.id] && !this.engine.isDefeated(enc.id)) { this.addGroup(enc); solids = solids || !!enc.gate; }
+                const had = this.groups[enc.id];
+                if (this.engine.isDefeated(enc.id)) continue;
+                // A beaten group comes back fresh when the engine brings it back: a boss the crow remembers (rematch), or a
+                // rest by a fire on this very map (src/engine/wilds.js). Otherwise a group already here stays as it is.
+                const rematch = had && had.cleared && this.engine.rematchKeyOf && this.engine.rematchKeyOf(enc.id);
+                const rested = had && had.cleared && this.lifeOf(enc.id) > had.life;
+                if (had && !rematch && !rested) continue;
+                if (had) { delete this.groups[enc.id]; this.actors = this.actors.filter((a) => a.encounterId !== enc.id); }
+                this.addGroup(enc); solids = solids || !!enc.gate;
             }
             const ids = new Set(visible.map((o) => o.id));
             for (const g of Object.values(this.groups)) {
@@ -399,6 +406,7 @@
 
         /** The player fell: everything on this map goes home and the player stands at the map's safe spawn. */
         onRespawn() {
+            this.sealed = null;
             for (const g of Object.values(this.groups)) if (g.engaged) this.resetGroup(g);
             for (const a of this.actors) if (!a.dead) { a.x = a.homeX; a.y = a.homeY; a.state = 'idle'; }
             this.projectiles = [];
@@ -539,6 +547,11 @@
             const tx = Math.floor(p.x / this.T), ty = Math.floor(p.y / this.T);
             s.facing = p.facing;
             if (tx === s.x && ty === s.y) return;
+            if (this.engaged && this.sealedAt(tx, ty)) {   // a boss fight: the way out is shut until it ends
+                p.x = (s.x + 0.5) * this.T; p.y = (s.y + 0.5) * this.T;
+                if (!(this.now < (this.sealNoticeAt || 0))) { this.fx.push({ type: 'notice', text: 'The way out is shut. Finish the fight.' }); this.sealNoticeAt = this.now + 1500; }
+                return;
+            }
             if (this.engaged && (s.map.exits || []).some((e) => e.x === tx && e.y === ty && e.trigger === 'step')) {
                 // Leaving mid-fight would strand the engine in combat: the way out is barred while an enemy is close.
                 // Nobody near (they can't reach you, or hang back): they give up and you slip away.
@@ -554,6 +567,19 @@
             if (r.type !== 'none' && r.type !== 'moved') this.worldResults.push(r);
             if (r.type === 'transition') this.enterMap();
         }
+
+        /** The exits a boss fight has shut, while it lasts (null when none). */
+        sealedExits() {
+            if (!this.sealed) return null;
+            const bossIn = this.engaged && Object.values(this.groups).some((g) => g.engaged && this.actors.some((a) => a.encounterId === g.encounterId && !a.dead && a.prof && a.prof.boss));
+            // A stalemate never traps you: if nobody has been hurt for `combat.sealStalemateMs`, the way out opens.
+            const hpSum = (this.engine.player ? this.engine.player.hp : 0) + this.actors.reduce((n, a) => n + (a.dead ? 0 : (a.hp || 0)), 0);
+            if (hpSum !== this.sealHp) { this.sealHp = hpSum; this.sealClashAt = this.now; }
+            const stale = this.now - (this.sealClashAt ?? this.now) > (((this.rules.combat || {}).sealStalemateMs) || 20000);
+            if (!bossIn || stale) { this.sealed = null; this.sealHp = null; this.sealClashAt = null; this.fx.push({ type: 'seal_open', stale }); return null; }
+            return this.sealed;
+        }
+        sealedAt(tx, ty) { const s = this.sealedExits(); return !!s && s.some((e) => e.x === tx && e.y === ty); }
 
         /** Axis by axis. `slide` px: a move blocked by a corner it only clips slips around it (walking along walls). */
         moveBody(b, dx, dy, ignore = null, slide = 0) {
@@ -920,6 +946,15 @@
             const members = this.actors.filter((a) => a.encounterId === g.encounterId);
             members.forEach((a, i) => { a.engineId = r.ids[i]; a.state = 'chase'; a.attackReadyAt = this.now + 400 + this.rng() * 500; a.hp = null; a.lostSince = null; });
             this.fx.push({ type: 'engage', encounterId: g.encounterId, name: g.name });
+            // A boss fight opens with its name card, and the ways out of the room slam shut until it ends (research round
+            // two #9, docs/design/BESTIARY_CODEX_REMATCH.md). The sim holds the seal; the front end draws the bars.
+            const boss = members.find((a) => a.prof && a.prof.boss);
+            if (boss) {
+                const card = this.engine.bossCard ? this.engine.bossCard(boss.key) : null;
+                this.sealed = (this.session.map.exits || []).filter((e) => e.trigger === 'step' || e.trigger === 'interact').map((e) => ({ id: e.id, x: e.x, y: e.y }));
+                this.sealClashAt = this.now; this.sealHp = null;
+                this.fx.push({ type: 'boss_intro', key: boss.key, name: (card && card.name) || boss.name || g.name, epithet: card ? card.epithet : null, rematch: !!(this.engine.rematchKeyOf && this.engine.rematchKeyOf(g.encounterId)), x: boss.x, y: boss.y, sealed: this.sealed.slice() });
+            }
             return true;
         }
 
@@ -2001,7 +2036,8 @@
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner, skill: pj.skill || null })),
                 mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
                 decoy: this.decoy && this.now < this.decoy.until ? { x: this.decoy.x, y: this.decoy.y, leftMs: this.decoy.until - this.now } : null,
-                engaged: this.engaged
+                engaged: this.engaged,
+                sealed: this.sealed ? this.sealed.slice() : null   // exits a boss fight has shut: draw bars across them
             };
         }
     }

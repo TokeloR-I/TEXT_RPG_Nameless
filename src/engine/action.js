@@ -95,6 +95,7 @@
                         if (sc.atk) e.atk = Math.round(e.atk * (1 + sc.atk * over));
                         if (sc.def) e.def = Math.round(e.def * (1 + sc.def * over));
                     }
+                    if (this.rematchScaleEnemy) this.rematchScaleEnemy(e, id);   // a remembered boss grows to your level (src/engine/codex.js)
                 }
                 a.groups[id] = { encounterId: id, ids: enemies.map((e) => e.id), at: at ? { mapId: at.mapId, x: at.x, y: at.y } : null };
                 this.out.push({ type: 'action.engage', encounterId: id, ids: a.groups[id].ids.slice() });
@@ -114,6 +115,7 @@
                 for (const eid of Object.keys(c.rt.actors)) if (!c.enemies.some((e) => e.id === eid) && !c.minions.some((m) => m.id === eid)) delete c.rt.actors[eid];
                 if (names.length) this.say(`${names.join(', ')} ${names.length > 1 ? 'give' : 'gives'} up the chase.`);
                 this.out.push({ type: 'action.disengage', encounterId: id });
+                if (this.rematchEnded) this.rematchEnded(id, false);   // walking away from a remembered fight ends it
                 this.actionMaybeEnd();
                 return null;
             });
@@ -460,6 +462,7 @@
             this.out.push({ type: 'action.cleared', encounterId: g.encounterId, xp });
             this.addExperience(xp, { quiet: true });
             this.storyEvent({ type: 'defeat', id: g.encounterId });
+            if (this.rematchEnded) this.rematchEnded(g.encounterId, true);   // a remembered boss beaten again (src/engine/codex.js)
         }
 
         /** No group left: the fight is over (victory heal only if something was beaten). */
@@ -501,6 +504,7 @@
             if (this.world) { this.world.lastEncounter = groups[0] || null; this.world.lastResult = 'defeat'; }
             this.say(`You wake somewhere safe, aching. (${p.hp}/${p.maxHp} HP)`, { important: true });
             this.out.push({ type: 'world.respawn', encounters: groups, hp: p.hp });
+            if (this.rematchFadeAll) this.rematchFadeAll();   // a remembered fight fades when you fall (src/engine/codex.js)
         }
 
         // =====================================================================

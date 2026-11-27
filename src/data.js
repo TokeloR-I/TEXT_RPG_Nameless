@@ -2395,6 +2395,9 @@
                     ]
                 }
             },
+            // Boss rematches (docs/design/BESTIARY_CODEX_REMATCH.md): a remembered boss grows with every level you have over
+            // the level it was built for (src/story/codex.js rematches[key].level), as the Dominion rulers' scaleToLevel does.
+            rematch: { scale: { hp: 0.05, atk: 0.10, def: 0.04 } },
             bosses: {
                 crow_touched_warden: {
                     arena: { x0: 32, y0: 64, x1: 672, y1: 448, home: { x: 368, y: 176 },   // the sanctuary floor in sim px (16 px tiles); the crow storms use it

@@ -2200,6 +2200,14 @@
         q08.onComplete = [{ start: ch2.q08.start }];
     }
 
+    // The Bestiary, the lore codex and boss rematches (src/story/codex.js, loaded before this file in the browser): its
+    // feather rings are story stations, so their talk joins the NPCs.
+    const codex = isNode ? require('./codex.js') : (ENSO.story && ENSO.story.codex);
+    if (codex) {
+        chapter1.codex = codex;
+        Object.assign(npcs, codex.npcs);
+    }
+
     (ENSO.story || (ENSO.story = {})).chapter1 = chapter1;
     if (isNode) module.exports = chapter1;
 })(typeof window !== 'undefined' ? window : globalThis);

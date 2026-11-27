@@ -71,7 +71,7 @@
             if (cond.className && !(this.player && [].concat(cond.className).includes(this.player.className))) return false;
             for (const f of cond.flags || []) if (!s.flags.includes(f)) return false;
             for (const f of cond.notFlags || []) if (s.flags.includes(f)) return false;
-            // seen: ['inspect:x', 'enter:map']: those story events have happened (an anchor looked at before it existed)
+            // seen: ['talk:elian', 'enter:shamefield', 'inspect:village_memorial']: story events that have happened (the lore codex)
             for (const k of cond.seen || []) if (!(s.seen || []).includes(k)) return false;
             for (const it of cond.items || []) if (!this.player || !this.player.inventory.includes(it)) return false;
             // has: { item: count }: carrying at least that many (a recipe's ingredients)
@@ -165,6 +165,7 @@
                 if (e.teach) this.webTeach(String(e.teach));   // a taught Skill Web node, free (needs its `taught` flag set first)
                 if (e.stance) this.setStance(String(e.stance));   // the first stance a legendary web gives you (stance.js)
                 if (e.event) this.storyEvent(e.event);
+                if (e.rematch && this.rematchBegin) this.rematchBegin(String(e.rematch));   // a feather ring: fight a beaten boss again (src/engine/codex.js)
             }
         }
 
