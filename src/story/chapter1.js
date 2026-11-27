@@ -277,6 +277,22 @@
             ],
             onComplete: []
         },
+        // The Tourney of Crowns (research round two, Tokelo 2026-11-26): the Knight's prestige quest. Shamefield's lists, held
+        // at the Festival of the Sun under the old crown and not since it broke; the Captain revives them once the festival is
+        // over. Any class may ride; level 5 to enter. Winning sets `tourney_champion`, which opens Mounted Charge by the Knight
+        // in the warrior web (skillWeb.extraNodes). XP and Gold are candidates for Gauge. DRAFT lines for Wick.
+        S03: {
+            title: 'The Tourney of Crowns', kind: 'side', xp: 30, candidate: true,
+            summary: "Under the old crown, Shamefield held lists at the Festival of the Sun, and the winner carried the crown's banner for a year. Nobody has fought for it since the crown broke. The Watch Captain is bored enough to bring it back.",
+            objectives: [
+                { id: 'enter', text: 'Put your name in the lists with the Watch Captain (level 5 and up)', on: { type: 'story', id: 'tourney_entered' }, marker: { map: 'shamefield', x: 17, y: 4 } },
+                { id: 'bouts', text: 'Win three bouts in the lists on the square', on: { type: 'defeat', id: 'tourney_bout_3' }, marker: { map: 'shamefield', x: 25, y: 10 } },
+                { id: 'crown', text: 'Claim the champion\'s ribbon from the Watch Captain', on: { type: 'story', id: 'tourney_crowned' }, marker: { map: 'shamefield', x: 17, y: 4 } }
+            ],
+            onComplete: [{ gold: 30, key: 'tourney_purse' }, { flag: 'tourney_champion' },
+                { say: 'Somebody ties a faded blue ribbon round your arm. Half the square cheers; the other half settles its bets.', important: true },
+                { when: { className: 'warrior' }, say: '(Mounted Charge, the Knight\'s prestige skill, is open in your Skill Web beside Shield Charge.)', important: true }]
+        },
         L01: {
             // Main path from Tokelo 2026-11-04 until the Broken Crown rework (2026-11-11): all six favours are optional now.
             // Two of them are enough for the Captain to trust you with the road (C1-N02); all six earn the village's thanks.
@@ -849,6 +865,12 @@
                 { if: { quests: { 'C1-N02': 'active' }, questCount: { ids: LOCALS, min: VOUCH } }, node: 'vouch' },
                 { if: { quests: { 'C1-N02': 'active', L01: 'unseen' } }, node: 'oath_offer' },
                 { if: { quests: { 'C1-N02': 'active' } }, node: 'oath_hint' },
+                // The Tourney of Crowns (S03): after the festival, the lists.
+                { if: { quests: { S03: 'active' }, flags: ['tourney_bout_3'] }, node: 'tourney_crown' },
+                { if: { quests: { S03: 'active' }, flags: ['tourney_entered'] }, node: 'tourney_wait' },
+                { if: { quests: { S03: 'active' }, level: 5 }, node: 'tourney_enter' },
+                { if: { quests: { S03: 'active' } }, node: 'tourney_green' },
+                { if: { quests: { 'C1-N03': 'complete', S03: 'unseen' } }, node: 'tourney_offer' },
                 { if: { quests: { L01: 'active' } }, node: 'locals_hint' },
                 { if: { flags: ['shane_watch_resolved'] }, node: 'suspicious' },
                 { node: 'default' }
@@ -1006,6 +1028,43 @@
                     lines: [['npc', "Two of my constables came back limping from Shane's allotment, and the evidence wagon's lighter than it was. I can't prove who did it. Yet."]],
                     effects: [{ flag: 'captain_told_shane' }],
                     choices: [{ text: 'Goodbye.', end: true }]
+                },
+                tourney_offer: {
+                    lines: [
+                        ['npc', "Under the old crown we held lists at the festival. Whoever won carried the crown's banner for a year, and drank free all of it."],
+                        ['npc', "Nobody's had the stomach since the crown broke. My lads are bored, and frankly so am I. Fancy a bout?"]
+                    ],
+                    effects: [{ available: 'S03' }],
+                    choices: [{ text: 'Put me down for it.', effects: [{ start: 'S03' }], to: 'tourney_rules' }, { text: 'Not today.', end: true }]
+                },
+                tourney_rules: {
+                    lines: [
+                        ['npc', "Blunted steel, three bouts, and nobody dies on my square. Last comes Sir Odo, who won it twice under the old crown and has never let anyone forget."],
+                        ['npc', "Come and sign when you've some weight on you. Level five, say. I'm not scraping a farmhand off the cobbles."]
+                    ],
+                    choices: [{ text: 'Understood.', end: true }]
+                },
+                tourney_green: {
+                    lines: [['npc', "Still too green for the lists. Come back at level five and I'll write your name myself."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                tourney_enter: {
+                    lines: [
+                        [null, 'The Captain licks a pencil stub and writes your name under three crossed-out ones.'],
+                        ['npc', "There. Squires first, out on the square by the stalls. Win and keep winning; I've money on this."]
+                    ],
+                    choices: [{ text: 'To the lists.', effects: [{ flag: 'tourney_entered' }, { event: { type: 'story', id: 'tourney_entered' } }], end: true }]
+                },
+                tourney_wait: {
+                    lines: [['npc', "The lists are by the stalls. Three bouts. Don't come back here until you've won them or you're carried."]],
+                    choices: [{ text: 'Goodbye.', end: true }]
+                },
+                tourney_crown: {
+                    lines: [
+                        ['npc', "Sir Odo on his back in front of the whole square. He'll be impossible about it for a year, and I've never been happier."],
+                        ['npc', "The champion's ribbon. It's faded, but so is everything round here. Carry it better than the last lot carried the crown."]
+                    ],
+                    choices: [{ text: 'I will.', effects: [{ event: { type: 'story', id: 'tourney_crowned' } }], end: true }]
                 },
                 default: {
                     lines: [['npc', "Keep the peace and we'll get along."]],
@@ -2026,6 +2085,8 @@
             { say: "The crow lands on the axle among the fat crows of the roost, and none of them make room for it. 'Family,' it says, flatly. 'I'll remember it.'", when: { flags: ['aspect_nahemoth'] } },
             { say: '(Black Flight: Featherwatch Path is attuned.)', important: true, when: { flags: ['aspect_nahemoth'] } }
         ] },
+        // The Tourney of Crowns (S03): each bout won opens the next.
+        ...[1, 2, 3].map((n) => ({ id: `tourney_bout_${n}_won`, on: { type: 'defeat', id: `tourney_bout_${n}` }, effects: [{ flag: `tourney_bout_${n}` }] })),
         { id: 'register', on: { type: 'inspect', id: 'tollway_register' }, effects: [{ flag: 'register_carried' }] },
         // The Broken Crown rework: fights with a reason. The ragpickers carried a buyer's notice; the ghoul had a name.
         { id: 'ragpicker_notice', on: { type: 'defeat', id: 'tollway_ragpickers' }, effects: [

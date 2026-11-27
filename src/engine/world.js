@@ -34,7 +34,7 @@
         /** Called by the combat code when a world encounter ends: 'victory' | 'fled' | 'defeat'. */
         worldFightEnded(result) {
             if (!this.world || !this.world.encounter) return;
-            if (result === 'victory') this.world.defeated.push(this.world.encounter);
+            if (result === 'victory') { this.world.defeated.push(this.world.encounter); if (this.wildsCleared) this.wildsCleared(this.world.encounter); }
             if (result === 'victory') this.storyEvent({ type: 'defeat', id: this.world.encounter }); // quests waiting on this fight
             this.world.lastEncounter = this.world.encounter;
             this.world.lastResult = result;

@@ -64,7 +64,7 @@
                 if (!this.world) { this.refuse('WRONG_MODE', 'Enter the world first.'); return null; }
                 if (this.isDefeated(id)) { this.refuse('ALREADY_DEFEATED', 'Nothing stirs here any more.'); return null; }
                 if (!Array.isArray(enemyKeys) || !enemyKeys.length || enemyKeys.some((k) => !this.data.enemies[k])) { this.refuse('INVALID_ENCOUNTER', `Unknown enemies for '${id}'.`); return null; }
-                const scope = `world:${id}`;
+                const scope = this.encounterScope(id);   // a new life after each rest (src/engine/wilds.js)
                 let enemies;
                 if (this.mode === 'explore') {
                     const buffs = this.actionCarriedBuffs();     // startCombat clears statuses: your pre-buffs come along
@@ -452,6 +452,7 @@
             if (g.at && this.dropVictoryLoot) this.dropVictoryLoot(members, { encounterId: g.encounterId, mapId: g.at.mapId, x: g.at.x, y: g.at.y });
             else this.awardVictoryLoot(members);
             this.world.defeated.push(g.encounterId);
+            this.wildsCleared(g.encounterId);
             this.world.lastEncounter = g.encounterId;
             this.world.lastResult = 'victory';
             const real = members.filter((e) => !e.illusion);
@@ -873,12 +874,13 @@
             const c = this.combat;
             const speedMult = (x) => x.statusEffects.filter((s) => s.type === 'slow' || s.type === 'speed_down').reduce((m, s) => m * (1 - Math.min(0.9, Number(s.value) || 0.3)), 1);
             const stunned = (x) => x.statusEffects.some((s) => s.type === 'skip_turn');
+            const windupMult = (x) => x.statusEffects.reduce((m, s) => m * (Number(s.windupMult) > 1 ? Number(s.windupMult) : 1), 1);   // Out of Order: slower wind-ups
             const statuses = (x) => x.statusEffects.map((s) => ({ name: s.name, type: s.type, stacks: s.stacks || 1, remainingMs: s.rtEndsAt != null ? Math.max(0, s.rtEndsAt - c.rt.now) : null }))
                 .concat(x.actionStance && c.rt.now < x.actionStance.until ? [{ name: x.actionStance.name, type: 'stance', stacks: 1, remainingMs: x.actionStance.until - c.rt.now }] : []);
             return {
                 enemies: c.enemies.filter((e) => e.encounterId && c.action.groups[e.encounterId]).map((e) => ({
                     id: e.id, encounterId: e.encounterId, key: e.key, name: e.name, hp: e.hp, maxHp: e.maxHp,
-                    stunned: stunned(e), speedMult: speedMult(e), statuses: statuses(e), windup: c.action.windups[e.id] ? c.action.windups[e.id].skill : null
+                    stunned: stunned(e), speedMult: speedMult(e) * (e.eliteSpeedMult || 1), windupMult: windupMult(e), statuses: statuses(e), elite: e.elite || null, windup: c.action.windups[e.id] ? c.action.windups[e.id].skill : null
                 })),
                 minions: this.alive(c.minions).map((m) => ({
                     id: m.id, name: m.name, summonType: m.summonType, hp: m.hp, maxHp: m.maxHp,

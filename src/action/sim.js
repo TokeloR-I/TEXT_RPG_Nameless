@@ -94,6 +94,8 @@
             };
             this.projectiles = [];
             this.mines = [];
+            this.decoy = null;        // Trickster's affix: a decoy a dodge leaves behind (src/engine/affixes.js)
+            this.dropReadyAt = {};    // a fresh drop pops out first, then can be picked up
             this.groups = {};
             this.actors = [];
             this.minions = [];        // the player's summons: bodies for combat.minions (and world.followers between fights)
@@ -162,13 +164,19 @@
 
         enemyRules(key) { return { ...(this.rules.enemyDefaults || {}), ...((this.rules.enemies || {})[key] || {}) }; }
 
+        /** How many times a rest has brought this group back (src/engine/wilds.js): a new life stands up again. */
+        lifeOf(id) { const w = this.engine.world; return (w && w.respawns && w.respawns[id]) || 0; }
+
         addGroup(enc) {
             const T = this.T;
             const cx = (enc.x + (enc.w || 1) / 2) * T, cy = (enc.y + (enc.h || 1) / 2) * T;
-            const g = { encounterId: enc.id, keys: [...enc.enemies], loot: enc.loot || null, home: { x: cx, y: cy }, engaged: false, gate: !!enc.gate, cells: [], name: enc.name, detect: enc.detect || null };
+            const g = { encounterId: enc.id, keys: [...enc.enemies], loot: enc.loot || null, home: { x: cx, y: cy }, engaged: false, gate: !!enc.gate, cells: [], name: enc.name, detect: enc.detect || null, life: this.lifeOf(enc.id) };
             for (let y = enc.y; y < enc.y + (enc.h || 1); y++) for (let x = enc.x; x < enc.x + (enc.w || 1); x++) g.cells.push(y * this.w + x);
             this.groups[enc.id] = g;
             const n = enc.enemies.length;
+            // A group back after a rest may bring an elite (src/engine/wilds.js): its leader shows the modifier before the fight.
+            const elite = this.engine.eliteOf ? this.engine.eliteOf(enc.id) : null;
+            const lead = elite ? this.engine.eliteIndex(enc.enemies) : -1;
             enc.enemies.forEach((key, i) => {
                 const a = n === 1 ? 0 : (i / n) * 2 * Math.PI;
                 const off = n === 1 ? 0 : Math.min(10, T * 0.6);
@@ -179,7 +187,8 @@
                     x: hx, y: hy, homeX: hx, homeY: hy, r: prof.radius || 6, angle: Math.PI / 2,
                     state: 'idle', stateEnd: 0, nextThinkAt: 0, attackReadyAt: 0, path: null, repathAt: 0,
                     wanderTo: null, hp: null, maxHp: null, stunned: false, speedMult: 1, dead: false, deadAt: 0,
-                    windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: (prof.roles ? i : null)
+                    windup: null, hurtUntil: 0, name: null, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, stormIdx: 0, markTurn: 0, roleIdx: (prof.roles ? i : null),
+                    elite: i === lead ? { id: elite.id, name: elite.name, color: elite.color } : null
                 });
             });
         }
@@ -272,7 +281,12 @@
         syncEncounters() {
             const visible = this.session.visibleObjects().filter((o) => o.kind === 'encounter');
             let solids = false;
-            for (const enc of visible) if (!this.groups[enc.id] && !this.engine.isDefeated(enc.id)) { this.addGroup(enc); solids = solids || !!enc.gate; }
+            for (const enc of visible) {
+                const old = this.groups[enc.id];
+                // A rest by a fire on this very map brought a beaten group back (src/engine/wilds.js): stand it up again.
+                if (old && old.cleared && this.lifeOf(enc.id) > old.life && !this.engine.isDefeated(enc.id)) { delete this.groups[enc.id]; this.actors = this.actors.filter((a) => a.encounterId !== enc.id); }
+                if (!this.groups[enc.id] && !this.engine.isDefeated(enc.id)) { this.addGroup(enc); solids = solids || !!enc.gate; }
+            }
             const ids = new Set(visible.map((o) => o.id));
             for (const g of Object.values(this.groups)) {
                 if (ids.has(g.encounterId) || g.engaged || g.cleared) continue;
@@ -295,6 +309,8 @@
             for (const ev of events) {
                 if (ev.type === 'world.respawn') this.respawned = true;
                 if (ev.type === 'action.cleared') this.groupCleared(ev.encounterId);
+                if (ev.type === 'world.drop') this.popDrop(ev.drop);
+                if (ev.type === 'world.wilds_return') this.syncEncounters();
                 if (ev.type === 'action.parry') { const a = this.actors.find((x) => x.engineId === ev.enemyId); if (a) this.stagger(a, (this.guardProfile().parry || {}).staggerMs || 900); }
             }
         }
@@ -310,7 +326,8 @@
                 const en = byId[a.engineId];
                 if (en) {
                     if (a.hp != null && en.hp < a.hp) { a.hurtUntil = this.now + 160; this.fx.push({ type: 'damage', x: a.x, y: a.y - 12, amount: a.hp - en.hp, ...(a.critPending ? { crit: true } : {}) }); a.critPending = false; }
-                    Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, name: en.name, statuses: en.statuses });
+                    Object.assign(a, { hp: en.hp, maxHp: en.maxHp, stunned: en.stunned, speedMult: en.speedMult, windupMult: en.windupMult || 1, name: en.name, statuses: en.statuses });
+                    if (en.elite) a.elite = { id: en.elite.id, name: en.elite.name, color: en.elite.color };
                     const b = this.bossOf(a);
                     if (b && b.phases && !a.illusionOf) {   // boss phases by HP: a new phase opens with its signature move
                         const idx = b.phases.reduce((k, x, i) => (en.hp / en.maxHp <= x.fromHpPct + 1e-9 ? i : k), 0);
@@ -376,7 +393,7 @@
                 // you killed before it gave up stand up too. Left dead here, they'd be invisible engine enemies the
                 // group can never clear without, and the chest they guard stays shut (Tokelo's toll register, playtest 2026-11-11).
                 if (a.dead) Object.assign(a, { dead: false, deadAt: 0, x: a.homeX, y: a.homeY, hurtUntil: 0 });
-                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, raged: false, rageUsed: false, nextCleanseAt: 0, prof: this.enemyRules(a.key) });
+                Object.assign(a, { engineId: null, hp: null, state: 'return', windup: null, path: null, stunned: false, speedMult: 1, windupMult: 1, atkReady: {}, openWith: null, phaseIdx: 0, resolve: null, resolveUsed: false, illusionUsed: false, illusionUntil: null, stormIdx: 0, markTurn: 0, raged: false, rageUsed: false, nextCleanseAt: 0, prof: this.enemyRules(a.key) });
             }
         }
 
@@ -443,6 +460,8 @@
                     p.attack = null;
                     p.guarding = false;
                     this.fx.push({ type: 'dodge', x: p.x, y: p.y, angle: dir, distance: dodgeR.distance || 46 });
+                    const trick = this.engaged && this.engine.gearProc && this.engine.gearProc('dodge');   // Trickster's: a decoy where you stood
+                    if (trick && trick.decoyMs) { this.decoy = { x: p.x, y: p.y, r: p.r, until: this.now + trick.decoyMs, radius: trick.radius || 110 }; this.fx.push({ type: 'decoy', x: p.x, y: p.y }); }
                 }
             }
 
@@ -1103,6 +1122,7 @@
             if (a.resolve && this.now < a.resolve.until) windup = Math.round(windup * (a.resolve.cfg.windupMult || 1));   // Guardian's Resolve: deliberate blows
             const rg = this.ragedCfg(a);
             if (rg && rg.windupMult) windup = Math.max(rg.minWindupMs || 450, Math.round(windup * rg.windupMult));   // rage: quicker, never unreadable
+            if (a.windupMult > 1) windup = Math.round(windup * a.windupMult);   // Out of Order (Eternal Architect): you go first
             a.state = 'windup';
             a.visualStateStart = this.now;
             a.stateEnd = this.now + windup;
@@ -1593,7 +1613,7 @@
 
         liveMinions() { return this.minions.filter((m) => !m.dead); }
         /** The body if it's still standing (a minion that died mid-windup stops being a target). */
-        liveBody(b) { return b && !b.dead ? b : null; }
+        liveBody(b) { return b && !b.dead && !(b.until && this.now >= b.until) ? b : null; }   // a decoy (until) fades
 
         /** Engine → sim: a new minion rises (where you aimed), a fallen one crumbles, HP and statuses follow. */
         syncMinions(v) {
@@ -1651,6 +1671,9 @@
          */
         foeOf(a) {
             const p = this.player;
+            const dc = this.decoy && this.now < this.decoy.until ? this.decoy : null;   // Trickster's decoy draws the ones near it
+            const rg0 = dc && this.ragedCfg(a);
+            if (dc && !(rg0 && rg0.huntsPlayer) && dist(a, dc) <= dc.radius) return (a.foe = dc);
             const mins = this.liveMinions().filter((m) => m.state !== 'rise');
             if (!mins.length) return p;
             const rg = this.ragedCfg(a);
@@ -1892,12 +1915,30 @@
             this.moveBody(b, Math.cos(ang) * k * (1 - share), Math.sin(ang) * k * (1 - share), b.encounterId ? this.gateCellOf(b) : null);
         }
 
+        /**
+         * A group fell and its loot came out (engine 'world.drop'): the drop lands where the last of them fell, not at
+         * the group's home, with a short hop the front end draws (fx 'loot_pop'). It can be picked up once it lands.
+         */
+        popDrop(drop) {
+            if (!drop || drop.mapId !== String(this.mapId)) return;
+            const m = /^world:([^#@]+)/.exec((drop.claimIds || [])[0] || '');
+            const members = m ? this.actors.filter((a) => a.encounterId === m[1]) : [];
+            if (!members.length) return;
+            const last = members.find((a) => !a.dead) || members.reduce((b, a) => (a.deadAt > b.deadAt ? a : b));
+            const hop = (members.indexOf(last) % 2 ? -1 : 1) * 6;
+            let x = last.x + hop, y = last.y + 4;
+            if (this.bodyBlocked(x, y, 2)) { x = last.x; y = last.y; }
+            if (this.engine.placeDrop) this.engine.placeDrop(drop.id, x, y);
+            this.dropReadyAt[drop.id] = this.now + 450;
+            this.fx.push({ type: 'loot_pop', fromX: last.x, fromY: last.y - 6, x: Math.round(x), y: Math.round(y), rarity: this.engine.dropRarity ? this.engine.dropRarity(drop) : null, gold: drop.gold || 0 });
+        }
+
         /** Walking over loot picks it up (it stays until collected: no duplicates, no losses). */
         checkDrops() {
             if (!this.engine.getWorldDrops || this.now - (this.dropCheckAt || 0) < 100) return;
             this.dropCheckAt = this.now;
             for (const d of this.engine.getWorldDrops(this.mapId)) {
-                if (Math.hypot(d.x - this.player.x, d.y - this.player.y) > 12) continue;
+                if (Math.hypot(d.x - this.player.x, d.y - this.player.y) > 12 || this.now < (this.dropReadyAt[d.id] || 0)) continue;
                 const r = this.engine.act({ type: 'collect_drop', dropId: d.id });
                 this.collect(r.events);
                 if (r.ok) this.fx.push({ type: 'pickup', x: d.x, y: d.y });
@@ -1936,7 +1977,7 @@
                         duration: Math.max(1, a.stateEnd - a.visualStateStart),
                         progress: Math.max(0, Math.min(1, (this.now - a.visualStateStart) / Math.max(1, a.stateEnd - a.visualStateStart)))
                     } : null,
-                    hp: a.illusionOf ? a.illusionOf.hp : a.hp, maxHp: a.illusionOf ? a.illusionOf.maxHp : a.maxHp, boss: !!a.prof.boss, resolve: a.resolve ? this.resolveState(a) : null,
+                    hp: a.illusionOf ? a.illusionOf.hp : a.hp, maxHp: a.illusionOf ? a.illusionOf.maxHp : a.maxHp, boss: !!a.prof.boss, elite: a.elite || null, resolve: a.resolve ? this.resolveState(a) : null,
                     mark: a.state === 'windup' && a.windup && a.windup.mark ? { x: a.windup.mark.x, y: a.windup.mark.y, locked: a.windup.mark.locked, target: a.windup.mark.target } : null,
                     storm: a.state === 'windup' && a.windup && a.windup.storm ? a.windup.storm.name : null,
                     // Gravity it puts on you right now (Lucifero): an attack's pull, or its phase's lean toward it.
@@ -1959,6 +2000,7 @@
                 })),
                 projectiles: this.projectiles.map((pj) => ({ x: pj.x, y: pj.y, angle: pj.angle, kind: pj.kind, owner: pj.owner, skill: pj.skill || null })),
                 mines: (this.mines || []).map((m) => ({ x: m.x, y: m.y, armed: this.now >= m.armAt, leftMs: m.until - this.now })),
+                decoy: this.decoy && this.now < this.decoy.until ? { x: this.decoy.x, y: this.decoy.y, leftMs: this.decoy.until - this.now } : null,
                 engaged: this.engaged
             };
         }
