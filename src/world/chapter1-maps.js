@@ -719,7 +719,7 @@
                     text: 'The last of the Broken Oath hold the foot of the climb. They have scraped their circle into the rock here too, and they will not let you step over it.' },
                 { id: 'featherwatch_crows', gate: true, x: 8, y: 9, name: 'Hex-Eyed Crows', enemies: ['carrion_crow', 'carrion_crow', 'carrion_crow'], trigger: 'contact', sprite: 'crows',
                     text: 'Three crows on the ledge, picking at something the cult left behind. Their eyes are the wrong red. They are not the Warden\'s birds any more.' },
-                { id: 'featherwatch_ghoul', gate: true, x: 12, y: 7, name: 'Ritual-Scarred Ghoul', enemies: ['shackled_ghoul_stronger'], trigger: 'contact', sprite: 'ghoul',
+                { id: 'featherwatch_ghoul', gate: true, respawn: false, x: 12, y: 7, name: 'Ritual-Scarred Ghoul', enemies: ['shackled_ghoul_stronger'], trigger: 'contact', sprite: 'ghoul',
                     text: 'A ghoul, scarred with ritual cuts, strains at a snapped chain in the narrow path. It got loose from somewhere above.' }
             ],
             interactables: [

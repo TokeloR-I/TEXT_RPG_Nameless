@@ -225,18 +225,33 @@
         // -----------------------------------------------------------------
         /** A full night's rest: all HP and resource back, lingering statuses gone. Out of fights only. */
         restAtHome() {
+            return this.restUp('You bar the gate and sleep under your own roof. You wake rested.');
+        }
+
+        /** Pure: why you can't rest by the fire you're at now, or null (a hearth's cooking menu offers it). */
+        restByFireBlock() {
+            const d = this.story && this.story.dialogue;
+            const npc = d && this.npcDef(d.npcId);
+            if (!npc || npc.kitchen !== 'hearth') return { code: 'NO_FIRE', message: 'There is no fire here to rest by.' };
+            return null;
+        }
+
+        /** Rest by a hearth (or your camp fire): the same rest as the bed, so the beaten wild comes back here too. */
+        restByFire() {
+            const block = this.restByFireBlock();
+            if (block) { this.refuse(block.code, block.message); return false; }
+            return this.restUp('You sit by the fire until it burns low, and doze. You wake rested.');
+        }
+
+        /** One rest: HP, resource and statuses, then the world refills (gameRules.restRespawns, src/engine/wilds.js). */
+        restUp(text) {
             const p = this.player;
             if (this.mode !== 'explore') { this.refuse('WRONG_MODE', 'Not now.'); return false; }
             p.hp = p.maxHp;
             if (p.resource) p.resource.current = p.resource.max;
             p.statusEffects = [];
-            this.say(`You bar the gate and sleep under your own roof. You wake rested. (${p.hp}/${p.maxHp} HP${p.resource ? `, ${p.resource.current}/${p.resource.max} ${p.resource.type}` : ''})`, { important: true });
-            // Hunting grounds: the beaten encounters listed in gameRules.restRespawns come back overnight.
-            const w = this.world, back = new Set(this.data.gameRules.restRespawns || []);
-            if (w && w.defeated.some((id) => back.has(id))) {
-                w.defeated = w.defeated.filter((id) => !back.has(id));
-                this.say('In the night you hear the wild creep back: rats in the grass, wolves on the road.');
-            }
+            this.say(`${text} (${p.hp}/${p.maxHp} HP${p.resource ? `, ${p.resource.current}/${p.resource.max} ${p.resource.type}` : ''})`, { important: true });
+            if (this.world) this.wildsRespawn();
             return true;
         }
 
