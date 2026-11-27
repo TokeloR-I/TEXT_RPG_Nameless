@@ -29,10 +29,12 @@ test('Explicit aim overrides travel; walking cannot rotate an attack already in 
     assert.strictEqual(s.player.facing, 'up');
 });
 
+// Settings → Guard / Sprint hold-or-toggle and the first-time tips (ui/access.js, ui/tutor.js) that actionInput reads.
+const TOGGLES = () => ({ access: { guard: 'hold', sprint: 'hold' }, guardLatch: false, sprintLatch: false, ranOn: false, touchShift: false, tip: () => {} });
 function inputContext(extra = {}) {
     const context = { held: ['left'], DIRS: { left: [-1,0] }, lockId: null, sim: { actors: [] },
         aim: { screenX: 500, screenY: 0, movedAt: 0 }, camera: () => ({ ox: 0, oy: 0 }),
-        press: { attack: false, dodge: false, interact: false, slot: null }, down: new Set(), guardHeld: false, ...extra };
+        press: { attack: false, dodge: false, interact: false, slot: null }, down: new Set(), guardHeld: false, ...TOGGLES(), ...extra };
     const source = ui.slice(ui.indexOf('    function actionInput()'), ui.indexOf('    function notice('));
     vm.runInNewContext(source + '\nresult = actionInput();', context);
     return context.result;
@@ -80,7 +82,7 @@ test('Keyboard attack commits current movement direction before cast startup', (
 test('Pointer attack aim is consumed once and never leaks into later keyboard attacks', () => {
     const context = { held: [], DIRS: {}, lockId: null, sim: { actors: [] },
         aim: { screenX: 500, screenY: 0 }, camera: () => ({ ox: 0, oy: 0 }),
-        press: { attack: true, pointerAttack: true, slot: null }, down: new Set(), guardHeld: false };
+        press: { attack: true, pointerAttack: true, slot: null }, down: new Set(), guardHeld: false, ...TOGGLES() };
     const source = ui.slice(ui.indexOf('    function actionInput()'), ui.indexOf('    function notice('));
     vm.runInNewContext(source + '\nfirst = actionInput(); press.attack = true; second = actionInput();', context);
     assert.strictEqual(context.first.aim.x, 500);
@@ -102,7 +104,7 @@ test('8-way movement: diagonals move at normal speed and the sprite faces all ei
     assert.ok(Math.abs(Math.hypot(diag.player.x - 100, diag.player.y - 100) - (straight.player.x - 100)) < 1e-9);
     // Keyboard: two held keys make one normalised diagonal.
     const context = { held: ['down', 'right'], DIRS: { down: [0, 1], right: [1, 0] }, lockId: null, sim: { actors: [] }, aim: {}, camera: () => ({ ox: 0, oy: 0 }),
-        press: { attack: false, dodge: false, interact: false, slot: null }, down: new Set(), guardHeld: false };
+        press: { attack: false, dodge: false, interact: false, slot: null }, down: new Set(), guardHeld: false, ...TOGGLES() };
     vm.runInNewContext(ui.slice(ui.indexOf('    function actionInput()'), ui.indexOf('    function notice(')) + '\nresult = actionInput();', context);
     assert.ok(Math.abs(Math.hypot(context.result.move.x, context.result.move.y) - 1) < 1e-9 && context.result.move.x > 0 && context.result.move.y > 0);
 });

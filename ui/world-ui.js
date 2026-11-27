@@ -48,11 +48,44 @@
     // (ui/display.js). The choice is a per-browser preference, kept outside any save.
     // ---------------------------------------------------------------------
     const TOUCH = !!(els.pad && ENSO.touchControls && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
-    const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })) }) : null;
+    // Accessibility options (ui/access.js; Settings → Accessibility): text size, colour-blind safe telegraphs, screen
+    // shake, hold or toggle for guard and sprint, first-time tips, and key and controller rebinding. Per browser.
+    const AX = ENSO.access;
+    let access = AX.load();
+    let keyTable = AX.keyTable(access);
+    let padLayout = AX.padLayout(access);
+    /** The device you used last, so a prompt names the right keys, buttons or touch controls. */
+    let lastDevice = TOUCH ? 'touch' : 'keys';
+    let firing = null;   // 'touch' | 'pad' while one of them sends its keys
+    const fireAs = (who) => (type, key) => {
+        firing = who;
+        if (type === 'keydown') lastDevice = who;
+        if (who === 'touch' && key === 'Shift') touchShift = type === 'keydown';
+        try { window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })); } finally { firing = null; }
+    };
+    let touchShift = false;   // the touch stick pushed to its edge sprints, whether sprint is hold or toggle
+    const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: fireAs('touch') }) : null;
     if (TOUCH) { els.pad.hidden = false; document.body.classList.add('touch'); }
     // A game pad plays too (ui/gamepad.js): it sends the same keys, 'menu' keys whenever a cursor has the focus.
-    const PAD = ENSO.gamepad ? ENSO.gamepad.create({ fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })), mode: () => (screen === 'explore' && !modal ? 'play' : 'menu') }) : null;
+    const PAD = ENSO.gamepad ? ENSO.gamepad.create({ fire: fireAs('pad'), mode: () => (screen === 'explore' && !modal ? 'play' : 'menu'), layout: () => padLayout }) : null;
     let padSeen = false;
+    /** The game key ('2', 'h', ' ') as you have it bound now, for the HUD and the help. */
+    const boundKeyName = (gameKey) => {
+        const a = AX.KEY_ACTIONS.find((x) => x.key === AX.norm(gameKey));
+        return a ? AX.keyName(AX.keyMap(access)[a.id]) : gameKey;
+    };
+    const keyNames = () => AX.labels(access, lastDevice === 'touch' ? 'touch' : lastDevice === 'pad' ? 'pad' : 'keys');
+    function applyAccess() {
+        keyTable = AX.keyTable(access);
+        padLayout = AX.padLayout(access);
+        const b = document.body.classList;
+        for (const t of AX.TEXT) b.toggle(`text-${t}`, access.text === t && t !== 'normal');
+        b.toggle('colour-safe', !!access.colourSafe);
+        if (ENSO.actionFx && ENSO.actionFx.setColourSafe) ENSO.actionFx.setColourSafe(access.colourSafe, AX.SAFE_STATUS);
+        if (ENSO.actionHud && ENSO.actionHud.setKeyLabel) ENSO.actionHud.setKeyLabel(boundKeyName);
+    }
+    function setAccess(next) { access = AX.normalise(next); AX.save(access); applyAccess(); }
+    applyAccess();
     const DISPLAY_KEY = 'enso.ui.display';
     let displayMode = (() => { try { const m = localStorage.getItem(DISPLAY_KEY); return ENSO.display.MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } })();
     function fitStage() {
@@ -966,6 +999,7 @@
     }
     function kitchenCook(r) {
         const res = engine.act({ type: 'cook', recipeId: r.id });
+        if (res.ok) tip('cook');
         const said = kitchenEvents(res.events);
         updateHud();
         kitchen.message = res.ok ? (said || `${r.verb} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output}.`) : res.error.message;
@@ -976,6 +1010,7 @@
         renderKitchen(next);
     }
     function renderKitchen(avail) {
+        tip('hearth');
         const k = avail.kitchen;
         if (!kitchen || kitchen.npcId !== avail.dialogue.npcId) kitchen = { npcId: avail.dialogue.npcId, pot: [], message: '', picked: null };
         // The pot never holds more than you carry (you may have eaten or cooked since).
@@ -1156,7 +1191,7 @@
         if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.mapFly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.mapFly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null; mm.binds = null; mm.capture = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1200,11 +1235,13 @@
         }
         if (id === 'journal') items = journalItems();
         if (id === 'skillbar') items = skillBarItems();
-        if (id === 'web') items = skillWebItems();
+        if (id === 'web') { items = skillWebItems(); tip('web'); }
         if (id === 'union') items = unionItems();
-        if (id === 'settings') {
+        if (id === 'settings' && mm.binds) items = bindItems(mm.binds);
+        if (id === 'settings' && !mm.binds) {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
-                { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+                { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) },
+                ...accessItems(again)];
             if (SFX) {
                 const a = SFX.settings;
                 items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; Shift+M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
@@ -1232,7 +1269,8 @@
         }
         if (!items || !items.length) { renderMain(); return; }          // Status (and a journal with nothing active) are pages, not lists
         mm.focus = 'list';
-        const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
+        const slotBack = mm.binds ? () => { const at = mm.binds === 'pad' ? 1 : 0; mm.binds = null; mm.capture = null; enterList('settings', settingsRow(at)); }
+            : mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
@@ -1242,6 +1280,75 @@
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
+    }
+    // ---------------------------------------------------------------------
+    // Accessibility (Hollis; ui/access.js): the Settings lines, and the key / button lists you rebind from.
+    // ---------------------------------------------------------------------
+    const onOff = (v) => (v ? 'On' : 'Off');
+    const ACCESS_ROWS = 2;   // the accessibility lines start after Display and Motion
+    /** Where a Settings line is, by its place among the accessibility lines (0 keys, 1 controller). */
+    function settingsRow(which) { return ACCESS_ROWS + 7 + which; }
+    function accessItems(again) {
+        const a = access;
+        const shake = AX.shakeMode(a, REDUCED);
+        const set = (patch, note) => again(() => { setAccess({ ...access, ...patch }); mm.note = note(); });
+        return [
+            { label: `Text size: ${AX.TEXT_LABELS[a.text]}`, sub: 'Bigger text in menus, dialogue, the HUD, notices and tips.',
+                action: set({ text: AX.TEXT[(AX.TEXT.indexOf(a.text) + 1) % AX.TEXT.length] }, () => `Text size: ${AX.TEXT_LABELS[access.text]}.`) },
+            { label: `Colour-blind safe: ${onOff(a.colourSafe)}`, sub: 'Enemy wind-ups turn yellow (blue for bosses) and striped, and conditions use colours that stay apart for red-green and blue-yellow colour blindness. Conditions keep their own pictures and words too.',
+                action: set({ colourSafe: !a.colourSafe }, () => `Colour-blind safe: ${onOff(access.colourSafe)}.`) },
+            { label: `Screen shake: ${AX.SHAKE_LABELS[shake]}${a.shake ? '' : ' (auto)'}`, sub: 'How hard the view shakes on crits, parries and big blows. Auto is off with reduced motion.',
+                action: set({ shake: AX.SHAKE[(AX.SHAKE.indexOf(shake) + 1) % AX.SHAKE.length] }, () => `Screen shake: ${AX.SHAKE_LABELS[access.shake]}.`) },
+            { label: `Guard: ${a.guard === 'toggle' ? 'Toggle' : 'Hold'}`, sub: 'Hold: guard while the button is down. Toggle: press once to raise your guard and again to lower it. Raising it just before a hit still parries.',
+                action: set({ guard: a.guard === 'toggle' ? 'hold' : 'toggle' }, () => `Guard: ${access.guard === 'toggle' ? 'press to raise or lower' : 'hold'}.`) },
+            { label: `Sprint: ${a.sprint === 'toggle' ? 'Toggle' : 'Hold'}`, sub: 'Hold: sprint while the button is down. Toggle: press once to run; you stop running when you stand still. On touch the stick pushed to its edge always runs.',
+                action: set({ sprint: a.sprint === 'toggle' ? 'hold' : 'toggle' }, () => `Sprint: ${access.sprint === 'toggle' ? 'press to run' : 'hold'}.`) },
+            { label: `First-time tips: ${onOff(a.tips)}`, sub: 'Short prompts the first time something matters: dodging, parrying, quick heal, the skill bar, cooking and Skill Web points. They name the keys, buttons or touch controls you are using.',
+                action: set({ tips: !a.tips }, () => `First-time tips: ${onOff(access.tips)}.`) },
+            { label: 'Show tips again', sub: 'Every first-time tip shows once more, the next time it matters.', disabled: !a.tips,
+                action: again(() => { tutor.reset(); ENSO.tutor.saveSeen(tutor.seen); mm.note = 'Tips will show again.'; }) },
+            { label: 'Keyboard keys', sub: 'Choose the key for each action. Esc, Enter and the arrow keys stay as they are.', action: () => { mm.binds = 'keys'; enterList('settings', 0); } },
+            { label: 'Controller buttons', sub: 'Choose the button for each action. Start opens the menu and RT + a button uses a skill.', action: () => { mm.binds = 'pad'; enterList('settings', 0); } }
+        ];
+    }
+    /** The rebinding list: every action with its key or button; choose one, then press the new key or button. */
+    function bindItems(kind) {
+        const pad = kind === 'pad';
+        const list = pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS;
+        const map = pad ? AX.padMap(access) : AX.keyMap(access);
+        const items = list.map((a, i) => {
+            const now = pad ? AX.padName(map[a.id]) : AX.keyName(map[a.id]);
+            const changed = pad ? map[a.id] !== a.button : map[a.id] !== a.key;
+            const waiting = mm.capture && mm.capture.action === a.id;
+            return { label: `${a.label}: ${waiting ? '…' : now}${changed ? ' *' : ''}`,
+                sub: waiting ? (pad ? 'Press a button on the controller (Start or Esc cancels).' : 'Press the new key (Esc cancels).')
+                    : `${pad ? 'Button' : 'Key'}: ${now}${changed ? ` (default ${pad ? AX.padName(a.button) : AX.keyName(a.key)})` : ''}. Choose to change it; an action already on that ${pad ? 'button' : 'key'} swaps with this one.`,
+                action: () => { mm.capture = { kind, action: a.id, row: i, armed: false }; mm.note = pad ? `Press a button for ${a.label}.` : `Press a key for ${a.label}.`; enterList('settings', i); } };
+        });
+        items.push({ label: pad ? 'Reset controller buttons' : 'Reset keyboard keys', sub: 'Back to the standard layout.',
+            action: () => { setAccess({ ...access, [pad ? 'pad' : 'keys']: {} }); mm.capture = null; mm.note = pad ? 'Controller buttons reset.' : 'Keys reset.'; enterList('settings', list.length); } });
+        return items;
+    }
+    /** A key or button was pressed while a rebinding waits for one. Returns true when it was used. */
+    function finishCapture(value, cancel) {
+        const c = mm.capture;
+        if (!c) return false;
+        const pad = c.kind === 'pad';
+        const def = (pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS).find((a) => a.id === c.action);
+        if (cancel) { mm.capture = null; mm.note = 'Unchanged.'; enterList('settings', c.row); return true; }
+        if (pad ? !AX.PAD_BUTTONS.includes(value) : !AX.bindable(value)) {
+            mm.note = pad ? `${AX.padName(value)} is kept for the menu and skills. Try another button.` : `${AX.keyName(value)} is kept for menus. Try another key.`;
+            renderMain(); return true;
+        }
+        const before = pad ? AX.padMap(access) : AX.keyMap(access);
+        const other = (pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS).find((a) => a.id !== c.action && before[a.id] === (pad ? value : AX.norm(value)));
+        setAccess(pad ? AX.bindPad(access, c.action, value) : AX.bindKey(access, c.action, value));
+        mm.capture = null;
+        const name = pad ? AX.padName(value) : AX.keyName(value);
+        mm.note = `${def.label}: ${name}.${other ? ` ${other.label} moved to ${pad ? AX.padName(before[c.action]) : AX.keyName(before[c.action])}.` : ''}`;
+        sfx('select');
+        enterList('settings', c.row);
+        return true;
     }
     // ---- The world map (research round two, pick 3; docs/ui/WORLD_MAP.md) ----
     // The places you have entered, region by region, drawn by ui/world-map-view.js from the engine's travel record.
@@ -1671,6 +1778,17 @@
         const hint = active.some((x) => x.state === 'active') ? `<p class="mm-dim">On screen: ${shown} of ${max}.</p>` : '';
         return `<div class="cx-cols cx-split cx-journal">${pane(`Quests · ${esc(j.chapter)}`, `${hint}${list}${done.length ? `<details class="j-done"><summary>Done (${done.length})</summary>${done.map((x) => esc(x.title)).join(' · ')}</details>` : ''}`)}${pane('', right, 'cx-detail')}</div>`;
     }
+    /** The action-mode controls in Settings, with your own keys and buttons (ui/access.js). */
+    function actionControlsHtml() {
+        const k = AX.keyMap(access), n = (id) => `<kbd>${esc(AX.keyName(k[id]))}</kbd>`, p = AX.padMap(access), b = (id) => AX.padName(p[id]);
+        const hold = (opt) => (access[opt] === 'toggle' ? ' (press to toggle)' : '');
+        return `<li>${n('up')}${n('left')}${n('down')}${n('right')} or arrows move and face (8 ways) · click aims · keyboard attacks face forward · ${n('sprint')} sprint${hold('sprint')}</li>`
+            + `<li>Click or ${n('attack')} attack · ${['skill1', 'skill2', 'skill3', 'skill4', 'skill5', 'skill6'].map(n).join(' ')} skills</li>`
+            + `<li>${n('dodge')} dodge · right-click or ${n('guard')} guard${hold('guard')} (raise it just before a hit to parry)</li>`
+            + `<li>${n('lock')} lock on · ${n('interact')} inspect, talk, pick up · ${n('heal')} quick heal · ${n('map')} map · <kbd>Shift</kbd>+${n('map')} mute · <kbd>Esc</kbd> this menu</li>`
+            + `<li>Controller: stick move · ${b('attack')} attack · ${b('dodge')} dodge · ${b('interact')} interact · ${b('heal')} heal · ${b('guard')} guard · ${b('lock')} lock on · ${b('sprint')} sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li>`
+            + '<li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>';
+    }
     /** Pages that stay plain lists (settings, crow, union, cheats): the list on the left, the chosen line on the right. */
     function listPage(leftHtml, inList, extra = '') {
         const hl = inList && menu.items[menu.index];
@@ -1737,9 +1855,10 @@
         if (tab === 'web') page = skillWebPage(inList);
         if (tab === 'skillbar') page = skillbarHtml(inList);
         if (tab === 'settings') {
-            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>M</kbd> map · <kbd>Shift</kbd>+<kbd>M</kbd> mute · <kbd>Esc</kbd> this menu</li><li>Controller: stick move · A attack · B dodge · X interact · Y heal · LB guard · RB lock on · LT sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
+            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? actionControlsHtml() : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
-            page = listPage(`<h3>Display, motion and sound</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
+            const head = mm.binds === 'keys' ? 'Keyboard keys' : mm.binds === 'pad' ? 'Controller buttons' : 'Display, accessibility and sound';
+            page = listPage(`<h3>${head}</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p><p>Text size: ${esc(AX.TEXT_LABELS[access.text])} · Colour-blind safe: ${onOff(access.colourSafe)} · Shake: ${esc(AX.SHAKE_LABELS[AX.shakeMode(access, REDUCED)])}</p><p>Guard: ${access.guard === 'toggle' ? 'Toggle' : 'Hold'} · Sprint: ${access.sprint === 'toggle' ? 'Toggle' : 'Hold'} · Tips: ${onOff(access.tips)}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, mm.binds ? '' : controls);
         }
         if (tab === 'map') page = mapPage(inList);
         if (tab === 'crow') {
@@ -2545,6 +2664,7 @@
     const aim = { x: 0, y: 0, screenX: null, screenY: null, movedAt: 0 };
     const press = { attack: false, pointerAttack: false, dodge: false, interact: false, slot: null };
     let guardHeld = false;
+    let guardLatch = false, sprintLatch = false, ranOn = false;   // Settings → Guard / Sprint: Toggle (ui/access.js)
     let lockId = null;
     let lastPlayerHp = null;
     let hud = null;
@@ -2570,6 +2690,8 @@
     function actionKey(ev) {
         if (screen !== 'explore' || modal || !sim) return false;
         if (ev.key === 'Tab') { ev.preventDefault(); if (!ev.repeat) cycleLock(ev.shiftKey ? -1 : 1); return true; }
+        if (access.guard === 'toggle' && (ev.key === 'q' || ev.key === 'Q')) { if (!ev.repeat) guardLatch = !guardLatch; return true; }
+        if (access.sprint === 'toggle' && ev.key === 'Shift' && firing !== 'touch') { if (!ev.repeat) sprintLatch = !sprintLatch; return true; }
         if (ev.repeat) return ev.key === ' ' || ev.key === 'Shift';
         if (ev.key === ' ') { press.dodge = true; return true; }
         const slot = ENSO.actionHud ? ENSO.actionHud.slotForKey(ev) : null;
@@ -2616,7 +2738,7 @@
     function quickHeal() {
         if (screen !== 'explore' || modal) return;
         const r = engine.act({ type: 'quick_heal' });
-        if (r.ok) sfx('heal');
+        if (r.ok) { sfx('heal'); tip('heal'); }
         const line = (r.events || []).find((e) => e.type === 'text' && /\+\d+ HP/.test(e.text || ''));
         toast(r.ok ? (line ? line.text : 'Healed.') : (r.error ? r.error.message : 'Nothing to heal with.'));
         updateHud();
@@ -2647,7 +2769,7 @@
             if (screen !== 'explore' || modal) return;
             const c = toCanvas(ev); aim.screenX = c.x; aim.screenY = c.y; aim.movedAt = performance.now();
             if (ev.button === 0) { press.attack = true; press.pointerAttack = true; }
-            if (ev.button === 2) guardHeld = true;
+            if (ev.button === 2) { if (access.guard === 'toggle') guardLatch = !guardLatch; else guardHeld = true; }
             ev.preventDefault();
         });
         window.addEventListener('mouseup', (ev) => { if (ev.button === 2) guardHeld = false; });
@@ -2667,7 +2789,11 @@
         // Pointer position is an action target, never passive facing input. Tab explicitly locks aim.
         if (lock) target = { x: lock.x, y: lock.y };
         else if (aiming && aim.screenX != null) { const c = camera(); target = { x: aim.screenX - c.ox, y: aim.screenY - c.oy }; }
-        const input = { move: mv, aim: target, sprint: down.has('Shift'), guard: guardHeld || down.has('q') || down.has('Q'), attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
+        if (len) ranOn = sprintLatch; else if (ranOn) { sprintLatch = false; ranOn = false; }   // a toggled sprint ends when you stop
+        const sprint = access.sprint === 'toggle' ? sprintLatch || touchShift : down.has('Shift');
+        const guard = access.guard === 'toggle' ? guardLatch : guardHeld || down.has('q') || down.has('Q');
+        if (press.slot != null) tip('skill');
+        const input = { move: mv, aim: target, sprint, guard, attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
         press.attack = press.pointerAttack = press.dodge = press.interact = false;
         press.slot = null;
         return input;
@@ -2721,6 +2847,7 @@
             syncActionHudVisibility();
             if (touch) els.pad.classList.toggle('hud-off', hud.el.hidden);
             const model = ENSO.actionHud.viewModel(engine, hudView(now), now);
+            hudModel = model;
             hud.update(model, now);
             if (touch) touch.update(model);
             placeNotices();
@@ -2786,15 +2913,15 @@
             case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical', ...(ev.crit ? { crit: true, shake: 2 } : {}) }, now);
                 sfx(ev.crit ? 'crit' : 'hit', { pitch: ev.boss ? 0.8 : 1 }); hitStop(now, ev.crit ? FEEL.critStopMs : FEEL.hitStopMs); break;
             case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally, ...(ev.crit ? { crit: true } : {}) }, now); break;
-            case 'windup': sfx(ev.boss ? 'bossWindup' : 'windup'); break;
+            case 'windup': sfx(ev.boss ? 'bossWindup' : 'windup'); tip('windup'); break;
             case 'swing': sfx('swing', { pitch: ev.shape && ev.shape.stepPx ? 0.8 : 1 }); break;
             case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
             case 'crumble': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
             case 'teleport': afx.spawn('death', { x: ev.x, y: ev.y }, now); afx.spawn('aoe', { x: ev.toX, y: ev.toY, radius: 10, damageType: 'shadow' }, now); break;
             case 'death': afx.spawn('death', { x: ev.x, y: ev.y }, now); sfx('kill'); hitStop(now, FEEL.killStopMs); break;
-            case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
-            case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
-            case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
+            case 'dodge': tip('dodge'); afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
+            case 'parry': tip('parry'); afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
+            case 'guard': tip('guard'); afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); sfx('pickup'); break;
             case 'loot_pop': lootPops.set(`${ev.x},${ev.y}`, { at: now, fromX: ev.fromX, fromY: ev.fromY }); setTimeout(() => lootPops.delete(`${ev.x},${ev.y}`), LOOT_POP_MS + 50); break;
             case 'decoy': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: 0, distance: 0, facing: P.facing }, now); break;
@@ -2806,9 +2933,9 @@
             case 'skill_fx': if (lfx) lfx.event(ev, now); break;   // a legendary skill's own look (ui/legend-fx.js)
             case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); sfx('hurt'); hitStop(now, FEEL.hurtStopMs); buzz(60); break;
             case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); sfx('perfectDodge'); break;
-            case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: CONDITION_COLOUR[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
+            case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: (access.colourSafe ? AX.SAFE_CONDITIONS : CONDITION_COLOUR)[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
             case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); sfx('stagger'); break;
-            case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); sfx('engage'); break;
+            case 'engage': tip('engage'); notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); sfx('engage'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
             case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); sfx('phase'); buzz(80); notice(ev.text || 'The Warden changes his stance!', 'quest'); break;
             case 'resolve': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 20, damageType: 'holy', shake: 2 }, now); break;
@@ -3051,7 +3178,41 @@
 
     /** A key held while focus moves (map -> battle, map -> dialog, menu -> map) must be released before it
      *  counts again, so walking into an enemy can't also scroll the battle menu, and so on. */
-    function muteHeldKeys() { held.length = 0; for (const k of down) stale.add(k); }
+    function muteHeldKeys() { held.length = 0; for (const k of down) stale.add(k); guardLatch = false; sprintLatch = false; }
+
+    // Rebinding (ui/access.js) and "press the new key": a capture listener that runs before the game's own. A key you
+    // rebound is sent on as the key the game listens for, so everything below (and touch and the pad, which already
+    // send game keys) sees one layout. Only real key presses in play are translated; menus keep their keys.
+    const sent = new Map();   // physical key -> the game key its keydown sent (its keyup sends the same)
+    window.addEventListener('keydown', (ev) => {
+        if (!ev.isTrusted) return;
+        lastDevice = 'keys';
+        if (mm.capture && modal === 'pause') {
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            if (ev.repeat) return;
+            if (ev.key === 'Escape') finishCapture(null, true);
+            else if (mm.capture.kind === 'keys') finishCapture(ev.key, false);
+            return;
+        }
+        const k = AX.norm(ev.key);
+        if (sent.has(k) && !ev.repeat) sent.delete(k);
+        const play = screen === 'explore' && !modal;
+        if (!play || !(k in keyTable)) return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        const to = keyTable[k];
+        sent.set(k, to);
+        if (to != null) window.dispatchEvent(new KeyboardEvent('keydown', { key: to, repeat: ev.repeat, shiftKey: to === 'Shift' || ev.shiftKey, bubbles: true }));
+    }, true);
+    window.addEventListener('keyup', (ev) => {
+        if (!ev.isTrusted) return;
+        const k = AX.norm(ev.key);
+        if (!sent.has(k)) return;
+        const to = sent.get(k);
+        sent.delete(k);
+        ev.stopImmediatePropagation();
+        if (to != null) window.dispatchEvent(new KeyboardEvent('keyup', { key: to, bubbles: true }));
+    }, true);
+    window.addEventListener('mousedown', (ev) => { if (ev.isTrusted) lastDevice = 'keys'; }, true);
 
     window.addEventListener('keydown', (ev) => {
         const dir = KEY_DIRS[ev.key];
@@ -3174,6 +3335,77 @@
     });
 
     // ---------------------------------------------------------------------
+    // First-time tips (ui/tutor.js; Tokelo's pick 4): a small card over the game the first time something matters,
+    // naming the keys, controller buttons or touch controls you are using. Never pauses, never takes a key. Each shows
+    // once per browser; Settings turns them off or shows them again.
+    // ---------------------------------------------------------------------
+    const tutor = ENSO.tutor.create({ seen: ENSO.tutor.loadSeen(), enabled: () => access.tips });
+    let hudModel = null, tipShown = null, tipCheckAt = 0, tipEl = null;
+    function tip(name) { tutor.signal(name, performance.now()); }
+    function tutorFrame(now) {
+        if (screen === 'explore' && engine && now >= tipCheckAt) {
+            tipCheckAt = now + 400;
+            const p = engine.player;
+            const fighting = !!(hudModel && hudModel.inCombat);
+            if (ACTION && !modal && p && p.maxHp && p.hp > 0 && p.hp < p.maxHp * 0.4 && hudModel && hudModel.heal && hudModel.heal.enabled) tip('lowhp');
+            if (ACTION && fighting && hudModel && (hudModel.slots || []).some((x) => !x.empty)) tip('skillbar');
+            if (!fighting && !modal) { const w = engine.getSkillWeb ? engine.getSkillWeb() : null; if (w && w.points > 0) tip('points'); }
+        }
+        const cur = screen === 'explore' || screen === 'combat' ? tutor.tick(now) : null;
+        if (cur && (!tipShown || tipShown.tip !== cur.tip)) ENSO.tutor.saveSeen(tutor.seen);
+        if (cur === tipShown && !(cur && tipEl && tipEl.dataset.state !== cur.state)) return;
+        tipShown = cur;
+        if (!cur) { if (tipEl) tipEl.hidden = true; return; }
+        if (!tipEl) {
+            tipEl = document.createElement('aside');
+            tipEl.className = 'tip';
+            tipEl.setAttribute('role', 'status');
+            tipEl.setAttribute('aria-live', 'polite');
+            $('world-stage').appendChild(tipEl);
+            tipEl.addEventListener('click', (e) => {
+                const b = e.target.closest('button');
+                if (!b) return;
+                e.stopPropagation();
+                if (b.dataset.do === 'off') { setAccess({ ...access, tips: false }); toast('Tips off. Settings can turn them back on.'); }
+                tutor.dismiss(performance.now());
+            });
+            tipEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+        }
+        tipEl.dataset.state = cur.state;
+        tipEl.classList.toggle('done', cur.state === 'done');
+        tipEl.innerHTML = `<b class="tip-title">${cur.state === 'done' ? '✓' : '?'} ${esc(cur.tip.title)}</b><p>${esc(cur.tip.text(keyNames()))}</p>`
+            + (cur.state === 'done' ? '' : '<div class="tip-btns"><button type="button" data-do="ok">Got it</button><button type="button" data-do="off">Tips off</button></div>');
+        tipEl.hidden = false;
+        if (cur.state === 'show') sfx('quest');
+    }
+
+    // Screen shake (Settings → Screen shake, ui/access.js): the hits that ask for one ({ shake: px } in ui/action-fx.js)
+    // move the whole view a pixel or two, scaled by your setting. Off with reduced motion unless you turn it on.
+    let shaking = false;
+    function shakeView(now) {
+        const k = afx && screen === 'explore' ? AX.shakeScale(access, REDUCED) : 0;
+        const o = k ? afx.shakeOffset(now) : { x: 0, y: 0 };
+        const stage = canvas.parentElement;
+        if (!o.x && !o.y) { if (shaking) { stage.classList.remove('shaking'); shaking = false; } return; }
+        stage.style.setProperty('--shake', `translate(${(o.x * k / canvas.width * 100).toFixed(3)}%, ${(o.y * k / canvas.height * 100).toFixed(3)}%)`);
+        if (!shaking) stage.classList.add('shaking');
+        shaking = true;
+    }
+
+    /** Controller rebinding: wait until every button is let go (the A that chose the line), then take the next one. */
+    function padCapture() {
+        PAD.mute();
+        const held = ENSO.gamepad.heldButtons();
+        const c = mm.capture;
+        if (held == null) { if (!c.noPad) { c.noPad = true; mm.note = 'No controller found. Connect one and press a button, or Esc to cancel.'; renderMain(); } return; }
+        if (!c.armed) { if (!held.length) c.armed = true; return; }
+        if (!held.length) return;
+        const b = held[0];
+        c.armed = false;
+        if (b === ENSO.gamepad.BUTTONS.START) finishCapture(null, true);
+        else finishCapture(b, false);
+    }
+    // ---------------------------------------------------------------------
     // Camera (Thorne, 2026-11-25): it eases after you instead of being nailed to you, and leans a little ahead of
     // where you face (toward your lock-on target in a fight), so you see more of what is coming. A map change, a
     // teleport or reduced motion snaps it. Presentation only: the renderer and aim read view.camX / camY.
@@ -3254,7 +3486,8 @@
 
     function frame(now) {
         if (modal === 'creator' && creator && creator.wardrobe && menu && CHOICES[creator.step] && creator[creator.step] !== menu.index) { creator[creator.step] = menu.index; renderTitle(); }   // arrows in the mirror
-        if (PAD) { const on = PAD.poll(); if (on && !padSeen) toast('Controller connected: A attack, B dodge, X interact, hold RT for skills.'); padSeen = on; }
+        if (PAD && mm.capture && mm.capture.kind === 'pad' && modal === 'pause') padCapture();   // rebinding: the next button pressed
+        else if (PAD) { const on = PAD.poll(); if (on && !padSeen) { const k = AX.labels(access, 'pad'); toast(`Controller connected: ${k.attack} attack, ${k.dodge} dodge, ${k.interact} interact, hold RT for skills.`); } padSeen = on; }
         if (screen === 'title') {
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
             const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
@@ -3314,6 +3547,8 @@
         refreshMarks(now, objects);
         cameraFollow(now);
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
+        shakeView(now);
+        tutorFrame(now);
         requestAnimationFrame(frame);
     }
 
@@ -3352,7 +3587,9 @@
             }
             return null;
         },
-        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
+        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; },
+        /** Fire a first-time tip trigger or done event (ui/tutor.js), e.g. ensoDebug.tip('windup'). */
+        tip(name) { tip(name); return tutor.current; }
     };
 
     showTitle();
