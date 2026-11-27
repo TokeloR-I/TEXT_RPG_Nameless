@@ -200,3 +200,45 @@ test('D-09: the waiting state survives snapshot/restore and rolls back with a fa
     assert.strictEqual(h.snapshot().json, before);
     assert.strictEqual(h.getAvailableActions().awaiting, 'turn_order');
 });
+
+// Live version (research round two, 2026-11-25): live fights have no turn order, so the Architect puts you first
+// another way: every enemy is Out of Order (half speed, wind-ups 60% slower) for 9 s and you gain Haste.
+const { GameEngine } = require('./helpers.js');
+function liveArchitect() {
+    const g = new GameEngine({ seed: 27, combatMode: 'action' });
+    g.start(); g.input('mage'); g.enterWorld();
+    g.player.hp = g.player.maxHp = 9999;
+    g.player.skills.push('Rearrange Turn Order');
+    g.player.resource.type = 'Time Charges';
+    assert.ok(g.actionEngage('t', ['rust_rat', 'rust_rat']).ok);
+    return g;
+}
+
+test('D-09 live: Rearrange Turn Order slows every enemy (speed and wind-ups) and hastes you; all charges spent', () => {
+    const g = liveArchitect();
+    g.player.resource.current = 3;
+    const c = g.actionCast('Rearrange Turn Order');
+    assert.ok(c.ok, JSON.stringify(c.error));
+    const ids = g.combat.enemies.map((e) => e.id);
+    const r = g.actionResolve(c.castId, ids);
+    assert.ok(r.ok, JSON.stringify(r.error));
+    assert.strictEqual(g.player.resource.current, 0, 'all Time Charges spent');
+    const v = g.actionView();
+    for (const en of v.enemies) {
+        assert.ok(Math.abs(en.speedMult - 0.5) < 1e-9, `half speed, got ${en.speedMult}`);
+        assert.ok(Math.abs(en.windupMult - 1.6) < 1e-9, `slower wind-ups, got ${en.windupMult}`);
+    }
+    assert.ok(g.player.statusEffects.some((s) => s.type === 'haste'), 'you are hasted');
+    assert.ok(!g.player.statusEffects.some((s) => s.name === 'Out of Order'), 'never slows you');
+    for (let i = 0; i < 10; i++) g.tick(1000);
+    assert.ok(g.actionView().enemies.every((en) => en.windupMult === 1), 'it wears off after 9 s');
+});
+
+test('D-09 live: it needs at least 1 Time Charge, and availability says the same', () => {
+    const g = liveArchitect();
+    g.player.resource.current = 0;
+    const opt = g.getAvailableActions().actions.find((o) => o.skillId === 'Rearrange Turn Order');
+    assert.ok(opt && !opt.enabled, 'shown but disabled');
+    const c = g.actionCast('Rearrange Turn Order');
+    assert.ok(!c.ok);
+});

@@ -21,6 +21,8 @@
  *                 Any placed object may also carry `light: { radius, color? }` (ui/world-render.js, GFX-3)
  * Chapter One adds (src/world/chapter1-maps.js): npc objects, `when` story conditions, locked exits
  * (`requires` + `lockedText`) and `gate: true` on a required fight that holds the only way on.
+ * `respawn: false` keeps an ordinary group (no `when`, no boss) beaten for good; every other one comes back after a
+ * rest (gameRules.restRespawns, src/engine/wilds.js; tests/116-wilds.test.js keeps that list in step with the maps).
  * Validate after any change: `npm test` (tests/18-world.test.js).
  * ========================================================================= */
 (function (global) {

@@ -197,6 +197,26 @@
                 critChance: 0.05, critMultiplier: 1.5,
                 skills: [{ name: 'Truncheon', base_damage: [4, 7] }, { name: 'Shield Shove', base_damage: [2, 4] }]
             },
+            // Tourney of Crowns (side quest S03, Tokelo 2026-11-26): Shamefield's lists, revived after the Festival of the Sun.
+            // Blunted weapons, real bruises. CANDIDATE numbers for Gauge, pitched at level 5 (the Knight's level).
+            'tourney_squire': {
+                name: 'Lists Squire',
+                hp: 46, maxHp: 46, xp: 20, atk: 8, def: 4, spd: 9,
+                critChance: 0.05, critMultiplier: 1.5,
+                skills: [{ name: 'Blunted Cut', base_damage: [6, 9] }, { name: 'Shield Shove', base_damage: [3, 5] }]
+            },
+            'tourney_knight': {
+                name: 'Hedge Knight',
+                hp: 80, maxHp: 80, xp: 40, atk: 10, def: 5, spd: 9, tier: 'elite',
+                critChance: 0.08, critMultiplier: 1.6,
+                skills: [{ name: 'Tilting Blow', base_damage: [9, 13] }, { name: 'Shield Shove', base_damage: [4, 6] }]
+            },
+            'tourney_champion': {
+                name: 'Sir Odo of the Two Crowns',
+                hp: 150, maxHp: 150, xp: 80, atk: 12, def: 6, spd: 10, tier: 'elite',
+                critChance: 0.1, critMultiplier: 1.6,
+                skills: [{ name: 'Champion\'s Cut', base_damage: [11, 15] }, { name: 'Crown Charge', base_damage: [8, 12] }]
+            },
             'crow_touched_warden': {
                 name: 'The Crow-Touched Warden',
                 id: 'crow_touched_warden',
@@ -575,7 +595,7 @@
 
             // Vanguard Branch Skills
             'Shield Bash': { description: 'Deal 10–14 damage; stun if Oath Points ≥ 3 (not spent). Target acts once between Shield Bash stuns.', liveDescription: 'Deal 10–14 damage; stun 3 s if Oath Points ≥ 3 (not spent). A target gets one action between Shield Bash stuns.', cost: 0, resource: 'Oath Points', base_damage: [10, 14], effects: [{ type: 'stun', duration: 1, shieldBashRecovery: true, condition: { stat: 'Oath Points', operator: '>=', value: 3 } }], target: 'enemy_single', damage_type: 'physical', combatFlavor: "Your shield rings out like a drum, shaking the foe’s footing." },
-            'Mounted Charge': { description: 'Charge a target, dealing damage and gaining momentum. Gained via Tourney of Crowns prestige quest.', cost: 1, resource: 'Momentum', base_damage: [12, 18], effects: [{ type: 'gain_resource', resource: 'Momentum', value: 1 }], target: 'enemy_single', damage_type: 'physical' }, // Prestige Skill
+            'Mounted Charge': { description: 'Charge a target, dealing damage and gaining momentum. Gained via Tourney of Crowns prestige quest.', liveDescription: 'The tilt from the lists, on foot: drive forward about 4 paces and hit the first enemy in your way for 12–18, gaining 1 Momentum. Won at the Tourney of Crowns.', cost: 1, resource: 'Momentum', base_damage: [12, 18], effects: [{ type: 'gain_resource', resource: 'Momentum', value: 1 }], target: 'enemy_single', damage_type: 'physical' }, // Prestige Skill
             'Shield Charge': { description: 'Rush an ally, taunt enemies around them. Deals 8–12 dmg.', liveDescription: 'Rush an ally and taunt enemies around them for 3 s. Deals 8–12 dmg.', cost: 1, resource: 'Oath Points', base_damage: [8, 12], effects: [{ type: 'taunt_aoe', duration: 1 }], target: 'ally_single', damage_type: 'physical' },
             'Holy Smite': { description: 'Spend all Oath Points to deal 15–25 radiant dmg (+5 vs Undead/Void).', cost: 'all', resource: 'Oath Points', base_damage: [15, 25], effects: [{ type: 'bonus_damage_vs_flag', flag: 'undead', value: 5 }, { type: 'bonus_damage_vs_flag', flag: 'void', value: 5 }], target: 'enemy_single', damage_type: 'radiant' },
             'Soul Rend': { description: 'Consume all Sin Marks to deal 25–35 AOE dmg (ignores armor).', cost: 'all', resource: 'Sin Marks', base_damage: [25, 35], effects: [{ type: 'ignore_armor' }], target: 'enemy_aoe', damage_type: 'true', combatFlavor: "Your blade drinks deep, shadows screaming with each cut." },
@@ -699,7 +719,7 @@
             'Slow': { description: 'Enemy loses next turn.', liveDescription: 'Stun the enemy for 3 s.', cost: 2, resource: 'Time Charges', effects: [{ type: 'skip_turn', duration: 1 }], target: 'enemy_single' },
             'Revert': { description: 'Revert ally to HP they had 2 turns ago.', liveDescription: 'Revert to the HP you had 4 s ago.', cost: 3, resource: 'Time Charges', effects: [{ type: 'revert_hp', turns: 2 }], target: 'ally_single' },
             'Freeze Time': { description: 'Enemies can’t act for 1 turn.', liveDescription: 'Enemies can’t act for 3 s.', cost: 5, resource: 'Time Charges', effects: [{ type: 'freeze_enemies', duration: 1 }], target: 'all_enemies' },
-            'Rearrange Turn Order': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'Not available in live combat yet: live fights have no initiative order to rearrange (needs a live redesign).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
+            'Rearrange Turn Order': { description: 'Rearrange entire turn order for 3 turns.', liveDescription: 'You set the order of things: for 9 s every enemy moves at half speed and winds up 60% slower, and you gain Haste. Spends all Time Charges (at least 1).', cost: 'all', resource: 'Time Charges', effects: [{ type: 'rearrange_turn_order', duration: 3, minResource: 1, liveSlow: 0.5, liveWindupMult: 1.6, liveSpeedup: 0.5 }], target: 'all_combatants' }, // D-09: rounds; needs >= 1 Time Charge
 
 
             // Ascended Overdrives (Special Skills at max evolution)
@@ -934,7 +954,7 @@
                             { level: 3, name: 'Vanguard', trait: 'Shield Discipline', damageReductionOverride: 0.35, traitEffect: 'Guard reduces 35% dmg instead of 25%.', skill: 'Shield Bash', lore: "Shields up, eyes forward. A Vanguard does not falter — they are the wall upon which the enemy breaks.", loreStance: "Protector first, fighter second.", loreEffect: "Your presence slows the battle to your pace." },
                             { level: 5, name: 'Knight', trait: 'Oathbound', traitEffect: '+1 Oath Point when blocking for an ally.', skill: 'Shield Charge', lore: "Oaths sworn in light and blood bind you to your cause. You bear the weight of those who cannot defend themselves.", loreEffect: "Respected across kingdoms for honor and discipline. Every step echoes with the weight of your duty.", prestigeQuest: "Tourney of Crowns" },
                             { level: 8, name: 'Paladin', trait: 'Divine Ward', traitEffect: 'First ally death per fight is prevented (restore 20 HP).', skill: 'Holy Smite', lore: "Your shield is not merely steel; it is the will of the heavens. Your strikes burn with justice, your presence inspires the weary.", loreEffect: "Wields holy power against darkness. The common folk speak your name in prayers." },
-                            { level: 11, name: 'Dark Knight', trait: 'Sin-Eater', traitEffect: 'Oath Points become Sin Marks, double dmg but take 5% max HP true dmg per hit.', skill: 'Soul Rend', unlockTrigger: 'betrayal event', lore: "The light you swore to serve has turned its back on you… or perhaps you on it. Oaths rot, faith crumles, and in the ashes, you find a darker strength.", loreEffect: "Armor black as midnight, blade thirsting for retribution. Powers drawn from Sin Marks that eat away at the soul." },
+                            { level: 11, name: 'Dark Knight', trait: 'Sin-Eater', traitEffect: 'Oath Points become Sin Marks, double dmg but take 5% max HP true dmg per hit.', skill: 'Soul Rend', unlockTrigger: 'betrayal event', unlockFlag: 'oath_betrayed', lore: "The light you swore to serve has turned its back on you… or perhaps you on it. Oaths rot, faith crumles, and in the ashes, you find a darker strength.", loreEffect: "Armor black as midnight, blade thirsting for retribution. Powers drawn from Sin Marks that eat away at the soul." },
                             { level: 14, name: 'Abyssal King', trait: 'Sin Marks heal you instead of harming you; all attacks inflict [Silence Debt] — needed for Nullblade.', traitEffect: 'Sin Marks heal you instead of harming you; all attacks inflict [Silence Debt] for Legendary unlock.', skill: 'Oblivion Reign', ascended: true, lore: "The abyss answers to you. Sin no longer burns your flesh — it feeds you. All who speak find their words stolen, all who fight find their will broken.", loreEffect: "Walking apocalypse; silence spreads in your wake. Necessary for unlocking the Legendary Nullblade." }
                         ]
                     },
@@ -948,7 +968,7 @@
                             { level: 3, name: 'Berserker', trait: 'Blood Frenzy', traitEffect: '+10% dmg while below 50% HP.', skill: 'Hemorrhage', lore: "You welcome pain as a friend, for each wound only sharpens your rage. Blood is your banner.", loreEffect: "Battles are a blur of motion and screams. Fury grows with every heartbeat." },
                             { level: 5, name: 'Ravager', trait: 'Cleave Expert', traitEffect: 'Hitting 2+ enemies refunds 1 Fury.', skill: 'Whirlwind', lore: "Entire warbands fall to your relentless charge. Walls mean nothing — you are the storm that breaks them.", loreEffect: "Specializes in carving through multiple foes. Brutal, efficient, merciless." },
                             { level: 8, name: 'Bloodrunner', trait: 'Kill Rush', traitEffect: 'Killing an enemy grants +2 Fury & an extra turn (once/turn).', skill: 'Lunge', lore: "You are a predator in the chaos of war, darting from kill to kill with uncanny speed.", loreEffect: "Thrives on momentum and relentless pursuit. A killing blow only fuels the next." },
-                            { level: 11, name: 'Dragon Slayer', trait: 'Scale Breaker', traitEffect: '+50% crit dmg vs Large enemies; immune to fear.', skill: 'Sever Spine', unlockTrigger: 'slaying a named dragon boss', lore: "The world whispers your name with awe and fear — you have slain what should not be slain.", loreEffect: "Dragons are your prey now. Scales, fire, and legends fall before you." },
+                            { level: 11, name: 'Dragon Slayer', trait: 'Scale Breaker', traitEffect: '+50% crit dmg vs Large enemies; immune to fear.', skill: 'Sever Spine', unlockTrigger: 'slaying a named dragon boss', unlockFlag: 'dragon_slain', lore: "The world whispers your name with awe and fear — you have slain what should not be slain.", loreEffect: "Dragons are your prey now. Scales, fire, and legends fall before you." },
                             { level: 14, name: 'Wyrm’s End', trait: 'Boss kills grant permanent +1% all stats.', traitEffect: 'Boss kills grant permanent +1% all stats.', skill: 'Dragon’s Dominion', ascended: true, lore: "No beast can stand before you. Every victory adds to your legend — and to your strength.", loreEffect: "Every boss slain empowers you permanently. Hunters become myths; myths becomes eternal." }
                         ]
                     },
@@ -1133,6 +1153,9 @@
                 { id: 'plaguecaller.plague_wind', kind: 'active', region: 'necromancer', branch: 'plaguecaller', skill: 'Plague Wind', minLevel: 11, links: ['plaguecaller.corpse_bloom'] },
                 // Taught, not bought (`taught`: the story flag that teaches it): Shane's LEG CRAMP! (side quest S02) joins your own
                 // class web free the moment his demonstration lands on you, and can't be unlearned. One node per class web.
+                // Event-gated, not bought blind (research round two, Tokelo 2026-11-26): the Knight's prestige skill opens once you
+                // win the Tourney of Crowns in Shamefield (side quest S03, story flag `tourney_champion`).
+                { id: 'vanguard.mounted_charge', kind: 'active', region: 'warrior', branch: 'vanguard', skill: 'Mounted Charge', minLevel: 5, requiresEvent: 'the Tourney of Crowns', eventFlag: 'tourney_champion', links: ['vanguard.2.skill'] },
                 ...['warrior', 'rogue', 'mage', 'necromancer'].map((c) => ({ id: `${c}.leg_cramp`, kind: 'active', region: c, skill: 'LEG CRAMP!', cost: 0, taught: 'leg_cramp_learned', links: [`heart.${c}`] }))
             ],
             // Gateways (Tokelo 2026-11-02): nodes at the edge of a class web that open a path into another class's web.
@@ -1522,6 +1545,7 @@
             'Silence':          { category: 'control', control: 'soft', binary: true }, // forces Basic Attack
             'Slow':             { category: 'debuff',  control: 'soft' },   // speed only, never skips a turn (Keel §2)
             'Leg Cramp':        { category: 'debuff',  control: 'soft' },   // Shane's shout: a Slow by another name (movement only)
+            'Out of Order':     { category: 'debuff',  control: 'soft' },   // Eternal Architect, live: slowed, slower wind-ups
             'Blind':            { category: 'debuff',  control: false },    // a hit-chance debuff, not control
             'Possessed':        { category: 'control', control: 'hard', refuseTiers: ['boss'], refuseAtCr: 75 }, // N-5: refused before cost for bosses and at 75+ CR
             // --- marks
@@ -1741,6 +1765,7 @@
                     corpse:         { shape: 'ground', range: 140, radius: 40, castMs: 300, needsCorpse: true }
                 },
                 bySkill: {
+                    'Mounted Charge': { shape: 'dash', dashPx: 64, dashMs: 170, reach: 24, arcDeg: 90, castMs: 120, maxTargets: 1 },   // the Tourney of Crowns tilt
                     'Slash':             { shape: 'arc', reach: 26, arcDeg: 110, castMs: 150, maxTargets: 1 },
                     'Guard':             { shape: 'self', castMs: 0, stacksWithGuard: true },
                     'Power Strike':      { shape: 'arc', reach: 30, arcDeg: 70, castMs: 420, activeMs: 120, recoveryMs: 450, poise: 3, stepPx: 12, maxTargets: 1 },
@@ -1953,6 +1978,33 @@
                     attacks: [
                         { name: 'Hex Bolt', skill: 'Hexing Blade', shape: 'projectile', reach: 120, projSpeed: 130, radius: 5, windupMs: 650, activeMs: 0, recoveryMs: 600, cooldownMs: 2500, blockCost: 12, parryable: false, role: 'hexer' },
                         { name: 'Hexing Blade', skill: 'Hexing Blade', shape: 'line', reach: 22, width: 10, windupMs: 550, activeMs: 100, recoveryMs: 550, cooldownMs: 1400, blockCost: 12, role: 'blade' }
+                    ]
+                },
+                tourney_squire: {
+                    speed: 52, detect: 140, alertMs: 600, reach: 22, arcDeg: 90, windupMs: 560, activeMs: 100, recoveryMs: 560, radius: 6, poise: 3, leash: 260,
+                    keepDistance: [0, 22], group: 'pincer', frontalShield: { arcDeg: 90, damageTaken: 0.6 },
+                    attacks: [
+                        { name: 'Blunted Cut', skill: 'Blunted Cut', shape: 'arc', reach: 22, arcDeg: 90, windupMs: 560, activeMs: 100, recoveryMs: 560, cooldownMs: 1500, blockCost: 12, useAt: [0, 26] },
+                        { name: 'Shield Shove', skill: 'Shield Shove', shape: 'line', reach: 18, width: 16, windupMs: 380, activeMs: 120, recoveryMs: 600, cooldownMs: 3200, blockCost: 18, knockbackPx: 20, staggers: true, useAt: [0, 20] }
+                    ]
+                },
+                tourney_knight: {
+                    speed: 50, detect: 140, alertMs: 600, reach: 24, arcDeg: 100, windupMs: 620, activeMs: 110, recoveryMs: 600, radius: 7, poise: 5, leash: 260,
+                    keepDistance: [0, 22], group: 'direct', frontalShield: { arcDeg: 80, damageTaken: 0.6 },
+                    attacks: [
+                        { name: 'Tilting Blow', skill: 'Tilting Blow', shape: 'arc', reach: 24, arcDeg: 100, cooldownMs: 2000, useAt: [0, 26],
+                            combo: [{ windupMs: 620, activeMs: 110, recoveryMs: 260, blockCost: 14 }, { windupMs: 500, activeMs: 110, recoveryMs: 760, blockCost: 18, reverse: true }] },
+                        { name: 'Shield Shove', skill: 'Shield Shove', shape: 'line', reach: 18, width: 14, windupMs: 380, activeMs: 120, recoveryMs: 600, cooldownMs: 3600, blockCost: 16, knockbackPx: 18, staggers: true, useAt: [0, 20] }
+                    ]
+                },
+                tourney_champion: {
+                    speed: 50, detect: 160, alertMs: 400, reach: 24, arcDeg: 110, windupMs: 640, activeMs: 110, recoveryMs: 620, radius: 7, poise: 6, leash: 300,
+                    keepDistance: [0, 24], group: 'direct', frontalShield: { arcDeg: 70, damageTaken: 0.7 },
+                    attacks: [
+                        { name: "Champion's Cut", skill: "Champion's Cut", shape: 'arc', reach: 24, arcDeg: 110, cooldownMs: 2200, useAt: [0, 26],
+                            combo: [{ windupMs: 640, activeMs: 110, recoveryMs: 240, blockCost: 16 }, { windupMs: 520, activeMs: 110, recoveryMs: 240, blockCost: 18, reverse: true }, { windupMs: 560, activeMs: 120, recoveryMs: 820, blockCost: 22 }] },
+                        // The tilt: a long, readable lance-rush down a line. Sidestep it.
+                        { name: 'Crown Charge', skill: 'Crown Charge', shape: 'line', reach: 64, width: 12, lunge: 52, windupMs: 760, activeMs: 170, recoveryMs: 900, cooldownMs: 5000, blockCost: 22, knockbackPx: 22, staggers: true, useAt: [32, 80] }
                     ]
                 },
                 watch_constable: {
@@ -2951,11 +3003,32 @@
             baseMinionCap: 3,          // Black Pharaoh adds +3
             defaultEnemyXp: 15,
             critChanceCap: 0.5,        // level-up crit growth stops here
-            // Hunting grounds (Tokelo 2026-11-04: a way to reach level 4 to 5 before the Crow Warden). A night in the
-            // homestead bed brings these beaten encounters back for their XP again. Loot claims and quest credit stay once-only.
-            restRespawns: ['grounds_weed_rats', 'road_wolf'],
+            // A world that refills (Tokelo 2026-11-25, research round two pick 2; first hunting grounds 2026-11-04). A night
+            // in the homestead bed or a rest by a hearth brings every beaten group listed here back, like a bonfire. The list
+            // is every ordinary group: no `when` (story timing), no boss, no `respawn: false` (tests/116-wilds.test.js keeps it
+            // in step with the maps). A group that comes back drops fresh loot (a new claim per life, src/engine/wilds.js);
+            // quest credit and story triggers stay once-only.
+            restRespawns: ['grounds_weed_rats', 'road_wolf', 'tollway_ragpickers', 'tollway_root_chewers', 'orchard_east_lookouts',
+                'orchard_west_lookouts', 'orchard_cultists', 'featherwatch_rearguard', 'featherwatch_crows', 'frostspine_caravan_raiders',
+                'barrow_passage_dead', 'barrow_west_dead', 'barrow_east_dead', 'uplands_wolves'],
             // Fallback growth for a class without its own `levelGrowth` (the old flat increase).
             defaultLevelGrowth: { hp: 10, strength: 1, intelligence: 1, agility: 1, def: 1, critChance: 0.01, resource: 2 }
+        };
+
+        // Elites (Tokelo 2026-11-25, research round two pick 2; Diablo champions). When a group comes back after a rest it
+        // may bring an elite: its leader (the member with the most HP) gets one visible modifier, a coloured name, more HP
+        // and XP, and elite loot. Candidate numbers for Gauge. The modifier is rolled at the rest, so the map shows it.
+        const eliteRules = {
+            chance: 0.3,          // per returning group
+            hpMult: 1.6,
+            xpMult: 2,
+            modifiers: {
+                frenzied: { name: 'Frenzied', color: '#ff6a3d', text: 'Moves faster and hits harder.', damageMult: 1.25, speedMult: 1.3 },
+                shielded: { name: 'Shielded', color: '#6fb6ff', text: 'Takes a third less damage.', damageTakenMult: 0.67 },
+                venomous: { name: 'Venomous', color: '#7ddc4a', text: 'Its blows poison you.',
+                    inflict: { type: 'inflict', status: 'Poison', chance: 0.6, value: 2, seconds: 5, duration: 3, stackCap: 3 } },
+                thorned: { name: 'Thorned', color: '#d9a1ff', text: 'Every blow you land on it cuts you back (20%).', thorns: 0.2 }
+            }
         };
 
         // Item swaps per class when picking things up (was referenced but never defined).
@@ -3489,7 +3562,51 @@
                 "modifiers": {
                     "def": 1
                 }
-            }
+            },
+            // Loot worth chasing (Tokelo 2026-11-25, research round two pick 2; Grim Dawn, Diablo, Hades boons). Seven more
+            // stat affixes, then eleven that change how your skills play: a `proc` runs through src/engine/affixes.js after a
+            // hit or a cast, whatever the class (each proc is plain data, tested in tests/116-wilds.test.js). Candidate numbers
+            // for Gauge. Every proc also works out of a fight wherever a skill can hit something.
+            hale: { name: 'Hale', family: 'hale', types: ['armor', 'shield', 'arcane-accessory'], modifiers: { maxHp: 8 } },
+            mighty: { name: 'Mighty', family: 'mighty', types: ['one-hand', 'shield', 'armor'], modifiers: { strength: 1 } },
+            nimble: { name: 'Nimble', family: 'nimble', types: ['one-hand', 'armor'], modifiers: { agility: 1 } },
+            sage: { name: 'Sage', family: 'sage', types: ['staff', 'wand'], modifiers: { intelligence: 2 } },
+            honed: { name: 'Honed', family: 'honed', types: ['wand', 'arcane-accessory'], modifiers: { critChance: 0.03 } },
+            warded: { name: 'Warded', family: 'warded', types: ['armor', 'arcane-accessory'], modifiers: { def: 1, maxHp: 3 } },
+            steady: { name: 'Steady', family: 'steady', types: ['shield'], modifiers: { def: 1, strength: 1 } },
+            kindling: { name: 'Kindling', family: 'kindling', types: ['staff', 'wand'], modifiers: {},
+                text: 'Your spells can set what they hit Burning (35%).',
+                proc: { on: 'spell_hit', chance: 0.35, inflict: { status: 'Burn', value: 2, seconds: 4, duration: 2, stackCap: 3 } } },
+            serrated: { name: 'Serrated', family: 'serrated', types: ['one-hand'], modifiers: {},
+                text: 'Your basic attacks can make foes Bleed (30%).',
+                proc: { on: 'basic_hit', chance: 0.3, inflict: { status: 'Bleed', value: 2, seconds: 4, duration: 2, stackCap: 3 } } },
+            venom_etched: { name: 'Venom-Etched', family: 'venom_etched', types: ['one-hand', 'wand'], modifiers: {},
+                text: 'Your critical hits Poison.',
+                proc: { on: 'crit', inflict: { status: 'Poison', value: 2, seconds: 5, duration: 3, stackCap: 3 } } },
+            rimebound: { name: 'Rimebound', family: 'rimebound', types: ['staff', 'wand', 'arcane-accessory'], modifiers: {},
+                text: 'Skills that cost resource can Slow what they hit (50%, -25% speed).',
+                proc: { on: 'skill_hit', chance: 0.5, inflict: { status: 'Slow', value: 0.25, seconds: 2, duration: 1 } } },
+            forked: { name: 'Forked', family: 'forked', types: ['staff', 'wand'], modifiers: {},
+                text: 'Single-target spells arc on to a second foe for 40% of the damage.',
+                proc: { on: 'spell_hit', fork: 0.4 } },
+            leeching: { name: 'Leeching', family: 'leeching', types: ['one-hand', 'arcane-accessory'], modifiers: {},
+                text: 'Your basic attacks heal you 2 HP for each foe they hit.',
+                proc: { on: 'basic_hit', heal: 2 } },
+            echoing: { name: 'Echoing', family: 'echoing', types: ['armor', 'arcane-accessory'], modifiers: {},
+                text: "15% chance a skill's cooldown resets at once.",
+                proc: { on: 'cast', chance: 0.15, resetCooldown: true } },
+            frugal: { name: 'Frugal', family: 'frugal', types: ['armor', 'arcane-accessory'], modifiers: {},
+                text: '20% chance a skill costs nothing.',
+                proc: { on: 'cast', chance: 0.2, refund: true } },
+            headsmans: { name: "Headsman's", family: 'headsmans', types: ['one-hand', 'staff'], modifiers: {},
+                text: '+25% damage to foes below 30% HP.',
+                proc: { on: 'damage', belowHpPct: 0.3, mult: 1.25 } },
+            opportunists: { name: "Opportunist's", family: 'opportunists', types: ['one-hand', 'wand'], modifiers: {},
+                text: '+20% damage to foes that are bleeding, poisoned or burning.',
+                proc: { on: 'damage', vsDot: true, mult: 1.2 } },
+            tricksters: { name: "Trickster's", family: 'tricksters', types: ['armor'], modifiers: {},
+                text: 'Dodging leaves a decoy behind for 1.5 s that nearby foes go for.',
+                proc: { on: 'dodge', decoyMs: 1500, radius: 110 } }
         };
         const equipmentRarities = {
             "common": {
@@ -3960,7 +4077,7 @@
                 juniper:      { item: 'Juniper Berries', yield: 1, regrowSeconds: 120 }
             },
             rooms, enemies, minionDefinitions, skillDefinitions, skillAliases,
-            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules,
+            basePlayerClasses, evolutionPaths, skillWeb, legendaryAndSecretClasses, adaptiveLoot, resourceRules, itemDefinitions, gameRules, eliteRules,
             statusDefinitions, statusRules, statusReactions, realtimeRules, actionRules, foodRules
         };
 

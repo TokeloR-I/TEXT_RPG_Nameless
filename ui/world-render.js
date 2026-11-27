@@ -741,7 +741,7 @@
     const CREATURE_FOR = {
         rust_rat: 'rat', cellar_vermin: 'rat', hungry_wolf: 'wolf', pack_wolf: 'wolf',
         weak_goblin: 'goblin', bone_gnawer: 'gnawer', cult_acolyte: 'cultist', cult_zealot: 'cultist', shackled_ghoul_stronger: 'ghoul',
-        watch_constable: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable', hell_imp: 'goblin', ash_hound: 'wolf', brimstone_brute: 'ghoul', lucifero: 'warden', rift_stalker: 'shade', beelzebub: 'warden', iron_carapace: 'ghoul', slotos: 'warden', feather_shrike: 'shade', plumede: 'warden'
+        watch_constable: 'constable', tourney_squire: 'constable', tourney_knight: 'constable', tourney_champion: 'constable', wolfbanner_raider: 'constable', wolfbanner_skirmisher: 'constable', wolfbanner_ringleader: 'constable', oath_sergeant: 'constable', crow_touched_warden: 'warden', drunken_shade: 'shade', binding_echo: 'shade', sunscorched_wolf: 'wolf', moonless_wolf: 'wolf', draugr: 'ghoul', grave_ward: 'shade', bjarki_grave_bound: 'warden', draugr_champion: 'ghoul', grave_foreman: 'constable', mound_bride: 'shade', skuli_tally_hand: 'constable', old_greymane: 'wolf', bog_light: 'shade', mire_dead: 'ghoul', peat_king: 'ghoul', drowned_oarsman: 'ghoul', ulfhednar: 'constable', hell_imp: 'goblin', ash_hound: 'wolf', brimstone_brute: 'ghoul', lucifero: 'warden', rift_stalker: 'shade', beelzebub: 'warden', iron_carapace: 'ghoul', slotos: 'warden', feather_shrike: 'shade', plumede: 'warden'
     };
 
     function rift(g, px, py, t, [r, gg, b], [r2, g2, b2]) {
@@ -954,6 +954,17 @@
     };
 
     for (const [key, o] of Object.entries(PEOPLE)) sprites[key] = (g, px, py, T, t) => person(g, px, py, t, o);
+    /** The homestead's standing mirror (original): an oak frame on feet, a silvered glass with a slow glint. */
+    sprites.mirror = (g, px, py, T, t) => {
+        g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(px + 16, py + 29, 9, 2.5, 0, 0, Math.PI * 2); g.fill();
+        rect(g, px + 9, py + 26, 3, 3, '#4a3424'); rect(g, px + 20, py + 26, 3, 3, '#4a3424');          // feet
+        rect(g, px + 9, py + 2, 14, 25, '#6a4a2e'); rect(g, px + 9, py + 2, 14, 1, '#8a6a44');            // frame
+        rect(g, px + 11, py + 4, 10, 21, '#9aa8b4'); rect(g, px + 11, py + 4, 10, 10, '#b4c2cc');         // glass
+        rect(g, px + 12, py + 15, 8, 9, '#7e8c98');
+        const k = ((t || 0) / 2600) % 1;                                                                  // the glint slides down the glass
+        if (k < 0.35) { const y = py + 4 + Math.floor(k / 0.35 * 18); rect(g, px + 12, y, 1, 3, '#f2f8ff'); rect(g, px + 13, y + 1, 1, 2, '#dfe8f0'); }
+        rect(g, px + 15, py, 2, 2, '#8a6a44');                                                            // crest
+    };
     // Tile painters that also stand alone as objects (the Chapter One brief, 2026-11-11: the festival cask, the supply
     // crates, the broken cages, the miller's sacks and the wrecked stall). They get the tile context they expect.
     for (const key of ['crate', 'cask', 'cage', 'sacks', 'rubble']) {
@@ -1141,8 +1152,9 @@
             if (dark.width !== W || dark.height !== H) { dark.width = W; dark.height = H; g.imageSmoothingEnabled = false; }   // the stage was refitted (ui/display.js)
             if (view.battle && ENSO.battleHD) return drawBattle(map, view, time, W, H);
             // camera: follow the player, clamp to the map, centre maps smaller than the screen
-            const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
-            const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
+            const fx = view.camX != null ? view.camX : view.x, fy = view.camY != null ? view.camY : view.y;   // the eased camera focus (ui/world-ui.js cameraFollow)
+            const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, fx * T + T / 2 - W / 2));
+            const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, fy * T + T / 2 - H / 2));
             const ox = -Math.round(camX), oy = -Math.round(camY);
             rect(g, 0, 0, W, H, '#060608');
             g.drawImage(staticLayer(view.mapId), ox, oy);

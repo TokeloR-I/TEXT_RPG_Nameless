@@ -17,7 +17,8 @@
  *   Start                menu (Esc)   Back/Select: stance (T)
  *
  *   ENSO.gamepad.keysFor(pad, mode)   pure: the keys a pad state holds ({ buttons:[{pressed}], axes:[] }, 'play'|'menu')
- *   ENSO.gamepad.create({ fire, mode })  returns { poll(), release(), connected }
+ *   ENSO.gamepad.create({ fire, mode, layout })  returns { poll(), release(), connected }; layout() may rebind
+ *                                        the play buttons (Settings → Controller buttons, ui/access.js)
  * ========================================================================= */
 (function (global) {
     const isNode = typeof module !== 'undefined' && module.exports;
@@ -49,8 +50,9 @@
         return [...keys];
     }
 
-    /** Every key this pad state holds right now, for 'play' (the world) or 'menu' (anything with a cursor). */
-    function keysFor(pad, mode) {
+    /** Every key this pad state holds right now, for 'play' (the world) or 'menu' (anything with a cursor).
+     *  `layout` ({ button: key }, ENSO.access.padLayout) replaces the play buttons when you rebound them. */
+    function keysFor(pad, mode, layout) {
         if (!pad) return [];
         const keys = moveKeys(pad);
         if (mode === 'menu') {
@@ -58,8 +60,9 @@
             return [...new Set(keys)];
         }
         const skills = pressed(pad, B.RT);
-        for (const [i, k] of Object.entries(PLAY)) {
-            if (skills && SKILL[i] != null) { if (pressed(pad, +i)) keys.push(SKILL[i]); continue; }
+        if (skills) for (const [i, k] of Object.entries(SKILL)) if (pressed(pad, +i)) keys.push(k);   // RT + a face/shoulder button: by place, whatever you rebound
+        for (const [i, k] of Object.entries(layout || PLAY)) {
+            if (skills && SKILL[i] != null) continue;
             if (pressed(pad, +i)) keys.push(k);
         }
         return [...new Set(keys)];
@@ -68,17 +71,18 @@
     function create(opts = {}) {
         const fire = opts.fire || (() => {});
         const mode = opts.mode || (() => 'play');
-        let held = [], lastMode = null, connected = false, stale = new Set();
+        const layout = opts.layout || (() => null);
+        let held = [], lastMode = null, connected = false, stale = new Set(), muteNext = false;
         function release() { for (const k of held) fire('keyup', k); held = []; }
         function poll() {
             const list = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
             const pad = list.find((p) => p.connected !== false) || null;
             connected = !!pad;
             const m = mode();
-            let next = pad ? keysFor(pad, m) : [];
+            let next = pad ? keysFor(pad, m, layout()) : [];
             // A menu opened or closed: nothing stays held across it, and a button still down from the other side (the A
             // that closed a dialogue) does nothing until it is let go, so it never also swings or confirms.
-            if (m !== lastMode) { release(); stale = new Set(lastMode === null ? [] : next.filter((k) => !/^Arrow/.test(k))); lastMode = m; }
+            if (m !== lastMode || muteNext) { release(); stale = new Set(lastMode === null && !muteNext ? [] : next.filter((k) => !/^Arrow/.test(k))); lastMode = m; muteNext = false; }
             for (const k of [...stale]) if (!next.includes(k)) stale.delete(k);
             next = next.filter((k) => !stale.has(k));
             for (const k of held) if (!next.includes(k)) fire('keyup', k);
@@ -86,10 +90,22 @@
             held = next;
             return connected;
         }
-        return { poll, release, get connected() { return connected; } };
+        /** Let go of everything; buttons still down on the next poll do nothing until they are released. */
+        function mute() { release(); muteNext = true; }
+        return { poll, release, mute, get connected() { return connected; } };
     }
 
-    const api = { keysFor, moveKeys, create, BUTTONS: B, DEAD_ZONE };
+    /** The buttons held on the first connected pad right now (for "press a button" when you rebind one). */
+    function heldButtons() {
+        const list = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+        const pad = list.find((p) => p.connected !== false);
+        if (!pad) return null;
+        const out = [];
+        (pad.buttons || []).forEach((b, i) => { if (pressed(pad, i)) out.push(i); });
+        return out;
+    }
+
+    const api = { keysFor, moveKeys, create, heldButtons, BUTTONS: B, PLAY, DEAD_ZONE };
     ENSO.gamepad = api;
     if (isNode) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

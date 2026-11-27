@@ -1265,6 +1265,7 @@
                 { if: { quests: { C206: 'active' }, flags: ['torvald_confronted'], notFlags: ['bargain_made'] }, node: 'camp_wait' },
                 { if: { flags: ['bargain_negotiated'] }, node: 'after_negotiated' },
                 { if: { flags: ['bargain_exposed'] }, node: 'after_exposed' },
+                { if: { flags: ['oath_betrayed'] }, node: 'after_betrayed' },
                 { if: { flags: ['bargain_feigned'] }, node: 'after_feigned' },
                 { if: { flags: ['ulfrun_beaten'], notFlags: ['torvald_met'] }, node: 'meet_ulfrun' },
                 { if: { notFlags: ['torvald_met'] }, node: 'meet' },
@@ -1362,6 +1363,24 @@
                 },
                 after_feigned: {
                     lines: [['npc', 'Not here. When you have the tablet, come up to the camp.']],
+                    // The Dark Knight's betrayal (research round two, Tokelo 2026-11-26): the oath you swore him over his cup
+                    // was false, and you can tell him so. Optional, never undone. DRAFT lines for Wick.
+                    choices: [{ text: 'There is no tablet, Torvald. I lied to you.', to: 'oath_broken' }, ...TORVALD]
+                },
+                oath_broken: {
+                    lines: [
+                        [null, 'You tell him. There is no tablet, and there was never going to be one.'],
+                        ['npc', "You drank from my cup and swore on it. In the North we have a word for a man who does that, and it isn't southerner."],
+                        ['npc', "Nithing, oath-breaker: every crew between here and the pass will know it by the next moon."],
+                        [null, 'Something in you goes cold and settles, like a blade put back in a sheath that was never its own.']
+                    ],
+                    effects: [{ flag: 'oath_betrayed' },
+                        { say: 'You broke an oath you swore over a cup. The North will remember it.', important: true },
+                        { when: { className: 'warrior' }, say: "(The Vanguard's Dark Knight stage no longer waits on a betrayal. It opens in your Skill Web at level 11.)", important: true }],
+                    choices: [{ text: 'Leave the tent.', end: true }]
+                },
+                after_betrayed: {
+                    lines: [['npc', "I don't drink with nithings. Say what you came to say and get out of my sight."]],
                     choices: TORVALD
                 },
                 boards: {
@@ -3191,10 +3210,13 @@
 
     // Black Flight (Nahemoth design): Skeldvik is attuned by standing at its bell, the place people come back to.
     const anchors = {
-        skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell' },
-        silent_field: { name: 'The Silent Field, the field bell', region: 'Hrimvald', map: 'silent_field', spawn: 'flight_bell' },
-        runadal: { name: 'Rúnadal, the offering table', region: 'Hrimvald', map: 'runadal', spawn: 'flight_table' },
-        hrafnholm: { name: 'Hrafnholm, the War Memorial', region: 'Hrimvald', map: 'hrafnholm', spawn: 'flight_memorial' }
+        skeldvik: { name: 'Skeldvik, the harbour bell', region: 'Hrimvald', map: 'skeldvik', spawn: 'flight_bell', attune: 'skeldvik_bell' },
+        silent_field: { name: 'The Silent Field, the field bell', region: 'Hrimvald', map: 'silent_field', spawn: 'flight_bell', attune: 'silent_bell' },
+        runadal: { name: 'Rúnadal, the offering table', region: 'Hrimvald', map: 'runadal', spawn: 'flight_table', attune: 'runadal_table' },
+        hrafnholm: { name: 'Hrafnholm, the War Memorial', region: 'Hrimvald', map: 'hrafnholm', spawn: 'flight_memorial', attune: 'hrafnholm_memorial' },
+        // World map + more anchors (2026-11-25): the bloomers' hut where the furnace crews eat, and Birkholt's swearing stones.
+        jarnmyr: { name: "Járnmyr, the bloomers' hut", region: 'Hrimvald', map: 'jarnmyr', spawn: 'flight_hut', attune: 'jarnmyr_hut' },
+        birkholt: { name: 'Birkholt, the standing stones', region: 'Hrimvald', map: 'birkholt', spawn: 'flight_stones', attune: 'birkholt_stones' }
     };
     // C2-05: putting out the burial anchors. Each one counts up (the highest first, so one fire only moves it one step).
     const anchorOut = (id, say) => ({ id: `c205_${id}`, on: { type: 'inspect', id }, if: { quests: { C205: 'active' } }, effects: [
@@ -3380,6 +3402,16 @@
             { flag: 'fenrir_trial_cleared' },
             { say: 'The coil of chain comes apart link by link and sinks into the stone. The carved wolves on the cliff are not carved any more.', important: true }
         ] },
+        { id: 'anchor_jarnmyr', on: { type: 'inspect', id: 'jarnmyr_hut' }, if: { flags: ['aspect_nahemoth'] }, effects: [
+            { flag: 'anchor:jarnmyr' },
+            { say: "The crow walks the row of boots by the step, inspecting each one, and the cat watches it do it. 'Warm, and they drop bread,' it says. 'I'll remember it.'" },
+            { say: '(Black Flight: Járnmyr is attuned.)', important: true }
+        ] },
+        { id: 'anchor_birkholt', on: { type: 'inspect', id: 'birkholt_stones' }, if: { flags: ['aspect_nahemoth'] }, effects: [
+            { flag: 'anchor:birkholt' },
+            { say: "The crow sits on the middle stone, on somebody's great-grandmother's name, and does not apologise. 'People keep their word here,' it says. 'Or they say they do. I'll remember it.'" },
+            { say: '(Black Flight: Birkholt is attuned.)', important: true }
+        ] },
         { id: 'anchor_skeldvik', on: { type: 'inspect', id: 'skeldvik_bell' }, if: { flags: ['aspect_nahemoth'] }, effects: [
             { flag: 'anchor:skeldvik' },
             { say: "The crow settles on the bell post. 'Salt, tar and other people's fish. Fine. I'll remember it. Don't ask me to like it.'" },
@@ -3392,7 +3424,11 @@
         // Q08 "Ten Seals" was a pointer at a chapter that didn't exist. Now it has somewhere to go.
         q08: { objective: 'Follow the crows east: take the east track from the Overgrown Road', marker: { map: 'road', x: 31, y: 9 }, start: 'C201' },
         // A run that laid Bjarki before C2-07 existed (content revision 11/12) gets Verse and Witness on load.
-        catchUp: [{ id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] },
+        catchUp: [
+            // More anchors (2026-11-25): a save that already looked at the hut or the stones is attuned on load.
+            { id: 'anchor_jarnmyr', if: { flags: ['aspect_nahemoth'], seen: ['inspect:jarnmyr_hut'] }, effects: [{ flag: 'anchor:jarnmyr' }] },
+            { id: 'anchor_birkholt', if: { flags: ['aspect_nahemoth'], seen: ['inspect:birkholt_stones'] }, effects: [{ flag: 'anchor:birkholt' }] },
+            { id: 'c207_after_bjarki', if: { quests: { C205: 'complete', C207: 'unseen' } }, effects: [{ start: 'C207' }] },
             // James's terms (2026-11-17): a save that brought him home on the old easy invitation keeps him. His riddles and
             // lute count as done, and the lute is in his hands. A save that heard the old fire story about Demonkore has
             // already "asked about the book" (same event), so James's job offer is waiting for it.

@@ -38,6 +38,10 @@
         shackled_ghoul_stronger: { region: 'vale', kind: 'Undead', lore: 'A ghoul scarred with ritual cuts, dragging a snapped chain. The Broken Oath chains the war dead and cuts them like this.' },
         crow_touched_warden: { region: 'vale', kind: 'Keeper', lore: 'The Warden of Featherwatch. He kept one seal and many crows, rebuilt their cages from old prison bars, and mended a boy\'s arm without taking a coin. He was given the key and told never to use it.',
             more: [{ if: { flags: ['bran_buried'] }, text: 'His name, stitched inside his collar, was Bran Ashdown. It is on the top stone of his cairn now, in your hand.' }] },
+        // The Tourney of Crowns (S03, #302): blunted steel in the lists on Shamefield's square.
+        tourney_squire: { region: 'vale', kind: 'Tourney', lore: 'A squire in borrowed padding who put his name in the lists to be noticed by a knight. Blunted steel, the Watch Captain\'s rule: nobody dies on her square.' },
+        tourney_knight: { region: 'vale', kind: 'Tourney', lore: 'A hedge knight with no lord and a shield painted over three times. He rides the festival circuit for the purse and a hot meal, and tilts like he means it.' },
+        tourney_champion: { region: 'vale', kind: 'Tourney', lore: 'Sir Odo of the Two Crowns, who won the tourney twice under the old crown and has never let anyone forget it. Beat him and the ribbon is yours.' },
         heaven_doorwarden: { region: 'vale', kind: 'Seraph', lore: 'Aurevain, Warden of the Altar: something in gilded plate with four wings folded and a spear of light. It keeps Heaven\'s altar now that Caelith does not, and it wants the coal back.' },
         // ---- Hrimvald ----------------------------------------------------------------------
         wolfbanner_raider: { region: 'north', kind: 'Wolf-Banner', lore: 'Torvald Redhand\'s crews, in madder-red wool under the running wolf. On the pass they tipped the biers out onto the road. They were not robbing the dead. They were looking for something.' },

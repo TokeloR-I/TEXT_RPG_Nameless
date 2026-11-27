@@ -31,11 +31,11 @@
     const ENSO = global.ENSO || (global.ENSO = {});
 
     const FORMAT = 'enso-save';
-    const FORMAT_VERSION = 4;
+    const FORMAT_VERSION = 5;
     // Which content release wrote a save. Bump it when a PR adds or removes story content (quests, NPCs, items,
     // maps), so a save carried back to an older copy of the game is recognised as newer, not "updated" (playtest
     // 2026-11-11). A save that names quests or items this build doesn't know is newer whatever the number says.
-    const CONTENT_REVISION = 23;   // 5: the Hrimvald kitchen and Sour Herring (C2S1); 6: Gullstrand Coast and the Wolf's Wake; 7: James the bard (CB1, CB2); 8: the Thing (C203 ends Act I), C204 pointer, C2-S02, C2-S04; 9: the Stormtide Inn (PR #261); 10: Járnmyr and C204, C205 pointer; 11: the Silent Field, Birkholt, Rúnadal, Bjarki's Barrow and C205; 12: armor sets, Bog Iron and weapon tempering; 13: the uplands, the Wolf-Banner camp, the Hrafnholm anchor; 14: C2-07, C2-S01, C2-S06 and the Act II mini bosses; 15: Hallvard's Barrow; 16: Chapter Two enemies and side quests C2-S03, C2-S11, C2-S12; 17: James's terms, Sven, his shop and CB2's seals; 18: CB1 in order (Sven's lute three ways, a Mead, then the questions); 19: the Devil Union web and the Demonkore reveal (CB3); 20: Shane's A Cramping Experience (S02) and LEG CRAMP!; 21: the Second, Third and Fourth Dominions (Beelzebub, Slotos, Plumede); 22: full Deathlord Eternal and Reality Breaker webs; 23: the Bestiary, the lore codex and boss rematch rings
+    const CONTENT_REVISION = 26;   // 5: the Hrimvald kitchen and Sour Herring (C2S1); 6: Gullstrand Coast and the Wolf's Wake; 7: James the bard (CB1, CB2); 8: the Thing (C203 ends Act I), C204 pointer, C2-S02, C2-S04; 9: the Stormtide Inn (PR #261); 10: Járnmyr and C204, C205 pointer; 11: the Silent Field, Birkholt, Rúnadal, Bjarki's Barrow and C205; 12: armor sets, Bog Iron and weapon tempering; 13: the uplands, the Wolf-Banner camp, the Hrafnholm anchor; 14: C2-07, C2-S01, C2-S06 and the Act II mini bosses; 15: Hallvard's Barrow; 16: Chapter Two enemies and side quests C2-S03, C2-S11, C2-S12; 17: James's terms, Sven, his shop and CB2's seals; 18: CB1 in order (Sven's lute three ways, a Mead, then the questions); 19: the Devil Union web and the Demonkore reveal (CB3); 20: Shane's A Cramping Experience (S02) and LEG CRAMP!; 21: the Second, Third and Fourth Dominions (Beelzebub, Slotos, Plumede); 22: full Deathlord Eternal and Reality Breaker webs; 23: rest respawns, elites and 18 new affixes; 24: the Tourney of Crowns (S03), the Dark Knight's betrayal, Mounted Charge; 25: Black Flight anchors at the Kloster, Featherwatch, Járnmyr and Birkholt; 26: the Bestiary, the lore codex and boss rematch rings
     const ENGINE_VERSION = '0.1.0';          // package.json "version" (kept in step by tests/33-save-load.test.js)
     const STATE_KEYS = ['rooms', 'currentRoom', 'mode', 'player', 'combat', 'pendingBranchChoice', 'flags', 'stats', 'progression', 'world', 'story'];
     // Fields a save must have to be loaded at all (story/world may be null: the text game).
@@ -91,6 +91,17 @@
             };
             if (save.state) walk(save.state);
             save.formatVersion = 4;
+            return save;
+        },
+        // v4 -> v5: a world that refills (2026-11-25). Each beaten group that came back after a rest counts its lives
+        // (world.respawns, for fresh loot claims) and may carry an elite modifier (world.elites). Older saves start at none.
+        4: (save) => {
+            const w = save.state && save.state.world;
+            if (isObj(w)) {
+                if (!isObj(w.respawns)) w.respawns = {};
+                if (!isObj(w.elites)) w.elites = {};
+            }
+            save.formatVersion = 5;
             return save;
         }
     };
@@ -242,6 +253,7 @@
             if (isObj(this.world)) {
                 for (const k of ['collected', 'defeated']) if (!Array.isArray(this.world[k])) this.world[k] = [];
                 for (const k of ['encounter', 'lastEncounter', 'lastResult']) if (!(k in this.world)) this.world[k] = null;
+                for (const k of ['respawns', 'elites']) if (!isObj(this.world[k])) this.world[k] = {};   // wilds.js
             }
             // The chapter: quests added since start unseen, quests that were removed are set aside, and a
             // conversation with an NPC or node that no longer exists is closed.

@@ -48,11 +48,44 @@
     // (ui/display.js). The choice is a per-browser preference, kept outside any save.
     // ---------------------------------------------------------------------
     const TOUCH = !!(els.pad && ENSO.touchControls && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
-    const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })) }) : null;
+    // Accessibility options (ui/access.js; Settings → Accessibility): text size, colour-blind safe telegraphs, screen
+    // shake, hold or toggle for guard and sprint, first-time tips, and key and controller rebinding. Per browser.
+    const AX = ENSO.access;
+    let access = AX.load();
+    let keyTable = AX.keyTable(access);
+    let padLayout = AX.padLayout(access);
+    /** The device you used last, so a prompt names the right keys, buttons or touch controls. */
+    let lastDevice = TOUCH ? 'touch' : 'keys';
+    let firing = null;   // 'touch' | 'pad' while one of them sends its keys
+    const fireAs = (who) => (type, key) => {
+        firing = who;
+        if (type === 'keydown') lastDevice = who;
+        if (who === 'touch' && key === 'Shift') touchShift = type === 'keydown';
+        try { window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })); } finally { firing = null; }
+    };
+    let touchShift = false;   // the touch stick pushed to its edge sprints, whether sprint is hold or toggle
+    const touch = TOUCH ? ENSO.touchControls.create(els.pad, { fire: fireAs('touch') }) : null;
     if (TOUCH) { els.pad.hidden = false; document.body.classList.add('touch'); }
     // A game pad plays too (ui/gamepad.js): it sends the same keys, 'menu' keys whenever a cursor has the focus.
-    const PAD = ENSO.gamepad ? ENSO.gamepad.create({ fire: (type, key) => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true })), mode: () => (screen === 'explore' && !modal ? 'play' : 'menu') }) : null;
+    const PAD = ENSO.gamepad ? ENSO.gamepad.create({ fire: fireAs('pad'), mode: () => (screen === 'explore' && !modal ? 'play' : 'menu'), layout: () => padLayout }) : null;
     let padSeen = false;
+    /** The game key ('2', 'h', ' ') as you have it bound now, for the HUD and the help. */
+    const boundKeyName = (gameKey) => {
+        const a = AX.KEY_ACTIONS.find((x) => x.key === AX.norm(gameKey));
+        return a ? AX.keyName(AX.keyMap(access)[a.id]) : gameKey;
+    };
+    const keyNames = () => AX.labels(access, lastDevice === 'touch' ? 'touch' : lastDevice === 'pad' ? 'pad' : 'keys');
+    function applyAccess() {
+        keyTable = AX.keyTable(access);
+        padLayout = AX.padLayout(access);
+        const b = document.body.classList;
+        for (const t of AX.TEXT) b.toggle(`text-${t}`, access.text === t && t !== 'normal');
+        b.toggle('colour-safe', !!access.colourSafe);
+        if (ENSO.actionFx && ENSO.actionFx.setColourSafe) ENSO.actionFx.setColourSafe(access.colourSafe, AX.SAFE_STATUS);
+        if (ENSO.actionHud && ENSO.actionHud.setKeyLabel) ENSO.actionHud.setKeyLabel(boundKeyName);
+    }
+    function setAccess(next) { access = AX.normalise(next); AX.save(access); applyAccess(); }
+    applyAccess();
     const DISPLAY_KEY = 'enso.ui.display';
     let displayMode = (() => { try { const m = localStorage.getItem(DISPLAY_KEY); return ENSO.display.MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } })();
     function fitStage() {
@@ -168,7 +201,7 @@
             sfx('tick');
             m.render(); return true;
         }
-        if (isAct(ev) && !ev.repeat) { if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
+        if (isAct(ev) && !ev.repeat) { if (creator && creator.wardrobe) { closeWardrobe(true); return true; } if (screen === 'title' && creator && CREATOR_FLOW.includes(creator.step) && creator.step !== 'name') { if (creator.step === 'class') creatorNext(); else startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator()); return true; } const it = m.items[m.index]; if (it && !it.disabled) { sfx('select'); it.action(); } else sfx('refuse'); return true; }
         if ((ev.key === 'Escape' || ev.key === 'Backspace') && !ev.repeat && m.back) { sfx('back'); m.back(); return true; }
         return false;
     }
@@ -232,6 +265,7 @@
             const input = els.title.querySelector('#hero-name');
             if (input) creator.name = input.value;
         }
+        if (creator.wardrobe) { closeWardrobe(true); return; }
         if (creator.step === LAST_STEP) {
             startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             return;
@@ -240,6 +274,7 @@
         if (next) creatorStep(next);
     }
     function creatorBack() {
+        if (creator.wardrobe) { closeWardrobe(false); return; }
         const previous = CREATOR_FLOW[CREATOR_FLOW.indexOf(creator.step) - 1];
         if (previous) creatorStep(previous);
     }
@@ -327,9 +362,9 @@
         els.title.innerHTML = `
             <div class="vessel-screen">
                 <header class="vessel-header"><div class="vessel-brand">ENSO'S LAST STAND</div>
-                    <div class="vessel-step">${isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
-                    <h1>${isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
-                    <p>Every forgotten soul once had a face.</p></header>
+                    <div class="vessel-step">${creator.wardrobe ? 'THE MIRROR' : isClass ? '01 · CALLING' : '02 · APPEARANCE'}</div>
+                    <h1>${creator.wardrobe ? 'Look Yourself Over' : isClass ? 'Choose Your Calling' : 'Shape Your Vessel'}</h1>
+                    <p>${creator.wardrobe ? 'Change anything you like. Your calling stays your own.' : 'Every forgotten soul once had a face.'}</p></header>
                 <div class="vessel-columns">
                     
                     <section class="vessel-preview" aria-label="Live player sprite preview">
@@ -361,16 +396,17 @@
                     </section>
                 </div>
                 <footer class="vessel-footer">
-                    <button type="button" data-creator-back>← Back</button>
-                    <span>${isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
-                    <button type="button" data-creator-next>${creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
+                    <button type="button" data-creator-back>${creator.wardrobe ? '✕ Cancel' : '← Back'}</button>
+                    <span>${creator.wardrobe ? 'Enter keeps the new look · Esc puts the old one back' : isClass ? 'Choose a calling before shaping your vessel' : 'Preview and change every option before continuing'}</span>
+                    <button type="button" data-creator-next>${creator.wardrobe ? 'Done ✓' : creator.step === LAST_STEP ? 'Start Game →' : 'Continue →'}</button>
                 </footer>
             </div>`;
         if (isClass) bindMenuClicks(els.title, menu);
         els.title.querySelector('[data-creator-back]').addEventListener('click', creatorBack);
         els.title.querySelector('[data-creator-next]').addEventListener('click', () => {
             // The appearance panel is a unified editor, so Continue confirms all cosmetics.
-            if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
+            if (creator.wardrobe) closeWardrobe(true);
+            else if (!isClass) startGame(creator.cls, creator.name, creator.look, cosmeticsFromCreator());
             else creatorNext();
         });
         els.title.querySelectorAll('[data-facing]').forEach(button => button.addEventListener('click', () => {
@@ -963,6 +999,7 @@
     }
     function kitchenCook(r) {
         const res = engine.act({ type: 'cook', recipeId: r.id });
+        if (res.ok) tip('cook');
         const said = kitchenEvents(res.events);
         updateHud();
         kitchen.message = res.ok ? (said || `${r.verb} ${r.yield > 1 ? `${r.yield} ` : ''}${r.output}.`) : res.error.message;
@@ -973,6 +1010,7 @@
         renderKitchen(next);
     }
     function renderKitchen(avail) {
+        tip('hearth');
         const k = avail.kitchen;
         if (!kitchen || kitchen.npcId !== avail.dialogue.npcId) kitchen = { npcId: avail.dialogue.npcId, pot: [], message: '', picked: null };
         // The pot never holds more than you carry (you may have eaten or cooked since).
@@ -987,6 +1025,9 @@
                 recipe: r,
                 action: () => { if (match && match.id === r.id && r.enabled) kitchenCook(r); else { potFill(r); renderKitchen(engine.getAvailableActions()); } }
             })),
+            // A rest by the fire: the same rest as the homestead bed, and the beaten wild comes back (src/engine/wilds.js).
+            ...((avail.actions || []).some((a) => a.type === 'rest_by_fire' && a.enabled) ? [{ label: 'Rest by the fire', sub: 'Heal fully. Beaten enemies out there come back, some of them elites.',
+                action: () => { const r = engine.act({ type: 'rest_by_fire' }); kitchen.message = kitchenEvents(r.events) || (r.ok ? 'You rest by the fire.' : r.error.message); updateHud(); renderKitchen(engine.getAvailableActions()); } }] : []),
             { label: 'Leave the hearth', action: leave }
         ], { back: leave, render: draw });
         const keep = kitchen.picked ? menu.items.findIndex((it) => it.recipe && it.recipe.id === kitchen.picked) : -1;
@@ -1122,6 +1163,7 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'map', label: 'Map', sub: 'Where you have been, where you are, your tracked quests and Black Flight. M opens it.' },   // world map (2026-11-25)
         { id: 'bestiary', label: 'Bestiary', sub: 'Every creature you have fought, what it does and what hurts it. It fills as you fight.' },
         { id: 'codex', label: 'Codex', sub: 'What you have learned about this world, written down as you learn it.' },
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
@@ -1137,7 +1179,8 @@
         const bar = engine.combatMode !== 'turn';
         const union = !!(engine.getUnion && engine.getUnion());
         const book = !!(engine.story && engine.getBestiary && engine.getBestiary());
-        return MM_TABS_ALL.filter((t) => (!['bestiary', 'codex'].includes(t.id) || book) && (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
+        const map = !!(engine.getTravelState && engine.getTravelState() && WMV.view(WORLD, engine.getTravelState()).region);
+        return MM_TABS_ALL.filter((t) => (!['bestiary', 'codex'].includes(t.id) || book) && (t.id !== 'crow' || crow) && (t.id !== 'map' || map) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
         sfx('open');
@@ -1151,7 +1194,7 @@
         if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.mapFly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null; mm.binds = null; mm.capture = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1197,14 +1240,16 @@
         if (id === 'bestiary') items = bestiaryItems();
         if (id === 'codex') items = codexItems();
         if (id === 'skillbar') items = skillBarItems();
-        if (id === 'web') items = skillWebItems();
+        if (id === 'web') { items = skillWebItems(); tip('web'); }
         if (id === 'union') items = unionItems();
-        if (id === 'settings') {
+        if (id === 'settings' && mm.binds) items = bindItems(mm.binds);
+        if (id === 'settings' && !mm.binds) {
             items = [{ label: `Display: ${ENSO.display.LABELS[displayMode]}`, sub: ENSO.display.HELP[displayMode], action: again(() => { mm.note = cycleDisplay(); }) },
-                { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
+                { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) },
+                ...accessItems(again)];
             if (SFX) {
                 const a = SFX.settings;
-                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
+                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; Shift+M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
                 items.push({ label: `Combat sounds: ${pct(a.sfx)}`, sub: 'Hits, dodges, parries, enemy wind-ups, level-ups and loot.', action: again(() => { mm.note = `Combat sounds: ${pct(SFX.cycle('sfx').sfx)}.`; sfx('hit'); }) });
                 items.push({ label: `Menu and voice sounds: ${pct(a.ui)}`, sub: 'Menu clicks and the soft blips while people talk.', action: again(() => { mm.note = `Menu and voice sounds: ${pct(SFX.cycle('ui').ui)}.`; sfx('select'); }) });
             }
@@ -1215,6 +1260,7 @@
             if (devMode) items.push({ label: 'Dev cheats: On', sub: 'Hide the Cheats tab again. What cheats already changed stays.', action: () => { setDevMode(false); mm.note = 'Dev cheats hidden. Tap the version 5 times to bring them back.'; refreshTabs('settings'); } });
         }
         if (id === 'cheats') items = cheatItems();
+        if (id === 'map') items = mapItems();
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
             items = [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and return there.', action: () => blackFlight(f) },
@@ -1228,15 +1274,147 @@
         }
         if (!items || !items.length) { renderMain(); return; }          // Status (and a journal with nothing active) are pages, not lists
         mm.focus = 'list';
-        const slotBack = mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
+        const slotBack = mm.binds ? () => { const at = mm.binds === 'pad' ? 1 : 0; mm.binds = null; mm.capture = null; enterList('settings', settingsRow(at)); }
+            : mm.slot ? () => { const i = MM.SLOTS.findIndex((x) => x.slot === mm.slot); mm.slot = null; enterList('equipment', i); }
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
+            : mm.mapFly ? () => { const a = mm.mapFly.area; mm.mapFly = null; enterList('map', mapIndexOf(a)); }
             : mm.union ? () => { const i = mm.union.row; mm.union = null; enterList('union', i); }
             : mm.cheat ? () => { const at = CHEAT_TOP.indexOf(mm.cheat.top || mm.cheat); mm.cheat = mm.cheat.top ? mm.cheat.top : null; enterList('cheats', mm.cheat ? 0 : Math.max(0, at)); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
+    }
+    // ---------------------------------------------------------------------
+    // Accessibility (Hollis; ui/access.js): the Settings lines, and the key / button lists you rebind from.
+    // ---------------------------------------------------------------------
+    const onOff = (v) => (v ? 'On' : 'Off');
+    const ACCESS_ROWS = 2;   // the accessibility lines start after Display and Motion
+    /** Where a Settings line is, by its place among the accessibility lines (0 keys, 1 controller). */
+    function settingsRow(which) { return ACCESS_ROWS + 7 + which; }
+    function accessItems(again) {
+        const a = access;
+        const shake = AX.shakeMode(a, REDUCED);
+        const set = (patch, note) => again(() => { setAccess({ ...access, ...patch }); mm.note = note(); });
+        return [
+            { label: `Text size: ${AX.TEXT_LABELS[a.text]}`, sub: 'Bigger text in menus, dialogue, the HUD, notices and tips.',
+                action: set({ text: AX.TEXT[(AX.TEXT.indexOf(a.text) + 1) % AX.TEXT.length] }, () => `Text size: ${AX.TEXT_LABELS[access.text]}.`) },
+            { label: `Colour-blind safe: ${onOff(a.colourSafe)}`, sub: 'Enemy wind-ups turn yellow (blue for bosses) and striped, and conditions use colours that stay apart for red-green and blue-yellow colour blindness. Conditions keep their own pictures and words too.',
+                action: set({ colourSafe: !a.colourSafe }, () => `Colour-blind safe: ${onOff(access.colourSafe)}.`) },
+            { label: `Screen shake: ${AX.SHAKE_LABELS[shake]}${a.shake ? '' : ' (auto)'}`, sub: 'How hard the view shakes on crits, parries and big blows. Auto is off with reduced motion.',
+                action: set({ shake: AX.SHAKE[(AX.SHAKE.indexOf(shake) + 1) % AX.SHAKE.length] }, () => `Screen shake: ${AX.SHAKE_LABELS[access.shake]}.`) },
+            { label: `Guard: ${a.guard === 'toggle' ? 'Toggle' : 'Hold'}`, sub: 'Hold: guard while the button is down. Toggle: press once to raise your guard and again to lower it. Raising it just before a hit still parries.',
+                action: set({ guard: a.guard === 'toggle' ? 'hold' : 'toggle' }, () => `Guard: ${access.guard === 'toggle' ? 'press to raise or lower' : 'hold'}.`) },
+            { label: `Sprint: ${a.sprint === 'toggle' ? 'Toggle' : 'Hold'}`, sub: 'Hold: sprint while the button is down. Toggle: press once to run; you stop running when you stand still. On touch the stick pushed to its edge always runs.',
+                action: set({ sprint: a.sprint === 'toggle' ? 'hold' : 'toggle' }, () => `Sprint: ${access.sprint === 'toggle' ? 'press to run' : 'hold'}.`) },
+            { label: `First-time tips: ${onOff(a.tips)}`, sub: 'Short prompts the first time something matters: dodging, parrying, quick heal, the skill bar, cooking and Skill Web points. They name the keys, buttons or touch controls you are using.',
+                action: set({ tips: !a.tips }, () => `First-time tips: ${onOff(access.tips)}.`) },
+            { label: 'Show tips again', sub: 'Every first-time tip shows once more, the next time it matters.', disabled: !a.tips,
+                action: again(() => { tutor.reset(); ENSO.tutor.saveSeen(tutor.seen); mm.note = 'Tips will show again.'; }) },
+            { label: 'Keyboard keys', sub: 'Choose the key for each action. Esc, Enter and the arrow keys stay as they are.', action: () => { mm.binds = 'keys'; enterList('settings', 0); } },
+            { label: 'Controller buttons', sub: 'Choose the button for each action. Start opens the menu and RT + a button uses a skill.', action: () => { mm.binds = 'pad'; enterList('settings', 0); } }
+        ];
+    }
+    /** The rebinding list: every action with its key or button; choose one, then press the new key or button. */
+    function bindItems(kind) {
+        const pad = kind === 'pad';
+        const list = pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS;
+        const map = pad ? AX.padMap(access) : AX.keyMap(access);
+        const items = list.map((a, i) => {
+            const now = pad ? AX.padName(map[a.id]) : AX.keyName(map[a.id]);
+            const changed = pad ? map[a.id] !== a.button : map[a.id] !== a.key;
+            const waiting = mm.capture && mm.capture.action === a.id;
+            return { label: `${a.label}: ${waiting ? '…' : now}${changed ? ' *' : ''}`,
+                sub: waiting ? (pad ? 'Press a button on the controller (Start or Esc cancels).' : 'Press the new key (Esc cancels).')
+                    : `${pad ? 'Button' : 'Key'}: ${now}${changed ? ` (default ${pad ? AX.padName(a.button) : AX.keyName(a.key)})` : ''}. Choose to change it; an action already on that ${pad ? 'button' : 'key'} swaps with this one.`,
+                action: () => { mm.capture = { kind, action: a.id, row: i, armed: false }; mm.note = pad ? `Press a button for ${a.label}.` : `Press a key for ${a.label}.`; enterList('settings', i); } };
+        });
+        items.push({ label: pad ? 'Reset controller buttons' : 'Reset keyboard keys', sub: 'Back to the standard layout.',
+            action: () => { setAccess({ ...access, [pad ? 'pad' : 'keys']: {} }); mm.capture = null; mm.note = pad ? 'Controller buttons reset.' : 'Keys reset.'; enterList('settings', list.length); } });
+        return items;
+    }
+    /** A key or button was pressed while a rebinding waits for one. Returns true when it was used. */
+    function finishCapture(value, cancel) {
+        const c = mm.capture;
+        if (!c) return false;
+        const pad = c.kind === 'pad';
+        const def = (pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS).find((a) => a.id === c.action);
+        if (cancel) { mm.capture = null; mm.note = 'Unchanged.'; enterList('settings', c.row); return true; }
+        if (pad ? !AX.PAD_BUTTONS.includes(value) : !AX.bindable(value)) {
+            mm.note = pad ? `${AX.padName(value)} is kept for the menu and skills. Try another button.` : `${AX.keyName(value)} is kept for menus. Try another key.`;
+            renderMain(); return true;
+        }
+        const before = pad ? AX.padMap(access) : AX.keyMap(access);
+        const other = (pad ? AX.PAD_ACTIONS : AX.KEY_ACTIONS).find((a) => a.id !== c.action && before[a.id] === (pad ? value : AX.norm(value)));
+        setAccess(pad ? AX.bindPad(access, c.action, value) : AX.bindKey(access, c.action, value));
+        mm.capture = null;
+        const name = pad ? AX.padName(value) : AX.keyName(value);
+        mm.note = `${def.label}: ${name}.${other ? ` ${other.label} moved to ${pad ? AX.padName(before[c.action]) : AX.keyName(before[c.action])}.` : ''}`;
+        sfx('select');
+        enterList('settings', c.row);
+        return true;
+    }
+    // ---- The world map (research round two, pick 3; docs/ui/WORLD_MAP.md) ----
+    // The places you have entered, region by region, drawn by ui/world-map-view.js from the engine's travel record.
+    // The list on the right is those places (and the other regions); Enter on a place with an attuned anchor asks
+    // to fly there, exactly as the Crow tab does. The engine still decides every flight (black_flight).
+    const WMV = ENSO.worldMapView;
+    function mapModel() {
+        const tracked = (engine.getState().story || {}).tracked || [];
+        // The world owns where you stand (session.mapId); the engine's record says where you have been.
+        const t = engine.getTravelState();
+        const v = WMV.view(WORLD, t && session ? { ...t, at: session.mapId } : t, engine.getAvailableActions(), tracked, mm.mapRegion);
+        if (v.region) mm.mapRegion = v.region.id;
+        return v;
+    }
+    function mapIndexOf(areaId) { return Math.max(0, WMV.places(mapModel()).findIndex((a) => a.id === areaId)); }
+    function openMap() {
+        if (!(engine.getTravelState && engine.getTravelState())) return;
+        mm.mapRegion = null; mm.mapFly = null;
+        openPause(null, 'map');
+        if (modal !== 'pause' || !mmTabs[mm.tab] || mmTabs[mm.tab].id !== 'map') return;
+        const here = mapModel().here;
+        if (here) enterList('map', mapIndexOf(here));
+    }
+    function mapItems() {
+        const v = mapModel();
+        if (mm.mapFly) {
+            const f = mm.mapFly;
+            const back = () => { mm.mapFly = null; enterList('map', mapIndexOf(f.area)); };
+            return [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and arrive there.', action: () => { mm.mapFly = null; blackFlight(f); } },
+                { label: 'Stay', sub: 'Back to the map.', action: back }];
+        }
+        const items = WMV.places(v).map((a) => {
+            const fly = a.anchors.find((n) => n.enabled);
+            const bits = [a.here ? 'You are here' : '', a.quests.length ? `Quest: ${a.quests.map((q) => q.title).join(', ')}` : '',
+                fly ? 'Black Flight' : a.here ? '' : (a.anchors.find((n) => n.attuned) || {}).why || ''].filter(Boolean);
+            return { label: `${a.here ? '◆ ' : ''}${a.name}`, sub: bits.join(' · '), area: a.id,
+                action: fly ? () => { mm.mapFly = { anchorId: fly.anchorId, name: fly.name, region: v.region.name, area: a.id }; enterList('map', 0); } : () => {} };
+        });
+        for (const r of v.regions) if (r.id !== v.region.id) items.push({ label: `${r.name} ›`, sub: r.here ? 'The region you are in.' : 'Show this region.', region: r.id,
+            action: () => { mm.mapRegion = r.id; mm.mapFly = null; enterList('map', 0); } });
+        return items;
+    }
+    function mapPage(inList) {
+        const v = mapModel();
+        if (!v.region) return '<p class="mm-dim">You have not been anywhere yet.</p>';
+        const hl = inList && menu.items[menu.index];
+        const sel = mm.mapFly ? mm.mapFly.area : hl && hl.area ? hl.area : v.here;
+        const a = v.region.areas.find((x) => x.id === sel && x.known);
+        const list = inList ? rowsHtml(menu, null, true) : rowsHtml({ items: mapItems(), index: -1 }, null, false);
+        let detail;
+        if (mm.mapFly) detail = `<p>${esc(CV.confirmText(mm.mapFly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`;
+        else if (hl && hl.region) detail = `<b class="cx-dname">${esc(hl.label.replace(/ ›$/, ''))}</b><p>${esc(hl.sub)}</p>`;
+        else if (a) {
+            const anchorLines = a.anchors.map((n) => `<li>${n.attuned ? '✦' : '◇'} ${esc(n.name)} <span class="mm-dim">· ${esc(n.attuned ? (n.enabled ? 'fly here' : n.why) : n.hint)}</span></li>`).join('');
+            detail = `<b class="cx-dname">${esc(a.name)}</b><span class="cx-dkind">${esc(v.region.name)}${a.here ? ' · you are here' : ''}</span>
+                ${a.quests.map((q) => `<p class="j-obj">◆ ${esc(q.title)}: ${esc(q.text)}</p>`).join('')}
+                ${anchorLines ? `<h3>Black Flight</h3><ul class="mm-plain">${anchorLines}</ul>` : ''}
+                ${inList && hl && hl.area === a.id && a.anchors.some((n) => n.enabled) ? `<button type="button" class="cx-btn cx-do">Fly here</button>` : ''}`;
+        } else detail = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>`;
+        const right = mm.mapFly ? detail : `${detail}<h3>Places</h3>${list}`;
+        return `<div class="cx-cols cx-split cx-map">${pane(esc(v.region.name), `${WMV.svg(v.region, sel)}<p class="wm-key mm-dim">◆ ring: you · ✦ feather: Black Flight anchor · flag: tracked quest · ? unexplored</p>`, 'wm-pane')}${pane('', right, 'cx-detail')}</div>`;
     }
     /** Devil Union (src/engine/union.js; Tokelo 2026-11-18: "doesn't even allow the player to select a demon"): every
      *  demon, the ones you hold a contract with to choose and merge with now (in a fight or out of one), then the two
@@ -1605,6 +1783,17 @@
         const hint = active.some((x) => x.state === 'active') ? `<p class="mm-dim">On screen: ${shown} of ${max}.</p>` : '';
         return `<div class="cx-cols cx-split cx-journal">${pane(`Quests · ${esc(j.chapter)}`, `${hint}${list}${done.length ? `<details class="j-done"><summary>Done (${done.length})</summary>${done.map((x) => esc(x.title)).join(' · ')}</details>` : ''}`)}${pane('', right, 'cx-detail')}</div>`;
     }
+    /** The action-mode controls in Settings, with your own keys and buttons (ui/access.js). */
+    function actionControlsHtml() {
+        const k = AX.keyMap(access), n = (id) => `<kbd>${esc(AX.keyName(k[id]))}</kbd>`, p = AX.padMap(access), b = (id) => AX.padName(p[id]);
+        const hold = (opt) => (access[opt] === 'toggle' ? ' (press to toggle)' : '');
+        return `<li>${n('up')}${n('left')}${n('down')}${n('right')} or arrows move and face (8 ways) · click aims · keyboard attacks face forward · ${n('sprint')} sprint${hold('sprint')}</li>`
+            + `<li>Click or ${n('attack')} attack · ${['skill1', 'skill2', 'skill3', 'skill4', 'skill5', 'skill6'].map(n).join(' ')} skills</li>`
+            + `<li>${n('dodge')} dodge · right-click or ${n('guard')} guard${hold('guard')} (raise it just before a hit to parry)</li>`
+            + `<li>${n('lock')} lock on · ${n('interact')} inspect, talk, pick up · ${n('heal')} quick heal · ${n('map')} map · <kbd>Shift</kbd>+${n('map')} mute · <kbd>Esc</kbd> this menu</li>`
+            + `<li>Controller: stick move · ${b('attack')} attack · ${b('dodge')} dodge · ${b('interact')} interact · ${b('heal')} heal · ${b('guard')} guard · ${b('lock')} lock on · ${b('sprint')} sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li>`
+            + '<li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>';
+    }
     /** Pages that stay plain lists (settings, crow, union, cheats): the list on the left, the chosen line on the right. */
     function listPage(leftHtml, inList, extra = '') {
         const hl = inList && menu.items[menu.index];
@@ -1612,7 +1801,7 @@
             : `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>${extra}<p class="mm-dim cx-hint">Press Enter or tap a line.</p>`;
         return `<div class="cx-cols cx-split">${pane('', leftHtml)}${pane('', right, 'cx-detail')}</div>`;
     }
-    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', bestiary: 'Beasts', codex: 'Lore', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
+    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', map: 'Map', bestiary: 'Beasts', codex: 'Lore', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
     /** The header and tab strip, shared by every page and the Skill Web screen. */
     function shellTop(activeTab, tabsFocused) {
         const p = engine.getState().player;
@@ -1673,10 +1862,12 @@
         if (tab === 'web') page = skillWebPage(inList);
         if (tab === 'skillbar') page = skillbarHtml(inList);
         if (tab === 'settings') {
-            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>M</kbd> mute · <kbd>Esc</kbd> this menu</li><li>Controller: stick move · A attack · B dodge · X interact · Y heal · LB guard · RB lock on · LT sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
+            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? actionControlsHtml() : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
-            page = listPage(`<h3>Display, motion and sound</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
+            const head = mm.binds === 'keys' ? 'Keyboard keys' : mm.binds === 'pad' ? 'Controller buttons' : 'Display, accessibility and sound';
+            page = listPage(`<h3>${head}</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p><p>Text size: ${esc(AX.TEXT_LABELS[access.text])} · Colour-blind safe: ${onOff(access.colourSafe)} · Shake: ${esc(AX.SHAKE_LABELS[AX.shakeMode(access, REDUCED)])}</p><p>Guard: ${access.guard === 'toggle' ? 'Toggle' : 'Hold'} · Sprint: ${access.sprint === 'toggle' ? 'Toggle' : 'Hold'} · Tips: ${onOff(access.tips)}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, mm.binds ? '' : controls);
         }
+        if (tab === 'map') page = mapPage(inList);
         if (tab === 'crow') {
             const v = CV.crowView(engine.getAvailableActions());
             page = listPage(mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
@@ -1711,6 +1902,10 @@
         if (!inList) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = null; enterList('equipment', +li.dataset.i); }));
         if (inList && tab === 'equipment' && mm.slot) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = li.dataset.slot; enterList('equipment', 0); }));
         if (inList && tab === 'skillbar' && mm.barSlot != null) pageEl.querySelectorAll('.cx-keys li').forEach((li) => li.addEventListener('click', () => { mm.barSlot = +li.dataset.i; enterList('skillbar', 0); }));
+        if (tab === 'map') pageEl.querySelectorAll('.wm-area.known').forEach((g) => g.addEventListener('click', () => {
+            const i = mapIndexOf(g.dataset.area);
+            if (inList && !mm.mapFly && menu.index === i) { const it = menu.items[i]; if (it && !it.disabled) it.action(); } else { mm.mapFly = null; enterList('map', i); }
+        }));
         const doBtn = pageEl.querySelector('.cx-do');
         if (doBtn) doBtn.addEventListener('click', () => {
             if (tab === 'save' || tab === 'quit') { runTab(tab); return; }
@@ -2534,6 +2729,7 @@
     const aim = { x: 0, y: 0, screenX: null, screenY: null, movedAt: 0 };
     const press = { attack: false, pointerAttack: false, dodge: false, interact: false, slot: null };
     let guardHeld = false;
+    let guardLatch = false, sprintLatch = false, ranOn = false;   // Settings → Guard / Sprint: Toggle (ui/access.js)
     let lockId = null;
     let lastPlayerHp = null;
     let hud = null;
@@ -2559,6 +2755,8 @@
     function actionKey(ev) {
         if (screen !== 'explore' || modal || !sim) return false;
         if (ev.key === 'Tab') { ev.preventDefault(); if (!ev.repeat) cycleLock(ev.shiftKey ? -1 : 1); return true; }
+        if (access.guard === 'toggle' && (ev.key === 'q' || ev.key === 'Q')) { if (!ev.repeat) guardLatch = !guardLatch; return true; }
+        if (access.sprint === 'toggle' && ev.key === 'Shift' && firing !== 'touch') { if (!ev.repeat) sprintLatch = !sprintLatch; return true; }
         if (ev.repeat) return ev.key === ' ' || ev.key === 'Shift';
         if (ev.key === ' ') { press.dodge = true; return true; }
         const slot = ENSO.actionHud ? ENSO.actionHud.slotForKey(ev) : null;
@@ -2605,7 +2803,7 @@
     function quickHeal() {
         if (screen !== 'explore' || modal) return;
         const r = engine.act({ type: 'quick_heal' });
-        if (r.ok) sfx('heal');
+        if (r.ok) { sfx('heal'); tip('heal'); }
         const line = (r.events || []).find((e) => e.type === 'text' && /\+\d+ HP/.test(e.text || ''));
         toast(r.ok ? (line ? line.text : 'Healed.') : (r.error ? r.error.message : 'Nothing to heal with.'));
         updateHud();
@@ -2624,8 +2822,9 @@
     function camera() {
         const map = WORLD.maps[view.mapId], T = map.tileSize || 32;
         const mw = map.tiles[0].length * T, mh = map.tiles.length * T, W = canvas.width, H = canvas.height;
-        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, view.x * T + T / 2 - W / 2));
-        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, view.y * T + T / 2 - H / 2));
+        const fx = view.camX != null ? view.camX : view.x, fy = view.camY != null ? view.camY : view.y;
+        const camX = mw <= W ? (mw - W) / 2 : Math.max(0, Math.min(mw - W, fx * T + T / 2 - W / 2));
+        const camY = mh <= H ? (mh - H) / 2 : Math.max(0, Math.min(mh - H, fy * T + T / 2 - H / 2));
         return { ox: -Math.round(camX), oy: -Math.round(camY), T };
     }
     if (ACTION) {
@@ -2635,7 +2834,7 @@
             if (screen !== 'explore' || modal) return;
             const c = toCanvas(ev); aim.screenX = c.x; aim.screenY = c.y; aim.movedAt = performance.now();
             if (ev.button === 0) { press.attack = true; press.pointerAttack = true; }
-            if (ev.button === 2) guardHeld = true;
+            if (ev.button === 2) { if (access.guard === 'toggle') guardLatch = !guardLatch; else guardHeld = true; }
             ev.preventDefault();
         });
         window.addEventListener('mouseup', (ev) => { if (ev.button === 2) guardHeld = false; });
@@ -2655,7 +2854,11 @@
         // Pointer position is an action target, never passive facing input. Tab explicitly locks aim.
         if (lock) target = { x: lock.x, y: lock.y };
         else if (aiming && aim.screenX != null) { const c = camera(); target = { x: aim.screenX - c.ox, y: aim.screenY - c.oy }; }
-        const input = { move: mv, aim: target, sprint: down.has('Shift'), guard: guardHeld || down.has('q') || down.has('Q'), attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
+        if (len) ranOn = sprintLatch; else if (ranOn) { sprintLatch = false; ranOn = false; }   // a toggled sprint ends when you stop
+        const sprint = access.sprint === 'toggle' ? sprintLatch || touchShift : down.has('Shift');
+        const guard = access.guard === 'toggle' ? guardLatch : guardHeld || down.has('q') || down.has('Q');
+        if (press.slot != null) tip('skill');
+        const input = { move: mv, aim: target, sprint, guard, attack: press.attack, dodge: press.dodge, interact: press.interact, slot: press.slot };
         press.attack = press.pointerAttack = press.dodge = press.interact = false;
         press.slot = null;
         return input;
@@ -2710,6 +2913,7 @@
             syncActionHudVisibility();
             if (touch) els.pad.classList.toggle('hud-off', hud.el.hidden);
             const model = ENSO.actionHud.viewModel(engine, hudView(now), now);
+            hudModel = model;
             hud.update(model, now);
             if (touch) touch.update(model);
             placeNotices();
@@ -2798,6 +3002,8 @@
             g.fillStyle = `rgba(200, 60, 40, ${glow.toFixed(3)})`; g.fillRect(x + T / 2 - 2, y + T / 2 - 2, 4, 4);   // the lock
         }
     }
+    const lootPops = new Map();   // "x,y" of a drop that just came out of an enemy -> its hop (sim fx 'loot_pop')
+    const LOOT_POP_MS = 420;
     const castAt = new Map();   // skill -> when you last cast it (any fight or none): a union helm shows for a while after (ui/union-fx.js)
     function actionFxEvent(ev, now) {
         const P = sim.player;
@@ -2806,7 +3012,7 @@
             case 'hit': afx.spawn('hit', { x: ev.x, y: ev.y, angle: ev.angle, damageType: 'physical', ...(ev.crit ? { crit: true, shake: 2 } : {}) }, now);
                 sfx(ev.crit ? 'crit' : 'hit', { pitch: ev.boss ? 0.8 : 1 }); hitStop(now, ev.crit ? FEEL.critStopMs : FEEL.hitStopMs); break;
             case 'damage': afx.spawn('damage', { x: ev.x, y: ev.y, amount: ev.amount, taken: !!ev.ally, ...(ev.crit ? { crit: true } : {}) }, now); break;
-            case 'windup': sfx(ev.boss ? 'bossWindup' : 'windup'); break;
+            case 'windup': sfx(ev.boss ? 'bossWindup' : 'windup'); tip('windup'); break;
             case 'swing': sfx('swing', { pitch: ev.shape && ev.shape.stepPx ? 0.8 : 1 }); break;
             case 'summon': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 12, damageType: 'shadow', life: Math.max(420, ev.ms || 0) }, now); break;   // the grave opens where it rises
             case 'crumble': afx.spawn('death', { x: ev.x, y: ev.y }, now); break;
@@ -2817,10 +3023,12 @@
                 break;
             case 'boss_intro': bossIntro(ev, now); break;
             case 'seal_open': sealFx = null; sfx('gateOpen'); if (ev.stale) toast('Nobody has landed a blow in a while. The way out opens.'); break;
-            case 'dodge': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
-            case 'parry': afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
-            case 'guard': afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
+            case 'dodge': tip('dodge'); afx.spawn('dodge', { x: ev.x, y: ev.y, angle: ev.angle, distance: ev.distance, facing: P.facing }, now); sfx('dodge'); break;
+            case 'parry': tip('parry'); afx.spawn('parry', { x: ev.x, y: ev.y - 8, shake: 2 }, now); sfx('parry'); hitStop(now, FEEL.parryStopMs); buzz(40); break;
+            case 'guard': tip('guard'); afx.spawn('guard', { x: ev.x, y: ev.y - 8, angle: P.angle }, now); sfx('guard'); break;
             case 'pickup': afx.spawn('pickup', { x: ev.x, y: ev.y }, now); sfx('pickup'); break;
+            case 'loot_pop': lootPops.set(`${ev.x},${ev.y}`, { at: now, fromX: ev.fromX, fromY: ev.fromY }); setTimeout(() => lootPops.delete(`${ev.x},${ev.y}`), LOOT_POP_MS + 50); break;
+            case 'decoy': afx.spawn('dodge', { x: ev.x, y: ev.y, angle: 0, distance: 0, facing: P.facing }, now); break;
             case 'aoe': if (lfx && ev.skill && (DATA.skillVfx || {})[ev.skill]) break;   // a legendary skill draws its own (ui/legend-fx.js)
                 afx.spawn('aoe', { x: ev.x, y: ev.y, radius: ev.radius, ...(ev.damageType ? { damageType: ev.damageType } : {}) }, now); break;
             case 'evade': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: ev.why === 'blind' ? 'MISS' : 'EVADE' }, now); break;   // Evasion, or a swing blinded by smoke
@@ -2829,9 +3037,9 @@
             case 'skill_fx': if (lfx) lfx.event(ev, now); break;   // a legendary skill's own look (ui/legend-fx.js)
             case 'player_hit': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'physical', shake: 2 }, now); sfx('hurt'); hitStop(now, FEEL.hurtStopMs); buzz(60); break;
             case 'perfect_dodge': afx.spawn('damage', { x: ev.x, y: ev.y - 20, text: 'DODGE' }, now); sfx('perfectDodge'); break;
-            case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: CONDITION_COLOUR[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
+            case 'condition': afx.spawn('damage', { x: ev.x, y: ev.y - 26, text: CONDITION_TEXT[ev.name] || String(ev.name || '').toUpperCase(), colour: (access.colourSafe ? AX.SAFE_CONDITIONS : CONDITION_COLOUR)[ev.name] || '#c060e0' }, now); break;   // an enemy's condition attack landed on you
             case 'stagger': afx.spawn('hit', { x: ev.x, y: ev.y - 8, damageType: 'true' }, now); sfx('stagger'); break;
-            case 'engage': notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); sfx('engage'); break;
+            case 'engage': tip('engage'); notice(`${ev.name || 'Enemies'}: they've seen you!`, 'quest'); sfx('engage'); break;
             case 'disengage': notice('They give up the chase.', 'quest'); break;
             case 'phase': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 24, damageType: 'shadow', shake: 3 }, now); sfx('phase'); buzz(80); notice(ev.text || 'The Warden changes his stance!', 'quest'); break;
             case 'resolve': afx.spawn('aoe', { x: ev.x, y: ev.y, radius: 20, damageType: 'holy', shake: 2 }, now); break;
@@ -2882,6 +3090,7 @@
                 if (angel) ENSO.gazeFx.playerHalo(g, Math.round(a.x), Math.round(a.y + (a.r || 5)) - 10, time);
                 const barY = visible ? visible.y - 4 : a.y - 18;
                 if (a.engaged && a.hp != null && a.state !== 'dead') AFX.enemyBar(g, Math.round(a.x), Math.round(barY), a.boss ? 26 : 16, a.hp, a.maxHp, { statuses: (a.statuses || []).map((s) => s.name), boss: a.boss, stunned: a.stunned });
+                if (a.elite && a.state !== 'dead') AFX.eliteTag(g, Math.round(a.x), Math.round(barY) - 7, a.elite.name, a.elite.color);   // a visible modifier (src/engine/wilds.js)
                 if (a.sid === lockId) AFX.targetRing(g, Math.round(a.x), Math.round(a.y + 4), 9, time);
             }
         })).concat((v.minions || []).map((m) => ({   // your summons: the same body art pipeline, an ally bar, rising out of the ground
@@ -2952,12 +3161,15 @@
         // Under the bodies: wind-up telegraphs and loot on the ground.
         renderer.addHook('ground', (g, ctx) => {
             if (!sim || screen === 'title') return;
+            // Loot pops out of the fallen and lands glinting in its rarity's colour (ui/action-fx.js lootDrop).
             for (const d of engine.getWorldDrops ? engine.getWorldDrops(session.mapId) : []) {
-                const bob = Math.round(Math.sin(ctx.time / 300 + d.x) * 1);
-                g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(Math.round(d.x) - 4, Math.round(d.y) + 2, 8, 2);
-                g.fillStyle = d.items.length ? '#c9a2ff' : '#e8c860'; g.fillRect(Math.round(d.x) - 3, Math.round(d.y) - 4 + bob, 6, 5);
-                g.fillStyle = '#fff6d0'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3 + bob, 2, 1);
+                const pop = lootPops.get(`${d.x},${d.y}`);
+                const hop = pop ? { k: (ctx.time - pop.at) / LOOT_POP_MS, fromX: pop.fromX, fromY: pop.fromY } : null;
+                AFX.lootDrop(g, { ...d, rarity: engine.dropRarity ? engine.dropRarity(d) : null }, ctx.time, hop);
             }
+            const dv = sim.view().decoy;   // Trickster's: the copy you left behind
+            if (dv) AFX.decoy(g, dv.x, dv.y, dv.leftMs, ctx.time);
+            for (const a of sim.view().actors) if (a.elite && a.state !== 'dead') AFX.eliteAura(g, a.x, a.y + (a.r || 5), a.r || 5, a.elite.color, ctx.time);
             for (const a of sim.view().actors) if (a.telegraph) for (const sh of a.telegraph.kind === 'multi' ? a.telegraph.shapes : [a.telegraph]) AFX.telegraph(g, sh, a.telegraph.progress, ctx.time, { boss: a.boss });
             for (const a of sim.view().actors) if (a.pull) drawPull(g, a, ctx.time);   // Lucifero's gravity: motes falling in toward him
             for (const a of sim.view().actors) if (a.resolve) AFX.resolveAura(g, a.x, a.y + (a.r || 5) - 2, a.r || 10, a.resolve, ctx.time);   // Guardian's Resolve
@@ -3049,6 +3261,8 @@
         if (r.type === 'talk') { seen.add(r.id); updateHud(); if (engine.getAvailableActions().awaiting === 'dialogue') openTalk(r.events); else showStory(null, r.events, r.title, afterStory, '…'); return; }
         if (r.type === 'message') {
             seen.add(r.id);
+            const obj = (session.map.interactables || []).find((o) => o.id === r.id);
+            if (obj && obj.wardrobe) { openWardrobe(); return; }
             showStory(r.text, r.events, r.title, afterStory);
             return;
         }
@@ -3069,18 +3283,53 @@
 
     /** A key held while focus moves (map -> battle, map -> dialog, menu -> map) must be released before it
      *  counts again, so walking into an enemy can't also scroll the battle menu, and so on. */
-    function muteHeldKeys() { held.length = 0; for (const k of down) stale.add(k); }
+    function muteHeldKeys() { held.length = 0; for (const k of down) stale.add(k); guardLatch = false; sprintLatch = false; }
+
+    // Rebinding (ui/access.js) and "press the new key": a capture listener that runs before the game's own. A key you
+    // rebound is sent on as the key the game listens for, so everything below (and touch and the pad, which already
+    // send game keys) sees one layout. Only real key presses in play are translated; menus keep their keys.
+    const sent = new Map();   // physical key -> the game key its keydown sent (its keyup sends the same)
+    window.addEventListener('keydown', (ev) => {
+        if (!ev.isTrusted) return;
+        lastDevice = 'keys';
+        if (mm.capture && modal === 'pause') {
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            if (ev.repeat) return;
+            if (ev.key === 'Escape') finishCapture(null, true);
+            else if (mm.capture.kind === 'keys') finishCapture(ev.key, false);
+            return;
+        }
+        const k = AX.norm(ev.key);
+        if (sent.has(k) && !ev.repeat) sent.delete(k);
+        const play = screen === 'explore' && !modal;
+        if (!play || !(k in keyTable)) return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        const to = keyTable[k];
+        sent.set(k, to);
+        if (to != null) window.dispatchEvent(new KeyboardEvent('keydown', { key: to, repeat: ev.repeat, shiftKey: to === 'Shift' || ev.shiftKey, bubbles: true }));
+    }, true);
+    window.addEventListener('keyup', (ev) => {
+        if (!ev.isTrusted) return;
+        const k = AX.norm(ev.key);
+        if (!sent.has(k)) return;
+        const to = sent.get(k);
+        sent.delete(k);
+        ev.stopImmediatePropagation();
+        if (to != null) window.dispatchEvent(new KeyboardEvent('keyup', { key: to, bubbles: true }));
+    }, true);
+    window.addEventListener('mousedown', (ev) => { if (ev.isTrusted) lastDevice = 'keys'; }, true);
 
     window.addEventListener('keydown', (ev) => {
         const dir = KEY_DIRS[ev.key];
         if (dir || isAct(ev) || ev.key === 'Escape') ev.preventDefault();
         if (stale.has(ev.key)) return;
         down.add(ev.key);
-        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk') {
+        if (screen === 'title' || screen === 'combat' || screen === 'over' || modal === 'pause' || modal === 'branch' || modal === 'talk' || modal === 'creator') {
             if ((screen === 'combat' || screen === 'over') && battle && (ev.key === 'l' || ev.key === 'L') && !ev.repeat) { toggleBattleLog(); return; }
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
             if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
+            if (modal === 'pause' && (ev.key === 'm' || ev.key === 'M') && !ev.shiftKey && !ev.repeat && mmTabs[mm.tab] && mmTabs[mm.tab].id === 'map') { closePause(); return; }   // M closes the map it opened
             if (modal === 'pause' && menu && /^(q|Q|r|R|Tab)$/.test(ev.key) && !ev.repeat) { ev.preventDefault(); switchTab(mm.tab + (ev.key === 'q' || ev.key === 'Q' || (ev.key === 'Tab' && ev.shiftKey) ? -1 : 1), mm.focus === 'list'); return; }
             if (modal === 'pause' && menu && dir && mainMenuNav(ev, dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
@@ -3100,7 +3349,9 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
-        if (SFX && (ev.key === 'm' || ev.key === 'M') && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (M).' : 'Sound on (M).'); return; }
+        // M: the world map (2026-11-25). Shift+M mutes (it was M before the map; Settings has the sound too).
+        if (SFX && (ev.key === 'm' || ev.key === 'M') && ev.shiftKey && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (Shift+M).' : 'Sound on (Shift+M).'); return; }
+        if ((ev.key === 'm' || ev.key === 'M') && !ev.repeat && !fade && !anim && !flash && !feathering) { openMap(); return; }
         if (devMode && ev.key === '`' && !ev.repeat && !fade && !anim && !flash && !feathering) { openPause(null, 'cheats'); return; }   // dev cheats (devMode)
         if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
@@ -3180,16 +3431,168 @@
         if (!barksOn.size) return;
         const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
         const W = g.canvas.width, H = g.canvas.height;
-        for (const b of barksOn.values()) {
-            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 2 + ctx.oy;
+        for (const [id, b] of barksOn) {
+            const hx = Math.floor(b.o.x / k) * PT + 16 + ctx.ox, hy = Math.floor(b.o.y / k) * PT - 10 - (npcMarks.has(id) ? 14 : 0) + ctx.oy;   // above a "!" or "?
             b.el.style.left = `${(hx / W * 100).toFixed(2)}%`;
             b.el.style.top = `${(Math.max(14, hy) / H * 100).toFixed(2)}%`;
             b.el.hidden = false;
         }
     });
 
+    // ---------------------------------------------------------------------
+    // First-time tips (ui/tutor.js; Tokelo's pick 4): a small card over the game the first time something matters,
+    // naming the keys, controller buttons or touch controls you are using. Never pauses, never takes a key. Each shows
+    // once per browser; Settings turns them off or shows them again.
+    // ---------------------------------------------------------------------
+    const tutor = ENSO.tutor.create({ seen: ENSO.tutor.loadSeen(), enabled: () => access.tips });
+    let hudModel = null, tipShown = null, tipCheckAt = 0, tipEl = null;
+    function tip(name) { tutor.signal(name, performance.now()); }
+    function tutorFrame(now) {
+        if (screen === 'explore' && engine && now >= tipCheckAt) {
+            tipCheckAt = now + 400;
+            const p = engine.player;
+            const fighting = !!(hudModel && hudModel.inCombat);
+            if (ACTION && !modal && p && p.maxHp && p.hp > 0 && p.hp < p.maxHp * 0.4 && hudModel && hudModel.heal && hudModel.heal.enabled) tip('lowhp');
+            if (ACTION && fighting && hudModel && (hudModel.slots || []).some((x) => !x.empty)) tip('skillbar');
+            if (!fighting && !modal) { const w = engine.getSkillWeb ? engine.getSkillWeb() : null; if (w && w.points > 0) tip('points'); }
+        }
+        const cur = screen === 'explore' || screen === 'combat' ? tutor.tick(now) : null;
+        if (cur && (!tipShown || tipShown.tip !== cur.tip)) ENSO.tutor.saveSeen(tutor.seen);
+        if (cur === tipShown && !(cur && tipEl && tipEl.dataset.state !== cur.state)) return;
+        tipShown = cur;
+        if (!cur) { if (tipEl) tipEl.hidden = true; return; }
+        if (!tipEl) {
+            tipEl = document.createElement('aside');
+            tipEl.className = 'tip';
+            tipEl.setAttribute('role', 'status');
+            tipEl.setAttribute('aria-live', 'polite');
+            $('world-stage').appendChild(tipEl);
+            tipEl.addEventListener('click', (e) => {
+                const b = e.target.closest('button');
+                if (!b) return;
+                e.stopPropagation();
+                if (b.dataset.do === 'off') { setAccess({ ...access, tips: false }); toast('Tips off. Settings can turn them back on.'); }
+                tutor.dismiss(performance.now());
+            });
+            tipEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+        }
+        tipEl.dataset.state = cur.state;
+        tipEl.classList.toggle('done', cur.state === 'done');
+        tipEl.innerHTML = `<b class="tip-title">${cur.state === 'done' ? '✓' : '?'} ${esc(cur.tip.title)}</b><p>${esc(cur.tip.text(keyNames()))}</p>`
+            + (cur.state === 'done' ? '' : '<div class="tip-btns"><button type="button" data-do="ok">Got it</button><button type="button" data-do="off">Tips off</button></div>');
+        tipEl.hidden = false;
+        if (cur.state === 'show') sfx('quest');
+    }
+
+    // Screen shake (Settings → Screen shake, ui/access.js): the hits that ask for one ({ shake: px } in ui/action-fx.js)
+    // move the whole view a pixel or two, scaled by your setting. Off with reduced motion unless you turn it on.
+    let shaking = false;
+    function shakeView(now) {
+        const k = afx && screen === 'explore' ? AX.shakeScale(access, REDUCED) : 0;
+        const o = k ? afx.shakeOffset(now) : { x: 0, y: 0 };
+        const stage = canvas.parentElement;
+        if (!o.x && !o.y) { if (shaking) { stage.classList.remove('shaking'); shaking = false; } return; }
+        stage.style.setProperty('--shake', `translate(${(o.x * k / canvas.width * 100).toFixed(3)}%, ${(o.y * k / canvas.height * 100).toFixed(3)}%)`);
+        if (!shaking) stage.classList.add('shaking');
+        shaking = true;
+    }
+
+    /** Controller rebinding: wait until every button is let go (the A that chose the line), then take the next one. */
+    function padCapture() {
+        PAD.mute();
+        const held = ENSO.gamepad.heldButtons();
+        const c = mm.capture;
+        if (held == null) { if (!c.noPad) { c.noPad = true; mm.note = 'No controller found. Connect one and press a button, or Esc to cancel.'; renderMain(); } return; }
+        if (!c.armed) { if (!held.length) c.armed = true; return; }
+        if (!held.length) return;
+        const b = held[0];
+        c.armed = false;
+        if (b === ENSO.gamepad.BUTTONS.START) finishCapture(null, true);
+        else finishCapture(b, false);
+    }
+    // ---------------------------------------------------------------------
+    // Camera (Thorne, 2026-11-25): it eases after you instead of being nailed to you, and leans a little ahead of
+    // where you face (toward your lock-on target in a fight), so you see more of what is coming. A map change, a
+    // teleport or reduced motion snaps it. Presentation only: the renderer and aim read view.camX / camY.
+    // ---------------------------------------------------------------------
+    const CAM = { followMs: 110, leadTiles: 1.6, lockShare: 0.35, snapTiles: 6 };
+    const FACE_VEC = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], 'up-left': [-0.7071, -0.7071], 'up-right': [0.7071, -0.7071], 'down-left': [-0.7071, 0.7071], 'down-right': [0.7071, 0.7071] };
+    let camAt = 0, camMap = null, lead = { x: 0, y: 0 };
+    function cameraFollow(now) {
+        const dt = camAt ? Math.min(100, now - camAt) : 0;
+        camAt = now;
+        const map = WORLD.maps[view.mapId], T = (map && map.tileSize) || 32, k = 32 / T;   // tile units of this map
+        let tx = 0, ty = 0;
+        const lock = sim && lockId ? sim.actors.find((a) => a.sid === lockId && !a.dead) : null;
+        if (lock) { tx = (lock.x / T - 0.5 - view.x) * CAM.lockShare; ty = ((lock.y - T / 2 + 2) / T - view.y) * CAM.lockShare; }
+        else if (view.moving) { const f = FACE_VEC[view.facing8] || FACE_VEC[view.facing] || [0, 0]; tx = f[0] * CAM.leadTiles * k; ty = f[1] * CAM.leadTiles * k * 0.7; }
+        const ease = 1 - Math.exp(-dt / 400);                     // the lead itself drifts in slowly, so turning never jerks the view
+        lead.x += (tx - lead.x) * ease; lead.y += (ty - lead.y) * ease;
+        const goalX = view.x + lead.x, goalY = view.y + lead.y;
+        const far = view.camX == null || Math.hypot(goalX - view.camX, goalY - view.camY) > CAM.snapTiles * k;
+        if (REDUCED || far || camMap !== view.mapId || screen !== 'explore' || fade) { view.camX = REDUCED ? view.x : goalX; view.camY = REDUCED ? view.y : goalY; if (REDUCED || camMap !== view.mapId) lead = { x: 0, y: 0 }; camMap = view.mapId; return; }
+        const f = 1 - Math.exp(-dt / CAM.followMs);
+        view.camX += (goalX - view.camX) * f; view.camY += (goalY - view.camY) * f;
+    }
+
+    // ---------------------------------------------------------------------
+    // "!" and "?" over people (Hawk, 2026-11-25): ! = talking to them now offers a quest you haven't started,
+    // ? = an active quest wants you to talk to them (engine.npcMarker, pure). Checked twice a second, not every frame.
+    // ---------------------------------------------------------------------
+    const npcMarks = new Map();
+    let marksAt = 0, marksMap = null;
+    function refreshMarks(now, objects) {
+        if (now - marksAt < 500 && marksMap === view.mapId) return;
+        marksAt = now; marksMap = view.mapId;
+        npcMarks.clear();
+        if (!engine || !engine.npcMarker) return;
+        for (const o of objects) if (o.kind === 'npc') { const m = engine.npcMarker(o.npc); if (m) npcMarks.set(o.id, { o, mark: m }); }
+    }
+    renderer.addHook('foreground', (g, ctx) => {
+        if (screen !== 'explore' || !npcMarks.size) return;
+        const map = ctx.map, T = map.tileSize || 32, k = map.source32 ? 2 : 1, PT = T * k;
+        for (const { o, mark } of npcMarks.values()) {
+            const cx = Math.floor(o.x / k) * PT + 16, top = Math.floor(o.y / k) * PT - 22 + Math.round(REDUCED ? 0 : Math.sin(ctx.time / 260 + o.x) * 1.5);
+            const glyph = mark === '!' ? ['.##.', '.##.', '.##.', '.##.', '....', '.##.'] : ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'];
+            const w = glyph[0].length, x0 = cx - Math.floor(w / 2);
+            g.fillStyle = 'rgba(10,8,14,0.85)';   // a dark outline all round, so it reads on any roof, tree or head behind it
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') g.fillRect(x0 + x - 1, top + y - 1, 3, 3); }));
+            glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') { g.fillStyle = y === 0 ? '#fff6c8' : mark === '!' ? '#f0c040' : '#9fe8cf'; g.fillRect(x0 + x, top + y, 1, 1); } }));
+        }
+    });
+
+    // ---------------------------------------------------------------------
+    // The mirror (Tokelo, 2026-11-25): change your look after creation. A map object with `wardrobe: true` opens the
+    // creator's appearance editor over the game; Done keeps the new look (saved with the game), Cancel puts it back.
+    // ---------------------------------------------------------------------
+    function openWardrobe() {
+        const c = view.cosmetics || defaultCosmetics();
+        creator = { step: 'hairStyle', wardrobe: true, name: engine.player.name, cls: engine.player.className, look: engine.player.appearance || 0, facing: 'down', ...defaultCosmetics(), ...c };
+        modal = 'creator'; syncActionHudVisibility();
+        muteHeldKeys();
+        els.hud.hidden = true;
+        els.title.hidden = false;
+        sfx('open');
+        creatorStep('hairStyle');
+    }
+    function closeWardrobe(keep) {
+        if (keep) {
+            view.cosmetics = { ...cosmeticsFromCreator(), held: view.cosmetics && view.cosmetics.held };
+            if (creator.look !== (engine.player.appearance || 0)) engine.act({ type: 'set_identity', appearance: creator.look });
+            view.appearance = creator.look;
+            toast('You look yourself over. Good.');
+        }
+        creator = null; menu = null;
+        els.title.hidden = true; els.hud.hidden = false;
+        modal = null; syncActionHudVisibility();
+        muteHeldKeys();
+        updateHud();
+    }
+
     function frame(now) {
-        if (PAD) { const on = PAD.poll(); if (on && !padSeen) toast('Controller connected: A attack, B dodge, X interact, hold RT for skills.'); padSeen = on; }
+        if (modal === 'creator' && creator && creator.wardrobe && menu && CHOICES[creator.step] && creator[creator.step] !== menu.index) { creator[creator.step] = menu.index; renderTitle(); }   // arrows in the mirror
+        if (PAD && mm.capture && mm.capture.kind === 'pad' && modal === 'pause') padCapture();   // rebinding: the next button pressed
+        else if (PAD) { const on = PAD.poll(); if (on && !padSeen) { const k = AX.labels(access, 'pad'); toast(`Controller connected: ${k.attack} attack, ${k.dodge} dodge, ${k.interact} interact, hold RT for skills.`); } padSeen = on; }
         if (screen === 'title') {
             const sp = WORLD.maps[WORLD.start.map].spawns[WORLD.start.spawn];
             const cls = creator && creator.step === 'class' && menu ? classes[menu.index] : (creator ? creator.cls : classes[0]);
@@ -3246,7 +3649,11 @@
         }
         if (view.cosmetics) { const held = heldWeapon(); if (view.cosmetics.held !== held) view.cosmetics = { ...view.cosmetics, held }; }
         barkTick(now, objects);
+        refreshMarks(now, objects);
+        cameraFollow(now);
         renderer.draw({ ...view, battle, fade: Math.max(dim, view.fade) }, objects, now);
+        shakeView(now);
+        tutorFrame(now);
         requestAnimationFrame(frame);
     }
 
@@ -3285,7 +3692,9 @@
             }
             return null;
         },
-        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; }
+        state() { return { screen, modal, map: session && session.getState(), mode: engine && engine.mode, seed: engine && engine.seed }; },
+        /** Fire a first-time tip trigger or done event (ui/tutor.js), e.g. ensoDebug.tip('windup'). */
+        tip(name) { tip(name); return tutor.current; }
     };
 
     showTitle();

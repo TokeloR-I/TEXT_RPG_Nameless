@@ -269,6 +269,16 @@
                 { id: 'festival_thief', x: 22, y: 4, name: 'Broken Oath Thief', enemies: ['cult_acolyte', 'cult_zealot'], trigger: 'contact', sprite: 'cultists',
                     when: { quests: { 'C1-N03': 'active' }, flags: ['festival_pursue'] },
                     text: 'The thief has reached the north stair and found the orchard gate chained shut above it. A zealot turns to cover him, flail already swinging.' },
+                // The Tourney of Crowns (S03): three bouts in the lists by the stalls, each one after the last.
+                { id: 'tourney_bout_1', x: 25, y: 10, name: 'Lists: two squires', enemies: ['tourney_squire', 'tourney_squire'], trigger: 'contact', sprite: 'constables',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_entered'] },
+                    text: 'Two squires in borrowed tabards bang blunted swords on their shields. The crowd behind the rope starts to shout odds.' },
+                { id: 'tourney_bout_2', x: 27, y: 11, name: 'Lists: a hedge knight', enemies: ['tourney_knight'], trigger: 'contact', sprite: 'constables',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_bout_1'] },
+                    text: 'A hedge knight with a dented helm and a borrowed horse he has decided not to ride salutes you with his sword.' },
+                { id: 'tourney_bout_3', x: 27, y: 9, name: 'Sir Odo of the Two Crowns', enemies: ['tourney_champion'], trigger: 'contact', sprite: 'warden',
+                    when: { quests: { S03: 'active' }, flags: ['tourney_bout_2'] },
+                    text: 'Sir Odo of the Two Crowns walks into the lists like he owns them, which for two years he did. He lowers his visor, and the square goes quiet.' },
                 // Singing at the Mill (SF4): Old Hob and his drinking partner, under the falls, once you've heard them.
                 { id: 'mill_shade', x: 6, y: 4, name: 'Singing Shades', enemies: ['drunken_shade', 'drunken_shade'], trigger: 'contact', sprite: 'shade',
                     when: { quests: { SF4: 'active' }, flags: ['sf4_heard'] },
@@ -334,7 +344,8 @@
                 { x: 10, y: 18, radius: 1.4, color: 'rgba(255, 170, 80, 0.2)' }, { x: 19, y: 18, radius: 1.2, color: 'rgba(255, 170, 80, 0.2)' },
                 { x: 5, y: 13, radius: 1.3, color: 'rgba(255, 170, 80, 0.2)' }
             ],
-            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_church: { x: 15, y: 8, facing: 'down' } },
+            spawns: { from_village: { x: 16, y: 22, facing: 'up' }, from_church: { x: 15, y: 8, facing: 'down' },
+                flight_fountain: { x: 15, y: 13, facing: 'up' } },   // Black Flight arrival, below the garth fountain
             exits: [
                 { id: 'cloister_west', x: 16, y: 23, trigger: 'step', toMap: 'shamefield', toSpawn: 'from_cloister' },
                 // The abbey church's great door, under the rose window (Tokelo, 2026-11-04: the interior reference is the
@@ -697,7 +708,8 @@
             ],
             spawns: {
                 from_orchard: { x: 9, y: 20, facing: 'up' },
-                from_sanctuary: { x: 12, y: 1, facing: 'down' }
+                from_sanctuary: { x: 12, y: 1, facing: 'down' },
+                flight_perch: { x: 3, y: 12, facing: 'left' }      // Black Flight arrival, beside the crow perch
             },
             exits: [
                 { id: 'featherwatch_south', x: 9, y: 21, trigger: 'step', toMap: 'orchard', toSpawn: 'from_featherwatch' },
@@ -709,7 +721,7 @@
                     text: 'The last of the Broken Oath hold the foot of the climb. They have scraped their circle into the rock here too, and they will not let you step over it.' },
                 { id: 'featherwatch_crows', gate: true, x: 8, y: 9, name: 'Hex-Eyed Crows', enemies: ['carrion_crow', 'carrion_crow', 'carrion_crow'], trigger: 'contact', sprite: 'crows',
                     text: 'Three crows on the ledge, picking at something the cult left behind. Their eyes are the wrong red. They are not the Warden\'s birds any more.' },
-                { id: 'featherwatch_ghoul', gate: true, x: 12, y: 7, name: 'Ritual-Scarred Ghoul', enemies: ['shackled_ghoul_stronger'], trigger: 'contact', sprite: 'ghoul',
+                { id: 'featherwatch_ghoul', gate: true, respawn: false, x: 12, y: 7, name: 'Ritual-Scarred Ghoul', enemies: ['shackled_ghoul_stronger'], trigger: 'contact', sprite: 'ghoul',
                     text: 'A ghoul, scarred with ritual cuts, strains at a snapped chain in the narrow path. It got loose from somewhere above.' }
             ],
             interactables: [
@@ -843,7 +855,9 @@
             // Replaces the base house's bed and chest (same ids, same tiles): a safe home once the gate is mended.
             house: [
                 { id: 'house_bed', kind: 'station', station: 'home_bed', x: 17, y: 9, name: 'Made bed', verb: 'Use' },
-                { id: 'house_chest', kind: 'station', station: 'home_chest', x: 2, y: 9, name: 'Travelling chest', verb: 'Open' }
+                { id: 'house_chest', kind: 'station', station: 'home_chest', x: 2, y: 9, name: 'Travelling chest', verb: 'Open' },
+                // The mirror (Tokelo, 2026-11-25): change your look after creation (ui/world-ui.js openWardrobe).
+                { id: 'house_mirror', kind: 'inspect', x: 15, y: 8, name: 'Standing mirror', sprite: 'mirror', verb: 'Look in', wardrobe: true, text: 'A tall mirror in an oak frame, the glass still good.' }
             ],
             grounds: [
                 { id: 'grounds_foundation', kind: 'inspect', x: 11, y: 12, name: 'Old foundation stone',
