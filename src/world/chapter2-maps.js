@@ -823,7 +823,8 @@
                 from_birkholt: { x: 1, y: 12, facing: 'right' },
                 from_runadal: { x: 14, y: 1, facing: 'down' },
                 from_runadal_2: { x: 15, y: 1, facing: 'down' },
-                from_barrow: { x: 43, y: 5, facing: 'down' }
+                from_barrow: { x: 43, y: 5, facing: 'down' },
+                flight_hut: { x: 18, y: 25, facing: 'up' }         // Black Flight arrival, at the bloomers' hut
             },
             exits: [
                 { id: 'jarnmyr_south_road', x: 27, y: 35, trigger: 'step', toMap: 'hrafnholm', toSpawn: 'from_jarnmyr' },
@@ -1065,7 +1066,8 @@
             ],
             lights: [],
             spawns: {
-                from_jarnmyr: { x: 52, y: 15, facing: 'left' }
+                from_jarnmyr: { x: 52, y: 15, facing: 'left' },
+                flight_stones: { x: 31, y: 11, facing: 'up' }      // Black Flight arrival, at the standing stones
             },
             exits: [
                 { id: 'birkholt_east_boardwalk', x: 53, y: 15, trigger: 'step', toMap: 'jarnmyr', toSpawn: 'from_birkholt' }

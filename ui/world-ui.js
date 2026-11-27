@@ -1128,6 +1128,7 @@
         { id: 'web', label: 'Skill Web', sub: 'Spend points in your class web, and beyond its gateways.' },
         { id: 'union', label: 'Devil Union', sub: 'Choose the demon you merge with (U), and your Qliphoth Resonance.' },   // only with a contract
         { id: 'journal', label: 'Journal', sub: 'Your quests and what to do next.' },
+        { id: 'map', label: 'Map', sub: 'Where you have been, where you are, your tracked quests and Black Flight. M opens it.' },   // world map (2026-11-25)
         { id: 'crow', label: 'Crow', sub: 'Black Flight and the crow\'s counsel.' },     // only once the engine offers it
         { id: 'cheats', label: 'Cheats', sub: 'Dev cheats for testing powers. Not part of normal play.' },   // only in dev mode (see devMode below)
         { id: 'settings', label: 'Settings', sub: 'Display, controls, save files and this run.' },
@@ -1140,7 +1141,8 @@
         const crow = CV.crowView(engine.getAvailableActions()).any;     // the Crow tab exists once the seal is open
         const bar = engine.combatMode !== 'turn';
         const union = !!(engine.getUnion && engine.getUnion());
-        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
+        const map = !!(engine.getTravelState && engine.getTravelState() && WMV.view(WORLD, engine.getTravelState()).region);
+        return MM_TABS_ALL.filter((t) => (t.id !== 'crow' || crow) && (t.id !== 'map' || map) && (t.id !== 'skillbar' || bar) && (t.id !== 'cheats' || devMode) && (t.id !== 'union' || union));
     }
     function openPause(note, tabId) {
         sfx('open');
@@ -1154,7 +1156,7 @@
         if (want !== -1) enterList(tabId, 0);
     }
     function focusTabs() {
-        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null;
+        mm.focus = 'tabs'; mm.slot = null; mm.barSlot = null; mm.fly = null; mm.mapFly = null; mm.web = null; mm.webScreen = null; mm.cheat = null; mm.union = null;
         menu = makeMenu(mmTabs.map((t) => ({ label: t.label, sub: t.sub, action: () => runTab(t.id) })),
             { back: closePause, render: () => { if (mm.tab !== menu.index) mm.note = ''; mm.tab = menu.index; renderMain(); } });   // a note belongs to the tab it came from
         menu.index = mm.tab;
@@ -1205,7 +1207,7 @@
                 { label: `Motion: ${MOTION_LABELS[motionMode]}`, sub: MOTION_HELP[motionMode], action: again(() => { mm.note = cycleMotion(); }) }];
             if (SFX) {
                 const a = SFX.settings;
-                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
+                items.push({ label: `Sound: ${a.muted ? 'Muted' : pct(a.master)}`, sub: 'All game sound. Steps 0-100%; Shift+M mutes or unmutes at any time.', action: again(() => { const v = SFX.cycle('master'); if (v.muted && v.master) SFX.set('muted', false); mm.note = `Sound: ${pct(SFX.settings.master)}.`; SFX.start(); sfx('select'); }) });
                 items.push({ label: `Combat sounds: ${pct(a.sfx)}`, sub: 'Hits, dodges, parries, enemy wind-ups, level-ups and loot.', action: again(() => { mm.note = `Combat sounds: ${pct(SFX.cycle('sfx').sfx)}.`; sfx('hit'); }) });
                 items.push({ label: `Menu and voice sounds: ${pct(a.ui)}`, sub: 'Menu clicks and the soft blips while people talk.', action: again(() => { mm.note = `Menu and voice sounds: ${pct(SFX.cycle('ui').ui)}.`; sfx('select'); }) });
             }
@@ -1216,6 +1218,7 @@
             if (devMode) items.push({ label: 'Dev cheats: On', sub: 'Hide the Cheats tab again. What cheats already changed stays.', action: () => { setDevMode(false); mm.note = 'Dev cheats hidden. Tap the version 5 times to bring them back.'; refreshTabs('settings'); } });
         }
         if (id === 'cheats') items = cheatItems();
+        if (id === 'map') items = mapItems();
         if (id === 'crow' && mm.fly) {
             const f = mm.fly;
             items = [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and return there.', action: () => blackFlight(f) },
@@ -1233,11 +1236,73 @@
             : mm.barSlot != null ? () => { const i = mm.barSlot; mm.barSlot = null; enterList('skillbar', i); }
             : mm.web ? () => { mm.web = null; enterList('web', 0); }
             : mm.fly ? () => { mm.fly = null; enterList('crow', 0); }
+            : mm.mapFly ? () => { const a = mm.mapFly.area; mm.mapFly = null; enterList('map', mapIndexOf(a)); }
             : mm.union ? () => { const i = mm.union.row; mm.union = null; enterList('union', i); }
             : mm.cheat ? () => { const at = CHEAT_TOP.indexOf(mm.cheat.top || mm.cheat); mm.cheat = mm.cheat.top ? mm.cheat.top : null; enterList('cheats', mm.cheat ? 0 : Math.max(0, at)); } : null;
         menu = makeMenu(items, { back: slotBack || focusTabs, render: renderMain });
         if (at != null && at < items.length) menu.index = at;
         renderMain();
+    }
+    // ---- The world map (research round two, pick 3; docs/ui/WORLD_MAP.md) ----
+    // The places you have entered, region by region, drawn by ui/world-map-view.js from the engine's travel record.
+    // The list on the right is those places (and the other regions); Enter on a place with an attuned anchor asks
+    // to fly there, exactly as the Crow tab does. The engine still decides every flight (black_flight).
+    const WMV = ENSO.worldMapView;
+    function mapModel() {
+        const tracked = (engine.getState().story || {}).tracked || [];
+        // The world owns where you stand (session.mapId); the engine's record says where you have been.
+        const t = engine.getTravelState();
+        const v = WMV.view(WORLD, t && session ? { ...t, at: session.mapId } : t, engine.getAvailableActions(), tracked, mm.mapRegion);
+        if (v.region) mm.mapRegion = v.region.id;
+        return v;
+    }
+    function mapIndexOf(areaId) { return Math.max(0, WMV.places(mapModel()).findIndex((a) => a.id === areaId)); }
+    function openMap() {
+        if (!(engine.getTravelState && engine.getTravelState())) return;
+        mm.mapRegion = null; mm.mapFly = null;
+        openPause(null, 'map');
+        if (modal !== 'pause' || !mmTabs[mm.tab] || mmTabs[mm.tab].id !== 'map') return;
+        const here = mapModel().here;
+        if (here) enterList('map', mapIndexOf(here));
+    }
+    function mapItems() {
+        const v = mapModel();
+        if (mm.mapFly) {
+            const f = mm.mapFly;
+            const back = () => { mm.mapFly = null; enterList('map', mapIndexOf(f.area)); };
+            return [{ label: `Fly to ${f.name}`, sub: f.region || 'Dissolve into feathers and arrive there.', action: () => { mm.mapFly = null; blackFlight(f); } },
+                { label: 'Stay', sub: 'Back to the map.', action: back }];
+        }
+        const items = WMV.places(v).map((a) => {
+            const fly = a.anchors.find((n) => n.enabled);
+            const bits = [a.here ? 'You are here' : '', a.quests.length ? `Quest: ${a.quests.map((q) => q.title).join(', ')}` : '',
+                fly ? 'Black Flight' : a.here ? '' : (a.anchors.find((n) => n.attuned) || {}).why || ''].filter(Boolean);
+            return { label: `${a.here ? '◆ ' : ''}${a.name}`, sub: bits.join(' · '), area: a.id,
+                action: fly ? () => { mm.mapFly = { anchorId: fly.anchorId, name: fly.name, region: v.region.name, area: a.id }; enterList('map', 0); } : () => {} };
+        });
+        for (const r of v.regions) if (r.id !== v.region.id) items.push({ label: `${r.name} ›`, sub: r.here ? 'The region you are in.' : 'Show this region.', region: r.id,
+            action: () => { mm.mapRegion = r.id; mm.mapFly = null; enterList('map', 0); } });
+        return items;
+    }
+    function mapPage(inList) {
+        const v = mapModel();
+        if (!v.region) return '<p class="mm-dim">You have not been anywhere yet.</p>';
+        const hl = inList && menu.items[menu.index];
+        const sel = mm.mapFly ? mm.mapFly.area : hl && hl.area ? hl.area : v.here;
+        const a = v.region.areas.find((x) => x.id === sel && x.known);
+        const list = inList ? rowsHtml(menu, null, true) : rowsHtml({ items: mapItems(), index: -1 }, null, false);
+        let detail;
+        if (mm.mapFly) detail = `<p>${esc(CV.confirmText(mm.mapFly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`;
+        else if (hl && hl.region) detail = `<b class="cx-dname">${esc(hl.label.replace(/ ›$/, ''))}</b><p>${esc(hl.sub)}</p>`;
+        else if (a) {
+            const anchorLines = a.anchors.map((n) => `<li>${n.attuned ? '✦' : '◇'} ${esc(n.name)} <span class="mm-dim">· ${esc(n.attuned ? (n.enabled ? 'fly here' : n.why) : n.hint)}</span></li>`).join('');
+            detail = `<b class="cx-dname">${esc(a.name)}</b><span class="cx-dkind">${esc(v.region.name)}${a.here ? ' · you are here' : ''}</span>
+                ${a.quests.map((q) => `<p class="j-obj">◆ ${esc(q.title)}: ${esc(q.text)}</p>`).join('')}
+                ${anchorLines ? `<h3>Black Flight</h3><ul class="mm-plain">${anchorLines}</ul>` : ''}
+                ${inList && hl && hl.area === a.id && a.anchors.some((n) => n.enabled) ? `<button type="button" class="cx-btn cx-do">Fly here</button>` : ''}`;
+        } else detail = `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>`;
+        const right = mm.mapFly ? detail : `${detail}<h3>Places</h3>${list}`;
+        return `<div class="cx-cols cx-split cx-map">${pane(esc(v.region.name), `${WMV.svg(v.region, sel)}<p class="wm-key mm-dim">◆ ring: you · ✦ feather: Black Flight anchor · flag: tracked quest · ? unexplored</p>`, 'wm-pane')}${pane('', right, 'cx-detail')}</div>`;
     }
     /** Devil Union (src/engine/union.js; Tokelo 2026-11-18: "doesn't even allow the player to select a demon"): every
      *  demon, the ones you hold a contract with to choose and merge with now (in a fight or out of one), then the two
@@ -1613,7 +1678,7 @@
             : `<p class="mm-dim">${esc(mmTabs[mm.tab].sub)}</p>${extra}<p class="mm-dim cx-hint">Press Enter or tap a line.</p>`;
         return `<div class="cx-cols cx-split">${pane('', leftHtml)}${pane('', right, 'cx-detail')}</div>`;
     }
-    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
+    const TAB_SHORT = { status: 'Hero', items: 'Bag', equipment: 'Gear', skillbar: 'Bar', web: 'Skills', union: 'Union', journal: 'Quests', map: 'Map', crow: 'Crow', cheats: 'Cheats', settings: 'Options', save: 'Save', quit: 'Quit' };
     /** The header and tab strip, shared by every page and the Skill Web screen. */
     function shellTop(activeTab, tabsFocused) {
         const p = engine.getState().player;
@@ -1672,10 +1737,11 @@
         if (tab === 'web') page = skillWebPage(inList);
         if (tab === 'skillbar') page = skillbarHtml(inList);
         if (tab === 'settings') {
-            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>M</kbd> mute · <kbd>Esc</kbd> this menu</li><li>Controller: stick move · A attack · B dodge · X interact · Y heal · LB guard · RB lock on · LT sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
+            const controls = `<h3>Controls</h3><ul class="mm-plain cx-controls">${engine.combatMode === 'action' ? '<li><kbd>WASD</kbd> move and face (8 ways) · click aims · keyboard attacks face forward · <kbd>Shift</kbd> sprint</li><li>Click or <kbd>1</kbd> attack · <kbd>2</kbd>–<kbd>6</kbd> <kbd>R</kbd> skills</li><li><kbd>Space</kbd> dodge · right-click or <kbd>Q</kbd> guard (press just before a hit to parry)</li><li><kbd>Tab</kbd> lock on · <kbd>E</kbd> inspect, talk, pick up · <kbd>H</kbd> quick heal · <kbd>M</kbd> map · <kbd>Shift</kbd>+<kbd>M</kbd> mute · <kbd>Esc</kbd> this menu</li><li>Controller: stick move · A attack · B dodge · X interact · Y heal · LB guard · RB lock on · LT sprint · hold RT + A/B/X/Y/RB/LB for skills · Start menu</li><li>Enemies fight you where they stand: no battle screen. Running will not shake them; leave the map with none of them on you to get away.</li>' : '<li><kbd>Arrows</kbd> or <kbd>WASD</kbd> walk, choose</li><li><kbd>E</kbd> <kbd>Enter</kbd> <kbd>Space</kbd> inspect, talk, confirm</li><li><kbd>Esc</kbd> this menu, back</li><li><kbd>L</kbd> battle log · walk into an enemy to fight it</li>'}${engine.combatMode === 'realtime' ? '<li>In a fight: <kbd>1</kbd>–<kbd>6</kbd> skills <kbd>F</kbd> basic attack <kbd>Tab</kbd> next target <kbd>I</kbd> items <kbd>H</kbd> quick heal <kbd>Esc</kbd> pause</li>' : ''}<li>In this menu: <kbd>Q</kbd> <kbd>R</kbd> or <kbd>Tab</kbd> change tabs</li></ul>
                 <h3>This run</h3><p class="mm-dim">Seed ${engine.seed}. To replay it, open <code>world.html?seed=${engine.seed}</code> and make the same moves.</p>`;
             page = listPage(`<h3>Display, motion and sound</h3>${inList ? list : `<p>Display: ${esc(ENSO.display.LABELS[displayMode])}</p><p>Motion: ${esc(MOTION_LABELS[motionMode])}</p>${SFX ? `<p>Sound: ${SFX.settings.muted ? 'Muted' : pct(SFX.settings.master)}</p>` : ''}<p>Graphics: ${gfxQuality() === 'low' ? 'Low' : 'High'}</p>`}`, inList, controls);
         }
+        if (tab === 'map') page = mapPage(inList);
         if (tab === 'crow') {
             const v = CV.crowView(engine.getAvailableActions());
             page = listPage(mm.fly ? `<p>${esc(CV.confirmText(mm.fly))}</p>${list}<p class="mm-dim">You arrive at a safe spot, as if you had walked there.</p>`
@@ -1710,6 +1776,10 @@
         if (!inList) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = null; enterList('equipment', +li.dataset.i); }));
         if (inList && tab === 'equipment' && mm.slot) pageEl.querySelectorAll('.cx-doll li').forEach((li) => li.addEventListener('click', () => { mm.slot = li.dataset.slot; enterList('equipment', 0); }));
         if (inList && tab === 'skillbar' && mm.barSlot != null) pageEl.querySelectorAll('.cx-keys li').forEach((li) => li.addEventListener('click', () => { mm.barSlot = +li.dataset.i; enterList('skillbar', 0); }));
+        if (tab === 'map') pageEl.querySelectorAll('.wm-area.known').forEach((g) => g.addEventListener('click', () => {
+            const i = mapIndexOf(g.dataset.area);
+            if (inList && !mm.mapFly && menu.index === i) { const it = menu.items[i]; if (it && !it.disabled) it.action(); } else { mm.mapFly = null; enterList('map', i); }
+        }));
         const doBtn = pageEl.querySelector('.cx-do');
         if (doBtn) doBtn.addEventListener('click', () => {
             if (tab === 'save' || tab === 'quit') { runTab(tab); return; }
@@ -2993,6 +3063,7 @@
             if (screen === 'combat' && isRealtime() && ev.key === 'Tab') ev.preventDefault();   // Tab cycles targets, never the page focus
             if (screen === 'combat' && isRealtime() && !battle.ended && !battle.rt.paused && !menu && engine.mode === 'combat') { rtKey(ev); return; }
             if (modal === 'pause' && mm.webScreen) { webKey(ev, dir); return; }
+            if (modal === 'pause' && (ev.key === 'm' || ev.key === 'M') && !ev.shiftKey && !ev.repeat && mmTabs[mm.tab] && mmTabs[mm.tab].id === 'map') { closePause(); return; }   // M closes the map it opened
             if (modal === 'pause' && menu && /^(q|Q|r|R|Tab)$/.test(ev.key) && !ev.repeat) { ev.preventDefault(); switchTab(mm.tab + (ev.key === 'q' || ev.key === 'Q' || (ev.key === 'Tab' && ev.shiftKey) ? -1 : 1), mm.focus === 'list'); return; }
             if (modal === 'pause' && menu && dir && mainMenuNav(ev, dir)) return;
             if (modal === 'pause' && (ev.key === 'PageDown' || ev.key === 'PageUp')) { const pg = els.pause.querySelector('.mm-page'); if (pg) pg.scrollTop += (ev.key === 'PageDown' ? 1 : -1) * pg.clientHeight * 0.8; return; }
@@ -3012,7 +3083,9 @@
             if (!ev.repeat && !held.includes(dir)) held.push(dir);
             return;
         }
-        if (SFX && (ev.key === 'm' || ev.key === 'M') && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (M).' : 'Sound on (M).'); return; }
+        // M: the world map (2026-11-25). Shift+M mutes (it was M before the map; Settings has the sound too).
+        if (SFX && (ev.key === 'm' || ev.key === 'M') && ev.shiftKey && !ev.repeat) { const v = SFX.toggleMute(); toast(v.muted ? 'Sound muted (Shift+M).' : 'Sound on (Shift+M).'); return; }
+        if ((ev.key === 'm' || ev.key === 'M') && !ev.repeat && !fade && !anim && !flash && !feathering) { openMap(); return; }
         if (devMode && ev.key === '`' && !ev.repeat && !fade && !anim && !flash && !feathering) { openPause(null, 'cheats'); return; }   // dev cheats (devMode)
         if (ACTION && actionKey(ev)) return;
         if (ev.repeat || fade || anim || flash || feathering) return;
